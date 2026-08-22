@@ -1,6 +1,8 @@
 package com.xiongx9527.fw.plus.tinyengine.support.auth;
 
-public class TinyEngineUnsupportedCapabilityException extends RuntimeException {
+import com.xiongx9527.fw.plus.common.exception.BizException;
+
+public class TinyEngineUnsupportedCapabilityException extends BizException {
 
 	public TinyEngineUnsupportedCapabilityException(String message) {
 		super(message);

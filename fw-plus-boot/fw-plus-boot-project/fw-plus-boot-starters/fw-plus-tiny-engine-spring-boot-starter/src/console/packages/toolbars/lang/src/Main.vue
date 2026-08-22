@@ -1,6 +1,6 @@
 <template>
   <toolbar-base
-    content="中英文切换"
+    :content="toolbarTitle"
     :icon="options.icon.default || options.icon"
     :options="options"
     @click-api="changeLang"
@@ -10,13 +10,37 @@
 
 <script lang="ts">
 /* metaService: engine.toolbars.lang.Main */
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useBroadcastChannel } from '@vueuse/core'
 import { ToolbarBase } from '@opentiny/tiny-engine-common'
+import { applyLocaleToI18n, getInitialLocale } from '@opentiny/tiny-engine-common/js/i18n'
 
 import { constants } from '@opentiny/tiny-engine-utils'
 
 const { BROADCAST_CHANNEL } = constants
+const TINY_ENGINE_LOCALE_CHANGE = 'tiny-engine:locale-change'
+
+const postLocaleMessage = (channel, value) => {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  const message = {
+    type: TINY_ENGINE_LOCALE_CHANGE,
+    channel,
+    value
+  }
+
+  window.postMessage(message, window.location.origin)
+
+  if (window.parent && window.parent !== window) {
+    window.parent.postMessage(message, window.location.origin)
+  }
+
+  Array.from(document.querySelectorAll('iframe')).forEach((iframe) => {
+    iframe.contentWindow?.postMessage(message, '*')
+  })
+}
 
 export default {
   components: {
@@ -33,11 +57,16 @@ export default {
     }
   },
   setup(props) {
-    const langVal = ref('zh_CN')
+    const langVal = ref(getInitialLocale())
     const { post, data } = useBroadcastChannel({ name: props.langChannel })
 
+    const applyLang = (value) => {
+      langVal.value = applyLocaleToI18n(value)
+      return langVal.value
+    }
+
     watch(data, () => {
-      langVal.value = data.value
+      applyLang(data.value)
     })
 
     const langOptions = [
@@ -50,13 +79,18 @@ export default {
         label: 'English'
       }
     ]
+    const toolbarTitle = computed(() => (langVal.value === langOptions[0].value ? '中英文切换' : 'Switch language'))
+
     const changeLang = () => {
-      langVal.value = langVal.value === langOptions[0].value ? langOptions[1].value : langOptions[0].value
+      const nextLocale = langVal.value === langOptions[0].value ? langOptions[1].value : langOptions[0].value
+      applyLang(nextLocale)
       post(langVal.value)
+      postLocaleMessage(props.langChannel, langVal.value)
     }
     return {
       langOptions,
       langVal,
+      toolbarTitle,
       changeLang
     }
   }

@@ -33,7 +33,7 @@ import java.util.Map;
  * @author lu -yg
  * @since 2024-10-17
  */
-@TableName(value = "t_block_history", autoResultMap = true)
+@TableName(value = "t_block_history", resultMap = "BlockHistoryMap", autoResultMap = true)
 public class BlockHistory extends HistoryEntity {
 @TableId(value = "id", type = IdType.AUTO)
     private Integer id;

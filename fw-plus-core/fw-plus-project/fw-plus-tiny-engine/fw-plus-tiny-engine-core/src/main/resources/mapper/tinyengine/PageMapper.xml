@@ -234,7 +234,7 @@
         U.last_updated_time AS userLastUpdatedTime,
         U.is_admin
         FROM t_page P
-        LEFT JOIN t_user U ON P.occupier_by = U.id
+        LEFT JOIN t_user U ON P.occupier_by = CONCAT(U.id, '')
         <where>
             P.id = #{id}
         </where>
@@ -271,7 +271,7 @@
         U.last_updated_time AS userLastUpdatedTime,
         U.is_admin
         FROM t_page P
-        LEFT JOIN t_user U ON P.occupier_by = U.id
+        LEFT JOIN t_user U ON P.occupier_by = CONCAT(U.id, '')
         <where>
             <if test="appId != null">
                 AND P.app_id = #{appId}
@@ -308,6 +308,14 @@
 		SET occupier_by = #{occupierBy}
 		WHERE id = #{id}
 		  AND (occupier_by IS NULL OR occupier_by = #{userId})
+	</update>
+
+	<update id="updatePageHistoryPointer">
+		UPDATE t_page
+		SET latest_version = #{latestVersion},
+			latest_history_id = #{latestHistoryId}
+		WHERE id = #{id}
+		  AND (tenant_id = #{tenantId} OR tenant_id IS NULL)
 	</update>
 
     <!-- 新增表t_page数据 -->

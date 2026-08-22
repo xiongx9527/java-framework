@@ -200,3 +200,15 @@ export const writeFiles = async (
 
   await Promise.all(filesInfo.map((fileInfo) => writeFile(directoryHandle, fileInfo)))
 }
+
+export const writeFilesAsZip = async (
+  filesInfo: Array<any>,
+  zipName = 'tiny-engine-generate-code',
+  zipHandle?: any
+) => {
+  if (!filesInfo?.length) {
+    return
+  }
+
+  await writeZip(filesInfo, { zipName, zipHandle })
+}

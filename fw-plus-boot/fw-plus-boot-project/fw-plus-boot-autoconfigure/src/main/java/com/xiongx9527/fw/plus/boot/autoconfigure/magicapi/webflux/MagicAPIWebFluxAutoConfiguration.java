@@ -5,7 +5,12 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.controller.webflux.Mag
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.options.MagicJdbcClassOptionProperties;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.options.MagicJdbcClassOptionProvider;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.service.DataSourceBuilder;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.service.ManagedMagicDynamicDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.service.MyDataSourceMagicDynamicRegistry;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.starter.MagicAPIJavaEntityConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.MagicDataSourceDecorator;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.starter.MagicAPIDbTxConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.seata.starter.MagicAPISeataConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.ResultProvider;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.resource.MyDefaultMagicResourceService;
 import org.springframework.beans.factory.ObjectProvider;
@@ -19,6 +24,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.web.reactive.config.ResourceHandlerRegistry;
 import org.springframework.web.reactive.config.WebFluxConfigurer;
@@ -58,6 +64,8 @@ import java.util.Map;
 @ConditionalOnProperty(prefix = "fw.plus.magicapi", name = "enabled", havingValue = "true", matchIfMissing = true)
 @ConditionalOnClass(name = "org.ssssssss.magicapi.spring.boot.starter.MagicAPIAutoConfiguration")
 @EnableConfigurationProperties({MagicAPIProperties.class, MagicJdbcClassOptionProperties.class})
+@Import({MagicAPIDbTxConfiguration.class, MagicAPISeataConfiguration.class,
+        MagicAPIJavaEntityConfiguration.class})
 public class MagicAPIWebFluxAutoConfiguration implements WebFluxConfigurer {
 
     private final MagicAPIProperties properties;
@@ -123,7 +131,7 @@ public class MagicAPIWebFluxAutoConfiguration implements WebFluxConfigurer {
     @Bean
     @ConditionalOnMissingBean
     public MagicDynamicDataSource magicDynamicDataSource() {
-        return new MagicDynamicDataSource();
+        return new ManagedMagicDynamicDataSource();
     }
 
     @Bean
@@ -131,12 +139,13 @@ public class MagicAPIWebFluxAutoConfiguration implements WebFluxConfigurer {
     public DataSourceMagicDynamicRegistry dataSourceMagicDynamicRegistry(
             DataSourceInfoMagicResourceStorage magicResourceStorage,
             MagicDynamicDataSource magicDynamicDataSource,
-            Map<String, DataSourceBuilder> dataSourceBuilderMap) {
+            Map<String, DataSourceBuilder> dataSourceBuilderMap,
+            List<MagicDataSourceDecorator> dataSourceDecorators) {
         for (String className : MyDataSourceMagicDynamicRegistry.DATA_SOURCE_TYPE_NAMES) {
             try {
                 Class.forName(className);
                 return new MyDataSourceMagicDynamicRegistry(magicResourceStorage, magicDynamicDataSource,
-                        dataSourceBuilderMap);
+                        dataSourceBuilderMap, dataSourceDecorators);
             } catch (ClassNotFoundException ignored) {
             }
         }

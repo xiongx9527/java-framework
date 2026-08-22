@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -80,6 +81,24 @@ public class DefaultEmbeddingStoreFactoryTest {
 
         assertTrue(exception.getMessage().contains("explicit id"));
         assertEquals(0, nativeStore.addWithIdCalls);
+    }
+
+    @Test
+    public void shouldRejectFiltersUnsupportedByLangChain4jStore() {
+        FakeEmbeddingStore nativeStore = new FakeEmbeddingStore();
+        AiEmbeddingStoreAdapter adapter = new DefaultEmbeddingStoreFactory(
+                Collections.<EmbeddingStoreProviderAdapter>singletonList(new FakeAdapter("milvus", nativeStore)));
+        AiEmbeddingStore store = adapter.create(neutralDefinition("knowledge", "milvus"));
+        AiEmbeddingQuery query = new AiEmbeddingQuery(new AiEmbeddingVector(new float[]{1.0f, 2.0f}),
+                3, 0.7, Collections.<String, Object>singletonMap("projectId", "project-1"));
+
+        AiEmbeddingStoreException exception = assertThrows(AiEmbeddingStoreException.class,
+                () -> store.search(query));
+
+        assertFalse(store.supportsFilters());
+        assertTrue(exception.getMessage().contains("filters"));
+        assertTrue(exception.getMessage().contains("knowledge"));
+        assertNull(nativeStore.searchRequest);
     }
 
     @Test

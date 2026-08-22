@@ -1,6 +1,8 @@
 package com.xiongx9527.fw.plus.dify.types;
 
-public class DifyClientException extends RuntimeException {
+import com.xiongx9527.fw.plus.common.exception.BizException;
+
+public class DifyClientException extends BizException {
     /**
      * Constructs a new runtime exception with {@code null} as its
      */

@@ -10,14 +10,18 @@ public final class AskDataModelResult {
 
 	private final String modelKey;
 	private final AskDataModelRoutePolicy routePolicy;
+	private final int candidateIndex;
+	private final String routeReason;
 	private final String errorCode;
 	private final String errorMessage;
 	private final boolean retryable;
 
-	private AskDataModelResult(String modelKey, AskDataModelRoutePolicy routePolicy, String errorCode,
-			String errorMessage, boolean retryable) {
+	private AskDataModelResult(String modelKey, AskDataModelRoutePolicy routePolicy, int candidateIndex,
+			String routeReason, String errorCode, String errorMessage, boolean retryable) {
 		this.modelKey = modelKey;
 		this.routePolicy = routePolicy;
+		this.candidateIndex = candidateIndex;
+		this.routeReason = routeReason;
 		this.errorCode = errorCode;
 		this.errorMessage = errorMessage;
 		this.retryable = retryable;
@@ -27,7 +31,16 @@ public final class AskDataModelResult {
 		if (modelKey == null || modelKey.length() == 0 || routePolicy == null) {
 			throw new IllegalArgumentException("modelKey 和 routePolicy 不能为空");
 		}
-		return new AskDataModelResult(modelKey, routePolicy, null, null, true);
+		return routed(modelKey, routePolicy, -1, routePolicy.name());
+	}
+
+	static AskDataModelResult routed(String modelKey, AskDataModelRoutePolicy routePolicy,
+			int candidateIndex, String routeReason) {
+		if (modelKey == null || modelKey.length() == 0 || routePolicy == null
+				|| routeReason == null || routeReason.length() == 0) {
+			throw new IllegalArgumentException("modelKey、routePolicy 和 routeReason 不能为空");
+		}
+		return new AskDataModelResult(modelKey, routePolicy, candidateIndex, routeReason, null, null, true);
 	}
 
 	/**
@@ -64,7 +77,8 @@ public final class AskDataModelResult {
 		if (routedResult == null || !routedResult.isRouted()) {
 			throw new IllegalArgumentException("routedResult 必须是已路由结果");
 		}
-		return failure(routedResult.getModelKey(), routedResult.getRoutePolicy(),
+		return failure(routedResult.getModelKey(), routedResult.getRoutePolicy(), routedResult.getCandidateIndex(),
+				routedResult.getRouteReason(),
 				"MODEL_INFRASTRUCTURE_FAILURE", message, true);
 	}
 
@@ -84,15 +98,16 @@ public final class AskDataModelResult {
 	}
 
 	private static AskDataModelResult failure(String modelKey, String errorCode, String message, boolean retryable) {
-		return failure(modelKey, null, errorCode, message, retryable);
+		return failure(modelKey, null, -1, null, errorCode, message, retryable);
 	}
 
-	private static AskDataModelResult failure(String modelKey, AskDataModelRoutePolicy routePolicy, String errorCode,
-			String message, boolean retryable) {
+	private static AskDataModelResult failure(String modelKey, AskDataModelRoutePolicy routePolicy,
+			int candidateIndex, String routeReason, String errorCode, String message, boolean retryable) {
 		if (modelKey == null || modelKey.length() == 0 || message == null || message.length() == 0) {
 			throw new IllegalArgumentException("modelKey 和 message 不能为空");
 		}
-		return new AskDataModelResult(modelKey, routePolicy, errorCode, message, retryable);
+		return new AskDataModelResult(modelKey, routePolicy, candidateIndex, routeReason,
+				errorCode, message, retryable);
 	}
 
 	public boolean isRouted() {
@@ -106,6 +121,10 @@ public final class AskDataModelResult {
 	public AskDataModelRoutePolicy getRoutePolicy() {
 		return routePolicy;
 	}
+
+	public int getCandidateIndex() { return candidateIndex; }
+
+	public String getRouteReason() { return routeReason; }
 
 	public String getErrorCode() {
 		return errorCode;

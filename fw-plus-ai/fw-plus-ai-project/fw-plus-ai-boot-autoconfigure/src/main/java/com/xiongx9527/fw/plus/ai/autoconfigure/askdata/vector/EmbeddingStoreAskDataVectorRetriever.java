@@ -27,6 +27,9 @@ public class EmbeddingStoreAskDataVectorRetriever implements AskDataVectorRetrie
         if (query == null || embeddingStore == null || embeddingModel == null || isBlank(query.getQuestion())) {
             return Collections.emptyList();
         }
+        if (!query.getFilters().isEmpty()) {
+            throw new IllegalStateException("LangChain4j EmbeddingStore 兼容适配器不支持 AskData 授权过滤");
+        }
         Embedding embedding = embeddingModel.embed(query.getQuestion()).content();
         if (embedding == null) {
             return Collections.emptyList();

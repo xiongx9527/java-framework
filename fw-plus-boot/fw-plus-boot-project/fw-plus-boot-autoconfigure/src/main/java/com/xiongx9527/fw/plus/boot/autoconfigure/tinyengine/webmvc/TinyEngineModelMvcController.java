@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("${fw.plus.tiny-engine.web.base-path:}")
 public class TinyEngineModelMvcController {
@@ -28,7 +30,7 @@ public class TinyEngineModelMvcController {
 		this.facade = facade;
 	}
 
-	@GetMapping("/material-center/api/model/list")
+	@GetMapping({"/material-center/api/model/list", "/material-center/api/model"})
 	public ResponseEntity<? extends Result<?>> models(@RequestParam(required = false) Integer currentPage,
 			@RequestParam(required = false) Integer pageSize, @RequestParam(required = false) String nameCn,
 			@RequestParam(required = false) String nameEn) {
@@ -138,6 +140,21 @@ public class TinyEngineModelMvcController {
 	public ResponseEntity<? extends Result<?>> createAppTemplate(@RequestBody App app) {
 		try {
 			return TinyEngineWebResponses.ok(facade.createAppTemplate(app));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@PostMapping("/app-center/api/app-template/set")
+	public ResponseEntity<? extends Result<?>> setAppTemplate(@RequestBody Map<String, Object> request) {
+		try {
+			Integer id = Integer.valueOf(String.valueOf(request.get("id")));
+			Boolean isTemplate = Boolean.valueOf(String.valueOf(request.get("isTemplate")));
+			String templateType = request.get("templateType") == null ? null : String.valueOf(request.get("templateType"));
+			Integer industryId = request.get("industryId") == null ? null : Integer.valueOf(String.valueOf(request.get("industryId")));
+			Integer sceneId = request.get("sceneId") == null ? null : Integer.valueOf(String.valueOf(request.get("sceneId")));
+			String framework = request.get("framework") == null ? null : String.valueOf(request.get("framework"));
+			return TinyEngineWebResponses.ok(facade.setAppTemplate(id, isTemplate, templateType, industryId, sceneId, framework));
 		} catch (Throwable ex) {
 			return TinyEngineWebResponses.error(ex);
 		}

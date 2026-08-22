@@ -25,6 +25,7 @@ public class SpringBoot3DependencyBaselineTest {
         assertProperty(coreBom(), "magic-script.version", "1.9.0");
         assertProperty(coreBom(), "mybatis-plus.version", "3.5.16");
         assertProperty(coreBom(), "langchain4j.version", "1.18.0");
+        assertProperty(coreBom(), "langchain4j-community.version", "1.18.0-beta28");
         assertProperty(aiBom(), "spring-ai.version", "1.0.1");
         assertProperty(aiBom(), "spring-ai-alibaba.version", "1.0.1");
         assertCoreLangChain4jManagement();
@@ -57,9 +58,10 @@ public class SpringBoot3DependencyBaselineTest {
             }
         }
         Map<String, String> expectedExceptions = new HashMap<>();
-        expectedExceptions.put("langchain4j-redis", "0.36.2");
-        expectedExceptions.put("langchain4j-qianfan", "0.36.2");
-        expectedExceptions.put("langchain4j-dashscope", "0.36.2");
+        expectedExceptions.put("langchain4j-community-redis", "${langchain4j-community.version}");
+        expectedExceptions.put("langchain4j-community-qianfan", "${langchain4j-community.version}");
+        expectedExceptions.put("langchain4j-community-dashscope", "${langchain4j-community.version}");
+        expectedExceptions.put("langchain4j-community-zhipu-ai", "${langchain4j-community.version}");
         assertEquals(expectedExceptions, managedArtifacts,
                 "Core BOM must keep LangChain4j version overrides centralized");
     }

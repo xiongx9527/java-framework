@@ -1,9 +1,18 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.askdata;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
+/**
+ * AskData Starter 的中立运行配置。
+ *
+ * <p>本对象只声明逻辑能力 key、执行预算和部署模式，不创建模型、Embedding、向量 Provider、凭据或共享存储。
+ * 业务必须通过中立注册表、Core SPI Bean 或版本化能力 Provider 显式提供对应实现。未知 key、重复能力或集群中选择
+ * 本地内存能力会在自动配置阶段失败，不能依赖 Bean 顺序或隐式厂商默认值消除歧义。</p>
+ *
+ * <p>配置对象由 Spring Boot 在启动线程绑定，运行期应视为只读；业务扩展不得借助配置绕过
+ * {@code projectId + operatorId} 隔离、治理授权、SQL 最终校验、租约、幂等或观测脱敏边界。</p>
+ */
 public class AskDataProperties {
 
     private boolean enabled = true;
@@ -87,23 +96,19 @@ public class AskDataProperties {
         /**
          * 默认模型提供方诊断标签，仅写入自动配置层的路由审计记录，不参与模型源或适配器选择，不能传递给 Core 路由 SPI。
          */
-        private String provider = "ollama";
-        /**
-         * 默认 Ollama 聊天模型的逻辑 key。逻辑 key 可由应用替换为任意已注册的 LangChain4j 模型。
-         */
-        private String defaultChatModel = "qwen3:32b";
-        /**
-         * 默认 Ollama 向量模型的逻辑 key。向量模型与聊天模型独立注册，避免错误复用聊天能力。
-         */
-        private String defaultEmbeddingModel = "bge-m3";
+        private String provider;
+        /** 默认聊天模型的中立逻辑 key；无默认值，由业务显式选择已注册模型。 */
+        private String defaultChatModel;
+        /** 默认 Embedding 模型的中立逻辑 key；无默认值，并与聊天模型独立注册。 */
+        private String defaultEmbeddingModel;
         /**
          * 聊天模型候选顺序，供上层将项目、数据源、任务级配置组装为 Core 路由请求时使用。
          */
-        private List<String> chatCandidates = new ArrayList<String>(Arrays.asList("qwen3:32b"));
+        private List<String> chatCandidates = new ArrayList<String>();
         /**
          * 向量模型候选顺序，供向量检索适配器选择已注册模型时使用。
          */
-        private List<String> embeddingCandidates = new ArrayList<String>(Arrays.asList("bge-m3"));
+        private List<String> embeddingCandidates = new ArrayList<String>();
         /**
          * 是否允许已分类的基础设施失败切换到 Core 路由器给出的下一个候选。
          */
@@ -112,6 +117,10 @@ public class AskDataProperties {
          * 适配层用于识别超时类基础设施故障的阈值，单位为毫秒；实际 HTTP 客户端仍应单独配置超时。
          */
         private Integer infrastructureFailureTimeoutMillis = 30000;
+        /**
+         * 传递给 Core Chat 模型的单次请求超时，单位为毫秒；小于等于 0 表示由模型适配器决定。
+         */
+        private Integer requestTimeoutMillis = 30000;
         /**
          * 单机进程内模型路由诊断快照的最大记录数。完整审计应由监控 SPI 持久化，不能依赖此内存快照。
          */
@@ -171,6 +180,14 @@ public class AskDataProperties {
 
         public void setInfrastructureFailureTimeoutMillis(Integer infrastructureFailureTimeoutMillis) {
             this.infrastructureFailureTimeoutMillis = infrastructureFailureTimeoutMillis;
+        }
+
+        public Integer getRequestTimeoutMillis() {
+            return requestTimeoutMillis;
+        }
+
+        public void setRequestTimeoutMillis(Integer requestTimeoutMillis) {
+            this.requestTimeoutMillis = requestTimeoutMillis;
         }
 
         public Integer getRouteAuditRecordCapacity() {
@@ -240,6 +257,9 @@ public class AskDataProperties {
     public static class Flow {
 
         private Integer defaultSubAgentTimeoutMillis = 30000;
+        private Integer multiQuestionMaxConcurrency = 4;
+        private Integer multiQuestionTimeoutMillis = 30000;
+        private String graphRuntime = "sequential";
 
         public Integer getDefaultSubAgentTimeoutMillis() {
             return defaultSubAgentTimeoutMillis;
@@ -248,6 +268,31 @@ public class AskDataProperties {
         public void setDefaultSubAgentTimeoutMillis(Integer defaultSubAgentTimeoutMillis) {
             this.defaultSubAgentTimeoutMillis = defaultSubAgentTimeoutMillis;
         }
+
+        public Integer getMultiQuestionMaxConcurrency() {
+            return multiQuestionMaxConcurrency;
+        }
+
+        public void setMultiQuestionMaxConcurrency(Integer multiQuestionMaxConcurrency) {
+            if (multiQuestionMaxConcurrency == null || multiQuestionMaxConcurrency.intValue() <= 0) {
+                throw new IllegalArgumentException("multiQuestionMaxConcurrency must be greater than zero");
+            }
+            this.multiQuestionMaxConcurrency = multiQuestionMaxConcurrency;
+        }
+
+        public Integer getMultiQuestionTimeoutMillis() {
+            return multiQuestionTimeoutMillis;
+        }
+
+        public void setMultiQuestionTimeoutMillis(Integer multiQuestionTimeoutMillis) {
+            if (multiQuestionTimeoutMillis == null || multiQuestionTimeoutMillis.intValue() <= 0) {
+                throw new IllegalArgumentException("multiQuestionTimeoutMillis must be greater than zero");
+            }
+            this.multiQuestionTimeoutMillis = multiQuestionTimeoutMillis;
+        }
+
+        public String getGraphRuntime() { return graphRuntime; }
+        public void setGraphRuntime(String graphRuntime) { this.graphRuntime = graphRuntime; }
     }
 
     public static class Conversation {
@@ -258,6 +303,8 @@ public class AskDataProperties {
          * 单个会话在默认内存恢复存储中保留的检查点数量；超过该数量时淘汰最早检查点及其恢复令牌。
          */
         private Integer maxCheckpointsPerConversation = 100;
+        /** 上下文压缩能力 key；deterministic 不调用模型。 */
+        private String compressor = "deterministic";
 
         public Integer getCompressionThresholdChars() {
             return compressionThresholdChars;
@@ -282,19 +329,31 @@ public class AskDataProperties {
         public void setMaxCheckpointsPerConversation(Integer maxCheckpointsPerConversation) {
             this.maxCheckpointsPerConversation = maxCheckpointsPerConversation;
         }
+
+        public String getCompressor() { return compressor; }
+        public void setCompressor(String compressor) { this.compressor = compressor; }
     }
 
     /**
      * AskData 状态存储部署配置。
      *
      * <p>默认 {@code memory} 只适用于单机临时状态。开启集群模式时，自动配置会在启动阶段拒绝该值，避免会话、恢复检查点、
-     * 智能体状态或审计日志被静默写入某一个节点的本地内存。JDBC、Redis 和自定义共享实现的具体装配将由后续适配层提供，
-     * 当前版本不会把它们伪装成可用实现。</p>
+     * 智能体状态或审计日志被静默写入某一个节点的本地内存。当前版本可将业务提供的唯一
+     * {@code AskDataJdbcStorageClient} 或 {@code AskDataRedisStorageClient} 组合为分类共享 Store；自定义实现也可通过
+     * Core Store SPI 或版本化 STORE 能力注册。Starter 不创建数据源、Redis 客户端、表结构或凭据。</p>
      */
     public static class State {
 
         private boolean clusterMode = false;
         private String store = "memory";
+        private String conversationStore = "memory";
+        private String checkpointStore = "memory";
+        private String agentStateStore = "memory";
+        private String leaseStore = "memory";
+        private String idempotencyStore = "memory";
+        private String auditStore = "memory";
+        private String monitoringStore = "memory";
+        private String longTermMemoryStore = "memory";
         /**
          * 单个项目与操作人范围内默认监控日志的最大保留数量。
          */
@@ -314,6 +373,25 @@ public class AskDataProperties {
 
         public void setStore(String store) {
             this.store = store;
+        }
+
+        public String getConversationStore() { return conversationStore; }
+        public void setConversationStore(String conversationStore) { this.conversationStore = conversationStore; }
+        public String getCheckpointStore() { return checkpointStore; }
+        public void setCheckpointStore(String checkpointStore) { this.checkpointStore = checkpointStore; }
+        public String getAgentStateStore() { return agentStateStore; }
+        public void setAgentStateStore(String agentStateStore) { this.agentStateStore = agentStateStore; }
+        public String getLeaseStore() { return leaseStore; }
+        public void setLeaseStore(String leaseStore) { this.leaseStore = leaseStore; }
+        public String getIdempotencyStore() { return idempotencyStore; }
+        public void setIdempotencyStore(String idempotencyStore) { this.idempotencyStore = idempotencyStore; }
+        public String getAuditStore() { return auditStore; }
+        public void setAuditStore(String auditStore) { this.auditStore = auditStore; }
+        public String getMonitoringStore() { return monitoringStore; }
+        public void setMonitoringStore(String monitoringStore) { this.monitoringStore = monitoringStore; }
+        public String getLongTermMemoryStore() { return longTermMemoryStore; }
+        public void setLongTermMemoryStore(String longTermMemoryStore) {
+            this.longTermMemoryStore = longTermMemoryStore;
         }
 
         public Integer getMonitoringLogCapacity() {

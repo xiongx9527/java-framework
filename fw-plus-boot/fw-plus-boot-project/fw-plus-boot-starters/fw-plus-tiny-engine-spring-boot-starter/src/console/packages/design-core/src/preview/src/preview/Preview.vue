@@ -52,7 +52,7 @@ export default {
 
     const store = useStore({
       builtinImportMap: currentImportMap,
-      showOutput: false,
+      showOutput: true,
       outputMode: 'preview',
       sfcOptions
     })
@@ -67,6 +67,44 @@ export default {
 
     const queryParams = new URLSearchParams(location.search)
     document.documentElement?.setAttribute?.('data-theme', queryParams.get('theme') || 'light')
+
+    const applyViewportFromQuery = () => {
+      const width = queryParams.get('width')
+      const minWidth = queryParams.get('minWidth')
+      const maxWidth = queryParams.get('maxWidth')
+      const height = queryParams.get('height')
+      const deviceType = queryParams.get('deviceType')
+      const previewContainer = document.getElementsByClassName('iframe-container')[0]
+      const app = document.getElementById('app')
+
+      if (!previewContainer) {
+        return
+      }
+
+      if (width) {
+        previewContainer.style.width = width
+        previewContainer.style.margin = 'auto'
+        if (app) {
+          app.style.overflow = 'hidden'
+        }
+      }
+
+      if (minWidth) {
+        previewContainer.style.minWidth = minWidth
+      }
+
+      if (maxWidth) {
+        previewContainer.style.maxWidth = maxWidth
+      }
+
+      if (height) {
+        previewContainer.style.height = height
+      }
+
+      if (deviceType) {
+        previewContainer.dataset.deviceType = deviceType
+      }
+    }
 
     const { loadInitialData, updateUrl, updatePreview } = usePreviewData({ setFiles, store, setImportMap })
 
@@ -90,7 +128,10 @@ export default {
 
     cleanupCommunicationAction = cleanupCommunication
 
-    onMounted(initCommunication)
+    onMounted(() => {
+      applyViewportFromQuery()
+      initCommunication()
+    })
     onBeforeUnmount(cleanupCommunication)
 
     return {

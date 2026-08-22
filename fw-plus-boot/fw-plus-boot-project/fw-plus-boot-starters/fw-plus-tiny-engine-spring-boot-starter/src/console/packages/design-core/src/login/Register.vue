@@ -3,7 +3,11 @@
     <div class="register-title">注册账号</div>
     <tiny-form :model="state.registerData">
       <tiny-form-item prop="username">
-        <tiny-input v-model="state.registerData.username" placeholder="请输入用户名"></tiny-input>
+        <tiny-input
+          v-model="state.registerData.username"
+          placeholder="请输入用户名"
+          @keyup.enter="handleRegister"
+        ></tiny-input>
       </tiny-form-item>
       <tiny-form-item prop="password">
         <tiny-tooltip v-model="state.pwManualShow" placement="bottom" effect="light" manual>
@@ -25,6 +29,7 @@
             type="password"
             show-password
             placeholder="请输入密码"
+            @keyup.enter="handleRegister"
           ></tiny-input>
         </tiny-tooltip>
       </tiny-form-item>
@@ -45,6 +50,7 @@
             type="password"
             show-password
             placeholder="请确认密码"
+            @keyup.enter="handleRegister"
           ></tiny-input>
         </tiny-tooltip>
       </tiny-form-item>
@@ -105,7 +111,7 @@ export default {
     }
 
     const handleRegister = () => {
-      if (state.pwManualShow) {
+      if (!isReady.value) {
         return
       }
 
@@ -124,7 +130,8 @@ export default {
           password: state.registerData.password
         })
         .then((data) => {
-          useLogin().userState.publicKey = data?.publicKey
+          const registerResult = data?.data || data
+          useLogin().userState.publicKey = registerResult?.publicKey || registerResult?.recoveryCode
 
           emit('changeStatus', useLogin().SUCCESS)
         })

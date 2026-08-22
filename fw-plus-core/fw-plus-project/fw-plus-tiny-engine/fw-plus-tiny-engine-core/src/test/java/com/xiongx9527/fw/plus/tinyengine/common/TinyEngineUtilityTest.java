@@ -8,6 +8,7 @@ import com.xiongx9527.fw.plus.tinyengine.common.util.TinyEngineFileSecurityUtils
 import com.xiongx9527.fw.plus.tinyengine.common.util.TinyEngineHashUtils;
 import com.xiongx9527.fw.plus.tinyengine.common.util.TinyEngineJsonUtils;
 import com.xiongx9527.fw.plus.tinyengine.common.util.TinyEngineSchemaUtils;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AppAiModelSettings;
 import org.apache.ibatis.type.JdbcType;
 import org.junit.jupiter.api.Test;
 
@@ -40,6 +41,24 @@ class TinyEngineUtilityTest {
 
 		assertEquals(object, TinyEngineJsonUtils.parseObject(TinyEngineJsonUtils.toJson(object)));
 		assertEquals(array, TinyEngineJsonUtils.parseArray(TinyEngineJsonUtils.toJson(array)));
+	}
+
+	@Test
+	void jsonUtilsShouldPreserveUnknownAiModelSettingsAsTopLevelProperties() {
+		AppAiModelSettings settings = new AppAiModelSettings();
+		settings.setDefaultModel("qwen-max");
+		settings.setAdditionalProperty("temperature", 0.7D);
+		Map<String, Object> extendConfig = new HashMap<String, Object>();
+		extendConfig.put("aiModelSettings", settings);
+
+		JSONObject persisted = TinyEngineJsonUtils.parseObject(TinyEngineJsonUtils.toJson(extendConfig));
+		JSONObject persistedSettings = persisted.getJSONObject("aiModelSettings");
+
+		assertEquals("qwen-max", persistedSettings.getString("defaultModel"));
+		assertEquals(0.7D, persistedSettings.getDoubleValue("temperature"), 0.0D);
+		assertFalse(persistedSettings.containsKey("additionalProperties"));
+		AppAiModelSettings restored = AppAiModelSettings.copyOf(persistedSettings);
+		assertEquals(0.7D, ((Number) restored.getAdditionalProperties().get("temperature")).doubleValue(), 0.0D);
 	}
 
 	@Test
@@ -95,6 +114,14 @@ class TinyEngineUtilityTest {
 	void fileSecurityUtilsShouldRejectPathTraversal() {
 		assertTrue(TinyEngineFileSecurityUtils.checkPathHasCrossDir("../secret.json"));
 		assertTrue(TinyEngineFileSecurityUtils.checkPathHasCrossDir("pages/../../secret.json"));
+		assertTrue(TinyEngineFileSecurityUtils.checkPathHasCrossDir("%2e%2e%2fsecret.json"));
+		assertTrue(TinyEngineFileSecurityUtils.checkPathHasCrossDir("%252e%252e%252fsecret.json"));
+		assertTrue(TinyEngineFileSecurityUtils.checkPathHasCrossDir("pages/%2E%2E/secret.json"));
+		assertTrue(TinyEngineFileSecurityUtils.checkPathHasCrossDir("pages%5c..%5csecret.json"));
+		assertTrue(TinyEngineFileSecurityUtils.checkPathHasCrossDir("/tmp/secret.json"));
+		assertTrue(TinyEngineFileSecurityUtils.checkPathHasCrossDir("C:\\temp\\secret.json"));
+		assertTrue(TinyEngineFileSecurityUtils.checkPathHasCrossDir("\\\\server\\share\\secret.json"));
+		assertTrue(TinyEngineFileSecurityUtils.checkPathHasCrossDir("safe/evil%00.png"));
 		assertFalse(TinyEngineFileSecurityUtils.checkPathHasCrossDir("pages/home.json"));
 		assertThrows(IllegalArgumentException.class, () -> TinyEngineFileSecurityUtils.validateRelativePath("../secret.json"));
 	}

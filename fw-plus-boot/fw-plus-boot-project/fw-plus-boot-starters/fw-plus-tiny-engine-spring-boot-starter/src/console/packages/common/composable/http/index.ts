@@ -104,8 +104,6 @@ const whiteList = [
   '/platform-center/api/user/me',
   '/platform-center/api/user/tenant'
 ]
-// 不鉴权名单
-const notAuthList = ['app-center/api/chat/completions', 'app-center/api/ai/chat', 'app-center/api/ai/search']
 const LoginErrorCode = ['CM004', 'CM005', 'CM006', 'CM007', 'CM336', 'CM339']
 
 // 新增：重置认证状态的函数
@@ -201,9 +199,7 @@ const requestHandler = (config) => {
     if (isUnauthorized) {
       resetAuthState()
     }
-    if (!notAuthList.some((url) => config.url.includes(url))) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
+    config.headers.Authorization = `Bearer ${token}`
   }
 
   // 请求结束时清理 AbortController
@@ -258,7 +254,18 @@ const responseErrorHandler = (error) => {
   if (response) {
     const { data } = response
 
-    if (data && data.code && LoginErrorCode.includes(data.code)) {
+    if (response.status === 401) {
+      toLogin()
+
+      return Promise.reject({
+        type: 'AUTH_ERROR',
+        code: data?.code || response.status,
+        message: data?.message || data?.error?.message || '认证失败，请重新登录',
+        skipShowError: true
+      })
+    }
+
+    if (data && data.code && (data.code === '401' || LoginErrorCode.includes(data.code))) {
       toLogin()
 
       return Promise.reject({

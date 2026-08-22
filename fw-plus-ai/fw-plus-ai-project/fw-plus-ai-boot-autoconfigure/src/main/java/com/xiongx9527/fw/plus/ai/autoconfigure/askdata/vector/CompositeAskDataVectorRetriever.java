@@ -39,7 +39,8 @@ public class CompositeAskDataVectorRetriever implements AskDataVectorRetriever {
         if (query == null || query.getTopK() > 0 || defaultTopK <= 0) {
             return query;
         }
-        return new AskDataVectorQuery(query.getRetrieveType(), query.getDatasourceKey(), query.getVectorStoreKey(),
-                query.getQuestion(), defaultTopK, query.getFilters());
+        return AskDataVectorQuery.withModelSelection(query.getProjectContext(), query.getModelSelection(),
+                query.getRetrieveType(), query.getDatasourceKey(), query.getVectorStoreKey(), query.getQuestion(),
+                defaultTopK, query.getFilters());
     }
 }

@@ -11,6 +11,7 @@ import com.xiongx9527.fw.plus.ai.model.AiModel;
 import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStore;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreRegistry;
+import com.xiongx9527.fw.plus.tinyengine.service.AppAiModelConfigService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.support.StaticListableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -51,6 +52,18 @@ public class TinyEngineAiAutoConfigurationTest {
 					assertTrue(context.getStartupFailure() == null);
 					assertTrue(context.getBeansOfType(TinyEngineAiChatService.class).size() == 1);
 					assertTrue(context.getBeansOfType(TinyEngineRagService.class).isEmpty());
+				});
+	}
+
+	@Test
+	public void shouldRegisterDefaultChatServiceWithApplicationModelConfigService() {
+		this.contextRunner
+				.withBean(TinyEngineAiProvider.class, TestBusinessProvider::new)
+				.withBean(AppAiModelConfigService.class, () -> org.mockito.Mockito.mock(AppAiModelConfigService.class))
+				.withPropertyValues("fw.plus.tiny-engine.ai.chat.enabled=true")
+				.run(context -> {
+					assertTrue(context.getStartupFailure() == null);
+					assertTrue(context.getBeansOfType(TinyEngineAiChatService.class).size() == 1);
 				});
 	}
 

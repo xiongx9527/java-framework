@@ -4,6 +4,8 @@ server:
 spring:
   application:
       name: ai-sample
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
 
 
 fw:
@@ -14,6 +16,12 @@ fw:
       jackson:
         write_longs_as_strings:
           enabled: true
+    ai:
+      tinyflow:
+        enabled: true
+        dify:
+          external:
+            enabled: true
 
 fw-plus:
   ai:
@@ -41,7 +49,7 @@ magic-api:
     channel: magic-api:notify:channel
   resource:
     type: file  # 配置接口存储方式，file | database | git
-    location: /Users/xiongxiao/Workspace/Idea/codes/fw-plus/fw-plus-boot/fw-plus-boot-samples/fw-plus-magicapi-spring-boot-starter-sample/src/main/resources
+    location: ${java.io.tmpdir}/fw-plus-ai-magicapi-sample
   prefix: /magic-api  # 前缀
   backup: #备份相关配置
     enable: false #是否启用
@@ -59,6 +67,8 @@ magic-api:
     logic-delete-column: is_del #逻辑删除列
     logic-delete-value: 1 #逻辑删除值
   plugin:
+    tinyflow:
+      enabled: true
     model:
       enabled: true
     druid:
@@ -74,4 +84,3 @@ logging:
     org.apache.kafka: ERROR
     org.springframework.kafka: ERROR
     io.debezium: ERROR
-

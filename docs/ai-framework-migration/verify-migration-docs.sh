@@ -23,7 +23,6 @@ framework_example_docs=(
 starter_docs=(
 	"$repo_root/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-model-spring-boot-starter/README.md"
 	"$repo_root/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-store-embedding-spring-boot-starter/README.md"
-	"$repo_root/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-langchain4j-adapter-spring-boot-starter/README.md"
 )
 embedding_store_example_docs=(
 	"$script_dir/overview.md"
@@ -55,7 +54,7 @@ required_phrases=(
 breaking_required_phrases=(
 	"fw-plus.ai.model"
 	"fw-plus.ai.embedding-store"
-	"fw-plus-ai-langchain4j-adapter-spring-boot-starter"
+	"fw-plus-ai-langchain4j-adapter"
 	"model["
 	"vector["
 )
@@ -76,6 +75,17 @@ require_literal() {
 
 	if ! rg -q -F -- "$literal" "$file"; then
 		print -u2 -- "缺失 ${description}: ${file:t} -> ${literal}"
+		failures=$((failures + 1))
+	fi
+}
+
+require_pattern() {
+	local file=$1
+	local pattern=$2
+	local description=$3
+
+	if ! rg -q -- "$pattern" "$file"; then
+		print -u2 -- "缺失 ${description}: ${file:t} -> ${pattern}"
 		failures=$((failures + 1))
 	fi
 }
@@ -114,15 +124,19 @@ for doc_path in $starter_docs; do
 	fi
 
 	require_literal "$doc_path" "当前支持状态" "starter 当前支持状态"
-	require_literal "$doc_path" "默认 LangChain4j" "starter 默认实现说明"
+	require_pattern "$doc_path" '业务(显式)?选择.{0,40}LangChain4j' "starter 业务显式选择说明"
 	require_literal "$doc_path" "fw-plus.ai.model" "starter 模型配置前缀"
 	require_literal "$doc_path" "fw-plus.ai.embedding-store" "starter 向量配置前缀"
-	require_literal "$doc_path" "fw-plus-ai-langchain4j-adapter-spring-boot-starter" "starter 默认 adapter 坐标"
+	require_literal "$doc_path" "fw-plus-ai-langchain4j-adapter" "Core adapter 坐标"
 	require_literal "$doc_path" "Java 17 / Spring Boot 3.x" "starter Java 17 后续边界"
 	require_literal "$doc_path" "Spring AI" "starter 后续 Spring AI 迁移说明"
 	require_literal "$doc_path" "Spring AI Alibaba" "starter 后续 Spring AI Alibaba 迁移说明"
 	require_literal "$doc_path" "AgentScope 2 Java" "starter 后续 AgentScope 迁移说明"
 	require_literal "$doc_path" "回滚" "starter 回滚说明"
+	if rg -n -F -- "默认 LangChain4j" "$doc_path"; then
+		print -u2 -- "starter 文档不得将 LangChain4j 描述为默认实现: ${doc_path:t}"
+		failures=$((failures + 1))
+	fi
 done
 
 for doc_path in $breaking_docs $starter_docs; do

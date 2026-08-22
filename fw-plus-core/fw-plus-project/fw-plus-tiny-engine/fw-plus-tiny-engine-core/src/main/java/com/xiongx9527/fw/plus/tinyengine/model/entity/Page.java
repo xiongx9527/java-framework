@@ -32,7 +32,7 @@ import java.util.Map;
  * @author zhangjuncao
  * @since 2024-10-17
  */
-@TableName(value = "t_page", autoResultMap = true)
+@TableName(value = "t_page", resultMap = "PageMap", autoResultMap = true)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Page extends BaseEntity {
 	private String name;

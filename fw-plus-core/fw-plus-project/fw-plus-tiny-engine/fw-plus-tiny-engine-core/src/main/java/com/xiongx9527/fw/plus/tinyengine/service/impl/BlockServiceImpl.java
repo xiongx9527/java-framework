@@ -3,7 +3,6 @@ package com.xiongx9527.fw.plus.tinyengine.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xiongx9527.fw.plus.tinyengine.common.exception.ExceptionEnum;
 import com.xiongx9527.fw.plus.tinyengine.common.exception.ServiceException;
 import com.xiongx9527.fw.plus.tinyengine.mapper.AppMapper;
@@ -12,6 +11,7 @@ import com.xiongx9527.fw.plus.tinyengine.mapper.BlockGroupMapper;
 import com.xiongx9527.fw.plus.tinyengine.mapper.BlockHistoryMapper;
 import com.xiongx9527.fw.plus.tinyengine.mapper.BlockMapper;
 import com.xiongx9527.fw.plus.tinyengine.mapper.I18nEntryMapper;
+import com.xiongx9527.fw.plus.tinyengine.mapper.TenantMapper;
 import com.xiongx9527.fw.plus.tinyengine.mapper.UserMapper;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockBuildDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockDto;
@@ -25,8 +25,12 @@ import com.xiongx9527.fw.plus.tinyengine.model.entity.Block;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.BlockGroup;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.BlockGroupBlock;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.BlockHistory;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.Tenant;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.User;
+import com.xiongx9527.fw.plus.tinyengine.service.BlockHistoryService;
 import com.xiongx9527.fw.plus.tinyengine.service.BlockService;
+import com.xiongx9527.fw.plus.tinyengine.service.AppRoleService;
+import com.xiongx9527.fw.plus.tinyengine.support.auth.AppPermission;
 import com.xiongx9527.fw.plus.tinyengine.service.I18nEntryService;
 import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUser;
 import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUserContext;
@@ -50,12 +54,16 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
-public class BlockServiceImpl extends ServiceImpl<BlockMapper, Block> implements BlockService {
+public class BlockServiceImpl extends MapperServiceSupport<BlockMapper> implements BlockService {
 	private static final int FULL_PUBLIC = 1;
 	private static final int PUBLIC_IN_TENANTS = 2;
 
 	@Autowired
 	private UserMapper userMapper;
+	@Autowired
+	private TenantMapper tenantMapper;
+	@Autowired
+	private BlockHistoryService blockHistoryService;
 	@Autowired
 	private AppMapper appMapper;
 	@Autowired
@@ -70,10 +78,46 @@ public class BlockServiceImpl extends ServiceImpl<BlockMapper, Block> implements
 	private BlockGroupBlockMapper blockGroupBlockMapper;
 	@Autowired
 	private TinyEngineUserContext userContext;
+	@Autowired
+	private AppRoleService appRoleService;
 
 	@Override
 	public List<Block> queryAllBlock() {
-		return baseMapper.queryAllBlock();
+		List<Block> blocks = baseMapper.queryAllBlock();
+		requireAll(blocks, AppPermission.READ);
+		return blocks;
+	}
+
+	@Override
+	public List<BlockHistory> blockHistories(Integer blockId) {
+		Block block = baseMapper.queryBlockById(blockId);
+		require(block == null ? null : block.getAppId(), AppPermission.READ);
+		List<BlockHistory> histories = blockHistoryService.findBlockHistoriesByBlockId(blockId, currentTenantId());
+		return histories == null ? Collections.<BlockHistory>emptyList() : histories;
+	}
+
+	@Override
+	public List<Tenant> blockTenants() {
+		String tenantId = currentTenantId();
+		if (!notEmpty(tenantId)) {
+			return Collections.emptyList();
+		}
+		List<Tenant> tenants = tenantMapper.selectList(new QueryWrapper<Tenant>().eq("id", tenantId));
+		return tenants == null ? Collections.<Tenant>emptyList() : tenants;
+	}
+
+	@Override
+	public List<User> blockUsers() {
+		String tenantId = currentTenantId();
+		if (!notEmpty(tenantId)) {
+			return Collections.emptyList();
+		}
+		List<String> authorIds = baseMapper.selectDistinctCreatedByTenant(tenantId);
+		if (authorIds == null || authorIds.isEmpty()) {
+			return Collections.emptyList();
+		}
+		List<User> users = userMapper.selectUsersByIds(authorIds);
+		return users == null ? Collections.<User>emptyList() : users;
 	}
 
 	@Override
@@ -82,6 +126,7 @@ public class BlockServiceImpl extends ServiceImpl<BlockMapper, Block> implements
 		if (block == null) {
 			return null;
 		}
+		require(block.getAppId(), AppPermission.READ);
 		block.setIsPublished(published(block.getLastBuildInfo()));
 		block.setGroups(blockGroupMapper.findBlockGroupByBlockId(block.getId(), currentUserId()));
 		return block;
@@ -89,12 +134,19 @@ public class BlockServiceImpl extends ServiceImpl<BlockMapper, Block> implements
 
 	@Override
 	public List<Block> queryBlockByCondition(Block block) {
-		return baseMapper.queryBlockByCondition(block);
+		if (block != null && block.getAppId() != null) {
+			require(block.getAppId(), AppPermission.READ);
+		}
+		List<Block> blocks = baseMapper.queryBlockByCondition(block);
+		requireAll(blocks, AppPermission.READ);
+		return blocks;
 	}
 
 	@Override
 	@Transactional(rollbackFor = Exception.class)
 	public Integer deleteBlockById(Integer id) {
+		Block block = baseMapper.queryBlockById(id);
+		require(block == null ? null : block.getAppId(), AppPermission.DEVELOP);
 		baseMapper.deleteBlockById(id);
 		return blockGroupBlockMapper.deleteByBlockId(id);
 	}
@@ -109,11 +161,16 @@ public class BlockServiceImpl extends ServiceImpl<BlockMapper, Block> implements
 		if (existing == null) {
 			throw failure(ExceptionEnum.CM001);
 		}
+		require(existing.getAppId(), AppPermission.DEVELOP);
 		if (!Objects.equals(existing.getOccupierBy(), currentUserId())) {
 			throw failure(ExceptionEnum.CM007);
 		}
 		Block changed = new Block();
 		BeanUtils.copyProperties(blockParam, changed);
+		changed.setAppId(existing.getAppId());
+		changed.setTenantId(existing.getTenantId());
+		changed.setRenterId(existing.getRenterId());
+		changed.setSiteId(existing.getSiteId());
 		changed.setOccupierBy(currentUserId());
 		if (blockParam.getLatestHistoryId() != null) {
 			changed.setLatestHistoryId(blockParam.getLatestHistoryId().getId());
@@ -150,6 +207,7 @@ public class BlockServiceImpl extends ServiceImpl<BlockMapper, Block> implements
 		if (blockParam == null || blockParam.getLabel() == null) {
 			throw failure(ExceptionEnum.CM002);
 		}
+		require(blockParam.getAppId(), AppPermission.DEVELOP);
 		Block block = new Block();
 		BeanUtils.copyProperties(blockParam, block);
 		block.setOccupierBy(blockParam.getOccupier() == null
@@ -240,6 +298,7 @@ public class BlockServiceImpl extends ServiceImpl<BlockMapper, Block> implements
 	@Override
 	public List<Block> listNew(String appId, String groupId) {
 		int parsedAppId = parseId(appId);
+		require(parsedAppId, AppPermission.READ);
 		int parsedGroupId = parseId(groupId);
 		App app = appMapper.queryAppById(parsedAppId, currentTenantId());
 		if (parsedGroupId != 0 && (app == null || !Integer.valueOf(parsedAppId).equals(app.getId()))) {
@@ -282,6 +341,7 @@ public class BlockServiceImpl extends ServiceImpl<BlockMapper, Block> implements
 
 	@Override
 	public BlockDto getBlockByLabel(String label, Integer appId) {
+		require(appId, AppPermission.READ);
 		Block condition = new Block();
 		condition.setLabel(label);
 		condition.setAppId(appId);
@@ -295,6 +355,7 @@ public class BlockServiceImpl extends ServiceImpl<BlockMapper, Block> implements
 		if (request == null || request.getBlock() == null) {
 			throw failure(ExceptionEnum.CM002);
 		}
+		require(request.getBlock().getAppId(), AppPermission.DEVELOP);
 		if (request.getBlock().getContent() == null || request.getBlock().getContent().isEmpty()) {
 			throw failure(ExceptionEnum.CM204);
 		}
@@ -412,5 +473,20 @@ public class BlockServiceImpl extends ServiceImpl<BlockMapper, Block> implements
 
 	private ServiceException failure(ExceptionEnum error) {
 		return new ServiceException(error.getResultCode(), error.getResultMsg());
+	}
+
+	private void require(Integer appId, AppPermission permission) {
+		if (appRoleService != null) {
+			appRoleService.requirePermission(appId, permission);
+		}
+	}
+
+	private void requireAll(List<Block> blocks, AppPermission permission) {
+		if (blocks == null) {
+			return;
+		}
+		for (Block block : blocks) {
+			require(block == null ? null : block.getAppId(), permission);
+		}
 	}
 }

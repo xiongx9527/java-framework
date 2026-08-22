@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Test;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class EmbeddingStoreAskDataVectorRetrieverTest {
 
@@ -27,5 +29,19 @@ public class EmbeddingStoreAskDataVectorRetrieverTest {
 
         assertEquals("GMV means amount sum", retriever.retrieve(new AskDataVectorQuery("term", "orders", "shared",
                 "GMV", 1, Collections.<String, Object>emptyMap())).get(0).getContent());
+    }
+
+    @Test
+    public void shouldRejectFiltersThatLegacyLangChain4jStoreCannotApply() {
+        InMemoryEmbeddingStore<TextSegment> store = new InMemoryEmbeddingStore<TextSegment>();
+        EmbeddingModel model = texts -> Response.from(
+                Collections.singletonList(Embedding.from(new float[] {1.0F, 0.0F})));
+        AskDataVectorRetriever retriever = new EmbeddingStoreAskDataVectorRetriever(store, model);
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class,
+                () -> retriever.retrieve(new AskDataVectorQuery("term", "orders", "shared", "GMV", 1,
+                        Collections.<String, Object>singletonMap("projectId", "project-1"))));
+
+        assertTrue(exception.getMessage().contains("授权过滤"));
     }
 }

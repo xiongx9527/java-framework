@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.tinyengine.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xiongx9527.fw.plus.tinyengine.common.exception.ServiceException;
 import com.xiongx9527.fw.plus.tinyengine.common.model.PageQueryVo;
 import com.xiongx9527.fw.plus.tinyengine.dynamic.sql.TinyEngineSqlIdentifierException;
@@ -39,6 +40,8 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -145,6 +148,173 @@ class TinyEngineServiceContractTest {
 	}
 
 	@Test
+	void createBlockGroupUsesCurrentUserAuditFields() {
+		BlockGroupMapper mapper = mock(BlockGroupMapper.class);
+		TinyEngineUserContext context = context("user-7", "tenant-9");
+		BlockGroupServiceImpl service = new BlockGroupServiceImpl();
+		setBaseMapper(service, mapper);
+		ReflectionTestUtils.setField(service, "userContext", context);
+		when(mapper.queryBlockGroupByCondition(any(BlockGroup.class))).thenReturn(Collections.<BlockGroupDto>emptyList());
+		doAnswer(invocation -> {
+			BlockGroup group = invocation.getArgument(0);
+			group.setId(Integer.valueOf(8));
+			return Integer.valueOf(1);
+		}).when(mapper).createBlockGroup(any(BlockGroup.class));
+		BlockGroup stored = new BlockGroup();
+		stored.setId(Integer.valueOf(8));
+		when(mapper.queryBlockGroupAndBlockById(Integer.valueOf(8), null, "user-7")).thenReturn(stored);
+		BlockGroup group = new BlockGroup();
+		group.setName("Codex Block Group");
+		group.setAppId(Integer.valueOf(2));
+		group.setPlatformId(Integer.valueOf(0));
+
+		assertSame(stored, service.createBlockGroup(group));
+
+		org.mockito.ArgumentCaptor<BlockGroup> captor = org.mockito.ArgumentCaptor.forClass(BlockGroup.class);
+		verify(mapper).createBlockGroup(captor.capture());
+		assertEquals("tenant-9", captor.getValue().getTenantId());
+		assertEquals("user-7", captor.getValue().getCreatedBy());
+		assertEquals("user-7", captor.getValue().getLastUpdatedBy());
+		assertNotNull(captor.getValue().getCreatedTime());
+		assertNotNull(captor.getValue().getLastUpdatedTime());
+	}
+
+	@Test
+	void createResourceGroupUsesCurrentUserAuditFields() {
+		ResourceGroupMapper mapper = mock(ResourceGroupMapper.class);
+		ResourceGroupServiceImpl service = new ResourceGroupServiceImpl(context("user-7", "tenant-9"));
+		setBaseMapper(service, mapper);
+		when(mapper.selectOne(any(QueryWrapper.class))).thenReturn(null);
+		when(mapper.createResourceGroup(any(ResourceGroup.class))).thenAnswer(invocation -> {
+			ResourceGroup group = invocation.getArgument(0);
+			group.setId(Integer.valueOf(9));
+			return Integer.valueOf(1);
+		});
+		ResourceGroup stored = new ResourceGroup();
+		stored.setId(Integer.valueOf(9));
+		when(mapper.selectById(Integer.valueOf(9))).thenReturn(stored);
+		ResourceGroup group = new ResourceGroup();
+		group.setName("Codex Resource Group");
+		group.setAppId(Integer.valueOf(2));
+		group.setPlatformId(Integer.valueOf(0));
+
+		assertSame(stored, service.createResourceGroup(group));
+
+		org.mockito.ArgumentCaptor<ResourceGroup> captor = org.mockito.ArgumentCaptor.forClass(ResourceGroup.class);
+		verify(mapper).createResourceGroup(captor.capture());
+		assertEquals("tenant-9", captor.getValue().getTenantId());
+		assertEquals("user-7", captor.getValue().getCreatedBy());
+		assertEquals("user-7", captor.getValue().getLastUpdatedBy());
+		assertNotNull(captor.getValue().getCreatedTime());
+		assertNotNull(captor.getValue().getLastUpdatedTime());
+	}
+
+	@Test
+	void saveModelUsesOfficialInsertAndCurrentUserAuditFields() {
+		ModelMapper mapper = mock(ModelMapper.class);
+		ModelServiceImpl service = new ModelServiceImpl();
+		setBaseMapper(service, mapper);
+		ReflectionTestUtils.setField(service, "userContext", context("user-7", "tenant-9"));
+		when(mapper.createModel(any(Model.class))).thenAnswer(invocation -> {
+			Model model = invocation.getArgument(0);
+			model.setId(Integer.valueOf(10));
+			return Integer.valueOf(1);
+		});
+		Model model = new Model();
+		model.setNameCn("Codex模型");
+		model.setNameEn("codex_model");
+		model.setAppId(Integer.valueOf(2));
+		model.setPlatformId(Integer.valueOf(0));
+
+		assertTrue(service.save(model));
+
+		org.mockito.ArgumentCaptor<Model> captor = org.mockito.ArgumentCaptor.forClass(Model.class);
+		verify(mapper).createModel(captor.capture());
+		assertEquals("tenant-9", captor.getValue().getTenantId());
+		assertEquals("user-7", captor.getValue().getCreatedBy());
+		assertEquals("user-7", captor.getValue().getLastUpdatedBy());
+		assertNotNull(captor.getValue().getCreatedTime());
+		assertNotNull(captor.getValue().getLastUpdatedTime());
+	}
+
+	@Test
+	void createPagePopulatesAuditFieldsFromCurrentUserBeforeInsert() {
+		PageMapper pageMapper = mock(PageMapper.class);
+		PageHistoryService pageHistoryService = mock(PageHistoryService.class);
+		Page page = new Page();
+		page.setName("Home");
+		page.setApp(1);
+		page.setParentId("0");
+		page.setIsPage(true);
+		when(pageMapper.queryPageByCondition(any(Page.class))).thenReturn(Collections.<Page>emptyList());
+		doAnswer(invocation -> {
+			Page inserted = invocation.getArgument(0);
+			inserted.setId(21);
+			return 1;
+		}).when(pageMapper).createPage(page);
+		when(pageMapper.queryPageById(21)).thenReturn(page);
+		when(pageHistoryService.createPageHistory(any(PageHistory.class))).thenAnswer(invocation -> {
+			PageHistory history = invocation.getArgument(0);
+			history.setId(Integer.valueOf(31));
+			return Integer.valueOf(1);
+		});
+		when(pageMapper.updatePageHistoryPointer(Integer.valueOf(21), "0", Integer.valueOf(31), "tenant-9"))
+				.thenReturn(Integer.valueOf(1));
+		PageServiceImpl service = new PageServiceImpl();
+		setBaseMapper(service, pageMapper);
+		ReflectionTestUtils.setField(service, "pageHistoryService", pageHistoryService);
+		ReflectionTestUtils.setField(service, "userContext", context("user-7", "tenant-9"));
+
+		service.createPage(page);
+
+		assertEquals("user-7", page.getCreatedBy());
+		assertEquals("user-7", page.getLastUpdatedBy());
+		assertEquals("tenant-9", page.getTenantId());
+		assertNotNull(page.getCreatedTime());
+		assertNotNull(page.getLastUpdatedTime());
+	}
+
+	@Test
+	void createHomePageUpdatesTenantScopedApp() {
+		PageMapper pageMapper = mock(PageMapper.class);
+		AppMapper appMapper = mock(AppMapper.class);
+		PageHistoryService pageHistoryService = mock(PageHistoryService.class);
+		Page page = new Page();
+		page.setName("Home");
+		page.setApp(1);
+		page.setParentId("0");
+		page.setIsPage(true);
+		page.setIsHome(true);
+		when(pageMapper.queryPageByCondition(any(Page.class))).thenReturn(Collections.<Page>emptyList());
+		doAnswer(invocation -> {
+			page.setId(21);
+			return 1;
+		}).when(pageMapper).createPage(page);
+		when(pageMapper.queryPageById(21)).thenReturn(page);
+		when(appMapper.updateAppById(any(App.class))).thenReturn(1);
+		when(pageHistoryService.createPageHistory(any(PageHistory.class))).thenAnswer(invocation -> {
+			PageHistory history = invocation.getArgument(0);
+			history.setId(Integer.valueOf(31));
+			return Integer.valueOf(1);
+		});
+		when(pageMapper.updatePageHistoryPointer(Integer.valueOf(21), "0", Integer.valueOf(31), "tenant-9"))
+				.thenReturn(Integer.valueOf(1));
+		PageServiceImpl service = new PageServiceImpl();
+		setBaseMapper(service, pageMapper);
+		ReflectionTestUtils.setField(service, "appMapper", appMapper);
+		ReflectionTestUtils.setField(service, "pageHistoryService", pageHistoryService);
+		ReflectionTestUtils.setField(service, "userContext", context("user-7", "tenant-9"));
+
+		service.createPage(page);
+
+		org.mockito.ArgumentCaptor<App> appCaptor = org.mockito.ArgumentCaptor.forClass(App.class);
+		verify(appMapper).updateAppById(appCaptor.capture());
+		assertEquals(Integer.valueOf(1), appCaptor.getValue().getId());
+		assertEquals(Integer.valueOf(21), appCaptor.getValue().getHomePage());
+		assertEquals("tenant-9", appCaptor.getValue().getTenantId());
+	}
+
+	@Test
 	void templatePaginationCapsPageSizeAndPreventsOffsetOverflow() {
 		AppMapper mapper = mock(AppMapper.class);
 		AppTemplateServiceImpl service = new AppTemplateServiceImpl(context("user-7", "tenant-9"));
@@ -162,34 +332,61 @@ class TinyEngineServiceContractTest {
 	@Test
 	void templateCloneCopiesCoreDataAndUsesTenantCondition() {
 		AppMapper appMapper = mock(AppMapper.class);
+		PageMapper pageMapper = mock(PageMapper.class);
 		PageService pageService = mock(PageService.class);
 		PageHistoryMapper pageHistoryMapper = mock(PageHistoryMapper.class);
 		AppExtensionMapper extensionMapper = mock(AppExtensionMapper.class);
 		DatasourceMapper datasourceMapper = mock(DatasourceMapper.class);
 		I18nEntryMapper i18nEntryMapper = mock(I18nEntryMapper.class);
 		ModelMapper modelMapper = mock(ModelMapper.class);
+		AppRoleService appRoleService = mock(AppRoleService.class);
 		AppTemplateServiceImpl service = new AppTemplateServiceImpl(context("user-7", "tenant-9"));
 		setBaseMapper(service, appMapper);
+		ReflectionTestUtils.setField(service, "pageMapper", pageMapper);
 		ReflectionTestUtils.setField(service, "pageService", pageService);
 		ReflectionTestUtils.setField(service, "pageHistoryMapper", pageHistoryMapper);
 		ReflectionTestUtils.setField(service, "appExtensionMapper", extensionMapper);
 		ReflectionTestUtils.setField(service, "datasourceMapper", datasourceMapper);
 		ReflectionTestUtils.setField(service, "i18nEntryMapper", i18nEntryMapper);
 		ReflectionTestUtils.setField(service, "modelMapper", modelMapper);
+		ReflectionTestUtils.setField(service, "appRoleService", appRoleService);
 		App request = new App();
 		request.setId(3);
+		request.setCode("new-app-code");
 		request.setIsTemplate(true);
 		request.setSetTemplateBy("owner");
+		App template = new App();
+		template.setId(Integer.valueOf(3));
+		template.setCode("template-code");
+		when(appMapper.queryAppTemplateById(Integer.valueOf(3), "tenant-9")).thenReturn(template);
+		when(appMapper.queryAppByCondition(any(App.class))).thenReturn(Collections.<App>emptyList());
 		App persisted = new App();
 		persisted.setId(22);
+		persisted.setPlatformId(2);
+		persisted.setTenantId("tenant-9");
+		persisted.setRenterId("renter-9");
+		persisted.setSiteId("site-9");
+		AppExtension templateExtension = new AppExtension();
+		templateExtension.setId(31);
+		templateExtension.setApp(3);
+		templateExtension.setPlatformId(1);
+		templateExtension.setTenantId("template-tenant");
+		templateExtension.setRenterId("template-renter");
+		templateExtension.setSiteId("template-site");
+		Page templatePage = page(41, 3, true);
+		templatePage.setCreatedBy("template-creator");
+		templatePage.setCreatedTime(java.time.LocalDateTime.of(2026, 8, 11, 10, 0));
+		templatePage.setLastUpdatedBy("template-updater");
+		templatePage.setLastUpdatedTime(java.time.LocalDateTime.of(2026, 8, 11, 11, 0));
 		doAnswer(invocation -> {
 			((App) invocation.getArgument(0)).setId(22);
 			return 1;
 		}).when(appMapper).createApp(request);
 		when(appMapper.queryAppById(22, "tenant-9")).thenReturn(persisted);
-		when(pageService.queryAllPage(3)).thenReturn(Collections.<Page>emptyList());
+		when(pageMapper.queryPageByApp(Integer.valueOf(3))).thenReturn(Collections.singletonList(templatePage));
 		when(pageHistoryMapper.queryPageHistoryByAppId(3)).thenReturn(Collections.<PageHistory>emptyList());
-		when(extensionMapper.queryAppExtensionByCondition(any())).thenReturn(Collections.emptyList());
+		when(extensionMapper.queryAppExtensionByCondition(any()))
+				.thenReturn(Collections.singletonList(templateExtension));
 		when(datasourceMapper.queryDatasourceByCondition(any())).thenReturn(Collections.emptyList());
 		when(i18nEntryMapper.findI18nEntriesByHostandHostType(3, "app")).thenReturn(Collections.emptyList());
 		when(modelMapper.queryModelByCondition(any())).thenReturn(Collections.emptyList());
@@ -199,7 +396,107 @@ class TinyEngineServiceContractTest {
 		assertSame(persisted, result);
 		assertFalse(request.getIsTemplate());
 		assertNull(request.getSetTemplateBy());
-		verify(appMapper).queryAppById(22, "tenant-9");
+		assertEquals("new-app-code", request.getCode());
+		assertEquals("tenant-9", request.getTenantId());
+		assertEquals("user-7", request.getCreatedBy());
+		verify(appRoleService).createOwner(Integer.valueOf(22), "tenant-9", "user-7");
+		verify(pageMapper).queryPageByApp(Integer.valueOf(3));
+		verify(pageService, never()).queryAllPage(Integer.valueOf(3));
+		org.mockito.ArgumentCaptor<Page> pageCaptor = org.mockito.ArgumentCaptor.forClass(Page.class);
+		verify(pageService).createPage(pageCaptor.capture());
+		assertEquals(Integer.valueOf(22), pageCaptor.getValue().getApp());
+		assertNull(pageCaptor.getValue().getId());
+		assertNull(pageCaptor.getValue().getCreatedBy());
+		assertNull(pageCaptor.getValue().getCreatedTime());
+		assertNull(pageCaptor.getValue().getLastUpdatedBy());
+		assertNull(pageCaptor.getValue().getLastUpdatedTime());
+		verify(appMapper, times(2)).queryAppById(22, "tenant-9");
+		org.mockito.ArgumentCaptor<AppExtension> extensionCaptor =
+				org.mockito.ArgumentCaptor.forClass(AppExtension.class);
+		verify(extensionMapper).createAppExtension(extensionCaptor.capture());
+		assertEquals(Integer.valueOf(22), extensionCaptor.getValue().getApp());
+		assertEquals(Integer.valueOf(2), extensionCaptor.getValue().getPlatformId());
+		assertEquals("tenant-9", extensionCaptor.getValue().getTenantId());
+		assertEquals("renter-9", extensionCaptor.getValue().getRenterId());
+		assertEquals("site-9", extensionCaptor.getValue().getSiteId());
+	}
+
+	@Test
+	void templateCloneRejectsDuplicateApplicationCodeBeforeInsert() {
+		AppMapper mapper = mock(AppMapper.class);
+		AppTemplateServiceImpl service = new AppTemplateServiceImpl(context("user-7", "tenant-9"));
+		setBaseMapper(service, mapper);
+		App request = new App();
+		request.setId(3);
+		request.setCode("duplicate-code");
+		App template = new App();
+		template.setId(3);
+		when(mapper.queryAppTemplateById(3, "tenant-9")).thenReturn(template);
+		when(mapper.queryAppByCondition(any(App.class))).thenReturn(Collections.singletonList(new App()));
+
+		assertThrows(ServiceException.class, () -> service.createAppByTemplate(request));
+
+		org.mockito.ArgumentCaptor<App> conditionCaptor = org.mockito.ArgumentCaptor.forClass(App.class);
+		verify(mapper).queryAppByCondition(conditionCaptor.capture());
+		assertEquals("duplicate-code", conditionCaptor.getValue().getCode());
+		assertEquals("tenant-9", conditionCaptor.getValue().getTenantId());
+		verify(mapper, never()).createApp(any(App.class));
+	}
+
+	@Test
+	void templateCloneRejectsBlankApplicationCodeBeforeInsert() {
+		assertTemplateCloneRejectsInvalidCode("   ");
+	}
+
+	@Test
+	void templateCloneRejectsApplicationCodeWithInvalidCharactersBeforeInsert() {
+		assertTemplateCloneRejectsInvalidCode("invalid.code");
+	}
+
+	@Test
+	void templateCloneRejectsApplicationCodeLongerThanTwentyCharactersBeforeInsert() {
+		assertTemplateCloneRejectsInvalidCode("abcdefghijklmnopqrstu");
+	}
+
+	@Test
+	void templateCloneRejectsApplicationCodeWithSurroundingWhitespaceBeforeInsert() {
+		assertTemplateCloneRejectsInvalidCode(" valid-code ");
+	}
+
+	@Test
+	void templateCloneRejectsTwentyCharacterApplicationCodeWithTrailingWhitespaceBeforeInsert() {
+		assertTemplateCloneRejectsInvalidCode("abcdefghijklmnopqrst ");
+	}
+
+	@Test
+	void templateCloneRejectsUnverifiedTemplateSourceBeforeInsert() {
+		AppMapper mapper = mock(AppMapper.class);
+		PageMapper pageMapper = mock(PageMapper.class);
+		AppTemplateServiceImpl service = new AppTemplateServiceImpl(context("user-7", "tenant-9"));
+		setBaseMapper(service, mapper);
+		ReflectionTestUtils.setField(service, "pageMapper", pageMapper);
+		App request = new App();
+		request.setId(Integer.valueOf(3));
+		request.setCode("new-app-code");
+
+		ServiceException exception = assertThrows(ServiceException.class,
+				() -> service.createAppByTemplate(request));
+
+		assertEquals("CM009", exception.getServiceCode());
+		verify(mapper).queryAppTemplateById(Integer.valueOf(3), "tenant-9");
+		verify(mapper, never()).queryAppByCondition(any(App.class));
+		verify(mapper, never()).createApp(any(App.class));
+		verify(pageMapper, never()).queryPageByApp(any());
+	}
+
+	@Test
+	void templateCloneRollsBackForAnyException() throws Exception {
+		Transactional transactional = AppTemplateServiceImpl.class
+				.getMethod("createAppByTemplate", App.class)
+				.getAnnotation(Transactional.class);
+
+		assertNotNull(transactional);
+		assertTrue(Arrays.asList(transactional.rollbackFor()).contains(Exception.class));
 	}
 
 	@Test
@@ -211,15 +508,17 @@ class TinyEngineServiceContractTest {
 		ResourceGroupMapper resourceGroupMapper = mock(ResourceGroupMapper.class);
 		ResourceGroupServiceImpl resourceGroupService = new ResourceGroupServiceImpl(context);
 		setBaseMapper(resourceGroupService, resourceGroupMapper);
-		when(appMapper.queryAllApp("tenant-9")).thenReturn(Collections.<App>emptyList());
+		when(appMapper.queryVisibleApps("tenant-9", "user-7", false)).thenReturn(Collections.<App>emptyList());
 		when(resourceGroupMapper.queryAllResourceGroupAndResource("user-7"))
 				.thenReturn(Collections.<ResourceGroup>emptyList());
 
 		appService.queryAllApp();
 		resourceGroupService.queryAllResourceGroupAndResource();
+		resourceGroupService.queryResourceGroupById(Integer.valueOf(21));
 
-		verify(appMapper).queryAllApp("tenant-9");
+		verify(appMapper).queryVisibleApps("tenant-9", "user-7", false);
 		verify(resourceGroupMapper).queryAllResourceGroupAndResource("user-7");
+		verify(resourceGroupMapper).queryResourceGroupById(Integer.valueOf(21), "user-7", "tenant-9");
 	}
 
 	@Test
@@ -230,11 +529,17 @@ class TinyEngineServiceContractTest {
 		setBaseMapper(service, mapper);
 		App filter = new App();
 		filter.setName("demo");
-		when(mapper.queryAllAppByPage(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+		filter.setPlatformId(Integer.valueOf(4));
+		when(mapper.queryVisibleAppsByPage(any(), any(), any(), any(), any(), any(), any(), any(), any(),
+				any(), any(), anyBoolean()))
 				.thenReturn(Collections.<App>emptyList());
-		when(mapper.queryAppTotal("tenant-9")).thenReturn(0);
+		when(mapper.queryVisibleAppTotal(any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean()))
+				.thenReturn(0);
 		App created = new App();
 		created.setName("new-app");
+		created.setCode("new_app");
+		created.setCode("new_app");
+		created.setCode("new_app");
 		when(mapper.queryAppByCondition(created)).thenReturn(Collections.<App>emptyList());
 		when(mapper.createApp(created)).thenReturn(1);
 
@@ -247,8 +552,10 @@ class TinyEngineServiceContractTest {
 		assertSame(created, createResult);
 		assertEquals("tenant-9", created.getTenantId());
 		assertFalse(created.getIsPublish());
-		verify(mapper).queryAllAppByPage(1000, Integer.MAX_VALUE, "demo", null, null, null,
-				"id desc", null, "tenant-9");
+		verify(mapper).queryVisibleAppsByPage(1000, Integer.MAX_VALUE, "demo", null, null, null, Integer.valueOf(4),
+				"id desc", null, "tenant-9", "user-7", false);
+		verify(mapper).queryVisibleAppTotal("demo", null, null, null, Integer.valueOf(4), null,
+				"tenant-9", "user-7", false);
 		verify(mapper).createApp(created);
 	}
 
@@ -288,9 +595,15 @@ class TinyEngineServiceContractTest {
 	@Test
 	void resourceQueriesPassCurrentUserToMapper() {
 		ResourceMapper mapper = mock(ResourceMapper.class);
+		ResourceGroupService resourceGroupService = mock(ResourceGroupService.class);
+		ResourceGroup group = new ResourceGroup();
+		group.setId(Integer.valueOf(12));
+		group.setAppId(Integer.valueOf(3));
+		when(resourceGroupService.queryResourceGroupById(Integer.valueOf(12))).thenReturn(group);
 		ResourceServiceImpl service = new ResourceServiceImpl();
 		setBaseMapper(service, mapper);
 		setFieldIfPresent(service, "userContext", context("user-7", "tenant-9"));
+		setFieldIfPresent(service, "resourceGroupService", resourceGroupService);
 		when(mapper.findResourceByResourceGroupId(12, "user-7"))
 				.thenReturn(Collections.<Resource>emptyList());
 
@@ -299,6 +612,248 @@ class TinyEngineServiceContractTest {
 
 		assertTrue(result.isEmpty());
 		verify(mapper).findResourceByResourceGroupId(12, "user-7");
+	}
+
+	@Test
+	void resourceBatchCreationIsTransactionalAndOverwritesClientAuditScope() throws Exception {
+		ResourceMapper mapper = mock(ResourceMapper.class);
+		ResourceGroupResourceMapper relationMapper = mock(ResourceGroupResourceMapper.class);
+		ResourceGroupService resourceGroupService = ownedResourceGroups(21, 22);
+		ResourceServiceImpl service = new ResourceServiceImpl();
+		setBaseMapper(service, mapper);
+		ReflectionTestUtils.setField(service, "resourceGroupResourceMapper", relationMapper);
+		ReflectionTestUtils.setField(service, "resourceGroupService", resourceGroupService);
+		ReflectionTestUtils.setField(service, "userContext", context("user-7", "tenant-9"));
+		Resource first = new Resource();
+		first.setName("first.png");
+		first.setResourceGroupId(Integer.valueOf(21));
+		first.setCreatedBy("attacker");
+		first.setTenantId("other-tenant");
+		Resource second = new Resource();
+		second.setName("second.png");
+		second.setResourceGroupId(Integer.valueOf(22));
+		when(mapper.insert(first)).thenAnswer(invocation -> {
+			first.setId(Integer.valueOf(101));
+			return 1;
+		});
+		when(relationMapper.createResourceGroupResource(any(ResourceGroupResource.class))).thenReturn(1);
+		when(mapper.insert(second)).thenReturn(0);
+
+		assertThrows(ServiceException.class, () -> service.createResources(Arrays.asList(first, second)));
+		assertEquals("user-7", first.getCreatedBy());
+		assertEquals("user-7", first.getLastUpdatedBy());
+		assertEquals("tenant-9", first.getTenantId());
+		assertEquals("renter", first.getRenterId());
+		assertEquals(Integer.valueOf(1), first.getPlatformId());
+		assertNotNull(ResourceServiceImpl.class.getMethod("createResources", List.class)
+				.getAnnotation(Transactional.class));
+		verify(mapper).insert(first);
+		verify(mapper).insert(second);
+		verify(relationMapper).createResourceGroupResource(argThat(relation ->
+				Integer.valueOf(21).equals(relation.getResourceGroupId())
+						&& Integer.valueOf(101).equals(relation.getResourceId())));
+	}
+
+	@Test
+	void resourceBatchCreationCreatesEveryResourceGroupRelation() {
+		ResourceMapper mapper = mock(ResourceMapper.class);
+		ResourceGroupResourceMapper relationMapper = mock(ResourceGroupResourceMapper.class);
+		ResourceGroupService resourceGroupService = ownedResourceGroups(21, 22);
+		ResourceServiceImpl service = new ResourceServiceImpl();
+		setBaseMapper(service, mapper);
+		ReflectionTestUtils.setField(service, "resourceGroupResourceMapper", relationMapper);
+		ReflectionTestUtils.setField(service, "resourceGroupService", resourceGroupService);
+		ReflectionTestUtils.setField(service, "userContext", context("user-7", "tenant-9"));
+		Resource first = new Resource();
+		first.setResourceGroupId(Integer.valueOf(21));
+		Resource second = new Resource();
+		second.setResourceGroupId(Integer.valueOf(22));
+		when(mapper.insert(any(Resource.class))).thenAnswer(invocation -> {
+			Resource resource = invocation.getArgument(0);
+			resource.setId(resource == first ? Integer.valueOf(101) : Integer.valueOf(102));
+			return 1;
+		});
+		when(relationMapper.createResourceGroupResource(any(ResourceGroupResource.class))).thenReturn(1);
+
+		List<Resource> result = service.createResources(Arrays.asList(first, second));
+
+		assertEquals(Arrays.asList(first, second), result);
+		verify(relationMapper).createResourceGroupResource(argThat(relation ->
+				Integer.valueOf(21).equals(relation.getResourceGroupId())
+						&& Integer.valueOf(101).equals(relation.getResourceId())));
+		verify(relationMapper).createResourceGroupResource(argThat(relation ->
+				Integer.valueOf(22).equals(relation.getResourceGroupId())
+						&& Integer.valueOf(102).equals(relation.getResourceId())));
+	}
+
+	@Test
+	void resourceBatchCreationFailsWhenRelationInsertFails() {
+		ResourceMapper mapper = mock(ResourceMapper.class);
+		ResourceGroupResourceMapper relationMapper = mock(ResourceGroupResourceMapper.class);
+		ResourceGroupService resourceGroupService = ownedResourceGroups(21);
+		ResourceServiceImpl service = new ResourceServiceImpl();
+		setBaseMapper(service, mapper);
+		ReflectionTestUtils.setField(service, "resourceGroupResourceMapper", relationMapper);
+		ReflectionTestUtils.setField(service, "resourceGroupService", resourceGroupService);
+		ReflectionTestUtils.setField(service, "userContext", context("user-7", "tenant-9"));
+		Resource resource = new Resource();
+		resource.setResourceGroupId(Integer.valueOf(21));
+		when(mapper.insert(resource)).thenAnswer(invocation -> {
+			resource.setId(Integer.valueOf(101));
+			return 1;
+		});
+		when(relationMapper.createResourceGroupResource(any(ResourceGroupResource.class))).thenReturn(0);
+
+		assertThrows(ServiceException.class, () -> service.createResources(Collections.singletonList(resource)));
+		verify(relationMapper).createResourceGroupResource(any(ResourceGroupResource.class));
+	}
+
+	@Test
+	void resourceBatchRejectsGroupOutsideCurrentTenantBeforeAnyInsert() {
+		ResourceMapper mapper = mock(ResourceMapper.class);
+		ResourceGroupResourceMapper relationMapper = mock(ResourceGroupResourceMapper.class);
+		ResourceGroupService resourceGroupService = mock(ResourceGroupService.class);
+		ResourceServiceImpl service = new ResourceServiceImpl();
+		setBaseMapper(service, mapper);
+		ReflectionTestUtils.setField(service, "resourceGroupResourceMapper", relationMapper);
+		ReflectionTestUtils.setField(service, "resourceGroupService", resourceGroupService);
+		ReflectionTestUtils.setField(service, "userContext", context("user-7", "tenant-9"));
+		Resource resource = new Resource();
+		resource.setResourceGroupId(Integer.valueOf(31));
+		when(resourceGroupService.queryResourceGroupById(Integer.valueOf(31))).thenReturn(null);
+
+		assertThrows(ServiceException.class, () -> service.createResources(Collections.singletonList(resource)));
+
+		verify(resourceGroupService).queryResourceGroupById(Integer.valueOf(31));
+		verify(mapper, never()).insert(any(Resource.class));
+		verify(relationMapper, never()).createResourceGroupResource(any(ResourceGroupResource.class));
+	}
+
+	@Test
+	void resourceBatchRejectsGroupOwnedByAnotherUserBeforeAnyInsert() {
+		ResourceMapper mapper = mock(ResourceMapper.class);
+		ResourceGroupResourceMapper relationMapper = mock(ResourceGroupResourceMapper.class);
+		ResourceGroupService resourceGroupService = mock(ResourceGroupService.class);
+		ResourceServiceImpl service = new ResourceServiceImpl();
+		setBaseMapper(service, mapper);
+		ReflectionTestUtils.setField(service, "resourceGroupResourceMapper", relationMapper);
+		ReflectionTestUtils.setField(service, "resourceGroupService", resourceGroupService);
+		ReflectionTestUtils.setField(service, "userContext", context("user-7", "tenant-9"));
+		Resource resource = new Resource();
+		resource.setResourceGroupId(Integer.valueOf(32));
+		when(resourceGroupService.queryResourceGroupById(Integer.valueOf(32))).thenReturn(null);
+
+		assertThrows(ServiceException.class, () -> service.createResources(Collections.singletonList(resource)));
+
+		verify(resourceGroupService).queryResourceGroupById(Integer.valueOf(32));
+		verify(mapper, never()).insert(any(Resource.class));
+		verify(relationMapper, never()).createResourceGroupResource(any(ResourceGroupResource.class));
+	}
+
+	@Test
+	void resourceBatchValidatesEveryGroupBeforeStartingAnyInsert() {
+		ResourceMapper mapper = mock(ResourceMapper.class);
+		ResourceGroupResourceMapper relationMapper = mock(ResourceGroupResourceMapper.class);
+		ResourceGroupService resourceGroupService = ownedResourceGroups(21);
+		ResourceServiceImpl service = new ResourceServiceImpl();
+		setBaseMapper(service, mapper);
+		ReflectionTestUtils.setField(service, "resourceGroupResourceMapper", relationMapper);
+		ReflectionTestUtils.setField(service, "resourceGroupService", resourceGroupService);
+		ReflectionTestUtils.setField(service, "userContext", context("user-7", "tenant-9"));
+		Resource first = new Resource();
+		first.setResourceGroupId(Integer.valueOf(21));
+		Resource second = new Resource();
+		second.setResourceGroupId(Integer.valueOf(31));
+
+		assertThrows(ServiceException.class, () -> service.createResources(Arrays.asList(first, second)));
+
+		verify(resourceGroupService).queryResourceGroupById(Integer.valueOf(21));
+		verify(resourceGroupService).queryResourceGroupById(Integer.valueOf(31));
+		verify(mapper, never()).insert(any(Resource.class));
+		verify(relationMapper, never()).createResourceGroupResource(any(ResourceGroupResource.class));
+	}
+
+	@Test
+	void materialLookupsStayInsideCurrentTenant() {
+		BlockHistoryService historyService = mock(BlockHistoryService.class);
+		TenantMapper tenantMapper = mock(TenantMapper.class);
+		UserMapper userMapper = mock(UserMapper.class);
+		BlockServiceImpl blockService = new BlockServiceImpl();
+		BlockMapper blockMapper = mock(BlockMapper.class);
+		setBaseMapper(blockService, blockMapper);
+		ReflectionTestUtils.setField(blockService, "blockHistoryService", historyService);
+		ReflectionTestUtils.setField(blockService, "tenantMapper", tenantMapper);
+		ReflectionTestUtils.setField(blockService, "userMapper", userMapper);
+		ReflectionTestUtils.setField(blockService, "userContext", context("user-7", "tenant-9"));
+		when(historyService.findBlockHistoriesByBlockId(Integer.valueOf(3), "tenant-9"))
+				.thenReturn(Collections.<BlockHistory>emptyList());
+		when(tenantMapper.selectList(any())).thenReturn(Collections.<Tenant>emptyList());
+		User author = new User();
+		author.setId("user-7");
+		User nonAuthor = new User();
+		nonAuthor.setId("user-8");
+		when(blockMapper.selectDistinctCreatedByTenant("tenant-9"))
+				.thenReturn(Collections.singletonList("user-7"));
+		when(userMapper.selectUsersByIds(Collections.singletonList("user-7")))
+				.thenReturn(Collections.singletonList(author));
+
+		assertTrue(blockService.blockHistories(Integer.valueOf(3)).isEmpty());
+		assertTrue(blockService.blockTenants().isEmpty());
+		assertEquals(Collections.singletonList(author), blockService.blockUsers());
+		assertFalse(blockService.blockUsers().contains(nonAuthor));
+		verify(historyService).findBlockHistoriesByBlockId(Integer.valueOf(3), "tenant-9");
+		verify(blockMapper, times(2)).selectDistinctCreatedByTenant("tenant-9");
+		verify(userMapper, times(2)).selectUsersByIds(Collections.singletonList("user-7"));
+	}
+
+	@Test
+	void blockUsersReturnsEmptyWhenTenantHasNoBlockAuthors() {
+		BlockMapper mapper = mock(BlockMapper.class);
+		UserMapper userMapper = mock(UserMapper.class);
+		BlockServiceImpl service = new BlockServiceImpl();
+		setBaseMapper(service, mapper);
+		ReflectionTestUtils.setField(service, "userMapper", userMapper);
+		ReflectionTestUtils.setField(service, "userContext", context("user-7", "tenant-9"));
+		when(mapper.selectDistinctCreatedByTenant("tenant-9")).thenReturn(Collections.<String>emptyList());
+
+		assertTrue(service.blockUsers().isEmpty());
+		verify(userMapper, never()).selectUsersByIds(any());
+	}
+
+	@Test
+	void modelDetailUsesTenantScopedQuery() {
+		ModelMapper mapper = mock(ModelMapper.class);
+		ModelServiceImpl service = new ModelServiceImpl();
+		setBaseMapper(service, mapper);
+		ReflectionTestUtils.setField(service, "userContext", context("user-7", "tenant-9"));
+		Model expected = new Model();
+		expected.setId(Integer.valueOf(9));
+		when(mapper.selectOne(any())).thenReturn(expected);
+
+		assertSame(expected, service.queryModelDetailById(Integer.valueOf(9)));
+		verify(mapper).selectOne(any());
+		verify(mapper, never()).selectById(any());
+	}
+
+	@Test
+	void modelListGroupsNameAlternativesBeforeTenantScope() {
+		ModelMapper mapper = mock(ModelMapper.class);
+		ModelServiceImpl service = new ModelServiceImpl();
+		setBaseMapper(service, mapper);
+		ReflectionTestUtils.setField(service, "userContext", context("user-7", "tenant-9"));
+
+		service.pageQuery(1, 20, "订单", "order");
+
+		@SuppressWarnings("rawtypes")
+		org.mockito.ArgumentCaptor<QueryWrapper> wrapperCaptor =
+				org.mockito.ArgumentCaptor.forClass(QueryWrapper.class);
+		verify(mapper).selectPage(any(com.baomidou.mybatisplus.extension.plugins.pagination.Page.class),
+				wrapperCaptor.capture());
+		String sql = wrapperCaptor.getValue().getSqlSegment().replaceAll("\\s+", " ");
+		assertTrue(sql.contains("(name_cn LIKE"), sql);
+		assertTrue(sql.contains("OR name_en LIKE"), sql);
+		assertTrue(sql.indexOf(')') < sql.indexOf("created_by"), sql);
+		assertTrue(sql.indexOf("created_by") < sql.indexOf("tenant_id"), sql);
 	}
 
 	@Test
@@ -386,7 +941,7 @@ class TinyEngineServiceContractTest {
 		TinyEngineSqlIdentifierException exception = assertThrows(TinyEngineSqlIdentifierException.class,
 				() -> service.getTableById(1));
 
-		assertEquals("TE_SQL_IDENTIFIER_INVALID", exception.getCode());
+		assertEquals("TE_SQL_IDENTIFIER_INVALID", exception.getServiceCode());
 		assertTrue(exception.getMessage().contains("table name"));
 	}
 
@@ -404,7 +959,7 @@ class TinyEngineServiceContractTest {
 		TinyEngineSqlIdentifierException exception = assertThrows(TinyEngineSqlIdentifierException.class,
 				() -> service.getTableById(1));
 
-		assertEquals("TE_SQL_IDENTIFIER_INVALID", exception.getCode());
+		assertEquals("TE_SQL_IDENTIFIER_INVALID", exception.getServiceCode());
 		assertTrue(exception.getMessage().contains("field name"));
 	}
 
@@ -422,7 +977,7 @@ class TinyEngineServiceContractTest {
 
 		ServiceException exception = assertThrows(ServiceException.class, () -> service.getTableById(1));
 
-		assertEquals("CM002", exception.getCode());
+		assertEquals("CM002", exception.getServiceCode());
 	}
 
 	@Test
@@ -442,7 +997,7 @@ class TinyEngineServiceContractTest {
 
 		ServiceException exception = assertThrows(ServiceException.class, () -> service.createTenant(tenant));
 
-		assertEquals("CM342", exception.getCode());
+		assertEquals("CM342", exception.getServiceCode());
 		verify(mapper, never()).createTenant(any(Tenant.class));
 		verify(relationMapper, never()).createAuthUsersUnitsRoles(any(AuthUsersUnitsRoles.class));
 	}
@@ -465,7 +1020,7 @@ class TinyEngineServiceContractTest {
 
 		ServiceException exception = assertThrows(ServiceException.class, () -> service.createTenant(tenant));
 
-		assertEquals("CM001", exception.getCode());
+		assertEquals("CM001", exception.getServiceCode());
 		verify(mapper).createTenant(tenant);
 		verify(relationMapper).createAuthUsersUnitsRoles(any(AuthUsersUnitsRoles.class));
 		Transactional transactional = TenantServiceImpl.class.getMethod("createTenant", Tenant.class)
@@ -488,7 +1043,7 @@ class TinyEngineServiceContractTest {
 
 		ServiceException exception = assertThrows(ServiceException.class, () -> service.createTenant(tenant));
 
-		assertEquals("CM001", exception.getCode());
+		assertEquals("CM001", exception.getServiceCode());
 		verify(relationMapper, never()).createAuthUsersUnitsRoles(any(AuthUsersUnitsRoles.class));
 	}
 
@@ -512,7 +1067,7 @@ class TinyEngineServiceContractTest {
 
 		ServiceException exception = assertThrows(ServiceException.class, () -> service.delPage(31));
 
-		assertEquals("CM001", exception.getCode());
+		assertEquals("CM001", exception.getServiceCode());
 		assertInvocation(mapper, "deletePageIfAvailable", 31, "user-7");
 		verify(mapper, never()).deletePageById(31);
 	}
@@ -609,10 +1164,15 @@ class TinyEngineServiceContractTest {
 				method("queryAllApp", generic(List.class, App.class)),
 				method("queryAllAppByPage", type(AppDto.class), Integer.class, Integer.class, String.class, App.class),
 				method("queryAppById", type(App.class), Integer.class),
+				method("requireEnabledApp", type(App.class), Integer.class),
 				method("queryAppByCondition", generic(List.class, App.class), App.class),
 				method("deleteAppById", type(App.class), Integer.class),
 				method("updateAppById", type(App.class), App.class),
 				method("createApp", type(App.class), App.class),
+				method("saveApp", type(App.class), Integer.class, Map.class),
+				method("publishApp", type(App.class), Integer.class, Map.class),
+				method("setAppTemplate", type(App.class), Integer.class, Boolean.class, String.class,
+						Integer.class, Integer.class, String.class),
 				method("formatI18nEntrites", type(SchemaI18n.class), List.class, Integer.class, Integer.class)));
 		contracts.put(AppTemplateService.class, Arrays.asList(
 				method("queryAllAppTemplate", type(AppDto.class), Integer.class, Integer.class, String.class, App.class),
@@ -634,7 +1194,9 @@ class TinyEngineServiceContractTest {
 				method("findBlockHistoryByCondition", generic(List.class, BlockHistory.class), BlockHistory.class),
 				method("deleteBlockHistoryById", type(Integer.class), Integer.class),
 				method("updateBlockHistoryById", type(Integer.class), BlockHistory.class),
-				method("createBlockHistory", type(Integer.class), BlockHistory.class)));
+				method("createBlockHistory", type(Integer.class), BlockHistory.class),
+				method("findBlockHistoriesByBlockId", generic(List.class, BlockHistory.class),
+						Integer.class, String.class)));
 		contracts.put(BlockService.class, Arrays.asList(
 				method("queryAllBlock", generic(List.class, Block.class)),
 				method("queryBlockById", type(BlockDto.class), Integer.class),
@@ -649,7 +1211,10 @@ class TinyEngineServiceContractTest {
 				method("listNew", generic(List.class, Block.class), String.class, String.class),
 				method("getNotInGroupBlocks", generic(List.class, BlockDto.class), NotGroupDto.class),
 				method("getBlockByLabel", type(BlockDto.class), String.class, Integer.class),
-				method("deploy", type(BlockDto.class), BlockBuildDto.class)));
+				method("deploy", type(BlockDto.class), BlockBuildDto.class),
+				method("blockHistories", generic(List.class, BlockHistory.class), Integer.class),
+				method("blockTenants", generic(List.class, Tenant.class)),
+				method("blockUsers", generic(List.class, User.class))));
 		contracts.put(BusinessCategoryService.class, Arrays.asList(
 				method("queryAllBusinessCategory", generic(List.class, BusinessCategory.class)),
 				method("queryBusinessCategoryById", type(BusinessCategory.class), Integer.class),
@@ -719,7 +1284,11 @@ class TinyEngineServiceContractTest {
 				method("updateMaterialById", type(Material.class), Material.class),
 				method("createMaterial", type(Material.class), Material.class)));
 		contracts.put(ModelService.class, Arrays.asList(
+				method("save", type(boolean.class), Model.class),
+				method("updateById", type(boolean.class), Model.class),
+				method("removeById", type(boolean.class), java.io.Serializable.class),
 				method("queryModelById", type(Model.class), Integer.class),
+				method("queryModelDetailById", type(Model.class), Integer.class),
 				method("getModelByName", generic(List.class, Model.class), String.class),
 				method("getModelByEnName", generic(List.class, Model.class), String.class),
 				method("pageQuery", generic(com.baomidou.mybatisplus.extension.plugins.pagination.Page.class, Model.class),
@@ -731,6 +1300,7 @@ class TinyEngineServiceContractTest {
 		contracts.put(PageHistoryService.class, Arrays.asList(
 				method("findAllPageHistory", generic(List.class, PageHistory.class)),
 				method("findPageHistoryById", type(PageHistory.class), Integer.class),
+				method("findPageHistories", generic(List.class, PageHistory.class), Integer.class),
 				method("findPageHistoryByCondition", generic(List.class, PageHistory.class), PageHistory.class),
 				method("deletePageHistoryById", type(Integer.class), Integer.class),
 				method("updatePageHistoryById", type(Integer.class), PageHistory.class),
@@ -739,10 +1309,14 @@ class TinyEngineServiceContractTest {
 				method("findLatestPublishPage", generic(IPage.class, PublishedPageVo.class), PageQueryVo.class),
 				method("selectMaxVersionOfPageHistory", type(String.class), String.class, Integer.class)));
 		contracts.put(PageService.class, Arrays.asList(
+				method("save", type(boolean.class), Page.class),
+				method("updateById", type(boolean.class), Page.class),
 				method("queryAllPage", generic(List.class, Page.class), Integer.class),
 				method("queryPageById", type(Page.class), Integer.class),
 				method("queryPageByCondition", generic(List.class, Page.class), Page.class),
 				method("delPage", type(Page.class), Integer.class),
+				method("copyPage", type(Page.class), Page.class),
+				method("restorePageHistory", type(Page.class), Integer.class),
 				method("createPage", type(Page.class), Page.class),
 				method("createFolder", type(Page.class), Page.class),
 				method("updatePage", type(Page.class), Page.class),
@@ -777,16 +1351,20 @@ class TinyEngineServiceContractTest {
 				method("updateResourceGroupById", type(ResourceGroup.class), ResourceGroup.class),
 				method("createResourceGroup", type(ResourceGroup.class), ResourceGroup.class)));
 		contracts.put(ResourceService.class, Arrays.asList(
+				method("save", type(boolean.class), Resource.class),
 				method("queryAllResource", generic(List.class, Resource.class)),
 				method("queryResourcesByNameAndDes", generic(List.class, Resource.class), String.class, String.class),
 				method("queryResourceById", type(Resource.class), Integer.class),
 				method("queryResourceByName", type(Resource.class), String.class),
 				method("queryResourceByResourceGroupId", generic(List.class, Resource.class), Integer.class),
 				method("deleteResourceById", type(Resource.class), Integer.class),
-				method("updateResourceById", type(Resource.class), Resource.class)));
+				method("updateResourceById", type(Resource.class), Resource.class),
+				method("createResources", generic(List.class, Resource.class), List.class),
+				method("uploadResource", type(Object.class), ResourceRequestDto.class)));
 		contracts.put(TaskRecordService.class, Arrays.asList(
 				method("queryAllTaskRecord", generic(List.class, TaskRecord.class)),
 				method("queryTaskRecordById", type(TaskRecord.class), Integer.class),
+				method("taskStatus", type(TaskRecord.class), Integer.class),
 				method("queryTaskRecordByCondition", generic(List.class, TaskRecord.class), TaskRecord.class),
 				method("deleteTaskRecordById", type(Integer.class), Integer.class),
 				method("updateTaskRecordById", type(Integer.class), TaskRecord.class),
@@ -823,9 +1401,38 @@ class TinyEngineServiceContractTest {
 		return model;
 	}
 
+	private static void assertTemplateCloneRejectsInvalidCode(String code) {
+		AppMapper mapper = mock(AppMapper.class);
+		AppTemplateServiceImpl service = new AppTemplateServiceImpl(context("user-7", "tenant-9"));
+		setBaseMapper(service, mapper);
+		App request = new App();
+		request.setId(Integer.valueOf(3));
+		request.setCode(code);
+		App template = new App();
+		template.setId(Integer.valueOf(3));
+		when(mapper.queryAppTemplateById(Integer.valueOf(3), "tenant-9")).thenReturn(template);
+
+		ServiceException exception = assertThrows(ServiceException.class,
+				() -> service.createAppByTemplate(request));
+
+		assertEquals("CM002", exception.getServiceCode());
+		verify(mapper, never()).queryAppByCondition(any(App.class));
+		verify(mapper, never()).createApp(any(App.class));
+	}
+
 	private static TinyEngineUserContext context(String userId, String tenantId) {
 		TinyEngineUser user = new TinyEngineUser(userId, "tester", tenantId, "renter", 1);
 		return () -> user;
+	}
+
+	private static ResourceGroupService ownedResourceGroups(Integer... groupIds) {
+		ResourceGroupService service = mock(ResourceGroupService.class);
+		for (Integer groupId : groupIds) {
+			ResourceGroup group = new ResourceGroup();
+			group.setId(groupId);
+			when(service.queryResourceGroupById(groupId)).thenReturn(group);
+		}
+		return service;
 	}
 
 	private static void setBaseMapper(Object service, Object mapper) {

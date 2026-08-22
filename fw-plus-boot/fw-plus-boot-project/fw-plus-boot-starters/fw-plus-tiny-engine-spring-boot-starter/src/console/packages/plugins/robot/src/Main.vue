@@ -209,17 +209,26 @@ const handleChatModeChange = (type: string) => {
 }
 
 const checkApiKey = () => {
-  const provider = getSelectedModelInfo().service
+  const selected = getSelectedModelInfo()
+  const provider = selected.service
 
-  if (!provider?.baseUrl || (!provider?.apiKey && !provider?.allowEmptyApiKey)) {
+  if (!provider || !selected.modelName) {
+    useNotify({
+      type: 'warning',
+      title: '未配置可用模型',
+      message: '请先在设置中选择已启用的模型。'
+    })
+    showSetting.value = true
+    return false
+  }
+
+  if (!provider.hasApiKey && !provider.allowEmptyApiKey) {
     useNotify({
       type: 'warning',
       title: '未设置API Key，请检查设置',
       message: '请先设置大模型API Key后重试。'
     })
-    setTimeout(() => {
-      showSetting.value = true
-    }, 1000)
+    showSetting.value = true
     return false
   }
 

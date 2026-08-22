@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Import;
         "com.xiongx9527.fw.plus.ai.autoconfigure.store.embedding.AiEmbeddingStoreAutoConfiguration"
 })
 @Import({MagicAPIModelConfiguration.class,
-        MagicAPIVectorConfiguration.class
+		MagicAPIVectorConfiguration.class
 })
 public class MagicApiPluginAutoConfiguration {
 }

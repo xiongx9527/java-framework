@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.JSONValidator;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.MagicDataSourceDecorator;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -17,6 +18,8 @@ import org.ssssssss.magicapi.datasource.model.MagicDynamicDataSource;
 import org.ssssssss.magicapi.datasource.service.DataSourceMagicDynamicRegistry;
 
 import javax.sql.DataSource;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +45,14 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
      * 魔法动态数据源实例，用于实现动态数据源切换功能
      */
     private final MagicDynamicDataSource magicDynamicDataSource;
+
+	private final List<MagicDataSourceDecorator> dataSourceDecorators;
+
+	private final Object lifecycleMonitor = new Object();
+
+	private final WeakIdentityMap<MagicDynamicDataSource.DataSourceNode, List<DecorationStage>>
+			registeredDecorationStages =
+			new WeakIdentityMap<MagicDynamicDataSource.DataSourceNode, List<DecorationStage>>();
 
     /**
      * 当前类的类加载器实例
@@ -70,8 +81,18 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
      */
     public MyDataSourceMagicDynamicRegistry(MagicResourceStorage<DataSourceInfo> magicResourceStorage, MagicDynamicDataSource magicDynamicDataSource
             ,Map<String,DataSourceBuilder> dataSourceBuilderMap) {
+        this(magicResourceStorage, magicDynamicDataSource, dataSourceBuilderMap,
+                Collections.<MagicDataSourceDecorator>emptyList());
+    }
+
+    public MyDataSourceMagicDynamicRegistry(MagicResourceStorage<DataSourceInfo> magicResourceStorage,
+            MagicDynamicDataSource magicDynamicDataSource, Map<String,DataSourceBuilder> dataSourceBuilderMap,
+            List<MagicDataSourceDecorator> dataSourceDecorators) {
         super(magicResourceStorage,magicDynamicDataSource);
         this.magicDynamicDataSource = magicDynamicDataSource;
+        this.dataSourceDecorators = dataSourceDecorators == null
+                ? Collections.<MagicDataSourceDecorator>emptyList()
+                : Collections.unmodifiableList(new java.util.ArrayList<>(dataSourceDecorators));
         if (MapUtils.isNotEmpty(dataSourceBuilderMap)) {
             this.dataSourceBuilderMap.putAll(dataSourceBuilderMap);
         }
@@ -87,7 +108,8 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
     public void onFileEvent(FileEvent event) {
         try {
             processEvent(event);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.error("Failed to process Magic-API data source event", e);
         }
     }
 
@@ -102,7 +124,9 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
     public boolean register(DataSourceInfo entity) {
         try {
             return super.register(entity);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.error("Failed to register Magic-API data source: {}",
+                    entity == null ? null : entity.getKey(), e);
             return false;
         }
     }
@@ -115,9 +139,10 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
      * @param mappingNode 包含数据源信息的映射节点
      * @return 注册是否成功（始终返回true）
      */
-    @Override
-    protected boolean register(MappingNode<DataSourceInfo> mappingNode) {
-        DataSourceInfo info = mappingNode.getEntity();
+	@Override
+	protected boolean register(MappingNode<DataSourceInfo> mappingNode) {
+		ManagedMagicDynamicDataSource managedDataSource = managedDataSourceForDecorators();
+		DataSourceInfo info = mappingNode.getEntity();
         Map<String, Object> properties = new HashMap<>(info.getProperties());
         String other = MagicAPIConfigUtils.getDbConfig(info.getKey(), "other", "");
         if (StringUtils.isNotBlank(other)) {
@@ -158,21 +183,375 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
         if (Objects.isNull(dataSourceBuilder)) {
             dataSourceBuilder = defaultDataSourceBuilder;
         }
-        DataSource datasource = dataSourceBuilder.buildDataSource(type, properties);
-        // 将数据源加入动态数据源容器中
-        magicDynamicDataSource.put(info.getId(), info.getKey(), info.getName(), datasource, info.getMaxRows());
-        return true;
+        DataSource rawDataSource = dataSourceBuilder.buildDataSource(type, properties);
+        DataSource datasource = rawDataSource;
+        List<DecorationStage> decorationStages = new ArrayList<>();
+        try {
+            for (MagicDataSourceDecorator decorator : dataSourceDecorators) {
+                DataSource decorated = decorator.decorate(info.getKey(), datasource);
+                if (decorated == null) {
+                    throw new IllegalStateException("DataSource decorator returned null");
+                }
+                decorationStages.add(new DecorationStage(decorator, decorated));
+                datasource = decorated;
+            }
+        } catch (RuntimeException e) {
+            rollbackDecoration(info.getKey(), rawDataSource, decorationStages, e);
+            throw e;
+        } catch (Error e) {
+            rollbackDecoration(info.getKey(), rawDataSource, decorationStages, e);
+            throw e;
+        }
+		RegistrationState registrationState = new RegistrationState();
+		try {
+			synchronized (lifecycleMonitor) {
+				if (managedDataSource != null) {
+					synchronized (managedDataSource) {
+						registerLocked(info, datasource, decorationStages,
+								managedDataSource, registrationState);
+					}
+				} else {
+					registerLocked(info, datasource, decorationStages,
+							null, registrationState);
+				}
+			}
+		} catch (RuntimeException e) {
+			if (registrationState.isRegistryOwned()) {
+				rollbackDecoration(info.getKey(), rawDataSource, decorationStages, e);
+			}
+			throw e;
+		} catch (Error e) {
+			if (registrationState.isRegistryOwned()) {
+				rollbackDecoration(info.getKey(), rawDataSource, decorationStages, e);
+			}
+			throw e;
+		}
+		return true;
     }
+
+	private void registerLocked(DataSourceInfo info,
+			DataSource dataSource, List<DecorationStage> decorationStages,
+			ManagedMagicDynamicDataSource managedDataSource,
+			RegistrationState registrationState) {
+		List<MagicDynamicDataSource.DataSourceNode> replacedNodes =
+				findDataSources(info.getId(), info.getKey());
+		List<RemovalClaim> removalClaims = prepareRemove(replacedNodes);
+		if (managedDataSource == null) {
+			try {
+				magicDynamicDataSource.put(info.getId(), info.getKey(), info.getName(),
+						dataSource, info.getMaxRows());
+			} catch (RuntimeException e) {
+				afterRemoveFailure(removalClaims, e);
+				throw e;
+			} catch (Error e) {
+				MagicDynamicDataSource.DataSourceNode publishedNode =
+						findPublishedNode(info.getKey(), dataSource);
+				if (publishedNode == null) {
+					afterRemoveFailure(removalClaims, e);
+					throw e;
+				}
+				registrationState.transferToDynamicDataSource();
+				completePublishedRegistration(replacedNodes, removalClaims,
+						publishedNode, decorationStages, e);
+				throw e;
+			}
+			registrationState.transferToDynamicDataSource();
+			return;
+		}
+
+		MagicDynamicDataSource.DataSourceNode publishedNode;
+		try {
+			publishedNode = managedDataSource.putAndGet(info.getId(), info.getKey(),
+					info.getName(), dataSource, info.getMaxRows());
+		} catch (RuntimeException e) {
+			afterRemoveFailure(removalClaims, e);
+			throw e;
+		} catch (Error e) {
+			publishedNode = findPublishedNode(info.getKey(), dataSource);
+			if (publishedNode == null) {
+				afterRemoveFailure(removalClaims, e);
+				throw e;
+			}
+			registrationState.transferToDynamicDataSource();
+			completePublishedRegistration(replacedNodes, removalClaims,
+					publishedNode, decorationStages, e);
+			throw e;
+		}
+		registrationState.transferToDynamicDataSource();
+		forgetDecorationStages(replacedNodes);
+		registeredDecorationStages.put(publishedNode,
+				Collections.unmodifiableList(new ArrayList<DecorationStage>(decorationStages)));
+	}
+
+	private void completePublishedRegistration(
+			List<MagicDynamicDataSource.DataSourceNode> replacedNodes,
+			List<RemovalClaim> removalClaims,
+			MagicDynamicDataSource.DataSourceNode publishedNode,
+			List<DecorationStage> decorationStages, Error originalFailure) {
+		afterRemoveFailure(currentClaims(removalClaims), originalFailure);
+		try {
+			forgetDecorationStages(removedNodes(replacedNodes));
+			registeredDecorationStages.put(publishedNode,
+					Collections.unmodifiableList(
+							new ArrayList<DecorationStage>(decorationStages)));
+		} catch (Throwable cleanupFailure) {
+			addSuppressed(originalFailure, cleanupFailure);
+		}
+	}
 
     /**
      * 取消注册指定的数据源节点。
      *
      * @param mappingNode 需要取消注册的数据源映射节点
-     */
-    @Override
-    protected void unregister(MappingNode<DataSourceInfo> mappingNode) {
-        magicDynamicDataSource.delete(mappingNode.getMappingKey());
+	 */
+	@Override
+	protected void unregister(MappingNode<DataSourceInfo> mappingNode) {
+		ManagedMagicDynamicDataSource managedDataSource = managedDataSourceForDecorators();
+		synchronized (lifecycleMonitor) {
+			if (managedDataSource != null) {
+				synchronized (managedDataSource) {
+					unregisterLocked(mappingNode);
+				}
+			} else {
+				unregisterLocked(mappingNode);
+			}
+		}
     }
+
+	private void unregisterLocked(MappingNode<DataSourceInfo> mappingNode) {
+		List<MagicDynamicDataSource.DataSourceNode> nodes =
+				findDataSources(null, mappingNode.getMappingKey());
+		List<RemovalClaim> removalClaims = prepareRemove(nodes);
+		try {
+			magicDynamicDataSource.delete(mappingNode.getMappingKey());
+		} catch (RuntimeException e) {
+			afterRemoveFailure(removalClaims, e);
+			throw e;
+		} catch (Error e) {
+			List<MagicDynamicDataSource.DataSourceNode> removedNodes = removedNodes(nodes);
+			if (removedNodes.isEmpty()) {
+				afterRemoveFailure(removalClaims, e);
+				throw e;
+			}
+			afterRemoveFailure(currentClaims(removalClaims), e);
+			try {
+				forgetDecorationStages(removedNodes);
+			} catch (Throwable cleanupFailure) {
+				addSuppressed(e, cleanupFailure);
+			}
+			throw e;
+		}
+		forgetDecorationStages(nodes);
+	}
+
+    private List<MagicDynamicDataSource.DataSourceNode> findDataSources(String id, String key) {
+        List<MagicDynamicDataSource.DataSourceNode> nodes = new ArrayList<>();
+        for (MagicDynamicDataSource.DataSourceNode node : magicDynamicDataSource.datasourceNodes()) {
+            if (Objects.equals(key, node.getKey()) || (id != null && Objects.equals(id, node.getId()))) {
+                nodes.add(node);
+            }
+        }
+        return nodes;
+    }
+
+	private MagicDynamicDataSource.DataSourceNode findPublishedNode(
+			String key, DataSource dataSource) {
+		for (MagicDynamicDataSource.DataSourceNode node : magicDynamicDataSource.datasourceNodes()) {
+			if (Objects.equals(key, node.getKey()) && node.getDataSource() == dataSource) {
+				return node;
+			}
+		}
+		return null;
+	}
+
+	private List<MagicDynamicDataSource.DataSourceNode> removedNodes(
+			List<MagicDynamicDataSource.DataSourceNode> candidates) {
+		List<MagicDynamicDataSource.DataSourceNode> removed =
+				new ArrayList<MagicDynamicDataSource.DataSourceNode>();
+		for (MagicDynamicDataSource.DataSourceNode candidate : candidates) {
+			if (!isCurrentNode(candidate)) {
+				removed.add(candidate);
+			}
+		}
+		return removed;
+	}
+
+	private List<RemovalClaim> currentClaims(List<RemovalClaim> candidates) {
+		List<RemovalClaim> current = new ArrayList<RemovalClaim>();
+		for (RemovalClaim candidate : candidates) {
+			if (isCurrentNode(candidate.node)) {
+				current.add(candidate);
+			}
+		}
+		return current;
+	}
+
+	private boolean isCurrentNode(MagicDynamicDataSource.DataSourceNode expected) {
+		for (MagicDynamicDataSource.DataSourceNode current :
+				magicDynamicDataSource.datasourceNodes()) {
+			if (current == expected) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private ManagedMagicDynamicDataSource managedDataSourceForDecorators() {
+		if (magicDynamicDataSource instanceof ManagedMagicDynamicDataSource) {
+			return (ManagedMagicDynamicDataSource) magicDynamicDataSource;
+		}
+		if (dataSourceDecorators.isEmpty()) {
+			return null;
+		}
+		throw new IllegalStateException("MagicDynamicDataSource must extend "
+				+ ManagedMagicDynamicDataSource.class.getSimpleName()
+				+ " when datasource decorators are configured");
+	}
+
+	private List<RemovalClaim> prepareRemove(List<MagicDynamicDataSource.DataSourceNode> nodes) {
+		List<RemovalClaim> removalClaims = new ArrayList<RemovalClaim>();
+		RuntimeException failure = null;
+		try {
+			for (MagicDynamicDataSource.DataSourceNode node : nodes) {
+				for (DecorationStage stage : decorationStages(node)) {
+					try {
+						stage.decorator.startRemove(node.getKey(), stage.dataSource);
+						removalClaims.add(new RemovalClaim(node, node.getKey(), stage));
+					} catch (RuntimeException e) {
+						failure = append(failure, e);
+					}
+				}
+			}
+			for (MagicDynamicDataSource.DataSourceNode node : nodes) {
+				for (DecorationStage stage : decorationStages(node)) {
+					try {
+						stage.decorator.beforeRemove(node.getKey(), stage.dataSource);
+					} catch (RuntimeException e) {
+						failure = append(failure, e);
+					}
+				}
+			}
+		} catch (Error e) {
+			afterRemoveFailure(removalClaims, e);
+			throw e;
+		}
+		if (failure != null) {
+			afterRemoveFailure(removalClaims, failure);
+			throw failure;
+		}
+		return removalClaims;
+	}
+
+	private RuntimeException append(RuntimeException failure, RuntimeException next) {
+		if (failure == null) {
+			return next;
+		}
+		failure.addSuppressed(next);
+		return failure;
+	}
+
+	private void afterRemoveFailure(List<RemovalClaim> removalClaims, Throwable failure) {
+		for (int index = removalClaims.size() - 1; index >= 0; index--) {
+			try {
+				RemovalClaim claim = removalClaims.get(index);
+				claim.stage.decorator.afterRemoveFailure(claim.key, claim.stage.dataSource);
+			} catch (Throwable cleanupFailure) {
+				addSuppressed(failure, cleanupFailure);
+			}
+		}
+	}
+
+	private List<DecorationStage> decorationStages(MagicDynamicDataSource.DataSourceNode node) {
+		List<DecorationStage> stages = registeredDecorationStages.get(node);
+		if (stages != null) {
+			return stages;
+		}
+		List<DecorationStage> fallback = new ArrayList<DecorationStage>(dataSourceDecorators.size());
+		for (MagicDataSourceDecorator decorator : dataSourceDecorators) {
+			fallback.add(new DecorationStage(decorator, node.getDataSource()));
+		}
+		return fallback;
+	}
+
+	private void forgetDecorationStages(List<MagicDynamicDataSource.DataSourceNode> nodes) {
+		for (MagicDynamicDataSource.DataSourceNode node : nodes) {
+			registeredDecorationStages.remove(node);
+		}
+	}
+
+    private void rollbackDecoration(String key, DataSource rawDataSource,
+            List<DecorationStage> decorationStages, Throwable failure) {
+        for (int i = decorationStages.size() - 1; i >= 0; i--) {
+            DecorationStage stage = decorationStages.get(i);
+            try {
+                stage.decorator.cleanupAfterDecorationFailure(key, stage.dataSource);
+            } catch (Throwable cleanupFailure) {
+                addSuppressed(failure, cleanupFailure);
+            }
+        }
+        closeRawDataSource(rawDataSource, failure);
+    }
+
+    private void closeRawDataSource(DataSource dataSource, Throwable failure) {
+        if (dataSource instanceof AutoCloseable) {
+            try {
+                ((AutoCloseable) dataSource).close();
+            } catch (Throwable cleanupFailure) {
+                addSuppressed(failure, cleanupFailure);
+            }
+        }
+    }
+
+    private void addSuppressed(Throwable failure, Throwable cleanupFailure) {
+        if (cleanupFailure != failure) {
+            failure.addSuppressed(cleanupFailure);
+        }
+    }
+
+    private static final class DecorationStage {
+
+        private final MagicDataSourceDecorator decorator;
+        private final DataSource dataSource;
+
+        private DecorationStage(MagicDataSourceDecorator decorator, DataSource dataSource) {
+            this.decorator = decorator;
+            this.dataSource = dataSource;
+        }
+    }
+
+	private static final class RemovalClaim {
+
+		private final MagicDynamicDataSource.DataSourceNode node;
+
+		private final String key;
+		private final DecorationStage stage;
+
+		private RemovalClaim(MagicDynamicDataSource.DataSourceNode node,
+				String key, DecorationStage stage) {
+			this.node = node;
+			this.key = key;
+			this.stage = stage;
+		}
+	}
+
+	private enum RegistrationCleanupDisposition {
+		REGISTRY_OWNED,
+		DYNAMIC_DATA_SOURCE_OWNED
+	}
+
+	private static final class RegistrationState {
+
+		private RegistrationCleanupDisposition cleanupDisposition =
+				RegistrationCleanupDisposition.REGISTRY_OWNED;
+
+		private void transferToDynamicDataSource() {
+			cleanupDisposition = RegistrationCleanupDisposition.DYNAMIC_DATA_SOURCE_OWNED;
+		}
+
+		private boolean isRegistryOwned() {
+			return cleanupDisposition == RegistrationCleanupDisposition.REGISTRY_OWNED;
+		}
+	}
 
     /**
      * 获取默认的数据源映射列表。

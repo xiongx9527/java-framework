@@ -156,10 +156,9 @@ export default function useAgentMode(): ModeHooks {
       )
     }
 
-    const { baseUrl, model, config, capabilities } = getSelectedModelInfo()
+    const { appId, serviceId, modelName, config, capabilities } = getSelectedModelInfo()
 
-    requestParams.baseUrl = baseUrl
-    requestParams.model = model
+    Object.assign(requestParams, { appId, serviceId, modelName, model: modelName })
 
     if (capabilities?.reasoning?.extraBody) {
       const extraBody = config?.enableThinking
@@ -244,7 +243,7 @@ export default function useAgentMode(): ModeHooks {
       abortControllerMap.errorFix = new AbortController()
       try {
         const beforeRequest = (requestParams: any) => {
-          const { capabilities, model, baseUrl } = getSelectedModelInfo()
+          const { capabilities, appId, serviceId, modelName } = getSelectedModelInfo()
           if (capabilities?.reasoning?.extraBody?.disable) {
             Object.assign(requestParams, capabilities.reasoning.extraBody.disable)
           }
@@ -252,8 +251,10 @@ export default function useAgentMode(): ModeHooks {
             Object.assign(requestParams, capabilities.jsonOutput.extraBody.enable)
           }
           Object.assign(requestParams, {
-            model,
-            baseUrl
+            appId,
+            serviceId,
+            modelName,
+            model: modelName
           })
           return requestParams
         }

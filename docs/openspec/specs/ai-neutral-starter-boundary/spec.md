@@ -19,7 +19,7 @@ TBD - created by archiving change neutral-ai-adapter-autodiscovery. Update Purpo
 
 #### Scenario: 应用显式安装 LangChain4j adapter
 - **WHEN** 应用需要 LangChain4j 实现
-- **THEN** 它 SHALL 显式引入 `fw-plus-ai-langchain4j-adapter-spring-boot-starter` 或等价 adapter artifact。
+- **THEN** 它 SHALL 显式引入 `fw-plus-ai-langchain4j-adapter`，并在 Spring Boot 应用中引入 `fw-plus-ai-boot-starter` 以启用自动配置。
 - **AND** 中立 Starter 本身不得隐式传递该 adapter。
 
 #### Scenario: Magic-API 使用中立 registry

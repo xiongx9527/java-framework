@@ -1,8 +1,11 @@
 package dev.langchain4j.store.embedding.redis.spring;
 
 import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.store.embedding.redis.RedisEmbeddingStore;
+import dev.langchain4j.community.store.embedding.redis.RedisEmbeddingStore;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import redis.clients.jedis.DefaultJedisClientConfig;
+import redis.clients.jedis.HostAndPort;
+import redis.clients.jedis.UnifiedJedis;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -34,11 +37,17 @@ public class RedisEmbeddingStoreAutoConfiguration {
         Integer dimension = Optional.ofNullable(properties.getDimension()).orElseGet(() -> embeddingModel == null ? null : embeddingModel.dimension());
         List<String> metadataKeys = Optional.ofNullable(properties.getMetadataKeys()).orElse(new ArrayList<>());
 
+        DefaultJedisClientConfig.Builder clientConfig = DefaultJedisClientConfig.builder();
+        if (properties.getUser() != null) {
+            clientConfig.user(properties.getUser());
+        }
+        if (properties.getPassword() != null) {
+            clientConfig.password(properties.getPassword());
+        }
+        UnifiedJedis unifiedJedis = new UnifiedJedis(new HostAndPort(host, port), clientConfig.build());
+
         return RedisEmbeddingStore.builder()
-                .host(host)
-                .port(port)
-                .user(properties.getUser())
-                .password(properties.getPassword())
+                .unifiedJedis(unifiedJedis)
                 .indexName(indexName)
                 .dimension(dimension)
                 .metadataKeys(metadataKeys)

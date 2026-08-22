@@ -6,6 +6,7 @@ import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineLoginRequest;
 import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineLoginResult;
 import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEnginePermissionEvaluator;
 import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEnginePrincipal;
+import com.xiongx9527.fw.plus.tinyengine.support.auth.SystemTinyEngineUserSystemService;
 import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineUserSystemService;
 import com.xiongx9527.fw.plus.tinyengine.support.context.SystemTinyEngineUserContext;
 import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineRequestUserScope;
@@ -47,7 +48,9 @@ class TinyEngineSecurityAutoConfigurationTest {
 		contextRunner.run(context -> {
 			assertThat(context).hasSingleBean(SystemTinyEngineUserContext.class);
 			assertThat(context).hasSingleBean(TinyEngineUserContext.class);
-			assertThat(context).doesNotHaveBean(TinyEngineUserSystemService.class);
+			assertThat(context).hasSingleBean(TinyEngineUserSystemService.class);
+			assertThat(context.getBean(TinyEngineUserSystemService.class))
+					.isInstanceOf(SystemTinyEngineUserSystemService.class);
 		});
 	}
 

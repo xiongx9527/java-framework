@@ -92,6 +92,10 @@ final class LangChain4jAiEmbeddingStore implements AiEmbeddingStore {
         if (query == null || query.getVector() == null) {
             throw new AiEmbeddingStoreException("Embedding query and vector must not be null: key=" + getKey());
         }
+        if (!query.getFilters().isEmpty()) {
+            throw new AiEmbeddingStoreException("Embedding query filters are not supported by LangChain4j 0.35: key="
+                    + getKey());
+        }
         EmbeddingSearchRequest request = new EmbeddingSearchRequest(embedding(query.getVector()),
                 query.getMaxResults(), query.getMinScore(), null);
         dev.langchain4j.store.embedding.EmbeddingSearchResult<TextSegment> result = nativeStore.search(request);

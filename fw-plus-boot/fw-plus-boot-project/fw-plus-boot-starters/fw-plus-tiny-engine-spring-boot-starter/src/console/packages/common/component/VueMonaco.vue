@@ -48,6 +48,7 @@ export default {
       monaco: null
     }
     const monacoRef = ref(null)
+    let disposed = false
 
     const defaultOptions = {
       autoIndent: true,
@@ -69,7 +70,17 @@ export default {
 
     const getModelMarkers = () => vueMonaco.monaco.editor.getModelMarkers()
 
+    const isEditorContainerReady = () => {
+      const element = monacoRef.value as HTMLElement | null
+
+      return !disposed && element && element.isConnected
+    }
+
     const initMonaco = (monaco: any) => {
+      if (!monaco || !isEditorContainerReady()) {
+        return
+      }
+
       emit('editorWillMount', vueMonaco.monaco)
 
       const options = {
@@ -112,6 +123,8 @@ export default {
     }
 
     onMounted(() => {
+      disposed = false
+
       if (props.amdRequire) {
         props.amdRequire(['vs/editor/editor.main'], () => {
           vueMonaco.monaco = window.monaco
@@ -123,25 +136,28 @@ export default {
         vueMonaco.monaco = monacoEditor
         nextTick(() => {
           initMonaco(vueMonaco.monaco)
-          vueMonaco.editor.addAction({
-            id: 'prettier',
-            label: 'Prettier',
-            precondition: null,
-            contextMenuGroupId: 'navigation',
-            run(editor: { getValue: () => any; setValue: (arg0: any) => void }) {
-              const currentValue = editor.getValue()
-              const newValue = formatString(currentValue, props.options.language)
+          if (vueMonaco.editor) {
+            vueMonaco.editor.addAction({
+              id: 'prettier',
+              label: 'Prettier',
+              precondition: null,
+              contextMenuGroupId: 'navigation',
+              run(editor: { getValue: () => any; setValue: (arg0: any) => void }) {
+                const currentValue = editor.getValue()
+                const newValue = formatString(currentValue, props.options.language)
 
-              if (newValue !== currentValue) {
-                editor.setValue(newValue)
+                if (newValue !== currentValue) {
+                  editor.setValue(newValue)
+                }
               }
-            }
-          })
+            })
+          }
         })
       }
     })
 
     onBeforeUnmount(() => {
+      disposed = true
       if (vueMonaco.editor) {
         vueMonaco.editor.dispose()
       }

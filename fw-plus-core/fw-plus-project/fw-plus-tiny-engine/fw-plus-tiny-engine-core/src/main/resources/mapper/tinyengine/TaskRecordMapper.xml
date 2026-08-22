@@ -7,20 +7,23 @@
     <!-- 通用查询列 -->
     <sql id="Base_Column_List">
         id
-        , team_id, task_type_id, unique_id, task_name, task_status, task_result, progress, ratio, progress_percent,
+        , team_id, task_type AS task_type_id, build_id AS unique_id, task_name, task_status, task_result, progress, ratio, progress_percent,
         indicator, created_by, last_updated_by, created_time, last_updated_time, tenant_id, renter_id, site_id
     </sql>
 
     <!-- 通用条件列 -->
     <sql id="TaskRecordByCondition">
+        <if test="id!=null">
+            AND id = #{id}
+        </if>
         <if test="teamId!=null">
             AND team_id = #{teamId}
         </if>
         <if test="taskTypeId!=null">
-            AND task_type_id = #{taskTypeId}
+            AND task_type = #{taskTypeId}
         </if>
         <if test="uniqueId!=null">
-            AND unique_id = #{uniqueId}
+            AND build_id = #{uniqueId}
         </if>
         <if test="taskName!=null and taskName!=''">
             AND task_name = #{taskName}
@@ -72,10 +75,10 @@
             team_id = #{teamId},
         </if>
         <if test="taskTypeId!=null">
-            task_type_id = #{taskTypeId},
+            task_type = #{taskTypeId},
         </if>
         <if test="uniqueId!=null">
-            unique_id = #{uniqueId},
+            build_id = #{uniqueId},
         </if>
         <if test="taskName!=null and taskName!=''">
             task_name = #{taskName},
@@ -173,7 +176,7 @@
         select
         <include refid="Base_Column_List"/>
         FROM t_task_record
-        WHERE task_type_id=#{taskTypeId} and unique_id=#{uniqueId}
+        WHERE task_type=#{taskTypeId} and build_id=#{uniqueId}
         order by created_time desc
     </select>
 
@@ -182,7 +185,7 @@
         select
         <include refid="Base_Column_List"/>
         FROM t_task_record
-        WHERE task_type_id=#{taskTypeId} and unique_id=#{uniqueId}
+        WHERE task_type=#{taskTypeId} and build_id=#{uniqueId}
         order by id desc
         LIMIT 1
     </select>
@@ -209,8 +212,8 @@
             parameterType="com.xiongx9527.fw.plus.tinyengine.model.entity.TaskRecord">
         INSERT INTO t_task_record ( id
         , team_id
-        , task_type_id
-        , unique_id
+        , task_type
+        , build_id
         , task_name
         , task_status
         , task_result

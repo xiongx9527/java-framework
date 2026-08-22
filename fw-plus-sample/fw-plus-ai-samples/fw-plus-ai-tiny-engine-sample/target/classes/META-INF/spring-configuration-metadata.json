@@ -1,0 +1,50 @@
+{
+  "groups": [
+    {
+      "name": "sample.tiny-engine.auth",
+      "type": "com.xiongx9527.fw.plus.ai.tinyengine.TinyEngineSampleAuthConfiguration$SampleAuthProperties",
+      "sourceType": "com.xiongx9527.fw.plus.ai.tinyengine.TinyEngineSampleAuthConfiguration$SampleAuthProperties"
+    },
+    {
+      "name": "sample.tiny-engine.auth.admin",
+      "type": "com.xiongx9527.fw.plus.ai.tinyengine.TinyEngineSampleAuthConfiguration$SampleAuthProperties$Admin",
+      "sourceType": "com.xiongx9527.fw.plus.ai.tinyengine.TinyEngineSampleAuthConfiguration$SampleAuthProperties",
+      "sourceMethod": "getAdmin()"
+    }
+  ],
+  "properties": [
+    {
+      "name": "sample.tiny-engine.auth.admin.email",
+      "type": "java.lang.String",
+      "sourceType": "com.xiongx9527.fw.plus.ai.tinyengine.TinyEngineSampleAuthConfiguration$SampleAuthProperties$Admin"
+    },
+    {
+      "name": "sample.tiny-engine.auth.admin.enabled",
+      "type": "java.lang.Boolean",
+      "sourceType": "com.xiongx9527.fw.plus.ai.tinyengine.TinyEngineSampleAuthConfiguration$SampleAuthProperties$Admin",
+      "defaultValue": true
+    },
+    {
+      "name": "sample.tiny-engine.auth.admin.password",
+      "type": "java.lang.String",
+      "sourceType": "com.xiongx9527.fw.plus.ai.tinyengine.TinyEngineSampleAuthConfiguration$SampleAuthProperties$Admin"
+    },
+    {
+      "name": "sample.tiny-engine.auth.admin.username",
+      "type": "java.lang.String",
+      "sourceType": "com.xiongx9527.fw.plus.ai.tinyengine.TinyEngineSampleAuthConfiguration$SampleAuthProperties$Admin"
+    },
+    {
+      "name": "sample.tiny-engine.auth.secret",
+      "type": "java.lang.String",
+      "sourceType": "com.xiongx9527.fw.plus.ai.tinyengine.TinyEngineSampleAuthConfiguration$SampleAuthProperties"
+    },
+    {
+      "name": "sample.tiny-engine.auth.token-ttl-seconds",
+      "type": "java.lang.Long",
+      "sourceType": "com.xiongx9527.fw.plus.ai.tinyengine.TinyEngineSampleAuthConfiguration$SampleAuthProperties",
+      "defaultValue": 86400
+    }
+  ],
+  "hints": []
+}

@@ -21,13 +21,18 @@ public class KnowledgeArgs {
      */
     private Setting retrieval_setting;
 
+    /**
+     * 元数据过滤条件
+     */
+    private KnowledgeMetadataCondition metadata_condition;
+
     @Setter
     @Getter
     public static class Setting {
         /**
          * 检索结果的最大数量
          */
-        private String top_k;
+        private Integer top_k;
 
         /**
          * 结果与查询相关性的分数限制，范围：0~1

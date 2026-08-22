@@ -26,7 +26,7 @@ public class AskDataStarterDependencyTest {
 		assertTrue("AskData starter must preserve the neutral AI Boot starter",
 				dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-boot-starter"));
 		assertFalse("AskData starter must not directly depend on the LangChain4j adapter starter",
-				dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-adapter-spring-boot-starter"));
+				dependencies.contains("com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter"));
 		assertFalse("AskData starter must not depend on the legacy LangChain4j model starter",
 				dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-model-spring-boot-starter"));
 		assertFalse("AskData starter must not depend on the legacy LangChain4j embedding store starter",

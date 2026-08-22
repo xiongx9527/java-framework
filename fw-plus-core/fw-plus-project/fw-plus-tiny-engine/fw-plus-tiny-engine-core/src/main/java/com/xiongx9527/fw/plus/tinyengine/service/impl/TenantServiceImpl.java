@@ -66,6 +66,12 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, Tenant> impleme
 		if (baseMapper.selectOne(query) != null) {
 			throw new ServiceException(ExceptionEnum.CM003.getResultCode(), ExceptionEnum.CM003.getResultMsg());
 		}
+		if (tenant.getIsSystem() == null) {
+			tenant.setIsSystem(Boolean.FALSE);
+		}
+		if (tenant.getIsEnable() == null) {
+			tenant.setIsEnable(Boolean.TRUE);
+		}
 		if (!Integer.valueOf(1).equals(baseMapper.createTenant(tenant))) {
 			throw new ServiceException(ExceptionEnum.CM001.getResultCode(), ExceptionEnum.CM001.getResultMsg());
 		}

@@ -1,6 +1,5 @@
 package com.xiongx9527.fw.plus.tinyengine.service.impl;
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xiongx9527.fw.plus.tinyengine.common.exception.ExceptionEnum;
 import com.xiongx9527.fw.plus.tinyengine.common.exception.ServiceException;
 import com.xiongx9527.fw.plus.tinyengine.mapper.AppMapper;
@@ -9,8 +8,10 @@ import com.xiongx9527.fw.plus.tinyengine.model.entity.App;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.Page;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.PageHistory;
 import com.xiongx9527.fw.plus.tinyengine.service.PageHistoryService;
+import com.xiongx9527.fw.plus.tinyengine.service.AppRoleService;
 import com.xiongx9527.fw.plus.tinyengine.service.PageService;
 import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUser;
+import com.xiongx9527.fw.plus.tinyengine.support.auth.AppPermission;
 import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUserContext;
 import com.xiongx9527.fw.plus.tinyengine.support.hook.NoopTinyEngineSaveHook;
 import com.xiongx9527.fw.plus.tinyengine.support.hook.TinyEngineSaveHook;
@@ -19,11 +20,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 
 @Service
-public class PageServiceImpl extends ServiceImpl<PageMapper, Page> implements PageService {
+public class PageServiceImpl extends MapperServiceSupport<PageMapper> implements PageService {
 
 	@Autowired
 	private AppMapper appMapper;
@@ -31,6 +33,8 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, Page> implements Pa
 	private PageHistoryService pageHistoryService;
 	@Autowired
 	private TinyEngineUserContext userContext;
+	@Autowired
+	private AppRoleService appRoleService;
 
 	private TinyEngineSaveHook saveHook = new NoopTinyEngineSaveHook();
 
@@ -43,6 +47,9 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, Page> implements Pa
 
 	@Override
 	public List<Page> queryAllPage(Integer appId) {
+		if (appId != null) {
+			require(appId, AppPermission.READ);
+		}
 		List<Page> pages = appId == null ? baseMapper.queryAllPage() : baseMapper.queryPageByApp(appId);
 		if (pages == null) {
 			return null;
@@ -57,6 +64,7 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, Page> implements Pa
 			return pages;
 		}
 		for (Page page : pages) {
+			require(page == null ? null : page.getApp(), AppPermission.READ);
 			if (Boolean.TRUE.equals(page.getIsPage())) {
 				addIsHome(page);
 			}
@@ -67,21 +75,34 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, Page> implements Pa
 	@Override
 	public Page queryPageById(Integer id) {
 		Page page = baseMapper.queryPageById(id);
+		if (page != null) {
+			require(page.getApp(), AppPermission.READ);
+		}
 		return page != null && Boolean.TRUE.equals(page.getIsPage()) ? addIsHome(page) : page;
 	}
 
 	@Override
 	public List<Page> queryPageByCondition(Page page) {
-		return baseMapper.queryPageByCondition(page);
+		if (page != null && page.getApp() != null) {
+			require(page.getApp(), AppPermission.READ);
+		}
+		List<Page> pages = baseMapper.queryPageByCondition(page);
+		if (pages != null) {
+			for (Page result : pages) {
+				require(result == null ? null : result.getApp(), AppPermission.READ);
+			}
+		}
+		return pages;
 	}
 
 	@Override
 	@Transactional(rollbackFor = Exception.class)
 	public Page delPage(Integer id) {
 		Page page = baseMapper.queryPageById(id);
-		if (page == null) {
+		if (!belongsToCurrentTenant(page)) {
 			throw error(ExceptionEnum.CM009);
 		}
+		require(page.getApp(), AppPermission.DEVELOP);
 		if (!Boolean.TRUE.equals(page.getIsPage())) {
 			Page childCondition = new Page();
 			childCondition.setParentId(String.valueOf(id));
@@ -98,10 +119,62 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, Page> implements Pa
 
 	@Override
 	@Transactional(rollbackFor = Exception.class)
+	public Page copyPage(Page request) {
+		if (request == null || request.getId() == null) {
+			throw error(ExceptionEnum.CM002);
+		}
+		Page source = baseMapper.queryPageById(request.getId());
+		if (!belongsToCurrentTenant(source)) {
+			throw error(ExceptionEnum.CM009);
+		}
+		require(source.getApp(), AppPermission.DEVELOP);
+		request.setId(null);
+		request.setApp(source.getApp());
+		request.setIsPage(source.getIsPage());
+		request.setTenantId(null);
+		request.setRenterId(null);
+		request.setSiteId(null);
+		request.setCreatedBy(null);
+		request.setLastUpdatedBy(null);
+		request.setCreatedTime(null);
+		request.setLastUpdatedTime(null);
+		request.setLatestVersion(null);
+		request.setLatestHistoryId(null);
+		return createPage(request);
+	}
+
+	@Override
+	@Transactional(rollbackFor = Exception.class)
+	public Page restorePageHistory(Integer historyId) {
+		PageHistory history = pageHistoryService.findPageHistoryById(historyId);
+		if (history == null || history.getPage() == null) {
+			throw error(ExceptionEnum.CM009);
+		}
+		Page current = baseMapper.queryPageById(history.getPage());
+		if (!belongsToCurrentTenant(current)) {
+			throw error(ExceptionEnum.CM009);
+		}
+		require(current.getApp(), AppPermission.DEVELOP);
+		Page restored = new Page();
+		BeanUtils.copyProperties(history, restored);
+		restored.setId(current.getId());
+		restored.setApp(current.getApp());
+		restored.setTenantId(current.getTenantId());
+		restored.setRenterId(current.getRenterId());
+		restored.setSiteId(current.getSiteId());
+		restored.setCreatedBy(current.getCreatedBy());
+		restored.setCreatedTime(current.getCreatedTime());
+		restored.setMessage("还原页面");
+		return updatePage(restored);
+	}
+
+	@Override
+	@Transactional(rollbackFor = Exception.class)
 	public Page createPage(Page page) {
 		if (page == null || page.getApp() == null) {
 			throw error(ExceptionEnum.CM002);
 		}
+		require(page.getApp(), AppPermission.DEVELOP);
 		if (Boolean.TRUE.equals(page.getIsHome()) && !"0".equals(page.getParentId())) {
 			throw new ServiceException(ExceptionEnum.CM002.getResultCode(),
 					"Homepage can only be set in the root directory");
@@ -112,6 +185,7 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, Page> implements Pa
 		page.setOccupierBy(getCurrentUserId());
 		page.setIsDefault(false);
 		page.setDepth(0);
+		prepareCreateAudit(page);
 		ensurePageDoesNotExist(page);
 		if (baseMapper.createPage(page) < 1 || page.getId() == null) {
 			throw error(ExceptionEnum.CM001);
@@ -138,11 +212,13 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, Page> implements Pa
 		if (page == null || page.getParentId() == null) {
 			throw error(ExceptionEnum.CM002);
 		}
+		require(page.getApp(), AppPermission.DEVELOP);
 		page.setDepth(getDepth(page.getParentId()) + 1);
 		page.setGroup("staticPages");
 		page.setIsDefault(false);
 		page.setIsBody(true);
 		page.setOccupierBy(getCurrentUserId());
+		prepareCreateAudit(page);
 		ensurePageDoesNotExist(page);
 		if (baseMapper.createPage(page) < 1 || page.getId() == null) {
 			throw error(ExceptionEnum.CM001);
@@ -164,7 +240,9 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, Page> implements Pa
 		if (current == null) {
 			throw error(ExceptionEnum.CM009);
 		}
+		require(current.getApp(), AppPermission.DEVELOP);
 		Boolean requestedHome = page.getIsHome();
+		preserveScope(page, current);
 		if (Boolean.TRUE.equals(requestedHome) && !"0".equals(page.getParentId())) {
 			throw new ServiceException(ExceptionEnum.CM002.getResultCode(), "isHome parameter error");
 		}
@@ -192,6 +270,12 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, Page> implements Pa
 		if (page == null || page.getId() == null) {
 			throw error(ExceptionEnum.CM002);
 		}
+		Page current = baseMapper.queryPageById(page.getId());
+		require(current == null ? null : current.getApp(), AppPermission.DEVELOP);
+		if (current == null) {
+			throw error(ExceptionEnum.CM009);
+		}
+		preserveScope(page, current);
 		if (page.getParentId() != null) {
 			page.setDepth(getDepth(page.getParentId()) + 1);
 		}
@@ -208,7 +292,9 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, Page> implements Pa
 	@Override
 	@Transactional(rollbackFor = Exception.class)
 	public boolean save(Page page) {
-		boolean saved = super.save(page);
+		require(page == null ? null : page.getApp(), AppPermission.DEVELOP);
+		applyPersistedAppScope(page);
+		boolean saved = baseMapper.insert(page) == 1;
 		if (saved) {
 			saveHook.afterSave(page);
 		}
@@ -218,7 +304,12 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, Page> implements Pa
 	@Override
 	@Transactional(rollbackFor = Exception.class)
 	public boolean updateById(Page page) {
-		boolean updated = super.updateById(page);
+		Page current = page == null ? null : baseMapper.queryPageById(page.getId());
+		require(current == null ? null : current.getApp(), AppPermission.DEVELOP);
+		if (page != null && current != null) {
+			preserveScope(page, current);
+		}
+		boolean updated = baseMapper.updateById(page) == 1;
 		if (updated) {
 			saveHook.afterSave(page);
 		}
@@ -245,6 +336,7 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, Page> implements Pa
 		App app = new App();
 		app.setId(appId);
 		app.setHomePage(pageId);
+		app.setTenantId(getTenantId());
 		if (appMapper.updateAppById(app) < 1) {
 			throw error(ExceptionEnum.CM001);
 		}
@@ -289,6 +381,58 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, Page> implements Pa
 		if (pageHistoryService.createPageHistory(history) < 1) {
 			throw error(ExceptionEnum.CM001);
 		}
+		if (history.getId() == null || !Integer.valueOf(1).equals(baseMapper.updatePageHistoryPointer(page.getId(),
+				history.getVersion(), history.getId(), page.getTenantId()))) {
+			throw error(ExceptionEnum.CM001);
+		}
+		page.setLatestHistoryId(history.getId());
+		page.setLatestVersion(history.getVersion());
+	}
+
+	private void preserveScope(Page target, Page current) {
+		target.setApp(current.getApp());
+		target.setTenantId(current.getTenantId());
+		target.setRenterId(current.getRenterId());
+		target.setSiteId(current.getSiteId());
+	}
+
+	private void applyPersistedAppScope(Page page) {
+		if (page == null || page.getApp() == null || appMapper == null) {
+			return;
+		}
+		App app = appMapper.queryAppById(page.getApp(), getTenantId());
+		if (app == null) {
+			throw error(ExceptionEnum.CM009);
+		}
+		page.setTenantId(app.getTenantId());
+		page.setRenterId(app.getRenterId());
+		page.setSiteId(app.getSiteId());
+	}
+
+	private void prepareCreateAudit(Page page) {
+		TinyEngineUser user = userContext == null ? null : userContext.getCurrentUser();
+		String userId = user == null ? null : user.getUserId();
+		LocalDateTime now = LocalDateTime.now();
+		if (page.getCreatedBy() == null) {
+			page.setCreatedBy(userId);
+		}
+		if (page.getLastUpdatedBy() == null) {
+			page.setLastUpdatedBy(userId);
+		}
+		if (page.getCreatedTime() == null) {
+			page.setCreatedTime(now);
+		}
+		if (page.getLastUpdatedTime() == null) {
+			page.setLastUpdatedTime(now);
+		}
+		if (user != null) {
+			if (page.getTenantId() == null) {
+				page.setTenantId(user.getTenantId());
+			}
+			if (page.getRenterId() == null) {
+				page.setRenterId(user.getRenterId());
+			}
+		}
 	}
 
 	private String getCurrentUserId() {
@@ -301,7 +445,21 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, Page> implements Pa
 		return user == null ? null : user.getTenantId();
 	}
 
+	private boolean belongsToCurrentTenant(Page page) {
+		if (page == null) {
+			return false;
+		}
+		String tenantId = getTenantId();
+		return page.getTenantId() == null || tenantId == null || tenantId.equals(page.getTenantId());
+	}
+
 	private ServiceException error(ExceptionEnum error) {
 		return new ServiceException(error.getResultCode(), error.getResultMsg());
+	}
+
+	private void require(Integer appId, AppPermission permission) {
+		if (appRoleService != null) {
+			appRoleService.requirePermission(appId, permission);
+		}
 	}
 }

@@ -1,8 +1,8 @@
 # TinyEngine Starter 使用说明
 
-`fw-plus-tiny-engine-spring-boot-starter` 是 TinyEngine 后端 starter，只提供应用、页面、物料、模型、用户体系等后端 API 和 Core 能力。
+`fw-plus-tiny-engine-spring-boot-starter` 提供 TinyEngine 后端 API、Core 能力，并在打包时发布 TinyEngine 前端静态资源到同源 `/tiny-engine/`。
 
-它不内置 TinyEngine 前端源码、`designer-demo`、`mockServer` 或构建后的 `dist`。TinyEngine 前端需要外部部署，可以放在同源 `/tiny-engine/`、网关路径或独立域名。
+starter 不包含上游 `mockServer`，也不内置 AI 模型、Base URL 或 API Key。Robot 中的模型服务由用户在页面里添加或由宿主应用自行配置。
 
 ## Maven 引入
 
@@ -96,15 +96,51 @@ fw:
           timeout: 30s
 ```
 
-## 外部前端部署
+## 前端资源
 
-本 starter 不发布 `/tiny-engine/` 静态资源。你可以：
+默认打包产物包含：
+
+- `/tiny-engine/index.html`
+- `/tiny-engine/preview.html`
+- `/tiny-engine/img/defaultAvator.png`
+
+你也可以选择外部部署 TinyEngine 前端：
 
 - 独立部署 TinyEngine 前端到 Nginx/CDN；
 - 通过网关把 `/tiny-engine/` 转发到前端服务；
 - 让前端通过同源或网关访问本 starter 暴露的 TinyEngine 后端 API。
 
-`designer-demo` 是上游演示宿主壳，`mockServer` 是上游本地开发 mock 后端；二者都不进入 starter JAR。
+`designer-demo` 是打包使用的上游演示宿主壳；`mockServer` 是上游本地开发 mock 后端，不进入 starter JAR。
+
+## AI 配置
+
+TinyEngine 官方 Robot 调用同源官方接口：
+
+- `POST /app-center/api/chat/completions`
+- `POST /app-center/api/ai/chat`
+- `POST /app-center/api/encrypt-key`
+- `POST /app-center/api/ai/search`
+
+示例工程不会写入模型地址、模型名或 API Key。使用时在 Robot 设置里添加 OpenAI-compatible 服务，例如：
+
+```text
+Base URL: https://your-openai-compatible.example/v1
+Model: your-model-name
+API Key: sk-your-placeholder
+```
+
+如果需要兼容官方 `EKEY_` 加密 Key，可通过环境变量或配置提供 SM4 Key：
+
+```yaml
+fw:
+  plus:
+    tiny-engine:
+      ai:
+        official:
+          sm4-key: ${TINY_ENGINE_SM4_KEY:}
+```
+
+也可以设置环境变量 `SM4KEY`。示例值必须替换为实际 16 字节 Key 的 Base64 编码；不要把真实 API Key 写入配置文件。
 
 ## Magic-API 入口
 

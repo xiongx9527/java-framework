@@ -7,8 +7,8 @@
     <!-- 通用查询列 -->
     <sql id="Base_Column_List">
         id
-        , name, app_website, platform_id, platform_history_id, industry_id, scene_id, publish_url, editor_url, visit_url, image_url,
-        assets_url, state, published, home_page_id, css, config, constants, data_handler, description, latest,
+        , name, code, app_website, platform_id, platform_history_id, industry_id, scene_id, publish_url, editor_url, visit_url, image_url,
+        assets_url, state, enable, published, home_page_id, css, config, constants, data_handler, description, latest,
         git_group, project_name, branch, is_demo, is_default, template_type, is_template, set_template_time, set_template_by,
         set_default_by, framework, global_state, default_lang, extend_config, data_hash, can_associate,
         data_source_global, created_by, last_updated_by, created_time, last_updated_time, tenant_id, renter_id, site_id
@@ -51,6 +51,12 @@
         </if>
         <if test="state!=null and state!=''">
             AND A.state = #{state}
+        </if>
+        <if test="code!=null and code!=''">
+            AND A.code = #{code}
+        </if>
+        <if test="enable!=null">
+            AND A.enable = #{enable}
         </if>
         <if test="isPublish!=null">
             AND A.published = #{isPublish}
@@ -188,6 +194,12 @@
         <if test="state!=null and state!=''">
             state = #{state},
         </if>
+        <if test="code!=null and code!=''">
+            code = #{code},
+        </if>
+        <if test="enable!=null">
+            enable = #{enable},
+        </if>
         <if test="isPublish!=null">
             published = #{isPublish},
         </if>
@@ -291,6 +303,7 @@
     <resultMap id="AppMap" type="com.xiongx9527.fw.plus.tinyengine.model.entity.App">
         <id column="id" property="id"/>
         <result column="name" property="name"/>
+        <result column="code" property="code"/>
         <result column="app_website" property="appWebsite"/>
         <result column="platform_id" property="platformId"/>
         <result column="platform_history_id" property="platformHistoryId"/>
@@ -300,6 +313,7 @@
         <result column="image_url" property="imageUrl"/>
         <result column="assets_url" property="assetsUrl"/>
         <result column="state" property="state"/>
+        <result column="enable" property="enable"/>
         <result column="published" property="isPublish"/>
         <result column="home_page_id" property="homePage"/>
         <result column="css" property="css"/>
@@ -334,6 +348,7 @@
         <result column="tenant_id" property="tenantId"/>
         <result column="renter_id" property="renterId"/>
         <result column="site_id" property="siteId"/>
+		<result column="current_role" property="currentRole"/>
         <!-- 行业分类映射 -->
         <association property="industry" javaType="com.xiongx9527.fw.plus.tinyengine.model.entity.BusinessCategory">
             <id column="industry_id" property="id"/>
@@ -368,6 +383,7 @@
     <sql id="App_Base_Column_List">
         A.id,
         A.name,
+        A.code,
         A.app_website,
         A.platform_id,
         A.industry_id,
@@ -379,6 +395,7 @@
         A.image_url,
         A.assets_url,
         A.state,
+        A.enable,
         A.published,
         A.home_page_id,
         A.css,
@@ -404,7 +421,7 @@
         A.data_hash,
         A.can_associate,
         A.data_source_global,
-        A.created_by,
+        COALESCE(creator.username, A.created_by) AS created_by,
         A.last_updated_by,
         A.created_time,
         A.last_updated_time,
@@ -418,6 +435,7 @@
         FROM t_app A
         LEFT JOIN t_business_category industry ON A.industry_id = industry.id AND A.industry_id  IS NOT NULL
         LEFT JOIN t_business_category scene ON A.scene_id = scene.id AND A.scene_id  IS NOT NULL
+        LEFT JOIN t_user creator ON A.created_by = CONCAT(creator.id, '')
     </sql>
     <sql id="Common_Column_List">
         <include refid="App_Base_Column_List"/>,
@@ -426,20 +444,106 @@
         scene.id as scene_id, scene.code as scene_code, scene.name as scene_name,
         scene.business_group as scene_business_group
     </sql>
+	<sql id="Current_Role_Column">
+		<choose>
+			<when test="systemContext">'app_owner'</when>
+			<otherwise>
+				(SELECT MAX(PR_CURRENT.code)
+				 FROM r_auth_users_units_roles UR_CURRENT
+				 INNER JOIN t_permission_role PR_CURRENT ON PR_CURRENT.id = UR_CURRENT.role_id
+				 WHERE UR_CURRENT.tenant_id = #{tenantId}
+					AND UR_CURRENT.unit_id = A.id
+					AND UR_CURRENT.unit_type = 'app'
+					AND UR_CURRENT.user_id = #{userId}
+					AND (UR_CURRENT.expired_time IS NULL OR UR_CURRENT.expired_time &gt; CURRENT_TIMESTAMP)
+					AND PR_CURRENT.role_type = 'app'
+					AND PR_CURRENT.code IN ('app_owner', 'app_admin', 'app_dev'))
+			</otherwise>
+		</choose>
+		AS "current_role"
+	</sql>
     <select id="queryAllApp" resultMap="AppMap">
         SELECT
         <include refid="Common_Column_List"/>
         <include refid="Common_Join"/>
-        WHERE A.is_template IS NOT TRUE AND A.tenant_id = #{tenantId}
+        WHERE A.tenant_id = #{tenantId}
         ORDER BY A.created_time DESC
     </select>
+
+	<sql id="VisibleRoleCondition">
+		<if test="!systemContext">
+			<choose>
+				<when test="userId != null and userId != ''">
+					AND EXISTS (
+						SELECT 1 FROM r_auth_users_units_roles UR
+						INNER JOIN t_permission_role PR ON PR.id = UR.role_id
+						WHERE UR.tenant_id = #{tenantId} AND UR.unit_id = A.id AND UR.unit_type = 'app'
+							AND UR.user_id = #{userId}
+							AND (UR.expired_time IS NULL OR UR.expired_time &gt; CURRENT_TIMESTAMP)
+							AND PR.role_type = 'app' AND PR.code IN ('app_owner', 'app_admin', 'app_dev')
+					)
+				</when>
+				<otherwise>AND 1 = 0</otherwise>
+			</choose>
+		</if>
+	</sql>
+
+	<sql id="VisibleAppConditions">
+		A.tenant_id = #{tenantId} AND A.is_template IS NOT TRUE
+		<if test="name != null and name != ''">
+			AND A.name LIKE CONCAT('%', #{name}, '%')
+		</if>
+		<if test="industryId != null">
+			AND A.industry_id = #{industryId}
+		</if>
+		<if test="sceneId != null">
+			AND A.scene_id = #{sceneId}
+		</if>
+		<if test="framework != null and framework != ''">
+			AND A.framework = #{framework}
+		</if>
+		<if test="platformId != null">
+			AND A.platform_id = #{platformId}
+		</if>
+		<if test="createdBy != null and createdBy != ''">
+			AND A.created_by = #{createdBy}
+		</if>
+		<include refid="VisibleRoleCondition"/>
+	</sql>
+
+	<select id="queryVisibleApps" resultMap="AppMap">
+		SELECT <include refid="Common_Column_List"/>, <include refid="Current_Role_Column"/>
+		<include refid="Common_Join"/>
+		WHERE A.tenant_id = #{tenantId} AND A.is_template IS NOT TRUE
+		<include refid="VisibleRoleCondition"/>
+		ORDER BY A.created_time DESC
+	</select>
+
+	<select id="queryVisibleAppsByPage" resultMap="AppMap">
+		SELECT <include refid="Common_Column_List"/>, <include refid="Current_Role_Column"/>
+		<include refid="Common_Join"/>
+		<where><include refid="VisibleAppConditions"/></where>
+		ORDER BY
+		<choose>
+			<when test="orderBy == 'created_time'">A.created_time</when>
+			<when test="orderBy == 'last_updated_time'">A.last_updated_time</when>
+			<otherwise>A.id</otherwise>
+		</choose>
+		DESC
+		LIMIT #{pageSize} OFFSET #{offset}
+	</select>
+
+	<select id="queryVisibleAppTotal" resultType="int">
+		SELECT COUNT(A.id) FROM t_app A
+		<where><include refid="VisibleAppConditions"/></where>
+	</select>
 
     <select id="queryAllAppByPage" resultMap="AppMap">
         SELECT
         <include refid="Common_Column_List"/>
         <include refid="Common_Join"/>
         <where>
-            A.is_template IS NOT TRUE
+            A.tenant_id = #{tenantId}
             <if test="name != null and name != ''">
                 AND A.name LIKE CONCAT('%', #{name}, '%')
             </if>
@@ -505,6 +609,13 @@
         LIMIT #{pageSize} OFFSET #{offset}
     </select>
 
+	<select id="queryVisibleAppById" resultMap="AppMap">
+		SELECT <include refid="Common_Column_List"/>, <include refid="Current_Role_Column"/>
+		<include refid="Common_Join"/>
+		WHERE A.id = #{appId} AND A.tenant_id = #{tenantId}
+		<include refid="VisibleRoleCondition"/>
+	</select>
+
     <!-- 根据主键id查询表t_app信息 -->
     <select id="queryAppById" resultMap="AppMap">
         SELECT
@@ -542,6 +653,12 @@
         WHERE id = #{id} AND tenant_id = #{tenantId}
     </delete>
 
+	<select id="lockAppForUpdate" resultMap="AppMap">
+		SELECT <include refid="Base_Column_List"/> FROM t_app
+		WHERE tenant_id = #{tenantId} AND id = #{appId}
+		FOR UPDATE
+	</select>
+
     <!-- 根据主键id更新表t_app数据 -->
     <update id="updateAppById" parameterType="com.xiongx9527.fw.plus.tinyengine.model.entity.App">
         UPDATE t_app
@@ -556,6 +673,7 @@
     <insert id="createApp" useGeneratedKeys="true" keyProperty="id" parameterType="com.xiongx9527.fw.plus.tinyengine.model.entity.App">
         INSERT INTO t_app ( id
         , name
+        , code
         , app_website
         , platform_id
         , platform_history_id
@@ -567,6 +685,7 @@
         , image_url
         , assets_url
         , state
+        , enable
         , published
         , home_page_id
         , css
@@ -601,6 +720,7 @@
         , site_id)
         VALUES ( #{id}
         , #{name}
+        , #{code}
         , #{appWebsite}
         , #{platformId}
         , #{platformHistoryId}
@@ -612,6 +732,7 @@
         , #{imageUrl}
         , #{assetsUrl}
         , #{state}
+        , #{enable}
         , #{isPublish}
         , #{homePage}
         , #{css}

@@ -61,11 +61,6 @@ const handleStreamData = createStreamDataHandler({
 
 const beforeRequest = async (params: ChatRequestData): Promise<ChatRequestData> => {
   const requestParams = await onBeforeRequest(params)
-  const { service } = getSelectedModelInfo()
-
-  if (service && getConfig().apiKey !== service.apiKey) {
-    updateConfig({ apiKey: service.apiKey })
-  }
   if (getConfig().apiUrl !== getApiUrl()) {
     updateConfig({ apiUrl: getApiUrl() })
   }
@@ -73,10 +68,9 @@ const beforeRequest = async (params: ChatRequestData): Promise<ChatRequestData> 
 }
 
 const initChatClient = () => {
-  const { service, model } = getSelectedModelInfo()
+  const { model } = getSelectedModelInfo()
 
   const config: ProviderConfig = {
-    apiKey: service?.apiKey || '',
     apiUrl: getApiUrl(),
     defaultModel: model || 'deepseek-v3',
     axiosClient: () => apiService.getHttpClient(),

@@ -9,6 +9,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.util.StringUtils;
 
 import java.util.LinkedHashSet;
@@ -23,13 +24,16 @@ import java.util.Set;
 @ConditionalOnProperty(prefix = "fw.plus.tiny-engine.mapper", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class TinyEngineMapperConfiguration {
 
+	private static final String DEFAULT_MAPPER_BASE_PACKAGE = "com.xiongx9527.fw.plus.tinyengine.mapper,"
+			+ "com.xiongx9527.fw.plus.tinyengine.dynamic.mapper";
+
 	@Bean(name = "tinyEngineMapperScannerConfigurer")
 	@ConditionalOnBean(SqlSessionFactory.class)
 	@ConditionalOnMissingBean(name = "tinyEngineMapperScannerConfigurer")
-	public static MapperScannerConfigurer tinyEngineMapperScannerConfigurer(TinyEngineProperties properties) {
+	public static MapperScannerConfigurer tinyEngineMapperScannerConfigurer(Environment environment) {
 		MapperScannerConfigurer mapperScannerConfigurer = new MapperScannerConfigurer();
-		mapperScannerConfigurer.setBasePackage(properties.getMapper().getBasePackage());
-		mapperScannerConfigurer.setProcessPropertyPlaceHolders(true);
+		mapperScannerConfigurer.setBasePackage(environment.getProperty(
+				"fw.plus.tiny-engine.mapper.base-package", DEFAULT_MAPPER_BASE_PACKAGE));
 		return mapperScannerConfigurer;
 	}
 

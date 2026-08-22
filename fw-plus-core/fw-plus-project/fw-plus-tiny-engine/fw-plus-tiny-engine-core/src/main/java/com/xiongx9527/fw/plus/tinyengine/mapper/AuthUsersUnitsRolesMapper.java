@@ -24,7 +24,7 @@ public interface AuthUsersUnitsRolesMapper extends BaseMapper<AuthUsersUnitsRole
      */
     @Select("SELECT DISTINCT tt.* FROM t_tenant tt " +
             "INNER JOIN r_auth_users_units_roles raur ON tt.id = raur.tenant_id " +
-            "WHERE raur.user_id = #{userId}")
+            "WHERE raur.user_id = #{userId} AND tt.enable = TRUE")
     List<Tenant> queryAllTenantByUserId(Integer userId);
 
     /**

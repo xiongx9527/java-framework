@@ -3,6 +3,7 @@ import {
   useResource,
   useMessage,
   defineService,
+  getMergeMeta,
   getMetaApi,
   META_SERVICE
 } from '@opentiny/tiny-engine-meta-register'
@@ -86,8 +87,18 @@ const setNeedToLogin = (value: boolean) => {
 
 const getUserInfo = () => userState.userInfo
 
+const normalizeUserInfo = (data: any = {}) => ({
+  ...data,
+  id: data.id || data.userId,
+  userId: data.userId || data.id,
+  username: data.username || data.userName || data.name,
+  userName: data.userName || data.username || data.name,
+  tenant: data.tenant || data.tenants || [],
+  tenants: data.tenants || data.tenant || []
+})
+
 const setUserInfo = (data: any) => {
-  userState.userInfo = { ...userState.userInfo, ...data }
+  userState.userInfo = { ...userState.userInfo, ...normalizeUserInfo(data) }
 }
 
 const fetchUserInfo = () => {
@@ -257,13 +268,17 @@ export default defineService({
       }
     })
 
-    fetchUserInfo().then((data: any) => {
-      if (data) {
-        state.userInfo = data
-        userState.userInfo = data
-      }
+    if (getMergeMeta('engine.config')?.enableLogin) {
+      fetchUserInfo().then((data: any) => {
+        if (data) {
+          state.userInfo = normalizeUserInfo(data)
+          userState.userInfo = state.userInfo
+        }
+        publish({ topic: 'global_service_init_finish' })
+      })
+    } else {
       publish({ topic: 'global_service_init_finish' })
-    })
+    }
   },
   apis: () => ({
     getLoginStatus,

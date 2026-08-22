@@ -21,7 +21,7 @@
 |---|---|---|---|---|
 | common | `base/src/main/java/com/tinyengine/it/common/**` | `fw-plus-tiny-engine-core/common` 与 Boot 错误处理 | migrated/adapted | 覆盖 `Result`、`BaseEntity`、`HistoryEntity`、`PageQueryVo`、异常、类型处理器、日志注解、Hash、JSON、Schema、文件安全、图片工具；Spring Advice/Aspect 进入 Boot 或显式适配。 |
 | config | `base/src/main/java/com/tinyengine/it/config/**` | Boot 可选配置与外部能力 Provider | adapted/deferred-with-reason | `AiChatConfig`、`OpenAIConfig` 不强制 starter 依赖具体 OpenAI/RAG SDK，默认返回未配置。 |
-| controller | `base/src/main/java/com/tinyengine/it/controller/**` | Boot MVC/WebFlux Controller 与共享 facade | adapted | 覆盖 app-center、material-center、platform-center、v1 schema、AI/vector、health、history、task、resource、i18n、template、canvas、tenant/user 路由。 |
+| controller | `base/src/main/java/com/tinyengine/it/controller/**` | Boot MVC/WebFlux Controller 与共享 facade | 逐接口状态由 [`official-api-contracts.json`](official-api-contracts.json) 判定 | 官方前端真实调用点按 HTTP 方法与归一化路径逐项登记；每条契约分别记录官方处理器、当前 MVC/WebFlux 处理器及 `implemented`/`missing` 状态，不再用类别级状态代表全部路由已实现。 |
 | dynamic | `base/src/main/java/com/tinyengine/it/dynamic/**` | `fw-plus-tiny-engine-core/dynamic` 与 MVC/WebFlux API | migrated/adapted | 覆盖 `ModelDataController`、`DynamicSqlProvider`、`ModelDataDao`、动态 CRUD DTO 和 `DynamicModelService`/`DynamicService`。 |
 | event | `base/src/main/java/com/tinyengine/it/event/**` | Core/Boot 事件或保存 Hook | adapted | `PageDeleteEvent` 映射为 Core 事件或删除流程 Hook。 |
 | gateway/ai | `base/src/main/java/com/tinyengine/it/gateway/ai/**` | AI/RAG 可选 Provider 契约 | adapted/deferred-with-reason | `AiChatClient` 不在 starter 中固化具体远程模型实现。 |

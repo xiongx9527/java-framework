@@ -15,6 +15,7 @@ package com.xiongx9527.fw.plus.tinyengine.model.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.xiongx9527.fw.plus.tinyengine.common.model.BaseEntity;
 import com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.MethodDto;
@@ -26,13 +27,18 @@ import java.util.List;
  *
  * @since 2025-07-17
  */
-@TableName(value = "t_model", autoResultMap = true)
+@TableName(value = "t_model", resultMap = "ModelMap", autoResultMap = true)
 public class Model extends BaseEntity {
+@JsonAlias({"app", "app_id"})
 private Integer appId;
+@JsonAlias({"platform", "platform_id"})
 private Integer platformId;
+@JsonAlias({"name", "name_cn"})
 private String nameCn;
+@JsonAlias("name_en")
 private String nameEn;
 private String version;
+@JsonAlias("model_url")
 private String modelUrl;
 @TableField(typeHandler = JsonArrayTypeHandler.class)
     private List<ParametersDto> parameters;

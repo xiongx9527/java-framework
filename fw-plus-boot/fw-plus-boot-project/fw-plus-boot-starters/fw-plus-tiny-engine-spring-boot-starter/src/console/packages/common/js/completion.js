@@ -206,12 +206,12 @@ const fetchAiInlineCompletion = (codeBeforeCursor, codeAfterCursor) => {
         }
       ],
       baseUrl,
+      apiKey,
       stream: false
     },
     {
       headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey || ''}`
+        'Content-Type': 'application/json'
       }
     }
   )

@@ -66,6 +66,7 @@ create table `t_app`
 (
     `id`                  int          not null auto_increment comment '主键id',
     `name`                varchar(255) not null comment '应用名称',
+    `code`                varchar(255) not null comment '应用唯一编码',
     `platform_id`         int          not null comment '关联设计器id',
     `platform_history_id` int comment '关联设计器历史版本id',
     `publish_url`         varchar(255) comment '应用静态资源托管地址',
@@ -74,6 +75,7 @@ create table `t_app`
     `image_url`           varchar(255) comment '封面图地址',
     `assets_url`          varchar(255) comment '应用资源地址',
     `state`               int comment '应用状态，1可用，0不可用',
+    `enable`              tinyint(1) not null default 1 comment '是否启用',
     `published`           tinyint(1) comment '是否发布：1是，0否',
     `home_page_id`        int comment '主页id，关联page表的id',
     `app_website`         varchar(255) comment '设计预留字段',
@@ -107,6 +109,7 @@ create table `t_app`
     `created_time`        timestamp    not null default current_timestamp comment '创建时间',
     `last_updated_time`   timestamp    not null default current_timestamp comment '更新时间',
     primary key (`id`) using btree,
+    unique index `u_idx_app_code` (`code`) using btree,
     unique index `u_idx_app` (`tenant_id`, `platform_id`, `name`) using btree
 ) engine = innodb comment = '应用表';
 
@@ -583,6 +586,8 @@ create table `t_tenant`
     `name_cn`           varchar(255) not null comment '组织中文名',
     `name_en`           varchar(255)  comment '组织英文名',
     `description`       varchar(2000) comment '组织描述',
+    `is_system`         tinyint(1) default 0 comment '是否系统租户组织',
+    `enable`            tinyint(1) not null default 1 comment '是否启用',
     `created_by`        varchar(60)  not null comment '创建人',
     `created_time`      timestamp    not null default current_timestamp comment '创建时间',
     `last_updated_by`   varchar(60)  not null comment '最后修改人',
@@ -598,7 +603,6 @@ create table `t_user`
     `id`                int          not null auto_increment comment '主键id',
     `username`          varchar(255) not null comment '用户名',
     `email`             varchar(255) not null comment '邮箱',
-    `role`              varchar(255) comment '用户角色',
     `enable`            tinyint(1) comment '账号是否可用',
     `is_admin`          tinyint(1) comment '是否管理员',
     `is_public`         tinyint(1) comment '是否公共账号',

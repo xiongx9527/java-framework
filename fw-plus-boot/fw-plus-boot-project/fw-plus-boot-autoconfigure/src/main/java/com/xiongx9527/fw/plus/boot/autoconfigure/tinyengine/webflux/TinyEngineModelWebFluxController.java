@@ -30,7 +30,7 @@ public class TinyEngineModelWebFluxController {
 		this.executor = executor;
 	}
 
-	@GetMapping("/material-center/api/model/list")
+	@GetMapping({"/material-center/api/model/list", "/material-center/api/model"})
 	public Mono<ResponseEntity<? extends Result<?>>> models(@RequestParam(required = false) Integer currentPage,
 			@RequestParam(required = false) Integer pageSize, @RequestParam(required = false) String nameCn,
 			@RequestParam(required = false) String nameEn) {
@@ -96,6 +96,17 @@ public class TinyEngineModelWebFluxController {
 	@PostMapping("/app-center/api/app-template/create")
 	public Mono<ResponseEntity<? extends Result<?>>> createAppTemplate(@RequestBody App app) {
 		return TinyEngineWebFluxSupport.submit(executor, () -> facade.createAppTemplate(app));
+	}
+
+	@PostMapping("/app-center/api/app-template/set")
+	public Mono<ResponseEntity<? extends Result<?>>> setAppTemplate(@RequestBody java.util.Map<String, Object> request) {
+		Integer id = Integer.valueOf(String.valueOf(request.get("id")));
+		Boolean isTemplate = Boolean.valueOf(String.valueOf(request.get("isTemplate")));
+		String templateType = request.get("templateType") == null ? null : String.valueOf(request.get("templateType"));
+		Integer industryId = request.get("industryId") == null ? null : Integer.valueOf(String.valueOf(request.get("industryId")));
+		Integer sceneId = request.get("sceneId") == null ? null : Integer.valueOf(String.valueOf(request.get("sceneId")));
+		String framework = request.get("framework") == null ? null : String.valueOf(request.get("framework"));
+		return TinyEngineWebFluxSupport.submit(executor, () -> facade.setAppTemplate(id, isTemplate, templateType, industryId, sceneId, framework));
 	}
 
 	@GetMapping("/app-center/api/i18n/entries")

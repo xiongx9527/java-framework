@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.tinyengine.dynamic.service;
 
 import com.xiongx9527.fw.plus.tinyengine.dynamic.model.DynamicDelete;
 import com.xiongx9527.fw.plus.tinyengine.dynamic.model.DynamicInsert;
+import com.xiongx9527.fw.plus.tinyengine.dynamic.model.DynamicInsertResult;
 import com.xiongx9527.fw.plus.tinyengine.dynamic.model.DynamicPageResult;
 import com.xiongx9527.fw.plus.tinyengine.dynamic.model.DynamicQuery;
 import com.xiongx9527.fw.plus.tinyengine.dynamic.model.DynamicTableColumn;
@@ -13,7 +14,7 @@ public interface DynamicService {
 
 	DynamicPageResult query(DynamicQuery query);
 
-	long insert(DynamicInsert insert);
+	DynamicInsertResult insert(DynamicInsert insert);
 
 	int update(DynamicUpdate update);
 

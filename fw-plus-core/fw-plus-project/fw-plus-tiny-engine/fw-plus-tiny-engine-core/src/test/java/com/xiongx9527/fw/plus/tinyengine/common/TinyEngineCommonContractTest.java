@@ -1,6 +1,9 @@
 package com.xiongx9527.fw.plus.tinyengine.common;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.xiongx9527.fw.plus.tinyengine.common.exception.ExceptionEnum;
+import com.xiongx9527.fw.plus.tinyengine.common.model.BaseEntity;
 import com.xiongx9527.fw.plus.tinyengine.common.exception.ServiceException;
 import com.xiongx9527.fw.plus.tinyengine.common.model.PageQueryVo;
 import com.xiongx9527.fw.plus.tinyengine.common.model.Result;
@@ -8,8 +11,11 @@ import com.xiongx9527.fw.plus.tinyengine.support.context.SystemTinyEngineUserCon
 import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUser;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -34,7 +40,7 @@ class TinyEngineCommonContractTest {
 	void serviceExceptionShouldRetainCodeAndMessage() {
 		ServiceException exception = new ServiceException("TE001", "page not found");
 
-		assertEquals("TE001", exception.getCode());
+		assertEquals("TE001", exception.getServiceCode());
 		assertEquals("page not found", exception.getMessage());
 	}
 
@@ -70,5 +76,15 @@ class TinyEngineCommonContractTest {
 		assertEquals(first.getUserName(), second.getUserName());
 		assertEquals("system", first.getUserId());
 		assertEquals("system", first.getUserName());
+	}
+
+	@Test
+	void baseEntityIdShouldUseDatabaseAutoIncrement() throws Exception {
+		Field id = BaseEntity.class.getDeclaredField("id");
+		TableId tableId = id.getAnnotation(TableId.class);
+
+		assertNotNull(tableId);
+		assertEquals("id", tableId.value());
+		assertEquals(IdType.AUTO, tableId.type());
 	}
 }

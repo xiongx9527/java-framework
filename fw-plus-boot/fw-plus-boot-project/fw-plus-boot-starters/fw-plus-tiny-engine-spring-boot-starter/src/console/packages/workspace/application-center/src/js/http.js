@@ -34,3 +34,19 @@ export const updateApplication = (id, params) =>
 
 // 应用管理 -- 删除应用
 export const deleteApplication = (id) => getMetaApi(META_SERVICE.Http).get(`/app-center/api/apps/delete/${id}`)
+
+// 应用管理 -- 设置/取消模板
+export const setAppTemplate = (params) => getMetaApi(META_SERVICE.Http).post(`/app-center/api/app-template/set`, params)
+
+// 应用成员管理
+export const fetchAppMembers = (appId) =>
+  getMetaApi(META_SERVICE.Http).get(`/app-center/api/apps/${appId}/members`)
+
+export const addAppMember = (appId, params) =>
+  getMetaApi(META_SERVICE.Http).post(`/app-center/api/apps/${appId}/members`, params)
+
+export const updateAppMember = (appId, userId, params) =>
+  getMetaApi(META_SERVICE.Http).put(`/app-center/api/apps/${appId}/members/${encodeURIComponent(userId)}`, params)
+
+export const deleteAppMember = (appId, userId) =>
+  getMetaApi(META_SERVICE.Http).delete(`/app-center/api/apps/${appId}/members/${encodeURIComponent(userId)}`)

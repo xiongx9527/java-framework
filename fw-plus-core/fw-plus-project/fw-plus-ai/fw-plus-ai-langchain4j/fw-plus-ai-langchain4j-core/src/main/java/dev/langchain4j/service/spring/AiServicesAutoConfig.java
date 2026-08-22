@@ -32,8 +32,8 @@ public class AiServicesAutoConfig {
     @Bean
     BeanFactoryPostProcessor aiServicesRegisteringBeanFactoryPostProcessor() {
         return (beanFactory) -> {
-            String[] chatLanguageModels = beanFactory.getBeanNamesForType(ChatModel.class);
-            String[] streamingChatLanguageModels = beanFactory.getBeanNamesForType(StreamingChatModel.class);
+            String[] chatModels = beanFactory.getBeanNamesForType(ChatModel.class);
+            String[] streamingChatModels = beanFactory.getBeanNamesForType(StreamingChatModel.class);
             String[] chatMemories = beanFactory.getBeanNamesForType(ChatMemory.class);
             String[] chatMemoryProviders = beanFactory.getBeanNamesForType(ChatMemoryProvider.class);
             String[] contentRetrievers = beanFactory.getBeanNamesForType(ContentRetriever.class);
@@ -62,8 +62,8 @@ public class AiServicesAutoConfig {
                 aiServiceBeanDefinition.getConstructorArgumentValues().addGenericArgumentValue(aiServiceClass);
                 MutablePropertyValues propertyValues = aiServiceBeanDefinition.getPropertyValues();
                 AiService aiServiceAnnotation = (AiService)aiServiceClass.getAnnotation(AiService.class);
-                addBeanReference(ChatModel.class, aiServiceAnnotation, aiServiceAnnotation.chatModel(), chatLanguageModels, "chatModel", "chatLanguageModel", propertyValues);
-                addBeanReference(StreamingChatModel.class, aiServiceAnnotation, aiServiceAnnotation.streamingChatModel(), streamingChatLanguageModels, "streamingChatModel", "streamingChatLanguageModel", propertyValues);
+                addBeanReference(ChatModel.class, aiServiceAnnotation, aiServiceAnnotation.chatModel(), chatModels, "chatModel", "chatModel", propertyValues);
+                addBeanReference(StreamingChatModel.class, aiServiceAnnotation, aiServiceAnnotation.streamingChatModel(), streamingChatModels, "streamingChatModel", "streamingChatModel", propertyValues);
                 addBeanReference(ChatMemory.class, aiServiceAnnotation, aiServiceAnnotation.chatMemory(), chatMemories, "chatMemory", "chatMemory", propertyValues);
                 addBeanReference(ChatMemoryProvider.class, aiServiceAnnotation, aiServiceAnnotation.chatMemoryProvider(), chatMemoryProviders, "chatMemoryProvider", "chatMemoryProvider", propertyValues);
                 addBeanReference(ContentRetriever.class, aiServiceAnnotation, aiServiceAnnotation.contentRetriever(), contentRetrievers, "contentRetriever", "contentRetriever", propertyValues);

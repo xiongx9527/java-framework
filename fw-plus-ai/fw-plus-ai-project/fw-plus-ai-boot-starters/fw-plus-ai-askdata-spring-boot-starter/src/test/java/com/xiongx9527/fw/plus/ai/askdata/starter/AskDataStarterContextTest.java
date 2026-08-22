@@ -19,7 +19,7 @@ public class AskDataStarterContextTest {
 
 	@Test
 	public void shouldStartMinimalContextWithAskDataStarterOnlyClasspath() {
-		assertFalse(ClassUtils.isPresent("dev.langchain4j.model.chat.ChatLanguageModel",
+		assertFalse(ClassUtils.isPresent("dev.langchain4j.model.chat.ChatModel",
 				getClass().getClassLoader()));
 		contextRunner.run(context -> {
 			assertTrue(context.isActive());

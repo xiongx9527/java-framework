@@ -32,6 +32,10 @@ import java.util.List;
  * @since 2024-10-20
  */
 public interface BlockMapper extends BaseMapper<Block> {
+	@Select("SELECT DISTINCT created_by FROM t_block "
+			+ "WHERE tenant_id = #{tenantId} AND created_by IS NOT NULL AND created_by <> ''")
+	List<String> selectDistinctCreatedByTenant(@Param("tenantId") String tenantId);
+
     /**
      * 查询表t_block所有信息
      *

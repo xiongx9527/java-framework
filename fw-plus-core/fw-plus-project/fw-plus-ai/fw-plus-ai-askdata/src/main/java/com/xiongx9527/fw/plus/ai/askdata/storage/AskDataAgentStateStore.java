@@ -100,8 +100,15 @@ public interface AskDataAgentStateStore {
 	}
 	class SubTaskState {
 		private final String taskId; private final String name; private final String status;
-		public SubTaskState(String taskId, String name, String status) { this.taskId = taskId; this.name = name; this.status = status; }
-		public String getTaskId() { return taskId; } public String getName() { return name; } public String getStatus() { return status; }
+		private final String failurePolicy; private final String errorCode;
+		public SubTaskState(String taskId, String name, String status) { this(taskId, name, status, null, null); }
+		public SubTaskState(String taskId, String name, String status, String failurePolicy, String errorCode) {
+			this.taskId = taskId; this.name = name; this.status = status;
+			this.failurePolicy = failurePolicy; this.errorCode = errorCode;
+		}
+		public String getTaskId() { return taskId; } public String getName() { return name; }
+		public String getStatus() { return status; } public String getFailurePolicy() { return failurePolicy; }
+		public String getErrorCode() { return errorCode; }
 	}
 	class ToolSummary {
 		private final String toolName; private final String status; private final String summary;
@@ -110,8 +117,23 @@ public interface AskDataAgentStateStore {
 	}
 	class ModelRouteAttempt {
 		private final String modelKey; private final String status; private final String detail;
-		public ModelRouteAttempt(String modelKey, String status, String detail) { this.modelKey = modelKey; this.status = status; this.detail = detail; }
-		public String getModelKey() { return modelKey; } public String getStatus() { return status; } public String getDetail() { return detail; }
+		private final String modelType; private final String routePolicy; private final String routeReason;
+		private final String failureCode; private final String switchReason; private final String actualModelKey;
+		public ModelRouteAttempt(String modelKey, String status, String detail) {
+			this(modelKey, status, detail, null, null, null, null, null, null);
+		}
+		public ModelRouteAttempt(String modelKey, String status, String detail, String modelType,
+				String routePolicy, String routeReason, String failureCode, String switchReason,
+				String actualModelKey) {
+			this.modelKey = modelKey; this.status = status; this.detail = detail; this.modelType = modelType;
+			this.routePolicy = routePolicy; this.routeReason = routeReason; this.failureCode = failureCode;
+			this.switchReason = switchReason; this.actualModelKey = actualModelKey;
+		}
+		public String getModelKey() { return modelKey; } public String getStatus() { return status; }
+		public String getDetail() { return detail; } public String getModelType() { return modelType; }
+		public String getRoutePolicy() { return routePolicy; } public String getRouteReason() { return routeReason; }
+		public String getFailureCode() { return failureCode; } public String getSwitchReason() { return switchReason; }
+		public String getActualModelKey() { return actualModelKey; }
 	}
 	class StepLog {
 		private final String step; private final String status; private final String detail;

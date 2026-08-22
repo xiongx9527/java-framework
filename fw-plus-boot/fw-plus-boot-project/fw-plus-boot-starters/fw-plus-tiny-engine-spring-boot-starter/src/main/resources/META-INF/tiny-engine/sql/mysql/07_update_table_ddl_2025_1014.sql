@@ -30,7 +30,20 @@ ALTER TABLE t_model DROP INDEX u_idx_model;
 ALTER TABLE t_model
     ADD INDEX u_idx_model (`tenant_id`, `platform_id`, `app_id`, `name_cn`,`version`);
 
-ALTER TABLE t_user DROP COLUMN email, DROP COLUMN tenant_id, DROP COLUMN site_id,DROP COLUMN renter_id,DROP COLUMN created_by,DROP COLUMN last_updated_by;
+ALTER TABLE t_user DROP COLUMN email, DROP COLUMN site_id,DROP COLUMN renter_id,DROP COLUMN created_by,DROP COLUMN last_updated_by;
+SET @tiny_engine_drop_user_role_sql = (
+    SELECT IF(COUNT(*) > 0,
+              'ALTER TABLE t_user DROP COLUMN role',
+              'SELECT 1')
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 't_user'
+      AND COLUMN_NAME = 'role'
+);
+PREPARE tiny_engine_drop_user_role_stmt FROM @tiny_engine_drop_user_role_sql;
+EXECUTE tiny_engine_drop_user_role_stmt;
+DEALLOCATE PREPARE tiny_engine_drop_user_role_stmt;
+SET @tiny_engine_drop_user_role_sql = NULL;
 
 
 ALTER TABLE t_user

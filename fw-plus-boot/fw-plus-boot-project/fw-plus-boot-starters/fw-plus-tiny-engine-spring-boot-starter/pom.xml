@@ -32,6 +32,11 @@
         </dependency>
 
         <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-mp-encrypt</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
@@ -83,7 +88,7 @@
                     </execution>
                 </executions>
             </plugin>
-            <!-- 复制前端构建产物到 classpath:/tiny-engine/，由后端映射到 /tiny-engine/** -->
+            <!-- 复制前端构建产物到 Spring Boot 标准静态资源目录 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
@@ -93,11 +98,28 @@
                         <phase>prepare-package</phase>
                         <goals><goal>copy-resources</goal></goals>
                         <configuration>
-                            <outputDirectory>${project.build.outputDirectory}/tiny-engine</outputDirectory>
+                                <outputDirectory>${project.build.outputDirectory}/META-INF/resources/tiny-engine</outputDirectory>
                             <resources>
                                 <resource>
                                     <directory>src/console/designer-demo/dist</directory>
                                     <filtering>false</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-console-public-images</id>
+                        <phase>prepare-package</phase>
+                        <goals><goal>copy-resources</goal></goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}/META-INF/resources/tiny-engine/img</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>src/console/packages/design-core/public/img</directory>
+                                    <filtering>false</filtering>
+                                    <includes>
+                                        <include>defaultAvator.png</include>
+                                    </includes>
                                 </resource>
                             </resources>
                         </configuration>
