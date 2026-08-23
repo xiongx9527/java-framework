@@ -1,10 +1,10 @@
-# AI 框架破坏性迁移与 Java 17 后续蓝图
+# AI 框架破坏性迁移与多 Adapter 接入
 
 ## 适用范围
 
-本文是中立 model/store adapter 发布线的迁移指南。该发布线以 Java 8、Spring Boot 2.7.18 为运行基线；LangChain4j 0.35.0 是当前唯一已实现、但必须由业务显式选择的 Adapter。该发布线同时删除旧 model/store 模块和 starter；它不是 Spring AI、Spring AI Alibaba 或 AgentScope 2 adapter 的实现或兼容性证明。
+本文是当前 Java 17、Spring Boot 3.5.8 model/store adapter 发布线的迁移指南。LangChain4j 1.18.0 adapter 继续由业务显式安装；本发布线同时新增 `fw-plus-ai-spring-adapter`，以 `spring-ai` 与 `spring-ai-alibaba` 两个 framework 支持同步 CHAT/EMBEDDING。Spring AI 版本为 1.1.2，Spring AI Alibaba 与 extensions 为 1.1.2.2。
 
-AskData 模块保留。本次迁移文档不修改其源码，也不把它宣称为已切换到中立模型或未来 framework；在其他 adapter、Boot 和 Magic-API 工作完成且再次获得明确确认之前，AskData 的依赖迁移和回归均是后续集成任务。
+AskData 模块保留且不默认引入任何具体 adapter/provider。本次只验证 Spring AI 模型通过中立 `AiModelRegistry` 与 Magic-API `model[...]` 贯通，不宣称 AskData 已切换，也不宣称 Spring AI/Alibaba VectorStore 已实现。
 
 ## 1. 必须替换的坐标
 
@@ -122,34 +122,32 @@ rg -n 'fw-plus-ai-langchain4j-(model|store-embeding)|fw-plus\.ai\.langchain4j\.(
 
 ## 6. 当前发布线的验证命令
 
-以下是 Java 8 / Boot 2.7 当前实现的目标验证命令；执行前固定 JDK 8，避免较高 JDK 与现有 Lombok 基线冲突。
+执行前固定 Java 17：
 
 ```bash
-export JAVA_HOME=$(/usr/libexec/java_home -v 1.8)
-export PATH="$JAVA_HOME/bin:$PATH"
+export JAVA_HOME=$(/usr/libexec/java_home -v 17)
 
-./fw-plus-core/mvnw -f fw-plus-core/pom.xml \
-  -pl fw-plus-project/fw-plus-ai/fw-plus-ai-model,fw-plus-project/fw-plus-ai/fw-plus-ai-store-embedding,fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-adapter -am test
+mvn -f fw-plus-core/pom.xml \
+  -pl fw-plus-project/fw-plus-ai/fw-plus-ai-spring/fw-plus-ai-spring-adapter \
+  -am test
 
-./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml \
-  -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -am test
+mvn -f fw-plus-ai/pom.xml \
+  -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure \
+  -am test
 
-./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml \
-  -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin -am test
-
-# AskData 仅在后续得到明确确认并完成依赖迁移后执行
-./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml \
-  -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -am test
+mvn -f fw-plus-ai/pom.xml \
+  -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-model-spring-boot-starter,fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-store-embedding-spring-boot-starter \
+  -am validate
 ```
 
-完成代码变更后还应运行 OpenSpec 严格校验、`git diff --check` 与上节的残留扫描。本文档本身不构成 Java 17 adapter 已通过测试的证据。
+完成代码变更后还应运行 `docs/ai-framework-migration/verify-migration-docs.sh`、`git diff --check`、dependency tree 与相关 LangChain4j/Magic-API 回归。真实远端 provider 测试只在受控凭据下执行，未执行时应明确记录。
 
-## 7. Java 17 / Spring Boot 3 后续路线
+## 7. 当前与后续路线
 
-后续 change 使用独立 Java 17 parent、BOM、reactor 和 Boot 3 starter，不加入当前 Java 8 Core BOM/reactor，也不反向把 Boot 3、`jakarta.*` 或目标 SDK 传递到当前发布物。三个实现路线分别见：
+当前实现详情见：
 
 - [Spring AI](spring-ai-java17.md)
 - [Spring AI Alibaba](spring-ai-alibaba-java17.md)
-- [AgentScope 2 Java](agentscope-java17.md)
+- [兼容矩阵](compatibility-matrix.md)
 
-这些文件是实现验收门槛，不是可解析坐标或已支持功能。
+AgentScope 2 Java 仍是独立后续需求；当前不创建任何 `fw-plus-ai-j17` reactor、j17 starter 或 AgentScope artifact。

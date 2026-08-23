@@ -2,7 +2,7 @@
 
 ## Neutral adapter breaking migration
 
-This release line removes the former LangChain4j model/store artifacts and their old configuration prefixes. The Java 8 `fw-plus-ai-model` and `fw-plus-ai-store-embedding` APIs remain framework-neutral. LangChain4j is installed explicitly through the core adapter:
+This Java 17 / Spring Boot 3.5.8 release line removes the former LangChain4j model/store artifacts and their old configuration prefixes. `fw-plus-ai-model` and `fw-plus-ai-store-embedding` remain framework-neutral. LangChain4j is installed explicitly through its core adapter:
 
 ```xml
 <dependency>
@@ -40,6 +40,20 @@ fw-plus:
 
 Magic-API keys such as `model['knowledge-chat']` and `vector['knowledge']` stay stable, but scripts expose only neutral facades and never native LangChain4j objects.
 
-AskData is retained and is not migrated by this documentation task. Spring AI, Spring AI Alibaba, and AgentScope 2 adapters are future Java 17 / Spring Boot 3 work, not artifacts implemented by this release.
+## Spring AI and Spring AI Alibaba
 
-See the Chinese [migration guide](../docs/ai-framework-migration/overview.md) for complete mappings, diagnostics, rollback limits, and the Java 17 roadmap.
+The same core artifact supports both Spring frameworks for synchronous `CHAT` and `EMBEDDING`:
+
+```xml
+<dependency>
+    <groupId>com.xiongx9527.fw.plus</groupId>
+    <artifactId>fw-plus-ai-spring-adapter</artifactId>
+    <version>${fw-plus-ai.version}</version>
+</dependency>
+```
+
+Applications also add an official provider starter. Use `framework: spring-ai` for generic Spring AI providers or `framework: spring-ai-alibaba` with `provider: dashscope`; set `properties.beanName` to a Spring-managed `ChatModel` or `EmbeddingModel`, or register a unique `SpringAiProviderBinding`.
+
+This first release does **not** provide a Spring AI/Alibaba `AiEmbeddingStoreAdapter`: the standard text-query `VectorStore` cannot safely replace the neutral precomputed-vector contract. `vector[...]` therefore remains backed only by an explicitly installed compatible store adapter.
+
+AskData remains neutral and does not pull in any concrete adapter/provider by default. AgentScope 2 is still future work. See the Chinese [migration guide](../docs/ai-framework-migration/overview.md) for complete mappings, diagnostics, capability limits, and rollback guidance.

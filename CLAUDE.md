@@ -126,19 +126,20 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 ├── fw-plus-ai/               # AI 集成层
 │   ├── fw-plus-ai-project/
 │   │   ├── fw-plus-ai-boot/               # AI 集成（aggregator）
-│   │   ├── fw-plus-ai-boot-autoconfigure/ # AI 自动配置（LangChain4j, Agents-Flex, Spring AI, EasyAi）
+│   │   ├── fw-plus-ai-boot-autoconfigure/ # AI 自动配置（LangChain4j、Spring AI/Alibaba、Tinyflow 等）
 │   │   ├── fw-plus-ai-boot-common/        # AI 公共类
 │   │   ├── fw-plus-ai-boot-dependencies/  # AI 层 BOM
 │   │   ├── fw-plus-ai-boot-parent/        # AI 层父 POM
 │   │   └── fw-plus-ai-boot-starters/      # AI Starter
-│   │       ├── fw-plus-ai-boot-starter/                           # 通用 AI Starter（aggregator）
-│   │       ├── fw-plus-ai-langchain4j-spring-boot-starter/        # LangChain4j 集成
-│   │       ├── fw-plus-ai-langchain4j-open-ai-spring-boot-starter/ # LangChain4j OpenAI
-│   │       └── fw-plus-ai-magicapi-plugin/                        # Magic-API AI 插件（4 个）
-│   │           ├── fw-plus-ai-magicapi-plugin-langchain4j/ # LangChain4j 插件
-│   │           ├── fw-plus-ai-magicapi-plugin-milvus/      # Milvus 向量数据库
-│   │           ├── fw-plus-ai-magicapi-plugin-qdrant/      # Qdrant 向量数据库
-│   │           └── fw-plus-ai-magicapi-plugin-weaviate/    # Weaviate 向量数据库
+│   │       ├── fw-plus-ai-boot-starter/                    # 通用 AI Starter（aggregator）
+│   │       ├── fw-plus-ai-model-spring-boot-starter/       # 中立模型 Starter
+│   │       ├── fw-plus-ai-store-embedding-spring-boot-starter/ # 中立向量存储 Starter
+│   │       ├── fw-plus-ai-askdata-spring-boot-starter/     # AskData
+│   │       ├── fw-plus-ai-tinyflow-spring-boot-starter/    # Tinyflow
+│   │       └── fw-plus-ai-magicapi-plugin/                 # Model/Vector/Tinyflow 插件
+│
+│   # Core AI 中另有 fw-plus-ai-spring/fw-plus-ai-spring-adapter：
+│   # framework=spring-ai 与 spring-ai-alibaba，共享 CHAT/EMBEDDING facade；首版无 VectorStore adapter
 │
 ├── fw-plus-sample/                    # 集中样例模块
 │   ├── fw-plus-boot-samples/          # Boot 示例项目（5 个）
@@ -370,7 +371,7 @@ if (!list) { return; }
 |---|---|
 | Java | 17 |
 | Maven | 3.6.3 |
-| Spring Boot | 2.7.18 |
+| Spring Boot | 3.5.8 |
 | Spring Cloud | 2021.0.9 |
 | Spring Cloud Alibaba | 2021.0.5.0 |
 | Spring Cloud Tencent | 1.14.0-2023.0.0-RC2 |
@@ -379,9 +380,10 @@ if (!list) { return; }
 | Magic-API | 2.2.2 |
 | JimuReport | 2.3.4 |
 | Sa-Token | 1.44.0 |
-| LangChain4j | 0.35.0 |
+| LangChain4j | 1.18.0 |
 | Agents-Flex | 1.3.4 |
-| Spring AI | 1.0.1 |
+| Spring AI | 1.1.2 |
+| Spring AI Alibaba / Extensions | 1.1.2.2 |
 | EasyAi | 1.4.9 |
 | Apache Pulsar | 2.11.2 |
 | Apache Kafka | SB managed |

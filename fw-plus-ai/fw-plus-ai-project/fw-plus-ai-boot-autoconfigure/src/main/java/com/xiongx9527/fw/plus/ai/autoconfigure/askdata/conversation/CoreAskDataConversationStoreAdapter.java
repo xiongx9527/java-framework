@@ -151,7 +151,8 @@ public final class CoreAskDataConversationStoreAdapter implements AskDataConvers
 			JsonNode output = node.get("outputTokens");
 			JsonNode total = node.get("totalTokens");
 			if (output == null || output.isNull() || total == null || total.isNull()) {
-				throw context.mappingException("AskData 模型用量必须同时包含 input/output/total tokens");
+				return context.reportInputMismatch(AskDataModelUsage.class,
+						"AskData 模型用量必须同时包含 input/output/total tokens");
 			}
 			JsonNode cost = node.get("cost");
 			return new AskDataModelUsage(input.longValue(), output.longValue(), total.longValue(),
@@ -180,7 +181,10 @@ public final class CoreAskDataConversationStoreAdapter implements AskDataConvers
 		private static String requiredText(JsonNode node, String field, DeserializationContext context)
 				throws IOException {
 			String value = optionalText(node, field);
-			if (!notBlank(value)) throw context.mappingException("AskData 模型尝试缺少字段: " + field);
+			if (!notBlank(value)) {
+				return context.reportInputMismatch(AskDataModelAttempt.class,
+						"AskData 模型尝试缺少字段: %s", field);
+			}
 			return value;
 		}
 

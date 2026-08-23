@@ -28,11 +28,17 @@ public class NeutralStarterDependencyTest {
 				"fw-plus-ai-boot-starter",
 				"fw-plus-ai-store-embedding");
 		assertDoesNotDependOn("fw-plus-ai-model-spring-boot-starter/pom.xml",
-				"fw-plus-ai-langchain4j-model", "fw-plus-ai-langchain4j-adapter");
+				"fw-plus-ai-langchain4j-model", "fw-plus-ai-langchain4j-adapter",
+				"fw-plus-ai-spring-adapter");
 		assertDoesNotDependOn("fw-plus-ai-store-embedding-spring-boot-starter/pom.xml",
-				"fw-plus-ai-langchain4j-store-embeding", "fw-plus-ai-langchain4j-adapter");
+				"fw-plus-ai-langchain4j-store-embeding", "fw-plus-ai-langchain4j-adapter",
+				"fw-plus-ai-spring-adapter");
 		assertDoesNotDependOnGroup("fw-plus-ai-model-spring-boot-starter/pom.xml", "dev.langchain4j");
+		assertDoesNotDependOnGroup("fw-plus-ai-model-spring-boot-starter/pom.xml", "org.springframework.ai");
+		assertDoesNotDependOnGroup("fw-plus-ai-model-spring-boot-starter/pom.xml", "com.alibaba.cloud.ai");
 		assertDoesNotDependOnGroup("fw-plus-ai-store-embedding-spring-boot-starter/pom.xml", "dev.langchain4j");
+		assertDoesNotDependOnGroup("fw-plus-ai-store-embedding-spring-boot-starter/pom.xml", "org.springframework.ai");
+		assertDoesNotDependOnGroup("fw-plus-ai-store-embedding-spring-boot-starter/pom.xml", "com.alibaba.cloud.ai");
 	}
 
 	@Test
@@ -57,10 +63,16 @@ public class NeutralStarterDependencyTest {
 	public void shouldValidateResolvedTransitiveDependenciesAtBuildTime() throws Exception {
 		assertBannedTransitiveDependencies("fw-plus-ai-model-spring-boot-starter/pom.xml",
 				"dev.langchain4j:*",
-				"com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter");
+				"org.springframework.ai:*",
+				"com.alibaba.cloud.ai:*",
+				"com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter",
+				"com.xiongx9527.fw.plus:fw-plus-ai-spring-adapter");
 		assertBannedTransitiveDependencies("fw-plus-ai-store-embedding-spring-boot-starter/pom.xml",
 				"dev.langchain4j:*",
-				"com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter");
+				"org.springframework.ai:*",
+				"com.alibaba.cloud.ai:*",
+				"com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter",
+				"com.xiongx9527.fw.plus:fw-plus-ai-spring-adapter");
 	}
 
 	private void assertDependencies(String pomName, String... requiredArtifacts) throws Exception {

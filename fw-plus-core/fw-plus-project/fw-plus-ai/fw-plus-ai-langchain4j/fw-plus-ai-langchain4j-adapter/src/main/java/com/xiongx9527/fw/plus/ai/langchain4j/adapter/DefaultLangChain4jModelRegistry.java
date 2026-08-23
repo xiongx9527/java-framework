@@ -90,7 +90,7 @@ public class DefaultLangChain4jModelRegistry implements LangChain4jModelRegistry
                 : AiModelType.valueOf(model.getModelType().name()));
         definition.setEnabled(true);
 		if (AiModelType.CHAT == definition.getType()
-				&& model.getModel() instanceof dev.langchain4j.model.chat.ChatLanguageModel) {
+				&& model.getModel() instanceof dev.langchain4j.model.chat.ChatModel) {
 			return new LangChain4jAiChatModel(definition, model);
 		}
 		if (AiModelType.EMBEDDING == definition.getType()

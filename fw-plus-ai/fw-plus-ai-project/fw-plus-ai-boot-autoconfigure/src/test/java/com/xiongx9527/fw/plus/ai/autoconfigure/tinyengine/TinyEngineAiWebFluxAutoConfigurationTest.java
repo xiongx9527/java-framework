@@ -158,7 +158,7 @@ class TinyEngineAiWebFluxAutoConfigurationTest {
 
 		org.springframework.web.server.ResponseStatusException exception = assertThrows(
 				org.springframework.web.server.ResponseStatusException.class, () -> controller.chat(request).block());
-		assertEquals(org.springframework.http.HttpStatus.BAD_GATEWAY, exception.getStatus());
+		assertEquals(org.springframework.http.HttpStatus.BAD_GATEWAY, exception.getStatusCode());
 		assertEquals("TinyEngine AI model invocation failed", exception.getReason());
 	}
 

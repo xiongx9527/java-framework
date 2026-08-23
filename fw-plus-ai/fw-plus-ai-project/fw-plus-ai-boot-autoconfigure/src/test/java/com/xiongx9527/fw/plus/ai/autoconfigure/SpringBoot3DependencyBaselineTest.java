@@ -26,8 +26,9 @@ public class SpringBoot3DependencyBaselineTest {
         assertProperty(coreBom(), "mybatis-plus.version", "3.5.16");
         assertProperty(coreBom(), "langchain4j.version", "1.18.0");
         assertProperty(coreBom(), "langchain4j-community.version", "1.18.0-beta28");
-        assertProperty(aiBom(), "spring-ai.version", "1.0.1");
-        assertProperty(aiBom(), "spring-ai-alibaba.version", "1.0.1");
+        assertProperty(coreBom(), "spring-ai.version", "1.1.2");
+        assertProperty(coreBom(), "spring-ai-alibaba.version", "1.1.2.2");
+        assertProperty(coreBom(), "spring-ai-alibaba-extensions.version", "1.1.2.2");
         assertCoreLangChain4jManagement();
         assertImportedBom(aiBom(), "com.xiongx9527.fw.plus", "fw-plus-dependencies", "${project.version}");
         assertNoDirectLangChain4jManagement(aiBom());

@@ -15,7 +15,9 @@ import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.Response;
@@ -50,7 +52,7 @@ public class DefaultLangChain4jModelFactoryTest {
 
     @Test
     public void shouldExposeLangChain4jAsNeutralAdapterWithoutNativeAccessor() {
-		ChatLanguageModel nativeModel = chatModel("answer");
+		ChatModel nativeModel = chatModel("answer");
         CapturingAdapter providerAdapter = new CapturingAdapter(
                 new LangChain4jModel("openai-compatible", LangChain4jModelType.CHAT, nativeModel));
         AiModelAdapter adapter = new DefaultLangChain4jModelFactory(
@@ -69,11 +71,12 @@ public class DefaultLangChain4jModelFactoryTest {
 
 	@Test
 	public void shouldCreateTypedChatModelAndPreserveExecutionMetadata() {
-		ChatLanguageModel nativeModel = new ChatLanguageModel() {
+		ChatModel nativeModel = new ChatModel() {
 			@Override
-			public Response<AiMessage> generate(List<ChatMessage> messages) {
-				assertEquals("hello", ((dev.langchain4j.data.message.UserMessage) messages.get(0)).singleText());
-				return Response.from(AiMessage.from("answer"), new TokenUsage(7, 3, 10), FinishReason.STOP);
+			public ChatResponse chat(ChatRequest request) {
+				assertEquals("hello", ((dev.langchain4j.data.message.UserMessage) request.messages().get(0)).singleText());
+				return ChatResponse.builder().aiMessage(AiMessage.from("answer"))
+						.tokenUsage(new TokenUsage(7, 3, 10)).finishReason(FinishReason.STOP).build();
 			}
 		};
 		AiModel model = typedModel(neutralDefinition("sales-chat", "openai-compatible", AiModelType.CHAT),
@@ -128,16 +131,16 @@ public class DefaultLangChain4jModelFactoryTest {
 
 	@Test
 	public void shouldEnforceRequestTimeoutAsRetryableInfrastructureFailure() {
-		ChatLanguageModel slowModel = new ChatLanguageModel() {
+		ChatModel slowModel = new ChatModel() {
 			@Override
-			public Response<AiMessage> generate(List<ChatMessage> messages) {
+			public ChatResponse chat(ChatRequest request) {
 				try {
 					Thread.sleep(5000L);
 				} catch (InterruptedException e) {
 					Thread.currentThread().interrupt();
 					throw new RuntimeException(e);
 				}
-				return Response.from(AiMessage.from("late"));
+				return ChatResponse.builder().aiMessage(AiMessage.from("late")).build();
 			}
 		};
 		AiChatModel model = (AiChatModel) typedModel(
@@ -182,11 +185,11 @@ public class DefaultLangChain4jModelFactoryTest {
 	@Test
 	public void shouldRejectUnsupportedPerRequestParametersWithoutCallingSdk() {
 		AtomicInteger calls = new AtomicInteger();
-		ChatLanguageModel nativeModel = new ChatLanguageModel() {
+		ChatModel nativeModel = new ChatModel() {
 			@Override
-			public Response<AiMessage> generate(List<ChatMessage> messages) {
+			public ChatResponse chat(ChatRequest request) {
 				calls.incrementAndGet();
-				return Response.from(AiMessage.from("answer"));
+				return ChatResponse.builder().aiMessage(AiMessage.from("answer")).build();
 			}
 		};
 		AiChatModel model = (AiChatModel) typedModel(
@@ -299,19 +302,19 @@ public class DefaultLangChain4jModelFactoryTest {
 				.create(definition);
 	}
 
-	private ChatLanguageModel chatModel(final String text) {
-		return new ChatLanguageModel() {
+	private ChatModel chatModel(final String text) {
+		return new ChatModel() {
 			@Override
-			public Response<AiMessage> generate(List<ChatMessage> messages) {
-				return Response.from(AiMessage.from(text));
+			public ChatResponse chat(ChatRequest request) {
+				return ChatResponse.builder().aiMessage(AiMessage.from(text)).build();
 			}
 		};
 	}
 
-	private ChatLanguageModel failingChatModel(final RuntimeException failure) {
-		return new ChatLanguageModel() {
+	private ChatModel failingChatModel(final RuntimeException failure) {
+		return new ChatModel() {
 			@Override
-			public Response<AiMessage> generate(List<ChatMessage> messages) {
+			public ChatResponse chat(ChatRequest request) {
 				throw failure;
 			}
 		};

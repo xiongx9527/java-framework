@@ -45,7 +45,10 @@
 									<searchTransitive>true</searchTransitive>
 									<excludes>
 										<exclude>dev.langchain4j:*</exclude>
+										<exclude>org.springframework.ai:*</exclude>
+										<exclude>com.alibaba.cloud.ai:*</exclude>
 										<exclude>com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter</exclude>
+										<exclude>com.xiongx9527.fw.plus:fw-plus-ai-spring-adapter</exclude>
 									</excludes>
 								</bannedDependencies>
 							</rules>

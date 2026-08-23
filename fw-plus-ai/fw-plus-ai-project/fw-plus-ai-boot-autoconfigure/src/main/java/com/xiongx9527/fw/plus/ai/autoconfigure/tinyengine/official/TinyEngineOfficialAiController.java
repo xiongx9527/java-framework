@@ -3,13 +3,14 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.official;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
@@ -19,6 +20,7 @@ import java.util.Map;
 /**
  * @deprecated 旧的浏览器直传模型凭据适配器，仅为源码兼容保留，不再由自动配置注册。
  */
+@Controller
 @RequestMapping("/app-center/api")
 @Deprecated
 public class TinyEngineOfficialAiController {

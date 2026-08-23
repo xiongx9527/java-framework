@@ -131,19 +131,20 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 ├── fw-plus-ai/               # AI 集成层
 │   ├── fw-plus-ai-project/
 │   │   ├── fw-plus-ai-boot/               # AI 集成（aggregator）
-│   │   ├── fw-plus-ai-boot-autoconfigure/ # AI 自动配置（LangChain4j, Agents-Flex, Spring AI, EasyAi）
+│   │   ├── fw-plus-ai-boot-autoconfigure/ # AI 自动配置（LangChain4j、Spring AI/Alibaba、Tinyflow 等）
 │   │   ├── fw-plus-ai-boot-common/        # AI 公共类
 │   │   ├── fw-plus-ai-boot-dependencies/  # AI 层 BOM
 │   │   ├── fw-plus-ai-boot-parent/        # AI 层父 POM
 │   │   └── fw-plus-ai-boot-starters/      # AI Starter
-│   │       ├── fw-plus-ai-boot-starter/                           # 通用 AI Starter（aggregator）
-│   │       ├── fw-plus-ai-langchain4j-spring-boot-starter/        # LangChain4j 集成
-│   │       ├── fw-plus-ai-langchain4j-open-ai-spring-boot-starter/ # LangChain4j OpenAI
-│   │       └── fw-plus-ai-magicapi-plugin/                        # Magic-API AI 插件（4 个）
-│   │           ├── fw-plus-ai-magicapi-plugin-langchain4j/ # LangChain4j 插件
-│   │           ├── fw-plus-ai-magicapi-plugin-milvus/      # Milvus 向量数据库
-│   │           ├── fw-plus-ai-magicapi-plugin-qdrant/      # Qdrant 向量数据库
-│   │           └── fw-plus-ai-magicapi-plugin-weaviate/    # Weaviate 向量数据库
+│   │       ├── fw-plus-ai-boot-starter/                    # 通用 AI Starter（aggregator）
+│   │       ├── fw-plus-ai-model-spring-boot-starter/       # 中立模型 Starter
+│   │       ├── fw-plus-ai-store-embedding-spring-boot-starter/ # 中立向量存储 Starter
+│   │       ├── fw-plus-ai-askdata-spring-boot-starter/     # AskData
+│   │       ├── fw-plus-ai-tinyflow-spring-boot-starter/    # Tinyflow
+│   │       └── fw-plus-ai-magicapi-plugin/                 # Model/Vector/Tinyflow 插件
+│
+│   # Core AI 中另有 fw-plus-ai-spring/fw-plus-ai-spring-adapter：
+│   # framework=spring-ai 与 spring-ai-alibaba，共享 CHAT/EMBEDDING facade；首版无 VectorStore adapter
 │
 ├── fw-plus-sample/                    # 集中样例模块
 │   ├── fw-plus-boot-samples/          # Boot 示例项目（5 个）
@@ -267,7 +268,7 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 | 基础框架 | Spring Boot 3.5.8, Spring Cloud 2021.0.9 |
 | ORM | MyBatis-Plus 3.3.2, MyBatis-Flex 1.11.4 |
 | 脚本引擎 | Magic-API 2.2.2（自行维护版本，非中央仓库版本） |
-| AI | LangChain4j 0.35.0, Agents-Flex 1.3.4, Spring AI 1.0.1, EasyAi 1.4.9 |
+| AI | LangChain4j 1.18.0, Agents-Flex 1.3.4, Spring AI 1.1.2, Spring AI Alibaba/Extensions 1.1.2.2, EasyAi 1.4.9 |
 | 消息队列 | Kafka, Pulsar 2.11.2, RocketMQ 5.1.3, RabbitMQ, Mica MQTT 2.3.9 |
 | 数据库/存储 | MySQL, InfluxDB, Redis, Elasticsearch, Nebula Graph, Minio/S3 |
 | 工具库 | Hutool 5.8.34, EasyPoi 4.5.0, DynamicTp 1.2.1（Core BOM）/ 1.2.2（Boot BOM）, Debezium 1.9.8.Final |

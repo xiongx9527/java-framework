@@ -2,9 +2,9 @@
 
 ## 发布边界
 
-当前 Java 8 / Spring Boot 2.7.18 发布线只实现 LangChain4j Adapter。Spring AI、Spring AI Alibaba 和 AgentScope Java 均未在本分支实现：没有可发布的 Java 17 artifact、Starter、自动配置、SDK 依赖或已验证版本组合，也不能把对应 `framework` 值配置为当前可用能力。
+当前分支基线是 Java 17 / Spring Boot 3.5.8。LangChain4j Adapter 已存在；`fw-plus-ai-spring-adapter` 也已实现 `spring-ai` 与 `spring-ai-alibaba` 的同步 CHAT/EMBEDDING。但 AskData Starter 不默认引入具体 adapter/provider，本 change 也未把 AskData 切换到 Spring AI。
 
-后续实现必须放在 Java 17 / Spring Boot 3 独立 reactor，或部署成 Java 17 Remote Runtime 服务。两种方式都复用当前中立契约，不允许把框架 SDK 类型带入以下 Java 8 模块：
+Spring AI/Alibaba 首版没有 `AiEmbeddingStoreAdapter` 或 VectorStore bridge；AskData 的 Vector/RAG/Agent/Tool/Remote Runtime 仍是独立后续工作。所有实现继续复用中立契约，不允许把框架 SDK 类型带入以下模块：
 
 - `fw-plus-ai-model`：类型化 Chat/批量 Embedding、用量、实际模型 key 与中立错误。
 - `fw-plus-ai-store-embedding`：向量值、不可变 filters 与过滤能力诊断。
@@ -12,24 +12,16 @@
 
 ## 工程与部署边界
 
-计划建立独立 reactor：
+当前 Spring 模型 adapter 位于现有 Core AI 聚合：
 
 ```text
-fw-plus-ai-j17/
-├── fw-plus-ai-j17-parent/
-├── fw-plus-ai-j17-dependencies/
-├── fw-plus-ai-spring-ai-j17-adapter/
-├── fw-plus-ai-spring-ai-j17-autoconfigure/
-├── fw-plus-ai-spring-ai-j17-starter/
-├── fw-plus-ai-spring-ai-alibaba-j17-adapter/
-├── fw-plus-ai-spring-ai-alibaba-j17-autoconfigure/
-├── fw-plus-ai-spring-ai-alibaba-j17-starter/
-├── fw-plus-ai-agentscope-j17-adapter/
-├── fw-plus-ai-agentscope-j17-autoconfigure/
-└── fw-plus-ai-agentscope-j17-starter/
+fw-plus-ai-spring/
+└── fw-plus-ai-spring-adapter/
 ```
 
-该 reactor 使用 Java 17、Spring Boot 3、`@AutoConfiguration` 和 `AutoConfiguration.imports`，独立管理 Spring Framework 6、`jakarta.*` 及目标 SDK BOM。它不能成为 Java 8 Core、AskData Starter 或 LangChain4j Adapter 的传递依赖。
+Boot 条件装配位于现有 `fw-plus-ai-boot-autoconfigure` 并通过 `AutoConfiguration.imports` 注册。应用显式引入 adapter 和官方 provider starter；中立 AskData/model/store starter 不传递它们。仓库没有 `fw-plus-ai-j17` 独立 reactor。
+
+AgentScope、AskData Agent/Vector/RAG 或无法进程内复用中立对象的能力，仍可在后续通过专用 adapter 或 `AskDataRuntimeClient` 对接；远程服务不持有业务数据库裸连接。
 
 无法进程内复用 Java 8 中立对象时，Java 17 服务通过 `AskDataRuntimeClient` 对接。Java 8 主进程继续负责治理授权、元数据过滤、模型路由决策、SQL 插件、最终 SQL 校验、只读执行、检查点、恢复授权与监控日志；远程服务不持有业务数据库裸连接。
 
@@ -50,28 +42,24 @@ fw-plus-ai-j17/
 
 ## Spring AI Adapter
 
-状态：**未实现，仅规划用于 Java 17 / Spring Boot 3。**
+状态：**模型 adapter 已实现，AskData 专项能力未切换。**
 
-- Spring AI `ChatModel`/流式模型映射为中立 Chat；`ChatResponse` 的 finish reason、token usage 和 metadata 转换为中立结果。
-- `EmbeddingModel` 映射为批量 Embedding；空批次、返回数量或维度不一致按不可重试输出错误处理。
-- `VectorStore` 与 filter expression 映射为中立 Store。只有能证明 `projectId`、`operatorId`、`datasourceKey`、`authorizationVersion` 全部生效时才能声明支持 filters。
-- Advisor/RAG 只实现检索和上下文增强，不得替代 AskData 元数据治理或最终 SQL 校验。
-- Function/tool callback 映射为 `AskDataTool`；工具生成的 SQL 必须返回 Java 8 SQL 管线，不能直接执行。
-- 异常映射以目标 Spring AI 版本的实际类型为准；网络、超时、限流和服务暂不可用可标记为可重试，参数、鉴权、内容策略、预算和结构化输出错误不可重试。
+- `framework=spring-ai` 支持同步 `ChatModel` 与批量 `EmbeddingModel`，映射 finish reason、token usage、实际 key，并校验 batch index/数量/向量。
+- provider Bean 由 Spring 管理，通过 `properties.beanName` 或唯一 binding 选择；不反射构造 client，不暴露 native accessor。
+- 首版不实现 `VectorStore`、Advisor/RAG、Function/Tool 或 Agent 适配；这些能力不能从模型支持状态推导。
+- 异常按 infrastructure/request-rejected 稳定分类并脱敏；timeout 使用受控并发执行器。
 
-详细 SDK 探针与模块蓝图见 [Spring AI Java 17 规划](../ai-framework-migration/spring-ai-java17.md)。
+详情见 [Spring AI 当前实现说明](../ai-framework-migration/spring-ai-java17.md)。
 
 ## Spring AI Alibaba Adapter
 
-状态：**未实现，仅规划用于 Java 17 / Spring Boot 3。**
+状态：**DashScope CHAT/EMBEDDING 已实现，AskData 专项能力未切换。**
 
-- 复用 Spring AI 基础映射，但 `framework` 固定为 `spring-ai-alibaba`，Spring AI Alibaba、DashScope 和具体 provider client 只存在于 Adapter。
-- Chat、Embedding、Vector、Advisor、Tool 的可用范围必须由目标 BOM 与 provider 实测矩阵逐项声明，不能因底层基于 Spring AI 就默认继承全部能力。
-- DashScope/provider 的业务错误、配额、内容审核、限流和网络异常分别转换为中立稳定错误；不能把 SDK 原始错误体或请求 ID 中的敏感字段写入日志。
-- 同时安装 Spring AI 与 Spring AI Alibaba Adapter 时必须显式选择 framework/key，禁止按 provider 名称跨 Adapter 猜测或回退 LangChain4j。
-- Agent 或工作流输出的 SQL、参数和工具调用仍回到 Java 8 治理及 SQL 安全管线。
+- 与通用 Spring AI 共用 facade，但以独立 `framework=spring-ai-alibaba` adapter 实例精确选择。
+- 显式 Bean 必须是已知 DashScope Chat/Embedding 类型且 provider 为 `dashscope`；不得跨 framework 认领或回退 LangChain4j。
+- 首版同样不支持 Vector、Advisor、Tool、Agent/Workflow；SDK 原始错误体和敏感字段不能写入日志。
 
-详细 SDK 探针与模块蓝图见 [Spring AI Alibaba Java 17 规划](../ai-framework-migration/spring-ai-alibaba-java17.md)。
+详情见 [Spring AI Alibaba 当前实现说明](../ai-framework-migration/spring-ai-alibaba-java17.md)。
 
 ## AgentScope Adapter
 
@@ -144,7 +132,7 @@ Adapter 将 SDK 事件转换为脱敏 `AskDataEvent`，保留项目、操作人�
 
 | 运行时 | 当前发布状态 | 目标 Java / Boot | 目标接入形态 | 版本结论 |
 | --- | --- | --- | --- | --- |
-| LangChain4j | Java 8 Adapter 已实现，业务显式引入 | Java 8 / Boot 2.7.18 | 进程内 | 使用当前仓库锁定版本 |
-| Spring AI | 未实现 | Java 17 / Boot 3 | 独立 reactor 或 Remote Runtime | 后续 SDK 探针决定 |
-| Spring AI Alibaba | 未实现 | Java 17 / Boot 3 | 独立 reactor 或 Remote Runtime | 后续 SDK 探针决定 |
+| LangChain4j | Adapter 已实现，业务显式引入 | Java 17 / Boot 3.5.8 | 进程内 | 1.18.0 |
+| Spring AI | CHAT/EMBEDDING 已实现；AskData 专项未切换 | Java 17 / Boot 3.5.8 | 现有 Core/AI Boot reactor | 1.1.2 |
+| Spring AI Alibaba | DashScope CHAT/EMBEDDING 已实现；AskData 专项未切换 | Java 17 / Boot 3.5.8 | 与 Spring AI 共用 adapter | 1.1.2.2 |
 | AgentScope Java 2.x | 未实现 | Java 17 / Boot 3 | 进程内 Agent Adapter；必要时 Remote Runtime | 后续 SDK 探针决定 |

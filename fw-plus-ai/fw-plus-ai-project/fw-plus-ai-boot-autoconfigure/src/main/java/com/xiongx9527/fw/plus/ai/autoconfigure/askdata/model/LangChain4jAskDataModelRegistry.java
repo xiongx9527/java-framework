@@ -88,12 +88,12 @@ public class LangChain4jAskDataModelRegistry implements AskDataModelRegistry {
 
 	@Override
 	public String getDefaultChatModelKey() {
-		return properties.getModel().getDefaultChatModel();
+		return configuredOrOnlyKey(properties.getModel().getDefaultChatModel(), chatModels);
 	}
 
 	@Override
 	public String getDefaultEmbeddingModelKey() {
-		return properties.getModel().getDefaultEmbeddingModel();
+		return configuredOrOnlyKey(properties.getModel().getDefaultEmbeddingModel(), embeddingModels);
 	}
 
 	@Override
@@ -194,6 +194,13 @@ public class LangChain4jAskDataModelRegistry implements AskDataModelRegistry {
 			}
 		}
 		return defaultModelKey;
+	}
+
+	private String configuredOrOnlyKey(String configuredKey, Map<String, ?> registeredModels) {
+		if (hasText(configuredKey)) {
+			return configuredKey.trim();
+		}
+		return registeredModels.size() == 1 ? registeredModels.keySet().iterator().next() : null;
 	}
 
 	private AskDataModelException modelNotFound(String modelType, String modelKey) {

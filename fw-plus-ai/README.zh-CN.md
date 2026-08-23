@@ -2,7 +2,7 @@
 
 ## 中立 AI adapter 破坏性迁移
 
-本发布线删除旧 LangChain4j model/store 坐标，不保留 POM 别名或旧配置前缀。`fw-plus-ai-model` 与 `fw-plus-ai-store-embedding` 是 Java 8 中立 API；LangChain4j 由核心 adapter 提供，Boot 自动配置由 `fw-plus-ai-boot-autoconfigure` 按 classpath 条件加载。
+本 Java 17 / Spring Boot 3.5.8 发布线删除旧 LangChain4j model/store 坐标，不保留 POM 别名或旧配置前缀。`fw-plus-ai-model` 与 `fw-plus-ai-store-embedding` 保持中立；LangChain4j 与 Spring adapter 均由业务显式安装，Boot 自动配置由 `fw-plus-ai-boot-autoconfigure` 按 classpath 条件加载。
 
 | 已删除坐标 | 替代坐标 | 说明 |
 | --- | --- | --- |
@@ -61,6 +61,20 @@ fw-plus:
 
 `model['knowledge-chat']`、`vector['knowledge']` 和默认 key 的语义保持稳定。资源定义也可给出 `framework`，并遵循同一选择规则；脚本只得到中立 facade，不能取得 `LangChain4jModel` 或 `EmbeddingStore<TextSegment>`。SDK 专有调用应留在 Java adapter/业务层。
 
-AskData 保留且本次不修改其源码。只有在 adapter、Boot 与 Magic-API 迁移完成并获得再次确认后，才迁移其旧 artifact 依赖并执行回归；当前不能将 AskData 视为已切换至其他 framework。
+## Spring AI 与 Spring AI Alibaba
 
-完整迁移、回滚限制、诊断与 Java 17 / Boot 3 蓝图见 [迁移总览](../docs/ai-framework-migration/overview.md)。
+同一个 Core artifact 支持两个 framework 的同步 `CHAT` 与 `EMBEDDING`：
+
+```xml
+<dependency>
+    <groupId>com.xiongx9527.fw.plus</groupId>
+    <artifactId>fw-plus-ai-spring-adapter</artifactId>
+    <version>${fw-plus-ai.version}</version>
+</dependency>
+```
+
+应用还需显式引入官方 provider starter。通用 provider 使用 `framework: spring-ai`；DashScope 使用 `framework: spring-ai-alibaba`、`provider: dashscope`。通过 `properties.beanName` 精确选择 Spring 管理的 `ChatModel`/`EmbeddingModel`，或注册唯一 `SpringAiProviderBinding`。
+
+首版不提供 Spring AI/Alibaba `AiEmbeddingStoreAdapter`：标准文本查询 `VectorStore` 不能安全替代中立预计算向量契约，因而 `vector[...]` 仍需显式安装兼容的 store adapter。
+
+AskData 保持中立且不默认引入具体 adapter/provider；AgentScope 2 仍是后续需求。完整迁移、回滚限制、诊断与当前能力见 [迁移总览](../docs/ai-framework-migration/overview.md)。

@@ -15,7 +15,7 @@ import com.xiongx9527.fw.plus.ai.model.AiModel;
 import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
 import com.xiongx9527.fw.plus.ai.model.AiModelType;
 import com.xiongx9527.fw.plus.tinyengine.support.ai.OpenAiCompatibleBaseUrl;
-import dev.ai4j.openai4j.OpenAiHttpException;
+import dev.langchain4j.exception.HttpException;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -68,10 +68,7 @@ public class LangChain4jTinyEngineAiProvider implements TinyEngineAiProvider {
 		try {
 			response = model.chat(chatRequest(request));
 		} catch (RuntimeException ex) {
-			if (!dynamic) {
-				throw ex;
-			}
-			throw normalizeUpstreamFailure(ex);
+			throw normalizeFailure(ex, dynamic);
 		}
 		AiMessage message = response == null ? null : response.aiMessage();
 		Map<String, Object> metadata = requestMetadata(request);
@@ -109,25 +106,17 @@ public class LangChain4jTinyEngineAiProvider implements TinyEngineAiProvider {
 
 				@Override
 				public void onError(Throwable throwable) {
-					error[0] = dynamic ? normalizeUpstreamFailure(throwable)
-							: throwable instanceof RuntimeException ? (RuntimeException) throwable
-							: new IllegalStateException("TinyEngine AI streaming chat failed", throwable);
+					error[0] = normalizeFailure(throwable, dynamic);
 					completed.countDown();
 				}
 			});
 		} catch (RuntimeException ex) {
-			if (!dynamic) {
-				throw ex;
-			}
-			throw normalizeUpstreamFailure(ex);
+			throw normalizeFailure(ex, dynamic);
 		}
 		try {
 			awaitCompletion(completed);
 		} catch (RuntimeException ex) {
-			if (!dynamic) {
-				throw ex;
-			}
-			throw normalizeUpstreamFailure(ex);
+			throw normalizeFailure(ex, dynamic);
 		}
 		if (error[0] != null) {
 			throw error[0];
@@ -140,7 +129,7 @@ public class LangChain4jTinyEngineAiProvider implements TinyEngineAiProvider {
 			dev.langchain4j.model.openai.OpenAiChatModel.OpenAiChatModelBuilder builder =
 					dev.langchain4j.model.openai.OpenAiChatModel.builder()
 							.baseUrl(OpenAiCompatibleBaseUrl.normalize(request.getBaseUrl()))
-							.apiKey(request.getApiKey()).modelName(request.getModel()).maxRetries(Integer.valueOf(1));
+							.apiKey(request.getApiKey()).modelName(request.getModel()).maxRetries(Integer.valueOf(0));
 			applyModelSettings(builder, request);
 			return builder.build();
 		}
@@ -237,35 +226,52 @@ public class LangChain4jTinyEngineAiProvider implements TinyEngineAiProvider {
 		return true;
 	}
 
+	private RuntimeException normalizeFailure(Throwable throwable, boolean dynamic) {
+		if (!dynamic && !isInfrastructureFailure(throwable)) {
+			return throwable instanceof RuntimeException ? (RuntimeException) throwable
+					: new IllegalStateException("TinyEngine AI invocation failed", throwable);
+		}
+		return normalizeUpstreamFailure(throwable);
+	}
+
+	private boolean isInfrastructureFailure(Throwable throwable) {
+		Throwable current = throwable;
+		while (current != null) {
+			if (current instanceof java.io.IOException || current instanceof java.util.concurrent.TimeoutException) {
+				return true;
+			}
+			current = current.getCause();
+		}
+		String message = throwable == null ? null : throwable.getMessage();
+		return message != null && (message.toLowerCase(java.util.Locale.ENGLISH).contains("connection refused")
+				|| message.toLowerCase(java.util.Locale.ENGLISH).contains("connection reset"));
+	}
+
 	private RuntimeException normalizeUpstreamFailure(Throwable throwable) {
 		if (throwable instanceof TinyEngineUpstreamException) {
 			return (TinyEngineUpstreamException) throwable;
 		}
-		OpenAiHttpException upstream = findOpenAiHttpException(throwable);
+		HttpException upstream = findHttpException(throwable);
 		if (upstream != null) {
 			return upstreamFailure(upstream);
 		}
-		TinyEngineUpstreamException failure = new TinyEngineUpstreamException(502, "UPSTREAM_ERROR",
+		return new TinyEngineUpstreamException(502, "UPSTREAM_ERROR",
 				"TinyEngine AI upstream request failed");
-		if (throwable != null) {
-			failure.initCause(throwable);
-		}
-		return failure;
 	}
 
-	private OpenAiHttpException findOpenAiHttpException(Throwable throwable) {
+	private HttpException findHttpException(Throwable throwable) {
 		Throwable current = throwable;
 		while (current != null) {
-			if (current instanceof OpenAiHttpException) {
-				return (OpenAiHttpException) current;
+			if (current instanceof HttpException) {
+				return (HttpException) current;
 			}
 			current = current.getCause();
 		}
 		return null;
 	}
 
-	private TinyEngineUpstreamException upstreamFailure(OpenAiHttpException ex) {
-		int statusCode = ex.code();
+	private TinyEngineUpstreamException upstreamFailure(HttpException ex) {
+		int statusCode = ex.statusCode();
 		return new TinyEngineUpstreamException(statusCode,
 				statusCode == 401 || statusCode == 403 ? "INVALID_API_KEY" : "UPSTREAM_ERROR",
 				statusCode == 401 || statusCode == 403

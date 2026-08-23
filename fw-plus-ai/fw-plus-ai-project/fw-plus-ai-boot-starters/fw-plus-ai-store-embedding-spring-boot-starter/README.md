@@ -2,9 +2,9 @@
 
 ## 当前支持状态
 
-本 starter 提供 Java 8 / Spring Boot 2.7.x 下的中立向量存储自动配置入口。业务代码应依赖 `fw-plus-ai-store-embedding` 的中立契约，不直接暴露 LangChain4j `EmbeddingStore<TextSegment>`、Spring AI `VectorStore` 或 AgentScope 2 Java SDK 类型。
+本 starter 提供 Java 17 / Spring Boot 3.5.8 下的中立向量存储自动配置入口。业务代码应依赖 `fw-plus-ai-store-embedding` 的中立契约，不直接暴露 LangChain4j `EmbeddingStore<TextSegment>`、Spring AI `VectorStore` 或 AgentScope 2 Java SDK 类型。
 
-业务选择当前 Java 8 已实现的 LangChain4j Adapter 时，同时引入：
+当前可用的中立 VECTOR 路径仍需业务显式选择兼容的 LangChain4j Adapter：
 
 ```xml
 <dependency>
@@ -59,22 +59,13 @@ fw-plus:
 
 Magic-API 的 `vector[...]` 保持按业务 key 访问，但返回中立 facade，不保证能拿到任何 framework 原生对象。
 
-## LangChain4j 切换到其他实现
+## Spring AI 首版边界
 
-当前 Java 8 版本只实现 LangChain4j Adapter。后续接入 Spring AI、Spring AI Alibaba 或 AgentScope 2 Java 时，切换步骤应是：
+`fw-plus-ai-spring-adapter` 当前只实现同步 CHAT/EMBEDDING，**不注册** `AiEmbeddingStoreAdapter`。Spring AI 标准 `VectorStore` 接受文本查询并可能自行嵌入，而中立查询携带预计算向量；不得丢弃、字符串化或重新计算调用方向量来伪装兼容。
 
-1. 保留本 starter。
-2. 移除 `fw-plus-ai-langchain4j-adapter`。
-3. 引入目标实现的 Java 17 / Spring Boot 3.x adapter starter。
-4. 将 `fw-plus.ai.embedding-store.stores.<key>.framework` 改成目标 framework。
-5. 保持业务 key 不变，例如 `knowledge`，让 `vector[...]` 和 Java API 调用不改 key。
-6. 按目标 adapter 文档补齐 provider SDK、连接参数、维度、schema 和真实后端测试。
+因此本 starter 的 Spring AI / Spring AI Alibaba VECTOR 切换尚不可用。只有后续 provider bridge 能保留预计算向量、ID、metadata、score/filter 与幂等 delete 语义时，才能新增 store adapter。业务 `vector[...]` key 可保持不变，但在此之前仍需显式安装已验证的兼容 store adapter。
 
-## Java 17 / Spring Boot 3.x 后续边界
-
-Spring AI、Spring AI Alibaba 和 AgentScope 2 Java 不在当前 Java 8 / Boot 2.7 reactor 中实现。后续需要在高版本线新增独立 Java 17 / Spring Boot 3.x parent、BOM、starter 和自动配置，目标 SDK 类型不得进入 `fw-plus-ai-store-embedding` 的公共签名。
-
-AgentScope 2 Java 必须按进程内 SDK adapter 适配，不能用外部 HTTP、MCP 或 A2A 桥接替代。
+AgentScope 2 Java 同样未实现；任何未来 adapter 都不得把 SDK 类型带入 `fw-plus-ai-store-embedding` 的公共签名。
 
 ## 回滚
 

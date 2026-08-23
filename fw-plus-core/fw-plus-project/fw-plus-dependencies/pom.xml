@@ -198,6 +198,9 @@
         <jakarta.version>6.0.0</jakarta.version>
 		<langchain4j.version>1.18.0</langchain4j.version>
 		<langchain4j-community.version>1.18.0-beta28</langchain4j-community.version>
+        <spring-ai.version>1.1.2</spring-ai.version>
+        <spring-ai-alibaba.version>1.1.2.2</spring-ai-alibaba.version>
+        <spring-ai-alibaba-extensions.version>1.1.2.2</spring-ai-alibaba-extensions.version>
         <tinyflow.version>2.0.7</tinyflow.version>
         <jedis.version>7.2.1</jedis.version>
         <datastax-java-driver.version>4.17.0</datastax-java-driver.version>
@@ -259,6 +262,29 @@
                 <groupId>org.dromara.dynamictp</groupId>
                 <artifactId>dynamic-tp-dependencies</artifactId>
                 <version>${dynamictp.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!--Spring AI 配置管理-->
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.cloud.ai</groupId>
+                <artifactId>spring-ai-alibaba-bom</artifactId>
+                <version>${spring-ai-alibaba.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.cloud.ai</groupId>
+                <artifactId>spring-ai-alibaba-extensions-bom</artifactId>
+                <version>${spring-ai-alibaba-extensions.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -1457,6 +1483,12 @@
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-ai-langchain4j-adapter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-spring-adapter</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

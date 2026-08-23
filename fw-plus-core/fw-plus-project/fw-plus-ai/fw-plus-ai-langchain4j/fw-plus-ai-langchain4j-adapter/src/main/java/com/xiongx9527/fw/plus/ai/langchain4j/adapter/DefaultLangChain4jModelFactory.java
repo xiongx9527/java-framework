@@ -6,7 +6,7 @@ import com.xiongx9527.fw.plus.ai.model.AiModelDefinition;
 import com.xiongx9527.fw.plus.ai.model.AiModelException;
 import com.xiongx9527.fw.plus.ai.model.AiModelType;
 import com.xiongx9527.fw.plus.ai.model.DefaultAiModelFactory;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 
 import java.util.ArrayList;
@@ -86,7 +86,7 @@ public class DefaultLangChain4jModelFactory implements LangChain4jModelFactory, 
 	private AiModel typedModel(AiModelDefinition definition, LangChain4jModel nativeModel) {
 		Object model = nativeModel.getModel();
 		if (AiModelType.CHAT == definition.getType()) {
-			if (!(model instanceof ChatLanguageModel)) {
+			if (!(model instanceof ChatModel)) {
 				throw new AiModelException("LangChain4j provider returned a non-chat model for " + context(definition));
 			}
 			return new LangChain4jAiChatModel(definition, nativeModel);

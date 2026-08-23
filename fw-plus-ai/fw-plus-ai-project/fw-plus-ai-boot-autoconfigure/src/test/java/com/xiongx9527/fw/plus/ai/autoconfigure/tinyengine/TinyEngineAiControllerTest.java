@@ -162,7 +162,7 @@ public class TinyEngineAiControllerTest {
 		ResponseStatusException exception = assertThrows(ResponseStatusException.class,
 				() -> controller.chat(identifiedRequest()));
 
-		assertEquals(HttpStatus.BAD_GATEWAY, exception.getStatus());
+		assertEquals(HttpStatus.BAD_GATEWAY, exception.getStatusCode());
 		assertEquals("TinyEngine AI model invocation failed", exception.getReason());
 	}
 
@@ -173,7 +173,7 @@ public class TinyEngineAiControllerTest {
 		ResponseStatusException exception = assertThrows(ResponseStatusException.class,
 				() -> controller.chat(new TinyEngineChatRequest()));
 
-		assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+		assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
 		assertEquals("appId, serviceId and modelName are required", exception.getReason());
 	}
 

@@ -29,6 +29,7 @@ public class AskDataAutoConfigurationRegistrationTest {
                 "com.xiongx9527.fw.plus.ai.autoconfigure.askdata.autoconfigure.LangChain4jModelAskDataAutoConfiguration",
                 autoConfiguration,
                 "com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter.LangChain4jAdapterAutoConfiguration",
+                "com.xiongx9527.fw.plus.ai.autoconfigure.spring.adapter.SpringAiAdapterAutoConfiguration",
                 "com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.TinyEngineAiAutoConfiguration");
         assertTrue(factories.contains(autoConfiguration));
         Set<String> uniqueAutoConfigurations = new HashSet<>(autoConfigurations);

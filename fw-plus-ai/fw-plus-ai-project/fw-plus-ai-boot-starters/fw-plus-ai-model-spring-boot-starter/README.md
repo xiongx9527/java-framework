@@ -2,9 +2,9 @@
 
 ## 当前支持状态
 
-本 starter 提供 Java 8 / Spring Boot 2.7.x 下的中立模型自动配置入口。业务代码应依赖 `fw-plus-ai-model` 的中立契约，不直接依赖 LangChain4j、Spring AI、Spring AI Alibaba 或 AgentScope 2 Java SDK。
+本 starter 提供 Java 17 / Spring Boot 3.5.8 下的中立模型自动配置入口。业务代码应依赖 `fw-plus-ai-model` 的中立契约，不直接依赖 LangChain4j、Spring AI、Spring AI Alibaba 或 AgentScope 2 Java SDK。
 
-业务选择当前 Java 8 已实现的 LangChain4j Adapter 时，同时引入：
+业务显式选择 framework adapter；选择 LangChain4j 时同时引入：
 
 ```xml
 <dependency>
@@ -57,22 +57,18 @@ fw-plus:
 
 从 LangChain4j 换成其他框架时，业务代码优先依赖中立 `AiModelRegistry` / `AiModelFactory`，不要依赖 LangChain4j 原生对象。
 
-## LangChain4j 切换到其他实现
+## Spring AI / Alibaba 与 LangChain4j 切换
 
-当前 Java 8 版本只实现 LangChain4j Adapter。后续接入 Spring AI、Spring AI Alibaba 或 AgentScope 2 Java 时，切换步骤应是：
+当前已实现 LangChain4j 及共享 artifact `fw-plus-ai-spring-adapter`。切换步骤：
 
 1. 保留本 starter。
-2. 移除 `fw-plus-ai-langchain4j-adapter`。
-3. 引入目标实现的 Java 17 / Spring Boot 3.x adapter starter。
-4. 将 `fw-plus.ai.model.models.<key>.framework` 改成目标 framework。
-5. 保持业务 key 不变，例如 `chat-default`，让 `model[...]` 和 Java API 调用不改 key。
-6. 运行目标 adapter 的启动、契约、真实后端和脱敏回归测试。
+2. 显式引入一个 adapter：`fw-plus-ai-langchain4j-adapter` 或 `fw-plus-ai-spring-adapter`。
+3. Spring AI 应用另行引入官方 provider starter；DashScope 使用 `spring-ai-alibaba-starter-dashscope`。
+4. 将 `fw-plus.ai.model.models.<key>.framework` 设置为 `langchain4j`、`spring-ai` 或 `spring-ai-alibaba`。
+5. Spring 管理的模型通过 `properties.beanName` 或唯一 `SpringAiProviderBinding` 选择。
+6. 保持业务 key 不变，让 `model[...]` 和 Java API 调用不改 key，并运行 adapter 启动、契约和脱敏回归。
 
-## Java 17 / Spring Boot 3.x 后续边界
-
-Spring AI、Spring AI Alibaba 和 AgentScope 2 Java 不在当前 Java 8 / Boot 2.7 reactor 中实现。后续需要在高版本线新增独立 Java 17 / Spring Boot 3.x parent、BOM、starter 和自动配置，目标 SDK 类型不得进入 `fw-plus-ai-model` 的公共签名。
-
-AgentScope 2 Java 必须按进程内 SDK adapter 适配，不能用外部 HTTP、MCP 或 A2A 桥接替代。
+Spring adapter 首版只支持同步 CHAT/EMBEDDING，不提供 VectorStore。AgentScope 2 Java 仍未实现；未来 adapter 也不得把目标 SDK 类型带入 `fw-plus-ai-model` 的公共签名。
 
 ## 回滚
 

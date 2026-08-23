@@ -21,10 +21,6 @@
         <weaviate-sdk-java.version>4.6.0</weaviate-sdk-java.version>
 		<agents-flex.version>1.3.4</agents-flex.version>
         <easyAi.version>1.4.9</easyAi.version>
-        <!-- Spring AI版本号 -->
-        <spring-ai.version>1.0.1</spring-ai.version>
-        <!-- Spring AI Alibaba版本号 -->
-        <spring-ai-alibaba.version>1.0.1</spring-ai-alibaba.version>
     </properties>
     <dependencyManagement>
         <dependencies>

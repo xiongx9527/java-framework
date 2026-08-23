@@ -4,11 +4,14 @@ set -eu
 
 script_dir=${0:A:h}
 repo_root=${script_dir:h:h}
-target_docs=(
+implemented_docs=(
 	"spring-ai-java17.md"
 	"spring-ai-alibaba-java17.md"
+)
+planned_docs=(
 	"agentscope-java17.md"
 )
+target_docs=($implemented_docs $planned_docs)
 breaking_docs=(
 	"$script_dir/overview.md"
 	"$script_dir/compatibility-matrix.md"
@@ -26,7 +29,6 @@ starter_docs=(
 )
 embedding_store_example_docs=(
 	"$script_dir/overview.md"
-	"$script_dir/spring-ai-java17.md"
 	"$repo_root/fw-plus-ai/README.md"
 	"$repo_root/fw-plus-ai/README.zh-CN.md"
 	"$repo_root/docs/vector-magicapi-plugin-migration.md"
@@ -42,7 +44,17 @@ required_headings=(
 	"回滚"
 	"当前支持状态"
 )
-required_phrases=(
+implemented_required_phrases=(
+	"fw-plus-ai-spring-adapter"
+	"Java 17"
+	"Spring Boot 3.5.8"
+	"CHAT"
+	"EMBEDDING"
+	"model[...]"
+	"vector[...]"
+	"VectorStore"
+)
+planned_required_phrases=(
 	"本次变更仅交付文档，不创建 Java 17 artifact、starter、自动配置或真实 model/store adapter。"
 	"Spring Boot 2.7 可以运行在 Java 17"
 	"Java 8"
@@ -128,10 +140,10 @@ for doc_path in $starter_docs; do
 	require_literal "$doc_path" "fw-plus.ai.model" "starter 模型配置前缀"
 	require_literal "$doc_path" "fw-plus.ai.embedding-store" "starter 向量配置前缀"
 	require_literal "$doc_path" "fw-plus-ai-langchain4j-adapter" "Core adapter 坐标"
-	require_literal "$doc_path" "Java 17 / Spring Boot 3.x" "starter Java 17 后续边界"
-	require_literal "$doc_path" "Spring AI" "starter 后续 Spring AI 迁移说明"
-	require_literal "$doc_path" "Spring AI Alibaba" "starter 后续 Spring AI Alibaba 迁移说明"
-	require_literal "$doc_path" "AgentScope 2 Java" "starter 后续 AgentScope 迁移说明"
+	require_literal "$doc_path" "Java 17 / Spring Boot 3.5.8" "starter 当前 Java/Spring 基线"
+	require_literal "$doc_path" "Spring AI" "starter Spring AI 说明"
+	require_literal "$doc_path" "Spring AI Alibaba" "starter Spring AI Alibaba 说明"
+	require_literal "$doc_path" "AgentScope 2 Java" "starter AgentScope 边界"
 	require_literal "$doc_path" "回滚" "starter 回滚说明"
 	if rg -n -F -- "默认 LangChain4j" "$doc_path"; then
 		print -u2 -- "starter 文档不得将 LangChain4j 描述为默认实现: ${doc_path:t}"
@@ -184,8 +196,22 @@ for doc_name in $target_docs; do
 	for heading in $required_headings; do
 		require_literal "$doc_path" "## $heading" "章节"
 	done
+done
 
-	for phrase in $required_phrases; do
+for doc_name in $implemented_docs; do
+	doc_path="$script_dir/$doc_name"
+	for phrase in $implemented_required_phrases; do
+		require_literal "$doc_path" "$phrase" "当前实现或能力边界"
+	done
+	if ! rg -q -F -- "fw-plus-ai-j17" "$doc_path"; then
+		print -u2 -- "缺失无独立 j17 reactor 声明: ${doc_path:t}"
+		failures=$((failures + 1))
+	fi
+done
+
+for doc_name in $planned_docs; do
+	doc_path="$script_dir/$doc_name"
+	for phrase in $planned_required_phrases; do
 		require_literal "$doc_path" "$phrase" "发布边界或迁移约束"
 	done
 done

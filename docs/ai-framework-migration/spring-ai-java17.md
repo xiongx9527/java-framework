@@ -1,82 +1,105 @@
-# Spring AI adapter 后续实施蓝图（Java 17 / Boot 3）
+# Spring AI adapter 当前实现说明（Java 17 / Boot 3）
 
 ## 当前支持状态
 
-本次变更仅交付文档，不创建 Java 17 artifact、starter、自动配置或真实 model/store adapter。当前仓库没有 `fw-plus-ai-spring-ai-j17-starter`、Spring AI adapter、Boot 3 自动配置或已验证的 Spring AI BOM 组合；`framework: spring-ai` 因而不是当前 Java 8 发布线可启用的值。
+当前 `springboot3` 发布线已经提供 `com.xiongx9527.fw.plus:fw-plus-ai-spring-adapter`。该 artifact 位于 `fw-plus-ai-spring` 聚合内，在 Java 17、Spring Boot 3.5.8 与 Spring AI 1.1.2 组合下构建；它实现同步 `CHAT` 与 `EMBEDDING`，framework 标识为 `spring-ai`。
 
-未来实现不得修改 Java 8 Core 的公开签名或让 `org.springframework.ai.*`、Boot 3、`jakarta.*` 进入 Core BOM/reactor。中立 `AiModelAdapter`、`AiEmbeddingStoreAdapter`、registry 和 definition 是唯一跨线契约。
+首版不实现 `AiEmbeddingStoreAdapter`，也不把 Spring AI 的文本型 `VectorStore` 适配成中立预计算向量查询。仓库没有、也不需要 `fw-plus-ai-j17` 独立 reactor 或 `*-j17-starter`。
 
 ## 前置条件
 
-Spring Boot 2.7 可以运行在 Java 17；本路线仍选择独立 Boot 3 reactor，以隔离 Spring Framework 6、`jakarta.*` 和目标 SDK，而不是把它们升级进当前 Java 8 发布物。先完成 SDK 版本探针，再确定实现坐标和能力矩阵。
+1. 使用 Java 17 与 Spring Boot 3.5.8。
+2. 应用显式引入中立 model starter、`fw-plus-ai-spring-adapter` 及一个官方 Spring AI provider starter。
+3. Spring AI 1.1.2 与 Boot 3.5.7（官方对照）及项目 Boot 3.5.8 的 API 编译和依赖树探针必须保持通过。
+4. provider client 必须由 Spring 管理；adapter 不反射创建 client，也不读取凭据。
 
 ## Maven Parent 与 Starter
 
-建议单独建立以下规划布局，坐标和版本仅在 SDK 探针通过后正式确定：
+Core 模块布局：
 
 ```text
-fw-plus-ai-j17/
-├── pom.xml                                  # Java 17 reactor
-├── fw-plus-ai-j17-parent/                   # compiler、Boot 3、插件
-├── fw-plus-ai-j17-dependencies/             # Spring AI BOM 与版本锁定
-├── fw-plus-ai-spring-ai-j17-adapter/        # 仅持有 Spring AI 原生类型
-├── fw-plus-ai-spring-ai-j17-autoconfigure/  # Boot 3 条件装配
-└── fw-plus-ai-spring-ai-j17-starter/        # 应用入口
+fw-plus-ai/
+└── fw-plus-ai-spring/
+    └── fw-plus-ai-spring-adapter/
 ```
 
-parent 设定 Java 17，BOM 只管理经探针验证的 Spring AI、Spring Framework 6 与 Spring Boot 3 组合。Boot 3 自动配置放入 `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`，使用 Boot 3 的 `@AutoConfiguration` 和 `jakarta.*` API；不得复制 Boot 2 `spring.factories` 注册方式到该线。
+应用示例：
+
+```xml
+<dependency>
+    <groupId>com.xiongx9527.fw.plus.ai</groupId>
+    <artifactId>fw-plus-ai-model-spring-boot-starter</artifactId>
+    <version>${fw-plus-ai.version}</version>
+</dependency>
+<dependency>
+    <groupId>com.xiongx9527.fw.plus</groupId>
+    <artifactId>fw-plus-ai-spring-adapter</artifactId>
+    <version>${fw-plus-ai.version}</version>
+</dependency>
+<dependency>
+    <groupId>org.springframework.ai</groupId>
+    <artifactId>spring-ai-starter-model-openai</artifactId>
+</dependency>
+```
+
+fw-plus 不提供额外 Spring AI starter，也不从 adapter 或中立 starter 传递具体 provider starter。Boot 自动配置位于现有 `fw-plus-ai-boot-autoconfigure`，通过 `AutoConfiguration.imports` 注册。
 
 ## 同 key 配置迁移
 
-adapter 必须以 framework 标识 `spring-ai` 实现 model/store 中立 SPI，并只在 adapter 内部封装 Spring AI 的 `ChatModel`、`EmbeddingModel`、`VectorStore`、`Document` 等对象。应用配置使用既有中立前缀：
+继续使用中立配置前缀和业务 key：
 
 ```yaml
 fw-plus:
   ai:
     model:
+      enabled: true
+      default-model: knowledge-chat
       models:
         knowledge-chat:
           framework: spring-ai
           provider: openai
           type: CHAT
-          properties: {}
-    embedding-store:
-      stores:
-        knowledge:
-          framework: spring-ai
-          provider: qdrant
-          type: VECTOR
-          properties: {}
+          properties:
+            beanName: openAiChatModel
 ```
 
-同一个 key 的 Magic-API `model['knowledge-chat']` 和 `vector['knowledge']` 保持不变，但仍只能返回中立 facade。不得在 MagicScript 或 Java 8 public API 返回 Spring AI 类型。
+`properties.beanName` 按名称精确选择 Spring 管理的 `ChatModel` 或 `EmbeddingModel`。未指定时，应用必须提供唯一的 `SpringAiProviderBinding`。零候选、多候选、类型错误或 framework 不匹配均脱敏失败，不回退 LangChain4j。
 
 ## Java API 迁移
 
-业务 Java API 面向 `AiModelRegistry`、`AiEmbeddingStoreRegistry` 与中立 `AiModel`/`AiEmbeddingStore`。Spring AI `ChatModel`、`EmbeddingModel`、`VectorStore`、`Document` 只留在 Java 17 adapter 内部；新增能力前先扩展中立契约并完成测试。
+业务继续面向 `AiModelRegistry`、`AiChatModel`、`AiEmbeddingModel` 和中立 request/result。Spring AI `ChatModel`、`EmbeddingModel`、`Prompt` 与 response 类型只存在于 adapter 和自动配置边界；中立 facade 不提供 native accessor。
+
+- Chat 映射文本、finish reason、usage 与实际 model key。
+- Embedding 使用批量 response，按 `Embedding.index` 恢复输入顺序并防御性复制向量。
+- 未白名单化的 per-request parameters 明确拒绝。
+- timeout/transport 映射为可重试 infrastructure failure；请求拒绝和畸形响应映射为不可重试 request rejected。
 
 ## Magic-API 影响
 
-`model[...]` 与 `vector[...]` 的 key 不随切换改变，脚本侧不能取得 Spring AI 原生对象。缺 SDK、缺配置、零/多候选和未支持能力必须给出脱敏错误，绝不创建半初始化 Bean 或回退 LangChain4j。
+`model['knowledge-chat']` 保持原 key，并只返回中立模型 facade。Spring AI adapter 已通过 `AiModelRegistry` 到 `MagicDynamicModelDataSource` 的集成测试。
+
+`vector[...]` 不属于本次 Spring AI adapter：标准 `VectorStore.similaritySearch(SearchRequest)` 接收文本并可能重新嵌入，而中立 `AiEmbeddingQuery` 接收预计算 `float[]`。首版不会丢弃、字符串化或重新计算调用方向量来伪装兼容。
 
 ## 验证
 
-1. SDK 探针锁定实际 BOM、Java 17 字节码、Spring Framework 6 与 `jakarta.*` 依赖；生成 dependency tree 作为证据。
-2. model/store 各自覆盖显式 `framework=spring-ai` 成功、framework 不存在、零候选、多个候选以及未支持 provider/type；错误包含诊断上下文且脱敏。
-3. 使用 `ApplicationContextRunner` 或等效 Boot 3 测试覆盖 SDK class 缺失、配置缺失、provider SDK 缺失时不注册 registry 条目和半初始化 Bean。
-4. 对 Chat、Embedding、VectorStore 的每一个承诺能力做 SDK mock/fixture 契约测试；不支持的能力明确失败，不回退 LangChain4j。
-5. 在受控凭证下至少验证一个真实模型端点和一个真实向量后端；日志、失败消息、actuator 输出不得泄漏密钥或连接串。
-6. 复验当前 Java 8 Core 的 effective POM 与 dependency tree 不包含 Spring AI、Boot 3 或 Jakarta API。
-
-未来 reactor 建立后才可执行的验收模板：
-
 ```bash
-./fw-plus-core/mvnw -f fw-plus-ai-j17/pom.xml \
-  -pl fw-plus-ai-spring-ai-j17-adapter,fw-plus-ai-spring-ai-j17-autoconfigure -am test
-./fw-plus-core/mvnw -f fw-plus-ai-j17/pom.xml \
-  -pl fw-plus-ai-spring-ai-j17-starter dependency:tree test
+export JAVA_HOME=$(/usr/libexec/java_home -v 17)
+
+mvn -f fw-plus-core/pom.xml \
+  -pl fw-plus-project/fw-plus-ai/fw-plus-ai-spring/fw-plus-ai-spring-adapter \
+  -am test
+
+mvn -f fw-plus-ai/pom.xml \
+  -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure \
+  -am test
+
+mvn -f fw-plus-ai/pom.xml \
+  -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-model-spring-boot-starter \
+  -am validate
 ```
+
+先执行 `docs/ai-framework-migration/probe-spring-ai-compatibility.sh`，复验 Boot 3.5.7/3.5.8 的关键 API 与依赖树。还应检查 adapter dependency tree 只包含 Spring AI 公共 API、不含 provider starter；中立 starter 的 Enforcer 必须禁止 Spring AI、Spring AI Alibaba 与新 adapter 的传递依赖。没有受控凭据时，离线验收不声称完成真实远端 smoke test。
 
 ## 回滚
 
-在上述实现和证据完成前，生产应用应继续使用当前 `framework: langchain4j` 路径。回滚必须回退完整框架版本，不能将未来 Java 17 starter 与 Java 8 Boot 2 应用混装，也不能在新版本混入被删除的旧 artifact。
+回滚时同时恢复上一发布版本的 adapter、BOM 与应用配置。若改回 LangChain4j，将 `framework` 改为 `langchain4j` 并恢复对应 adapter/provider SDK；业务 key 与 `model[...]` 不变。不得在当前版本混入已删除的旧 model/store artifact，也不得引用不存在的 `fw-plus-ai-j17` 坐标。

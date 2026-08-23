@@ -4,12 +4,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import javax.servlet.ReadListener;
-import javax.servlet.ServletException;
-import javax.servlet.ServletInputStream;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ReadListener;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletInputStream;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -40,7 +40,7 @@ public final class TinyflowDifyExternalRequestBodyFilter extends OncePerRequestF
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
-            javax.servlet.FilterChain filterChain) throws ServletException, IOException {
+            jakarta.servlet.FilterChain filterChain) throws ServletException, IOException {
         long maxBytes = properties.getMaxRequestBodyBytes();
         if (request.getContentLengthLong() > maxBytes) {
             reject(response);

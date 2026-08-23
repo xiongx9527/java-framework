@@ -34,8 +34,12 @@ public class EmbeddingStoreAskDataVectorRetrieverTest {
     @Test
     public void shouldRejectFiltersThatLegacyLangChain4jStoreCannotApply() {
         InMemoryEmbeddingStore<TextSegment> store = new InMemoryEmbeddingStore<TextSegment>();
-        EmbeddingModel model = texts -> Response.from(
-                Collections.singletonList(Embedding.from(new float[] {1.0F, 0.0F})));
+        EmbeddingModel model = new EmbeddingModel() {
+            @Override
+            public Response<Embedding> embed(String text) {
+                return Response.from(Embedding.from(new float[] {1.0F, 0.0F}));
+            }
+        };
         AskDataVectorRetriever retriever = new EmbeddingStoreAskDataVectorRetriever(store, model);
 
         IllegalStateException exception = assertThrows(IllegalStateException.class,

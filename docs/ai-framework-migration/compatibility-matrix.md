@@ -2,62 +2,80 @@
 
 ## 当前构建基线
 
-| 线路 | Java / Spring 基线 | artifact / 父 POM | 当前状态 | 依赖边界 |
+| 线路 | Java / Spring 基线 | artifact | 当前状态 | 依赖边界 |
 | --- | --- | --- | --- | --- |
-| 中立模型与向量存储契约 | Java 8 / Spring Boot 2.7.18 | `com.xiongx9527.fw.plus:fw-plus-ai-model`、`com.xiongx9527.fw.plus:fw-plus-ai-store-embedding` | 已在 Java 8 Core reactor 创建、测试并安装，且已登记到 Core BOM | 不得公开或传递依赖 LangChain4j、Spring AI、Spring AI Alibaba、AgentScope 2 Java 类型 |
-| LangChain4j Adapter | Java 8 / Spring Boot 2.7.18 | `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter` 与 `com.xiongx9527.fw.plus.ai:fw-plus-ai-boot-starter` | 通过 Core Adapter + AI Boot 自动配置由业务显式安装；AI Boot 回归验证中立 `fw-plus.ai.model`、`fw-plus.ai.embedding-store` 绑定、显式 framework/唯一候选选择和 Magic-API facade | LangChain4j 仅存在于 Adapter 层；AskData Starter 不默认引入 Adapter、Provider 或 Ollama |
-| Spring AI | Java 17 / Spring Boot 3.x 高版本线（计划目标） | 未来 `fw-plus-ai-j17` 独立 parent 与 `fw-plus-ai-spring-ai-j17-starter` | 当前仅有后续实施蓝图；无 artifact、starter、自动配置或真实 adapter | 不得进入 Java 8 Core reactor 或 Core BOM；其 SDK 版本仅在未来 Java 17 parent 管理 |
-| Spring AI Alibaba | Java 17 / Spring Boot 3.x 高版本线（计划目标） | 未来 `fw-plus-ai-j17` 独立 parent 与 `fw-plus-ai-spring-ai-alibaba-j17-starter` | 当前仅有后续实施蓝图；无 artifact、starter、自动配置或真实 adapter | 不得进入 Java 8 Core reactor 或 Core BOM；Spring AI Alibaba 与 Spring AI 版本须在未来 Java 17 parent 成组管理 |
-| AgentScope 2 Java | Java 17 / Spring Boot 3.x 高版本线（计划目标） | 未来 `fw-plus-ai-j17` 独立 parent 与 `fw-plus-ai-agentscope-j17-starter` | 当前仅有后续实施蓝图；无 artifact、starter、自动配置或真实 adapter | 按进程内 SDK 适配；不得进入 Java 8 Core reactor 或 Core BOM；其 SDK 版本仅在未来 Java 17 parent 管理 |
+| 中立模型与向量存储契约 | Java 17 / Spring Boot 3.5.8 | `fw-plus-ai-model`、`fw-plus-ai-store-embedding` | 已实现并由中立 starter 自动配置 | 公开签名不含具体 AI framework 类型；中立 starter 禁止传递 adapter/SDK |
+| LangChain4j Adapter | Java 17 / Spring Boot 3.5.8 | `fw-plus-ai-langchain4j-adapter` | 当前支持模型与向量 store，业务显式安装 | SDK 类型只在 adapter/Boot provider 层 |
+| Spring AI | Java 17 / Spring Boot 3.5.8 | `fw-plus-ai-spring-adapter` | Spring AI 1.1.2；framework=`spring-ai`；同步 CHAT、EMBEDDING | adapter 只依赖公共 model API；provider starter 由应用显式安装 |
+| Spring AI Alibaba | Java 17 / Spring Boot 3.5.8 | 与 Spring AI 共用 `fw-plus-ai-spring-adapter` | Alibaba/Extensions 1.1.2.2；framework=`spring-ai-alibaba`；DashScope CHAT、EMBEDDING | 与通用 Spring AI 共用 facade，独立 adapter 实例与 provenance 校验 |
+| AgentScope 2 Java | 未实现 | 无当前 artifact | 仍是后续需求 | 不在本 change 中创建或声明支持 |
+
+仓库不使用也不创建 `fw-plus-ai-j17`、`*-j17-adapter` 或 `*-j17-starter`。当前 Core 与 AI Boot reactor 本身已经是 Java 17 / Boot 3.5.8。
+
+## 能力矩阵
+
+| 能力 | LangChain4j | Spring AI | Spring AI Alibaba |
+| --- | --- | --- | --- |
+| 同步 CHAT | 支持 | 支持 | DashScope 支持 |
+| EMBEDDING | 支持 | 支持 | DashScope 支持 |
+| STREAMING_CHAT | LangChain4j 专项路径 | 中立契约未提供 | 中立契约未提供 |
+| 中立 VECTOR store | 支持选定 provider | **首版不支持** | **首版不支持** |
+| Magic-API `model[...]` | 中立 facade | 中立 facade，已做集成回归 | 中立 facade |
+| Magic-API `vector[...]` | 中立 facade | 不注册 store adapter | 不注册 store adapter |
+
+Spring AI 标准 `VectorStore` 使用文本查询并可能自行嵌入，中立 `AiEmbeddingQuery` 使用预计算向量。只有后续 provider bridge 能完整保留向量、ID、metadata、score/filter 与幂等 delete 语义时，才能宣称 VECTOR 支持。
 
 ## 隔离规则
 
-1. Core BOM 只管理 Java 8 可用的内部中立 artifact；不得写入 Spring Boot 3、Spring AI、Spring AI Alibaba 或 AgentScope 2 Java 的依赖或版本。
-2. Java 17 适配线路是未来高版本线，实施时必须在 `fw-plus-ai-j17` 独立 Maven reactor 中以 Java 17 和 Spring Boot 3.x 构建，并在独立 parent 中管理目标 SDK 的版本；当前不得创建或引用这些坐标。
-3. 未来 Java 17 starter 只有在 SDK 版本探针、真实 adapter 和条件装配测试完成后才能发布；缺 SDK、adapter、provider 或必要配置时不得创建半初始化 Bean，也不得静默回退到 LangChain4j。
-4. Spring Boot 2.7 可以运行在 Java 17；本变更选择 Spring Boot 3.x 是为了 Spring AI、Spring AI Alibaba 与 AgentScope 2 Java 高版本生态的独立适配，不是 Java 17 对 Boot 2.x 的强制替换。
-5. Java 17 adapter 必须绑定 Java 8 中立 `AiModelAdapter`/`AiEmbeddingStoreAdapter` SPI，原生 SDK 类型不得进入中立 artifact 的公开签名。
+1. 业务通过 `AiModelRegistry`、`AiChatModel`、`AiEmbeddingModel` 使用模型；配置继续使用 `fw-plus.ai.model` 与 `fw-plus.ai.embedding-store`，中立 facade 不暴露 native accessor。
+2. 应用显式引入 `fw-plus-ai-spring-adapter` 和官方 provider starter；中立 model/store starter、adapter 本身都不传递 provider starter。
+3. `spring-ai`、`spring-ai-alibaba`、`langchain4j` adapter 可同时注册，定义必须用 framework 精确选择；失败不静默回退。
+4. provider 模型由 Spring 管理。`properties.beanName` 精确选 Bean，或使用唯一 `SpringAiProviderBinding`；supports 不初始化 Bean、不调用远端。
+5. Chat/Embedding class 条件相互独立；缺某一 SDK/能力只 back off 对应 Bean。
+6. 异常、日志与 actuator 不得包含 API key、Authorization/header、完整 URL、properties 值或原始 provider 响应。
 
-## 验证计划
+## 已验证命令
 
-当前验证 Java 8 Core reactor、Core BOM 中立 artifact 的版本管理，以及已创建的 `fw-plus-ai-model`、`fw-plus-ai-store-embedding` 的测试与安装；AI Boot 回归验证业务显式安装 LangChain4j Adapter、中立配置绑定、自动发现选择和 Magic-API facade。不得将这些 Java 8 验证结果延伸为 Java 17 SDK、`fw-plus-ai-j17` reactor 或目标 SDK Adapter 已实现的证据。
-
-### 当前已验证的 Java 8 Core 命令
-
-以下命令在现有 Java 8 Core reactor 中可成功运行，用于验证 Core 构建基线、Core BOM、已创建的中立模块、模块测试与安装，以及 effective POM 与声明依赖的隔离；`rg` 必须无输出且以零状态退出：
+固定 Java 17：
 
 ```bash
-./fw-plus-core/mvnw -f fw-plus-core/pom.xml validate
-./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-dependencies validate
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-model test
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-store-embedding test
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-model -am install -DskipTests
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-store-embedding -am install -DskipTests
-./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-dependencies help:effective-pom -Doutput=target/fw-plus-dependencies-effective-pom.xml
-! rg -n -i 'spring-ai|spring-ai-alibaba|agentscope' fw-plus-core/fw-plus-project/fw-plus-dependencies/target/fw-plus-dependencies-effective-pom.xml
-! rg -n -i --glob 'pom.xml' 'spring-ai|spring-ai-alibaba|agentscope' fw-plus-core/fw-plus-project
+export JAVA_HOME=$(/usr/libexec/java_home -v 17)
 ```
 
-### 当前已验证的 AI Boot 接入命令
-
-以下命令验证业务显式选择的 LangChain4j Adapter 已接入中立契约，且中立前缀、显式 framework、唯一候选选择与 Magic-API `model[...]`、`vector[...]` facade 符合破坏性迁移边界：
+Core adapter 与 API：
 
 ```bash
-./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml \
-  -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -am test \
-  -Dtest=LangChain4jModelAutoConfigurationTest,EmbeddingStoreAutoConfigurationTest,LangChain4jAdapterAutoConfigurationTest,MagicAPIModelAutoConfigurationIntegrationTest,MagicAPIVectorAutoConfigurationIntegrationTest
+mvn -f fw-plus-core/pom.xml \
+  -pl fw-plus-project/fw-plus-ai/fw-plus-ai-spring/fw-plus-ai-spring-adapter \
+  -am test
 ```
 
-### 未来 Java 17 实施命令
-
-以下命令只是后续 change 创建 Java 17 独立 reactor 后的 SDK 依赖树、编译和测试模板。在 `fw-plus-ai-j17` reactor 创建前，因其 `pom.xml` 尚不存在而不能成功运行；文档中列出该命令不代表 artifact 或真实 SDK adapter 已实现。
+AI Boot 条件装配与 Magic-API model：
 
 ```bash
-./fw-plus-core/mvnw -f fw-plus-ai-j17/pom.xml dependency:tree test
+mvn -f fw-plus-ai/pom.xml \
+  -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure \
+  -am test
 ```
 
-后续实现 Java 17 parent 时，必须先分别执行 Spring AI、Spring AI Alibaba、AgentScope 2 Java 的 SDK 版本探针，保留依赖树与编译结果；再运行 Boot 3 条件装配、真实 adapter 契约与远端集成测试，并确认 Java 8 Core effective POM 中不存在 Spring Boot 3 或任一目标 SDK 坐标。
+中立 starter 边界：
+
+```bash
+mvn -f fw-plus-ai/pom.xml \
+  -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-model-spring-boot-starter,fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-store-embedding-spring-boot-starter \
+  -am validate
+```
+
+依赖审计：
+
+```bash
+mvn -f fw-plus-core/pom.xml \
+  -pl fw-plus-project/fw-plus-ai/fw-plus-ai-spring/fw-plus-ai-spring-adapter \
+  dependency:tree -Dincludes=org.springframework.ai:*,com.alibaba.cloud.ai:*
+```
+
+adapter 依赖树应包含 Spring AI 公共 model API，但不能包含 OpenAI、DashScope 等 provider starter。真实远端 smoke test 只有在提供受控凭据时执行；未执行时应在验收报告中明确记录。
 
 ## 当前发布边界
 
-本次变更已交付 Java 8 Core 中立 `fw-plus-ai-model`、`fw-plus-ai-store-embedding` 模块及业务显式选择的 LangChain4j Adapter，并完成测试与安装验证；同时交付 Java 17 / Boot 3.x 后续实施蓝图和迁移文档。当前仍不创建 `fw-plus-ai-j17`、其 Maven parent、Starter、自动配置或 Spring AI、Spring AI Alibaba、AgentScope 2 Java 的真实 Adapter。业务 key `model[...]`、`vector[...]` 在本发布线保持稳定；AskData Starter 不默认引入任何具体 AI 框架或 Provider。
+当前发布物实现 Spring AI 与 Spring AI Alibaba 的同步 CHAT/EMBEDDING，并完成离线契约、自动配置、Magic-API model 和依赖边界测试。它不实现 Spring AI/Alibaba VectorStore、AgentScope、远端凭据验证或任何不存在的 j17 reactor/starter。AskData starter 仍不默认引入具体 adapter/provider。

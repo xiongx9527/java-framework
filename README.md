@@ -92,7 +92,7 @@ Core 是全部上层的基础，负责公共抽象、领域增强和依赖版本
 - `fw-plus-mp`、`fw-plus-mf`：保留的 MyBatis-Plus / MyBatis-Flex 专项增强模块目录。
 - `fw-plus-easytrans`、`fw-plus-poi`、`fw-plus-report`、`fw-plus-template`：翻译、Office、报表和模板。
 - `fw-plus-auth`、`fw-plus-graph`：认证扩展与图数据库 JDBC。
-- `fw-plus-ai`、`fw-plus-dify`：AI 基础能力、AskData、模型接口、Embedding Store、LangChain4j、MCP、Tinyflow 与 Dify 客户端。
+- `fw-plus-ai`、`fw-plus-dify`：AI 基础能力、AskData、中立模型接口、Embedding Store、LangChain4j、Spring AI / Spring AI Alibaba Adapter、MCP、Tinyflow 与 Dify 客户端。
 - `fw-plus-magicapi`、`fw-plus-tiny-engine`：Magic-API 与 Tiny Engine 的 Core 能力。
 
 ### Boot
@@ -105,7 +105,7 @@ Cloud 在 Boot 之上提供 Spring Cloud 2025.0.0 扩展，包括 Cloud 通用�
 
 ### AI
 
-AI 层在 Boot 之上集成 LangChain4j、Agents-Flex、Spring AI、EasyAi、Tiny Engine、Tinyflow、向量存储与 Magic-API AI 插件。应用可按需选择通用 AI Starter、模型/向量存储 Starter、LangChain4j Adapter 或 Magic-API AI 插件。
+AI 层在 Boot 之上集成 LangChain4j、Agents-Flex、Spring AI、Spring AI Alibaba、EasyAi、Tiny Engine、Tinyflow、向量存储与 Magic-API AI 插件。应用显式选择中立 Starter、`fw-plus-ai-langchain4j-adapter` 或 `fw-plus-ai-spring-adapter` 以及官方 provider starter；Spring adapter 首版支持同步 CHAT/EMBEDDING，不提供 VectorStore adapter。
 
 ## 能力与模块
 
@@ -130,7 +130,7 @@ AI 层在 Boot 之上集成 LangChain4j、Agents-Flex、Spring AI、EasyAi、Tin
 | `fw-plus-template` | FreeMarker、docx4j、OpenPDF、FO 等模板能力 |
 | `fw-plus-auth` | Auth Base 与 Sa-Token 扩展 |
 | `fw-plus-graph` | Graph JDBC 公共层、Nebula JDBC、Neo4j JDBC |
-| `fw-plus-ai` | Base、MCP、AskData、Model、Embedding Store、LangChain4j、Tinyflow |
+| `fw-plus-ai` | Base、MCP、AskData、Model、Embedding Store、LangChain4j、Spring（`fw-plus-ai-spring-adapter`）、Tinyflow |
 | `fw-plus-dify` | Dify API 客户端 |
 | `fw-plus-magicapi` | Magic-API Core 扩展 |
 | `fw-plus-tiny-engine` | Tiny Engine Core |
@@ -176,8 +176,8 @@ AI 层在 Boot 之上集成 LangChain4j、Agents-Flex、Spring AI、EasyAi、Tin
 | --- | --- |
 | 聚合 | `fw-plus-ai-boot-starter` |
 | 中立 API | `fw-plus-ai-model-spring-boot-starter`、`fw-plus-ai-store-embedding-spring-boot-starter` |
-| Adapter | `fw-plus-ai-langchain4j-adapter-spring-boot-starter` |
-| 应用能力 | `fw-plus-ai-askdata-spring-boot-starter`、`fw-plus-ai-tiny-engine-spring-boot-starter`、`fw-plus-ai-tinyflow-spring-boot-starter`、`fw-plus-ai-tiny-engine-plugin-langchain4j` |
+| Adapter（业务显式安装） | `fw-plus-ai-langchain4j-adapter`、`fw-plus-ai-spring-adapter`；provider starter 由业务另行选择 |
+| 应用能力 | `fw-plus-ai-askdata-spring-boot-starter`、`fw-plus-ai-tinyflow-spring-boot-starter` |
 | Magic-API 插件 | `fw-plus-ai-magicapi-plugin-model`、`fw-plus-ai-magicapi-plugin-vector`、`fw-plus-ai-magicapi-plugin-tinyflow` |
 
 ## Magic-API 资源模型
@@ -296,7 +296,8 @@ mvn -f fw-plus-ai/pom.xml clean test
 | MyBatis-Flex | 1.11.4 |
 | LangChain4j | 1.18.0 |
 | Agents-Flex | 1.3.4 |
-| Spring AI | 1.0.1 |
+| Spring AI | 1.1.2 |
+| Spring AI Alibaba / Extensions | 1.1.2.2 |
 | EasyAi | 1.4.9 |
 | Sa-Token | 1.45.0 |
 | Hutool | 5.8.47 |
