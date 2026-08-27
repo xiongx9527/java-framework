@@ -312,7 +312,39 @@
 
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-mybatis-datascope</artifactId>
+            <version>${revision}</version>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-mybatis-datachange</artifactId>
+            <version>${revision}</version>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-mp-datachange</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-mf-datascope</artifactId>
+            <version>${revision}</version>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-mf-datachange</artifactId>
+            <version>${revision}</version>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
@@ -326,14 +358,15 @@
 
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-mp-datascope</artifactId>
+            <artifactId>fw-plus-mf-encrypt</artifactId>
+            <version>${revision}</version>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
 
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-tiny-engine-core</artifactId>
+            <artifactId>fw-plus-mp-datascope</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
@@ -778,6 +811,10 @@
             <artifactId>fw-plus-dify</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-common</artifactId>
         </dependency>
 
     </dependencies>

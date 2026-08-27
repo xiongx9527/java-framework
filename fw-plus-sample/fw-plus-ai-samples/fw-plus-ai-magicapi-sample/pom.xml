@@ -14,7 +14,7 @@
     <properties>
         <main.basedir>${basedir}/../../..</main.basedir>
         <!--跳过test-->
-        <maven.test.skip>true</maven.test.skip>
+        <maven.test.skip>false</maven.test.skip>
         <!--跳过javadoc生成-->
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <!--跳过install-->
@@ -29,6 +29,11 @@
             <artifactId>fw-plus-magicapi-spring-boot-starter</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-tinyflow</artifactId>
+            <version>0.1.1-SNAPSHOT</version>
+        </dependency>
 
         <dependency>
             <groupId>com.xiongx9527.fw.plus.ai</groupId>
@@ -53,9 +58,21 @@
         </dependency>
 
         <dependency>
-            <groupId>org.neo4j</groupId>
-            <artifactId>neo4j-jdbc-driver</artifactId>
-            <version>4.0.10</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>3.0.3</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>4.1.2</version>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>

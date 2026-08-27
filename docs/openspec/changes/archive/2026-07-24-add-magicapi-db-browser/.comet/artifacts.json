@@ -1,9 +1,0 @@
-{
-  "openspec_proposal": "openspec/changes/add-magicapi-db-browser/proposal.md",
-  "openspec_design": "openspec/changes/add-magicapi-db-browser/design.md",
-  "openspec_tasks": "openspec/changes/add-magicapi-db-browser/tasks.md",
-  "openspec_delta_spec": "openspec/changes/add-magicapi-db-browser/specs/magicapi-db-browser/spec.md",
-  "handoff_context": "openspec/changes/add-magicapi-db-browser/.comet/handoff/design-context.json",
-  "handoff_markdown": "openspec/changes/add-magicapi-db-browser/.comet/handoff/design-context.md",
-  "archive_directory": "openspec/changes/archive/2026-07-24-add-magicapi-db-browser"
-}

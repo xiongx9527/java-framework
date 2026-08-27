@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.controller.webflux.Mag
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.controller.webflux.WebFluxMagicAPIRequestAccess;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.options.MagicJdbcClassOptionProvider;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.options.MagicJdbcClassOptions;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.service.ManagedMagicDynamicDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.debezium.starter.MagicAPIDebeziumConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.druid.starter.MagicAPIDruidConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.starter.MagicAPIMcpConfiguration;
@@ -17,6 +18,8 @@ import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.EnvironmentAware;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.support.SpringFactoriesLoader;
 import org.springframework.http.HttpCookie;
@@ -39,6 +42,7 @@ import org.ssssssss.magicapi.core.model.MagicEntity;
 import org.ssssssss.magicapi.core.service.MagicResourceService;
 import org.ssssssss.magicapi.core.web.MagicController;
 import org.ssssssss.magicapi.core.web.RequestHandler;
+import org.ssssssss.magicapi.datasource.model.MagicDynamicDataSource;
 
 import java.net.InetSocketAddress;
 import java.util.Arrays;
@@ -53,6 +57,23 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class MagicAPIWebFluxControllerTest {
+
+    @Test
+    void usesManagedDynamicDataSourceByDefault() {
+        new ReactiveWebApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(MagicAPIWebFluxAutoConfiguration.class))
+                .run(context -> assertThat(context.getBean(MagicDynamicDataSource.class))
+                        .isInstanceOf(ManagedMagicDynamicDataSource.class));
+    }
+
+    @Test
+    void backsOffForAUserProvidedDynamicDataSource() {
+        new ReactiveWebApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(MagicAPIWebFluxAutoConfiguration.class))
+                .withUserConfiguration(UserDynamicDataSourceConfiguration.class)
+                .run(context -> assertThat(context.getBean(MagicDynamicDataSource.class))
+                        .isSameAs(UserDynamicDataSourceConfiguration.DYNAMIC_DATA_SOURCE));
+    }
 
     @Test
     void startsRealReactiveAutoConfigurationWithoutManuallyProvidingManagementBeans() {
@@ -474,6 +495,18 @@ class MagicAPIWebFluxControllerTest {
         @GetMapping("/error")
         public JsonBean<Void> error() {
             throw new IllegalStateException("boom");
+        }
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    static class UserDynamicDataSourceConfiguration {
+
+        private static final MagicDynamicDataSource DYNAMIC_DATA_SOURCE =
+                new MagicDynamicDataSource();
+
+        @Bean
+        MagicDynamicDataSource userMagicDynamicDataSource() {
+            return DYNAMIC_DATA_SOURCE;
         }
     }
 }

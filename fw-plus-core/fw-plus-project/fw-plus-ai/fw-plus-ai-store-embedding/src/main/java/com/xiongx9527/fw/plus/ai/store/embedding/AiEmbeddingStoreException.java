@@ -1,6 +1,8 @@
 package com.xiongx9527.fw.plus.ai.store.embedding;
 
-public class AiEmbeddingStoreException extends RuntimeException {
+import com.xiongx9527.fw.plus.common.exception.BizException;
+
+public class AiEmbeddingStoreException extends BizException {
 
     public AiEmbeddingStoreException(String message) {
         super(message);

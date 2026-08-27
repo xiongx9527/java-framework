@@ -16,6 +16,7 @@ public class NeutralAiAutoConfigurationBoundaryTest {
 
 	private static final List<String> PUBLIC_AUTOCONFIGURATION_MARKERS = Arrays.asList(
 			"dev.langchain4j",
+			"dev.tinyflow.langchain4j",
 			"com.xiongx9527.fw.plus.ai.langchain4j",
 			"fw-plus.ai.langchain4j",
 			"fw.plus.ai.langchain4j");
@@ -85,8 +86,6 @@ public class NeutralAiAutoConfigurationBoundaryTest {
 	private boolean isIgnored(File file) {
 		String path = file.getPath().replace(File.separatorChar, '/');
 		return file.isDirectory() && ("target".equals(file.getName())
-				|| path.contains("/autoconfigure/askdata/")
-				|| path.endsWith("/autoconfigure/askdata")
 				|| path.contains("/autoconfigure/langchain4j/")
 				|| path.endsWith("/autoconfigure/langchain4j"));
 	}

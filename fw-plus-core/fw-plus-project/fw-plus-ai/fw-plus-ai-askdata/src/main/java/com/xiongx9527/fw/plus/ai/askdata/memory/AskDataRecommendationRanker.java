@@ -1,5 +1,0 @@
-package com.xiongx9527.fw.plus.ai.askdata.memory;
-import java.util.ArrayList; import java.util.Collections; import java.util.Comparator; import java.util.List;
-/** Core 推荐排序器，先排除未授权的通用画像候选，再按分值降序稳定排序。 */
-public final class AskDataRecommendationRanker { private AskDataRecommendationRanker() { }
-	public static List<AskDataRecommendationCandidate> rank(AskDataRecommendationRequest request,List<AskDataRecommendationCandidate> candidates){if(request==null||candidates==null)throw new IllegalArgumentException("request 和 candidates 不能为空");List<AskDataRecommendationCandidate> result=new ArrayList<AskDataRecommendationCandidate>();for(AskDataRecommendationCandidate candidate:candidates){if(candidate!=null&&(!candidate.isGeneric()||request.isAllowGeneric()))result.add(candidate);}Collections.sort(result,new Comparator<AskDataRecommendationCandidate>(){public int compare(AskDataRecommendationCandidate left,AskDataRecommendationCandidate right){return Double.compare(right.getScore(),left.getScore());}});return result.size()<=request.getLimit()?result:new ArrayList<AskDataRecommendationCandidate>(result.subList(0,request.getLimit()));} }

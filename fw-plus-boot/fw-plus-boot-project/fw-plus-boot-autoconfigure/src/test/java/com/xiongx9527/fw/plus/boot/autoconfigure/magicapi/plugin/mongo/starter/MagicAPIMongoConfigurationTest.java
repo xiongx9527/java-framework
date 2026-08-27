@@ -23,10 +23,10 @@ class MagicAPIMongoConfigurationTest {
 
 	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
 			.withConfiguration(AutoConfigurations.of(
-					MagicAPIMongoConfiguration.class, MagicAPIMongoModuleAutoConfiguration.class));
+					MagicAPIMongoConfiguration.class));
 	private final WebApplicationContextRunner defaultMongoContextRunner = new WebApplicationContextRunner()
 			.withConfiguration(AutoConfigurations.of(MagicAPIBaseAutoConfiguration.class,
-					MagicAPIMongoModuleAutoConfiguration.class, MongoAutoConfiguration.class,
+					MongoAutoConfiguration.class,
 					MongoDataAutoConfiguration.class))
 			.withInitializer(context -> context.addBeanFactoryPostProcessor(
 					new LazyInitializationBeanFactoryPostProcessor()))

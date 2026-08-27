@@ -19,6 +19,7 @@ target/
 *.iml
 *.ipr
 !/logDir_IS_UNDEFINED/
+.flattened-pom.xml
 
 ### NetBeans ###
 /nbproject/private/
@@ -33,4 +34,4 @@ build/
 ### VS Code ###
 .vscode/
 
-!/.flattened-pom.xml
+

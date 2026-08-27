@@ -1,0 +1,6 @@
+This module includes an adapted MQTT management interface based on
+mica-mqtt-dashboard commit 2ccff8f7dcf9d3de40a4f21b7fc0be9036ff3e80.
+
+Copyright Dreamlu.
+Licensed under the Apache License, Version 2.0.
+The upstream license text is distributed in META-INF/LICENSE-mica-mqtt-dashboard.txt.

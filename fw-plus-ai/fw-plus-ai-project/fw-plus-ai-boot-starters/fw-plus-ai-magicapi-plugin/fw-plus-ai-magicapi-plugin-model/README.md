@@ -17,7 +17,7 @@ Magic-API 的 LangChain4j 模型插件，用于把 Spring Boot 中的 `LangChain
 模块依赖：
 
 - `fw-plus-ai-boot-autoconfigure`：提供 Magic-API 插件后端配置、控制器、资源存储和动态注册。
-- `fw-plus-ai-langchain4j-adapter-spring-boot-starter`：提供统一 LangChain4j adapter；模型注册通过中立 `AiModelRegistry` 暴露。
+- `fw-plus-ai-langchain4j-adapter`：提供统一 LangChain4j adapter；模型注册通过中立 `AiModelRegistry` 暴露。
 
 具体 provider SDK 不由本插件一次性全部引入。使用 OpenAI、Ollama、DashScope、Anthropic、Azure OpenAI 等 provider 时，请在业务应用侧按需引入对应 LangChain4j 实现依赖。
 

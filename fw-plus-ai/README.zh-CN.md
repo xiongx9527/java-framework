@@ -2,19 +2,19 @@
 
 ## 中立 AI adapter 破坏性迁移
 
-本发布线删除旧 LangChain4j model/store 坐标，不保留 POM 别名或旧配置前缀。`fw-plus-ai-model` 与 `fw-plus-ai-store-embedding` 是 Java 8 中立 API；LangChain4j 仍是默认的完整实现，但应用必须显式安装统一 adapter starter。
+本发布线删除旧 LangChain4j model/store 坐标，不保留 POM 别名或旧配置前缀。`fw-plus-ai-model` 与 `fw-plus-ai-store-embedding` 是 Java 8 中立 API；LangChain4j 由核心 adapter 提供，Boot 自动配置由 `fw-plus-ai-boot-autoconfigure` 按 classpath 条件加载。
 
 | 已删除坐标 | 替代坐标 | 说明 |
 | --- | --- | --- |
 | `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-model` | `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter` | 统一的模型与向量实现层 |
 | `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-store-embeding` | `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter` | 注意旧 artifact 的 `embeding` 拼写 |
-| `com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-model-spring-boot-starter` | `com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-adapter-spring-boot-starter` | 显式安装 LangChain4j Boot 集成 |
-| `com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-store-embeding-spring-boot-starter` | `com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-adapter-spring-boot-starter` | 同一统一 starter |
+| `com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-model-spring-boot-starter` | `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter` | 统一 LangChain4j 核心适配 |
+| `com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-store-embeding-spring-boot-starter` | `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter` | 统一 LangChain4j 核心适配 |
 
 ```xml
 <dependency>
-    <groupId>com.xiongx9527.fw.plus.ai</groupId>
-    <artifactId>fw-plus-ai-langchain4j-adapter-spring-boot-starter</artifactId>
+    <groupId>com.xiongx9527.fw.plus</groupId>
+    <artifactId>fw-plus-ai-langchain4j-adapter</artifactId>
     <version>${fw-plus-ai.version}</version>
 </dependency>
 ```
@@ -57,10 +57,9 @@ fw-plus:
 
 选择规则对模型和向量 store 一致：显式 `framework` 只匹配同名 adapter；省略时仅一个支持该 provider/type 的 adapter 才能自动选择；零个或多个候选都失败。诊断包含 key、framework、provider、type 与候选 framework，不得包含 apiKey、token、secret 或完整连接串。
 
-## Magic-API 与 AskData
+## Magic-API
 
 `model['knowledge-chat']`、`vector['knowledge']` 和默认 key 的语义保持稳定。资源定义也可给出 `framework`，并遵循同一选择规则；脚本只得到中立 facade，不能取得 `LangChain4jModel` 或 `EmbeddingStore<TextSegment>`。SDK 专有调用应留在 Java adapter/业务层。
 
-AskData 保留且本次不修改其源码。只有在 adapter、Boot 与 Magic-API 迁移完成并获得再次确认后，才迁移其旧 artifact 依赖并执行回归；当前不能将 AskData 视为已切换至其他 framework。
 
 完整迁移、回滚限制、诊断与 Java 17 / Boot 3 蓝图见 [迁移总览](../docs/ai-framework-migration/overview.md)。

@@ -1,6 +1,8 @@
 package dev.langchain4j.store.graph.neo4j;
 
-public class Neo4jException extends RuntimeException {
+import com.xiongx9527.fw.plus.common.exception.BizException;
+
+public class Neo4jException extends BizException {
 
     public Neo4jException(String message, Throwable cause) {
 

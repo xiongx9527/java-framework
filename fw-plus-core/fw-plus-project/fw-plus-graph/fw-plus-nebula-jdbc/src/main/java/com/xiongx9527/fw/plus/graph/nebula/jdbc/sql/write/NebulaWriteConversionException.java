@@ -1,8 +1,8 @@
 package com.xiongx9527.fw.plus.graph.nebula.jdbc.sql.write;
 
-import java.sql.SQLException;
+import com.xiongx9527.fw.plus.common.exception.BizException;
 
-public class NebulaWriteConversionException extends SQLException {
+public class NebulaWriteConversionException extends BizException {
 	private final NebulaWriteErrorCode errorCode;
 
 	public NebulaWriteConversionException(NebulaWriteErrorCode errorCode, String message) {

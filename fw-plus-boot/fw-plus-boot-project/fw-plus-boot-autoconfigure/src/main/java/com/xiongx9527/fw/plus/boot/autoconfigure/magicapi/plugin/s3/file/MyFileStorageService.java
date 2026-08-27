@@ -1086,6 +1086,20 @@ public class MyFileStorageService {
     }
 
     /**
+     * 判断指定URL对应的远程文件是否存在。
+     *
+     * @param url 文件的URL路径
+     * @return 文件明确不存在时返回false；鉴权、服务端和网络异常继续抛出
+     */
+    public boolean exists(String url) {
+        FileInfo fileInfo = this.getFileInfoByUrl(url,null,null,null);
+        if (fileInfo == null) {
+            throw new FileStorageRuntimeException("Failed to resolve file information from URL");
+        }
+        return this.getFileStorageServiceByPath(fileInfo.getBasePath()).exists(fileInfo);
+    }
+
+    /**
      * 根据条件删除文件
      * @param fileInfo 文件信息对象，包含要删除文件的相关信息
      * @return boolean 删除结果，true表示删除成功，false表示删除失败

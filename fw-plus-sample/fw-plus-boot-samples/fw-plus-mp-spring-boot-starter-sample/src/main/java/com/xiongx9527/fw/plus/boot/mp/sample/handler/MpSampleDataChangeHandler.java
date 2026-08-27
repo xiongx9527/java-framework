@@ -1,40 +1,27 @@
 package com.xiongx9527.fw.plus.boot.mp.sample.handler;
 
 import com.alibaba.fastjson.JSON;
-import com.xiongx9527.fw.plus.mp.datachange.DataChangeHandler;
-import com.xiongx9527.fw.plus.mp.datachange.properties.ChangeDataRecord;
+import com.xiongx9527.fw.plus.mybatis.datachange.api.DataChangeEvent;
+import com.xiongx9527.fw.plus.mybatis.datachange.api.DataChangeHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
 @Slf4j
 @Component
-public class MpSampleDataChangeHandler extends DataChangeHandler {
-    @Override
-    public UserInfo getUserInfo() {
-        return new UserInfo() {
-            @Override
-            public String getId() {
-                return "";
-            }
-
-            @Override
-            public String getName() {
-                return "";
-            }
-        };
-    }
+public class MpSampleDataChangeHandler implements DataChangeHandler {
+	@Override
+	public boolean supports(DataChangeEvent event) {
+	    return true;
+	}
 
     @Override
-    public Map<Object, Object> enumToMap(Class<?> clazz) {
-        return Collections.emptyMap();
-    }
+	public void handle(DataChangeEvent event) {
+	    log.info("data change event: {}", JSON.toJSONString(event));
+	}
 
-    @Override
-    public void handler(List<ChangeDataRecord> operationRecords) {
-        log.info("operationRecords:{}", JSON.toJSONString(operationRecords));
-    }
+	@Override
+	public int getOrder() {
+	    return 0;
+	}
 }
