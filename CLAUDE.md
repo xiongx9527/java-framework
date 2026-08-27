@@ -89,8 +89,8 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 │   │       │   ├── fw-plus-magicapi-plugin-kafka/         # Kafka 消息队列
 │   │       │   ├── fw-plus-magicapi-plugin-mcp/           # MCP 协议支持
 │   │       │   ├── fw-plus-magicapi-plugin-mongo/         # MongoDB
-│   │       │   ├── fw-plus-magicapi-plugin-mqtt/          # MQTT 协议支持
-│   │       │   ├── fw-plus-magicapi-plugin-mqttclient/    # MQTT 客户端
+│   │       │   ├── fw-plus-magicapi-plugin-mqtt-server/          # MQTT 协议支持
+│   │       │   ├── fw-plus-magicapi-plugin-mqtt-client/    # MQTT 客户端
 │   │       │   ├── fw-plus-magicapi-plugin-pulsar/        # Pulsar 消息队列
 │   │       │   ├── fw-plus-magicapi-plugin-rabbitmq/      # RabbitMQ 消息队列
 │   │       │   ├── fw-plus-magicapi-plugin-redis/         # Redis 缓存
