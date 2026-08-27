@@ -7,7 +7,7 @@ lerna-debug.log
 packages/design-core/bundle-deps
 designer-demo/bundle-deps
 
-# TinyEngine source package; the parent Maven starters .gitignore has a broad build/ rule.
+# Bundled source package; the parent Maven starters .gitignore has a broad build/ rule.
 !packages/build/
 !packages/build/**
 packages/build/**/dist/

@@ -26,7 +26,6 @@
         <module>fw-plus-magicapi</module>
         <module>fw-plus-graph</module>
         <module>fw-plus-dify</module>
-        <module>fw-plus-tiny-engine</module>
     </modules>
     <artifactId>fw-plus-project</artifactId>
     <name>Fw-Plus Project</name>

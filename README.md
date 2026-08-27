@@ -34,7 +34,7 @@
 | [Core](./fw-plus-core/) | `com.xiongx9527.fw.plus` | 公共能力、ORM、认证、模板报表、图数据库、AI 基础与 BOM |
 | [Boot](./fw-plus-boot/) | `com.xiongx9527.fw.plus.boot` | Spring Boot 自动配置、Starter 与 Magic-API 插件 |
 | [Cloud](./fw-plus-cloud/) | `com.xiongx9527.fw.plus.cloud` | Spring Cloud 自动配置、注册中心、网关与 Cloud 插件 |
-| [AI](./fw-plus-ai/) | `com.xiongx9527.fw.plus.ai` | 中立 AI Starter、Adapter、AskData、Tiny Engine 与 Magic-API AI 插件 |
+| [AI](./fw-plus-ai/) | `com.xiongx9527.fw.plus.ai` | 中立 AI Starter、Adapter、TinyFlow 与 Magic-API AI 插件 |
 | [Samples](./fw-plus-sample/) | `com.xiongx9527.fw.plus` | Boot、Cloud、AI 的集中样例与整体验证入口 |
 
 ## 快速开始
@@ -89,8 +89,8 @@ Core 是全部上层的基础，负责公共抽象、领域增强和依赖版本
 - `fw-plus-mp`、`fw-plus-mf`、`fw-plus-jdbc`、`fw-plus-nosql`：数据访问与存储增强。
 - `fw-plus-easytrans`、`fw-plus-poi`、`fw-plus-report`、`fw-plus-template`：翻译、Office、报表和模板。
 - `fw-plus-auth`、`fw-plus-graph`：认证扩展与图数据库 JDBC。
-- `fw-plus-ai`、`fw-plus-dify`：AI 中立接口、LangChain4j、AskData、MCP、Tinyflow 与 Dify 客户端。
-- `fw-plus-magicapi`、`fw-plus-tiny-engine`：Magic-API 与 Tiny Engine 的 Core 能力。
+- `fw-plus-ai`、`fw-plus-dify`：AI 中立接口、LangChain4j、MCP、Tinyflow 与 Dify 客户端。
+- `fw-plus-magicapi`：Magic-API Core 扩展。
 
 ### Boot
 
@@ -102,7 +102,7 @@ Cloud 在 Boot 之上提供 Spring Cloud 2021.0.9 扩展，包括 Cloud 通用�
 
 ### AI
 
-AI 层将模型、向量存储与具体框架实现解耦。应用可先依赖中立 Starter，再显式选择 LangChain4j Adapter、AskData、Tiny Engine 或 Magic-API AI 插件。
+AI 层将模型、向量存储与具体框架实现解耦。应用可先依赖中立 Starter，再显式选择 LangChain4j Adapter、TinyFlow 或 Magic-API AI 插件。
 
 > 旧的 LangChain4j model/store 坐标已经删除，不提供 POM 别名。新应用应使用 `fw-plus-ai-langchain4j-adapter`，中立配置前缀为 `fw-plus.ai.model` 与 `fw-plus.ai.embedding-store`。迁移细节见 [AI 框架迁移总览](./docs/ai-framework-migration/overview.md)。
 
@@ -128,10 +128,9 @@ AI 层将模型、向量存储与具体框架实现解耦。应用可先依赖�
 | `fw-plus-template` | FreeMarker、docx4j、OpenPDF、FO 等模板能力 |
 | `fw-plus-auth` | Auth Base 与 Sa-Token 扩展 |
 | `fw-plus-graph` | Graph JDBC 公共层、Nebula JDBC、Neo4j JDBC |
-| `fw-plus-ai` | Base、MCP、AskData、Model、Embedding Store、LangChain4j、Tinyflow |
+| `fw-plus-ai` | Base、MCP、Model、Embedding Store、LangChain4j、Tinyflow |
 | `fw-plus-dify` | Dify API 客户端 |
 | `fw-plus-magicapi` | Magic-API Core 扩展 |
-| `fw-plus-tiny-engine` | Tiny Engine Core |
 
 ### Boot Starter
 
@@ -139,7 +138,7 @@ AI 层将模型、向量存储与具体框架实现解耦。应用可先依赖�
 | --- | --- |
 | 聚合 | `fw-plus-boot-starter` |
 | 数据访问 | `fw-plus-mate-spring-boot-starter`、`fw-plus-mp-spring-boot-starter`、`fw-plus-jdbc-spring-boot-starter`、`fw-plus-redis-spring-boot-starter`、`fw-plus-influxdb-spring-boot-starter` |
-| 平台 | `fw-plus-magicapi-spring-boot-starter`、`fw-plus-tiny-engine-spring-boot-starter` |
+| 平台 | `fw-plus-magicapi-spring-boot-starter` |
 | 基础设施 | `fw-plus-file-storage-spring-boot-starter`、`fw-plus-mqtt-server-spring-boot-starter`、`fw-plus-mqtt-client-spring-boot-starter`、`fw-plus-admin-server-spring-boot-starter` |
 | 文档与模板 | `fw-plus-jimu-spring-boot-starter`、`fw-plus-template-spring-boot-starter` |
 | 标识 | `fw-plus-uid-spring-boot-starter` |
@@ -149,7 +148,7 @@ AI 层将模型、向量存储与具体框架实现解耦。应用可先依赖�
 
 | 分类 | 插件模块 |
 | --- | --- |
-| 平台与控制台 | `config`、`vue3`、`admin`、`tiny-engine`、`swagger` |
+| 平台与控制台 | `config`、`vue3`、`admin`、`swagger` |
 | 数据访问与存储 | `druid`、`db`、`redis`、`mongo`、`s3`、`influx`、`elasticsearch` |
 | 消息与实时通信 | `rocketmq`、`rabbitmq`、`kafka`、`pulsar`、`mqtt`、`mqttclient`、`ws` |
 | 运行时扩展 | `freemarker`、`task`、`dtp`、`debezium`、`satoken`、`mcp`、`word` |
@@ -175,7 +174,7 @@ AI 层将模型、向量存储与具体框架实现解耦。应用可先依赖�
 | 聚合 | `fw-plus-ai-boot-starter` |
 | 中立 API | `fw-plus-ai-model-spring-boot-starter`、`fw-plus-ai-store-embedding-spring-boot-starter` |
 | Adapter | `fw-plus-ai-langchain4j-adapter` |
-| 应用能力 | `fw-plus-ai-askdata-spring-boot-starter`、`fw-plus-ai-boot-autoconfigure` 中的 Tiny Engine AI 能力 |
+| 应用能力 | `fw-plus-ai-tinyflow-spring-boot-starter` |
 | Magic-API 插件 | `fw-plus-ai-magicapi-plugin-vector`、`fw-plus-ai-magicapi-plugin-model` |
 
 ## Magic-API 资源模型
@@ -211,7 +210,6 @@ Magic Script、YAML 或 FreeMarker 内容
 | [`fw-plus-mate-spring-boot-starter-sample`](./fw-plus-sample/fw-plus-boot-samples/fw-plus-mate-spring-boot-starter-sample/) | Mate 租户与数据权限 |
 | [`fw-plus-mp-spring-boot-starter-sample`](./fw-plus-sample/fw-plus-boot-samples/fw-plus-mp-spring-boot-starter-sample/) | MyBatis-Plus 增强 |
 | [`fw-plus-redis-spring-boot-starter-sample`](./fw-plus-sample/fw-plus-boot-samples/fw-plus-redis-spring-boot-starter-sample/) | Redis Starter |
-| [`fw-plus-tiny-engine-spring-boot-starter-sample`](./fw-plus-sample/fw-plus-boot-samples/fw-plus-tiny-engine-spring-boot-starter-sample/) | Tiny Engine Starter |
 
 ### Cloud Samples
 

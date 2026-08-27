@@ -20,7 +20,6 @@
   </licenses>
   <modules>
     <module>fw-plus-ai-magicapi-sample</module>
-    <module>fw-plus-ai-tiny-engine-sample</module>
     <module>fw-plus-ai-tinyflow-sample</module>
   </modules>
   <properties>
