@@ -82,12 +82,12 @@
 
         <dependency>
             <groupId>com.xiongx9527.fw.plus.boot</groupId>
-            <artifactId>fw-plus-magicapi-plugin-mqtt</artifactId>
+            <artifactId>fw-plus-magicapi-plugin-mqtt-server</artifactId>
         </dependency>
 
         <dependency>
             <groupId>com.xiongx9527.fw.plus.boot</groupId>
-            <artifactId>fw-plus-magicapi-plugin-mqttclient</artifactId>
+            <artifactId>fw-plus-magicapi-plugin-mqtt-client</artifactId>
         </dependency>
 
         <dependency>

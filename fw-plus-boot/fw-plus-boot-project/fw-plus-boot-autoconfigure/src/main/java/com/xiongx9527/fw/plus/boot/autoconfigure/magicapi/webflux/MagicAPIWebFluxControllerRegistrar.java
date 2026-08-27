@@ -16,8 +16,8 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.web.McpHttp
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.web.McpSseStreamService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.webflux.MagicMcpDiagnosticWebFluxController;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.webflux.MagicMcpWebFluxController;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.web.MagicMqttController;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqttclient.web.MagicMqttClientController;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.server.web.MagicMqttController;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.web.MagicMqttClientController;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.web.MagicPulsarController;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.web.MagicRabbitMqController;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.redis.web.MagicRedisController;
