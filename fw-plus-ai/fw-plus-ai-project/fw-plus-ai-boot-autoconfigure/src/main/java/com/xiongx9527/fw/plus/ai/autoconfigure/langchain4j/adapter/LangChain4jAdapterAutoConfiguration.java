@@ -14,7 +14,6 @@ import org.springframework.context.annotation.Import;
 		"dev.langchain4j.store.embedding.EmbeddingStore"
 })
 @Import({LangChain4jModelAdapterAutoConfiguration.class,
-		LangChain4jEmbeddingStoreAdapterAutoConfiguration.class,
-		LangChain4jTinyEngineAutoConfiguration.class})
+		LangChain4jEmbeddingStoreAdapterAutoConfiguration.class})
 public class LangChain4jAdapterAutoConfiguration {
 }
