@@ -23,7 +23,7 @@ eureka:
     instance-id: ${spring.application.name}:${spring.cloud.client.ip-address}:${server.port}
   cloud:
     inetutils:
-      preferred-networks[0]: 172.17
+      preferred-networks[0]: 123.17
 
 
 
@@ -39,54 +39,6 @@ management:
     web:
       exposure:
         include: '*'
-
-
-fw:
-  plus:
-    cloud:
-      gateway:
-        enabled: true
-        swagger:
-          aggregate: true
-          version: 3.0.3
-        excludeUrls:
-          - /doc.html
-          - /swagger-ui.html
-          - /swagger-ui/**
-          - /webjars/**
-        httpclient:
-          connectTimeout: 500000
-          readTimeout: 300000
-        default-filters:
-          - name: RemoveRequestHeader
-            args:
-              name: accesstoken, __FWX_USER__
-          - name: TransmitUserInfo
-            args:
-              cipherAlgorithm: AES/ECB/PKCS5Padding
-              cipherKey: xLgZwda2l0oNEumnXPvepg
-          - name: RemoveResponseHeader
-            args:
-              name: _X_FW_REST_CODE, _X_FW_REST_MSG
-          - name: DecodeRestResult
-            args:
-              errorTranslation:
-                 - originalCode: 1
-                   newCode: 1
-                   newMsg: 内部异常
-                   rewriteHeader: true
-        routes:
-          - id: mate
-            uri: svc://fw-plus-mate
-            predicates:
-              - name: Path
-                args:
-                  patterns:
-                    - /mate/**
-            filters:
-              - name: StripPrefix
-                args:
-                  parts: 1
 
 
 magic-api:

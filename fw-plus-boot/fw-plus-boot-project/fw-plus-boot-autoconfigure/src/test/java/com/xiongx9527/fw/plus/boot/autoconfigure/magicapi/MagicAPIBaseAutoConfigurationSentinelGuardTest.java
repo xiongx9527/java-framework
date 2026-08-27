@@ -34,7 +34,7 @@ class MagicAPIBaseAutoConfigurationSentinelGuardTest {
 
 	@Test
 	void createsSentinelGuardInfrastructure() {
-		MagicAPIBaseAutoConfiguration configuration = configuration();
+		MagicAPIWebMvcAutoConfiguration configuration = configuration();
 		MagicApiRequestKeyResolver keyResolver = configuration.magicApiRequestKeyResolver();
 		MagicApiSentinelResourceResolver resourceResolver = configuration.magicApiSentinelResourceResolver();
 		MagicApiSentinelRuleManager ruleManager = configuration.magicApiSentinelRuleManager();
@@ -48,14 +48,14 @@ class MagicAPIBaseAutoConfigurationSentinelGuardTest {
 	}
 
 	private void assertBeanMethod(String name, Class<?>... parameterTypes) throws Exception {
-		Method method = MagicAPIBaseAutoConfiguration.class.getMethod(name, parameterTypes);
+		Method method = MagicAPIWebMvcAutoConfiguration.class.getMethod(name, parameterTypes);
 
 		assertThat(method.getAnnotation(Bean.class)).isNotNull();
 	}
 
 	@SuppressWarnings("unchecked")
-	private MagicAPIBaseAutoConfiguration configuration() {
-		return new MagicAPIBaseAutoConfiguration(
+	private MagicAPIWebMvcAutoConfiguration configuration() {
+		return new MagicAPIWebMvcAutoConfiguration(
 				mock(ObjectProvider.class),
 				mock(ApplicationContext.class));
 	}

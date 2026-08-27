@@ -1,5 +1,9 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.resource;
 
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mybatisflex.model.MybatisFlexXmlInfo;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mybatisflex.service.MybatisFlexXmlMapperRegistry;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mybatisplus.model.MybatisPlusXmlInfo;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mybatisplus.service.MybatisPlusXmlMapperRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.ssssssss.magicapi.core.config.Constants;
@@ -14,6 +18,7 @@ import org.ssssssss.magicapi.core.resource.ZipResource;
 import org.ssssssss.magicapi.core.service.AbstractPathMagicResourceStorage;
 import org.ssssssss.magicapi.core.service.MagicResourceStorage;
 import org.ssssssss.magicapi.core.service.impl.DefaultMagicResourceService;
+import org.ssssssss.magicapi.datasource.model.DataSourceInfo;
 import org.ssssssss.magicapi.utils.IoUtils;
 import org.ssssssss.magicapi.utils.JsonUtils;
 import org.ssssssss.magicapi.utils.WebUtils;
@@ -877,8 +882,9 @@ public class MyDefaultMagicResourceService extends DefaultMagicResourceService {
             Resource resource = getGroupResource(id);
             if (resource != null) {
                 // 删除分组
+                Group group = getGroupCache().get(id);
+                validateDeleteGroup(group);
                 if (resource.exists() && resource.delete()) {
-                    Group group = getGroupCache().get(id);
                     GroupEvent event = new GroupEvent(getGroupCache().get(group.getId()).getType(), EventAction.DELETE, group);
                     event.setEntities(deleteGroup(id));
                     getPublisher().publishEvent(event);
@@ -887,8 +893,13 @@ public class MyDefaultMagicResourceService extends DefaultMagicResourceService {
             }
             resource = getFileMappings().get(id);
             // 删除文件
-            if (resource != null && resource.exists() && resource.delete()) {
-                MagicEntity entity = getFileCache().remove(id);
+            if (resource != null && resource.exists()) {
+                MagicEntity entity = getFileCache().get(id);
+                validateDeleteEntity(entity);
+                if (!resource.delete()) {
+                    return true;
+                }
+                entity = getFileCache().remove(id);
                 String type = getGroupCache().get(entity.getGroupId()).getType();
                 getPublisher().publishEvent(new FileEvent(type, EventAction.DELETE, entity));
                 getFileMappings().remove(id);
@@ -901,6 +912,44 @@ public class MyDefaultMagicResourceService extends DefaultMagicResourceService {
             }
             return true;
         });
+    }
+
+    private void validateDeleteGroup(Group group) {
+        if (group == null) {
+            return;
+        }
+        tree(group.getType())
+                .findTreeNode(it -> it.getId().equals(group.getId()))
+                .flat()
+                .forEach(g -> getFileCache().values().stream()
+                        .filter(f -> f.getGroupId().equals(g.getId()))
+                        .forEach(this::validateDeleteEntity));
+    }
+
+    private void validateDeleteEntity(MagicEntity entity) {
+        if (!(entity instanceof DataSourceInfo)) {
+            return;
+        }
+        DataSourceInfo dataSourceInfo = (DataSourceInfo) entity;
+        String dbKey = normalizeDatasourceKey(dataSourceInfo.getKey());
+        for (MagicEntity item : getFileCache().values()) {
+            if (item instanceof MybatisPlusXmlInfo) {
+                MybatisPlusXmlInfo info = (MybatisPlusXmlInfo) item;
+                if (dbKey.equals(MybatisPlusXmlMapperRegistry.normalizeDbKey(info.getDbKey()))) {
+                    throw new IllegalArgumentException("数据源[" + dbKey + "]已被 MyBatis-Plus XML[" + info.getName() + "]引用，不能删除");
+                }
+            }
+            if (item instanceof MybatisFlexXmlInfo) {
+                MybatisFlexXmlInfo info = (MybatisFlexXmlInfo) item;
+                if (dbKey.equals(MybatisFlexXmlMapperRegistry.normalizeDbKey(info.getDbKey()))) {
+                    throw new IllegalArgumentException("数据源[" + dbKey + "]已被 MyBatis-Flex XML[" + info.getName() + "]引用，不能删除");
+                }
+            }
+        }
+    }
+
+    private String normalizeDatasourceKey(String key) {
+        return key == null || key.trim().isEmpty() ? "default" : key.trim();
     }
 
     @Override

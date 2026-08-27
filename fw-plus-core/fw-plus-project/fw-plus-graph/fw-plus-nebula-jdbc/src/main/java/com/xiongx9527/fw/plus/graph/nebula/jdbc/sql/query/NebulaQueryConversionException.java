@@ -1,8 +1,8 @@
 package com.xiongx9527.fw.plus.graph.nebula.jdbc.sql.query;
 
-import java.sql.SQLException;
+import com.xiongx9527.fw.plus.common.exception.BizException;
 
-public class NebulaQueryConversionException extends SQLException {
+public class NebulaQueryConversionException extends BizException {
 	private final NebulaQueryErrorCode errorCode;
 
 	public NebulaQueryConversionException(NebulaQueryErrorCode errorCode, String message) {

@@ -5,7 +5,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Getter
 @Setter
@@ -60,6 +62,17 @@ public class KnowledgeResult {
         /**
          * 包含数据源中文档的元数据属性及其值
          */
-        private Object metadata;
+        private Map<String, Object> metadata;
+
+        public Map<String, Object> getMetadata() {
+            if (metadata == null) {
+                metadata = new HashMap<>();
+            }
+            return metadata;
+        }
+
+        public void setMetadata(Map<String, Object> metadata) {
+            this.metadata = metadata == null ? new HashMap<>() : metadata;
+        }
     }
 }

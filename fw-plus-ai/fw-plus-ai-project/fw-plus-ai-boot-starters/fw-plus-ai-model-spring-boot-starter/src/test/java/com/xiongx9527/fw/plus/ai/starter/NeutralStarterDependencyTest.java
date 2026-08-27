@@ -36,32 +36,13 @@ public class NeutralStarterDependencyTest {
 	}
 
 	@Test
-	public void shouldExposeLangChain4jAdapterThroughSingleStarterWithoutProviderSdkDependencies() throws Exception {
-		assertDependencies("fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml",
-				"fw-plus-ai-model-spring-boot-starter",
-				"fw-plus-ai-store-embedding-spring-boot-starter",
-				"fw-plus-ai-langchain4j-adapter",
-				"fw-plus-ai-boot-autoconfigure");
-		assertDoesNotDependOn("fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml",
-				"fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure");
-		assertDoesNotDependOnGroup("fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml", "dev.langchain4j");
-		assertDoesNotDependOnGroup("fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml", "io.milvus");
-
+	public void shouldRemoveRedundantLangChain4jStarterModule() throws Exception {
 		Set<String> bomArtifacts = dependencies(findProjectFile("fw-plus-ai-project/fw-plus-ai-boot-dependencies/pom.xml"), true);
-		assertTrue("AI Boot BOM must manage neutral model starter",
-				bomArtifacts.contains("fw-plus-ai-model-spring-boot-starter"));
-		assertTrue("AI Boot BOM must manage neutral embedding store starter",
-				bomArtifacts.contains("fw-plus-ai-store-embedding-spring-boot-starter"));
-		assertTrue("AI Boot BOM must manage the unified LangChain4j adapter starter",
+		assertFalse("AI Boot BOM must not manage the removed LangChain4j adapter starter",
 				bomArtifacts.contains("fw-plus-ai-langchain4j-adapter-spring-boot-starter"));
-		assertFalse("AI Boot BOM must not manage the removed LangChain4j adapter autoconfigure artifact",
-				bomArtifacts.contains("fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure"));
 		Set<String> starterModules = modules(findProjectFile(STARTERS_PATH + "pom.xml"));
-		assertTrue("AI starters aggregator must include the unified LangChain4j adapter starter",
+		assertFalse("AI starters aggregator must not include the removed LangChain4j adapter starter",
 				starterModules.contains("fw-plus-ai-langchain4j-adapter-spring-boot-starter"));
-		assertFalse("AI project reactor must not include the removed LangChain4j adapter autoconfigure module",
-				modules(findProjectFile("fw-plus-ai-project/pom.xml"))
-						.contains("fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure"));
 	}
 
 	@Test
@@ -72,13 +53,6 @@ public class NeutralStarterDependencyTest {
 		assertBannedTransitiveDependencies("fw-plus-ai-store-embedding-spring-boot-starter/pom.xml",
 				"dev.langchain4j:*",
 				"com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter");
-		assertBannedTransitiveDependencies("fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml",
-				"dev.langchain4j:*",
-				"io.milvus:milvus-sdk-java",
-				"io.qdrant:client",
-				"io.weaviate:client");
-		assertAllowedDependency("fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml",
-				"dev.langchain4j:langchain4j-core");
 	}
 
 	private void assertDependencies(String pomName, String... requiredArtifacts) throws Exception {
@@ -160,13 +134,6 @@ public class NeutralStarterDependencyTest {
 			assertTrue(pomName + " must ban resolved dependency " + prohibitedDependency,
 					excludedDependencies.contains(prohibitedDependency));
 		}
-	}
-
-	private void assertAllowedDependency(String pomName, String allowedDependency) throws Exception {
-		Element bannedDependencies = bannedDependencies(findProjectFile(STARTERS_PATH + pomName));
-		Set<String> allowedDependencies = childTextContents(directChild(bannedDependencies, "includes"), "include");
-		assertTrue(pomName + " must allow " + allowedDependency + " as the sole LangChain4j transitive dependency",
-				allowedDependencies.contains(allowedDependency));
 	}
 
 	private Element bannedDependencies(File pom) throws Exception {
