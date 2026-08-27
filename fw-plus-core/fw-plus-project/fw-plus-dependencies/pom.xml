@@ -1261,11 +1261,6 @@
             </dependency>
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-askdata</artifactId>
-                <version>${revision}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-ai-model</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -1309,12 +1304,6 @@
                 <artifactId>fw-plus-dify</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-tiny-engine-core</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-auth-base</artifactId>

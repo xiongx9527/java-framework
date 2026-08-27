@@ -64,11 +64,6 @@
         </dependency>
 
         <dependency>
-            <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-ai-askdata</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>org.dromara.easyai</groupId>
             <artifactId>easyAi</artifactId>
             <scope>compile</scope>
@@ -107,12 +102,6 @@
             <artifactId>fw-plus-ai-tinyflow-core</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-tiny-engine-core</artifactId>
-            <scope>compile</scope>
         </dependency>
 
 		<dependency>

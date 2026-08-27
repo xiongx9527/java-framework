@@ -24,26 +24,12 @@
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-ai-model</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.xiongx9527.fw.plus</groupId>
-                    <artifactId>fw-plus-common</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-ai-askdata</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-ai-store-embedding</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.xiongx9527.fw.plus</groupId>
-                    <artifactId>fw-plus-common</artifactId>
-                </exclusion>
-            </exclusions>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>dev.langchain4j</groupId>
