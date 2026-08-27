@@ -1,9 +1,0 @@
-{
-  "openspec_proposal": "openspec/changes/align-s3-browser-console-ui/proposal.md",
-  "openspec_design": "openspec/changes/align-s3-browser-console-ui/design.md",
-  "openspec_tasks": "openspec/changes/align-s3-browser-console-ui/tasks.md",
-  "openspec_delta_spec": "openspec/changes/align-s3-browser-console-ui/specs/magic-s3-browser-console-ui/spec.md",
-  "handoff_context": "openspec/changes/align-s3-browser-console-ui/.comet/handoff/design-context.json",
-  "handoff_markdown": "openspec/changes/align-s3-browser-console-ui/.comet/handoff/design-context.md",
-  "archive_directory": "openspec/changes/archive/2026-07-24-align-s3-browser-console-ui"
-}
