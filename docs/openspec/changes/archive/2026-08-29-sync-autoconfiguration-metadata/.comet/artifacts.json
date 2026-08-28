@@ -1,0 +1,6 @@
+{
+  "openspec_proposal": "docs/openspec/changes/sync-autoconfiguration-metadata/proposal.md",
+  "openspec_design": "docs/openspec/changes/sync-autoconfiguration-metadata/design.md",
+  "openspec_tasks": "docs/openspec/changes/sync-autoconfiguration-metadata/tasks.md",
+  "archive_directory": "docs/openspec/changes/archive/2026-08-29-sync-autoconfiguration-metadata"
+}
