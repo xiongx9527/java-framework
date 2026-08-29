@@ -1,0 +1,6 @@
+{
+  "openspec_proposal": "docs/openspec/changes/reorganize-langchain4j-adapter-packages/proposal.md",
+  "openspec_design": "docs/openspec/changes/reorganize-langchain4j-adapter-packages/design.md",
+  "openspec_tasks": "docs/openspec/changes/reorganize-langchain4j-adapter-packages/tasks.md",
+  "archive_directory": "docs/openspec/changes/archive/2026-08-29-reorganize-langchain4j-adapter-packages"
+}
