@@ -1,6 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.provider;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding.provider.InMemoryEmbeddingStoreProviderAdapter;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter.store.InMemoryEmbeddingStoreProviderAdapter;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.model.MagicDynamicVectorDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.model.VectorDataSourceInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyflow.AbstractLangChain4jTinyflowVectorStoreContractTest;
