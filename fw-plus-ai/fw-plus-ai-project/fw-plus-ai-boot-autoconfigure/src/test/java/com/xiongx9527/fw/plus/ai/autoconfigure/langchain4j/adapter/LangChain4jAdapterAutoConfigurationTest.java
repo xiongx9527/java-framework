@@ -1,7 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter;
 
-import com.xiongx9527.fw.plus.ai.langchain4j.adapter.EmbeddingStoreProviderAdapter;
-import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModelProviderAdapter;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.store.EmbeddingStoreProviderAdapter;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.model.LangChain4jModelProviderAdapter;
 import com.xiongx9527.fw.plus.ai.model.AiModelAdapter;
 import com.xiongx9527.fw.plus.ai.model.AiModelFactory;
 import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;

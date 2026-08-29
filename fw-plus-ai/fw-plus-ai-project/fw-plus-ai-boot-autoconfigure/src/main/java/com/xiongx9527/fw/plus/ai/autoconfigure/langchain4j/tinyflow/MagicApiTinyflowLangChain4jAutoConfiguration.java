@@ -19,7 +19,7 @@ import org.ssssssss.magicapi.core.service.MagicResourceService;
 @AutoConfigureAfter(MagicAPITinyflowConfiguration.class)
 @AutoConfigureBefore(TinyflowAutoConfiguration.class)
 @ConditionalOnClass(value = {MagicDynamicModelDataSource.class, MagicResourceService.class, ChainExecutor.class},
-		name = "com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModelRegistry")
+		name = "com.xiongx9527.fw.plus.ai.langchain4j.adapter.model.LangChain4jModelRegistry")
 @ConditionalOnBean({MagicResourceService.class, MagicDynamicModelDataSource.class})
 @ConditionalOnExpression("${magic-api.plugin.tinyflow.enabled:true} && ${fw.plus.ai.tinyflow.enabled:true}")
 public class MagicApiTinyflowLangChain4jAutoConfiguration {

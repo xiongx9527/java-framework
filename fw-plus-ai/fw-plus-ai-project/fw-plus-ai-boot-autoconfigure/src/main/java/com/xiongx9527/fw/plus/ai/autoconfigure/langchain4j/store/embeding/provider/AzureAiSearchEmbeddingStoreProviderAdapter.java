@@ -2,8 +2,8 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding.provi
 
 import com.azure.core.credential.TokenCredential;
 import com.azure.search.documents.indexes.models.SearchIndex;
-import com.xiongx9527.fw.plus.ai.langchain4j.adapter.EmbeddingStoreDefinition;
-import com.xiongx9527.fw.plus.ai.langchain4j.adapter.EmbeddingStoreProviderAdapter;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.store.EmbeddingStoreDefinition;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.store.EmbeddingStoreProviderAdapter;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.rag.content.retriever.azure.search.AzureAiSearchFilterMapper;
 import dev.langchain4j.store.embedding.EmbeddingStore;

@@ -1,8 +1,8 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding.provider.*;
-import com.xiongx9527.fw.plus.ai.langchain4j.adapter.DefaultEmbeddingStoreFactory;
-import com.xiongx9527.fw.plus.ai.langchain4j.adapter.EmbeddingStoreProviderAdapter;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.store.DefaultEmbeddingStoreFactory;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.store.EmbeddingStoreProviderAdapter;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreAdapter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Configuration;
 import java.util.List;
 
 @Configuration
-@ConditionalOnClass(name = "com.xiongx9527.fw.plus.ai.langchain4j.adapter.DefaultEmbeddingStoreFactory")
+@ConditionalOnClass(name = "com.xiongx9527.fw.plus.ai.langchain4j.adapter.store.DefaultEmbeddingStoreFactory")
 public class LangChain4jEmbeddingStoreAdapterAutoConfiguration {
 
 	@Bean

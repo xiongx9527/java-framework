@@ -1,6 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model.provider;
 
-import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModelDefinition;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.model.LangChain4jModelDefinition;
 
 final class ProviderAdapterSupport {
 

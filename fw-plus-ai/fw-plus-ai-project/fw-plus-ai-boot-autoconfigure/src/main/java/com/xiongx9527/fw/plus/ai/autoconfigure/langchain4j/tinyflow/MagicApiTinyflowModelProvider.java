@@ -1,7 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.tinyflow;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model.MagicDynamicModelDataSource;
-import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jAiModel;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.model.LangChain4jAiModel;
 import com.xiongx9527.fw.plus.ai.model.AiModel;
 import com.xiongx9527.fw.plus.ai.model.AiModelType;
 import com.xiongx9527.fw.plus.ai.tinyflow.TinyflowException;

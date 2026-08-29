@@ -1,9 +1,9 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model.provider;
 
-import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModel;
-import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModelDefinition;
-import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModelException;
-import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModelType;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.model.LangChain4jModel;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.model.LangChain4jModelDefinition;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.model.LangChain4jModelException;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.model.LangChain4jModelType;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;

@@ -2,10 +2,10 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.tinyflow;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.tinyflow.LangChain4jRegistryTinyflowModelProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.tinyflow.LangChain4jTinyflowLlmProvider;
-import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jAiModel;
-import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModel;
-import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModelRegistry;
-import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModelType;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.model.LangChain4jAiModel;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.model.LangChain4jModel;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.model.LangChain4jModelRegistry;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.model.LangChain4jModelType;
 import com.xiongx9527.fw.plus.ai.model.AiModel;
 import com.xiongx9527.fw.plus.ai.model.AiModelDefinition;
 import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
