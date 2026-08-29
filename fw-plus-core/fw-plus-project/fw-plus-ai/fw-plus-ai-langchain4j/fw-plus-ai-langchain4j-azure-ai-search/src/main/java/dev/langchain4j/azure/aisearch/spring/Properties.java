@@ -16,9 +16,6 @@ public class Properties {
     @NestedConfigurationProperty
     NestedProperties contentRetriever;
 
-    @NestedConfigurationProperty
-    NestedProperties embeddingStore;
-
     @Getter
     @Setter
     public static class NestedProperties {

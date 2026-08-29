@@ -4,7 +4,6 @@ import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingDocument;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingQuery;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingSearchResult;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStore;
-import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreAdapter;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreDefinition;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreException;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreType;
@@ -27,27 +26,117 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class DefaultEmbeddingStoreFactoryTest {
+public class DefaultLangChain4jEmbeddingStoreAdapterTest {
 
     @Test
     public void shouldExposeFrameworkForStrictNeutralSelection() {
-        assertEquals("langchain4j", new DefaultEmbeddingStoreFactory().getFramework());
+        assertEquals("langchain4j", new DefaultLangChain4jEmbeddingStoreAdapter().getFramework());
+    }
+
+    @Test
+    public void shouldPassTheNeutralDefinitionToTheProviderAdapter() {
+        FakeEmbeddingStore nativeStore = new FakeEmbeddingStore();
+        FakeAdapter provider = new FakeAdapter("milvus", nativeStore);
+        AiEmbeddingStoreDefinition definition = definition("knowledge", "milvus");
+
+        AiEmbeddingStore store = adapter("milvusProvider", provider).create(definition);
+
+        assertSame(definition, provider.supportedDefinition);
+        assertSame(definition, provider.createdDefinition);
+        assertEquals("knowledge", store.getKey());
+        assertEquals("langchain4j", store.getFramework());
+        assertEquals("milvus", store.getProvider());
+        assertEquals(AiEmbeddingStoreType.VECTOR, store.getType());
+    }
+
+    @Test
+    public void shouldExposeLangChain4jFrameworkWhenDefinitionOmitsIt() {
+        FakeAdapter provider = new FakeAdapter("milvus", new FakeEmbeddingStore());
+        AiEmbeddingStoreDefinition definition = definition("knowledge", "milvus");
+        definition.setFramework(null);
+
+        AiEmbeddingStore store = adapter("milvusProvider", provider).create(definition);
+
+        assertEquals("langchain4j", store.getFramework());
+    }
+
+    @Test
+    public void shouldRejectMultipleMatchingProviderAdapters() {
+        Map<String, LangChain4jEmbeddingStoreProviderAdapter> providers =
+                new LinkedHashMap<String, LangChain4jEmbeddingStoreProviderAdapter>();
+        providers.put("first", new FakeAdapter("milvus", new FakeEmbeddingStore()));
+        providers.put("second", new FakeAdapter("milvus", new FakeEmbeddingStore()));
+
+        AiEmbeddingStoreException exception = assertThrows(AiEmbeddingStoreException.class,
+                () -> new DefaultLangChain4jEmbeddingStoreAdapter(providers)
+                        .create(definition("knowledge", "milvus")));
+
+        assertTrue(exception.getMessage().contains("Multiple"));
+        assertTrue(exception.getMessage().contains("first"));
+        assertTrue(exception.getMessage().contains("second"));
+        assertTrue(exception.getMessage().contains("knowledge"));
+        assertTrue(exception.getMessage().contains("milvus"));
+    }
+
+    @Test
+    public void shouldDeduplicateTheSameProviderAdapterInstance() {
+        FakeAdapter provider = new FakeAdapter("milvus", new FakeEmbeddingStore());
+        Map<String, LangChain4jEmbeddingStoreProviderAdapter> providers =
+                new LinkedHashMap<String, LangChain4jEmbeddingStoreProviderAdapter>();
+        providers.put("primary", provider);
+        providers.put("alias", provider);
+
+        AiEmbeddingStore store = new DefaultLangChain4jEmbeddingStoreAdapter(providers)
+                .create(definition("knowledge", "milvus"));
+
+        assertEquals("knowledge", store.getKey());
+        assertEquals(1, provider.createCalls);
+    }
+
+    @Test
+    public void shouldRejectUnknownProviderWithNeutralContext() {
+        AiEmbeddingStoreException exception = assertThrows(AiEmbeddingStoreException.class,
+                () -> new DefaultLangChain4jEmbeddingStoreAdapter()
+                        .create(definition("knowledge", "unknown")));
+
+        assertTrue(exception.getMessage().contains("knowledge"));
+        assertTrue(exception.getMessage().contains("langchain4j"));
+        assertTrue(exception.getMessage().contains("unknown"));
+        assertTrue(exception.getMessage().contains("VECTOR"));
+    }
+
+    @Test
+    public void shouldPreserveProviderSupportFailure() {
+        FailingSupportAdapter provider = new FailingSupportAdapter();
+
+        AiEmbeddingStoreException exception = assertThrows(AiEmbeddingStoreException.class,
+                () -> adapter("failing", provider).supports(definition("knowledge", "milvus")));
+
+        assertSame(provider.failure, exception.getCause());
+        assertFalse(exception.getMessage().contains(provider.failure.getMessage()));
+    }
+
+    @Test
+    public void shouldPreserveProviderCreationFailure() {
+        FakeAdapter provider = new FakeAdapter("milvus", null);
+
+        AiEmbeddingStoreException exception = assertThrows(AiEmbeddingStoreException.class,
+                () -> adapter("failing", provider).create(definition("knowledge", "milvus")));
+
+        assertSame(provider.failure, exception.getCause());
+        assertFalse(exception.getMessage().contains(provider.failure.getMessage()));
     }
 
     @Test
     public void shouldPreserveDocumentContentOrRejectUnsupportedExplicitId() {
         FakeEmbeddingStore nativeStore = new FakeEmbeddingStore();
-        AiEmbeddingStoreAdapter adapter = new DefaultEmbeddingStoreFactory(
-                Collections.<EmbeddingStoreProviderAdapter>singletonList(new FakeAdapter("milvus-compatible", nativeStore)));
-        AiEmbeddingStoreDefinition definition = neutralDefinition("knowledge.alias", "milvus-compatible");
-
-        AiEmbeddingStore store = adapter.create(definition);
+        AiEmbeddingStore store = adapter("milvus", new FakeAdapter("milvus", nativeStore))
+                .create(definition("knowledge.alias", "milvus"));
         AiEmbeddingDocument document = new AiEmbeddingDocument(null, "hello",
                 Collections.<String, Object>singletonMap("tenant", "demo"),
                 new AiEmbeddingVector(new float[]{1.0f, 2.0f}));
@@ -59,10 +148,6 @@ public class DefaultEmbeddingStoreFactoryTest {
         AiEmbeddingSearchResult result = store.search(
                 new AiEmbeddingQuery(new AiEmbeddingVector(new float[]{1.0f, 2.0f}), 3, 0.7));
 
-        assertEquals("knowledge.alias", store.getKey());
-        assertEquals("langchain4j", store.getFramework());
-        assertEquals("milvus-compatible", store.getProvider());
-        assertEquals(AiEmbeddingStoreType.VECTOR, store.getType());
         assertArrayEquals(new float[]{1.0f, 2.0f}, nativeStore.addedEmbedding.vector());
         assertEquals("hello", nativeStore.addedSegment.text());
         assertEquals("demo", nativeStore.addedSegment.metadata().getString("tenant"));
@@ -86,9 +171,8 @@ public class DefaultEmbeddingStoreFactoryTest {
     @Test
     public void shouldRejectFiltersUnsupportedByLangChain4jStore() {
         FakeEmbeddingStore nativeStore = new FakeEmbeddingStore();
-        AiEmbeddingStoreAdapter adapter = new DefaultEmbeddingStoreFactory(
-                Collections.<EmbeddingStoreProviderAdapter>singletonList(new FakeAdapter("milvus", nativeStore)));
-        AiEmbeddingStore store = adapter.create(neutralDefinition("knowledge", "milvus"));
+        AiEmbeddingStore store = adapter("milvus", new FakeAdapter("milvus", nativeStore))
+                .create(definition("knowledge", "milvus"));
         AiEmbeddingQuery query = new AiEmbeddingQuery(new AiEmbeddingVector(new float[]{1.0f, 2.0f}),
                 3, 0.7, Collections.<String, Object>singletonMap("projectId", "project-1"));
 
@@ -101,94 +185,13 @@ public class DefaultEmbeddingStoreFactoryTest {
         assertNull(nativeStore.searchRequest);
     }
 
-    @Test
-    public void shouldCreateStoreWithMatchingProviderAdapter() {
-        EmbeddingStoreDefinition definition = definition("knowledge", "milvus");
-        EmbeddingStore<TextSegment> store = new FakeEmbeddingStore();
-        EmbeddingStoreProviderAdapter adapter = new FakeAdapter("milvus", store);
-
-        EmbeddingStoreFactory factory = new DefaultEmbeddingStoreFactory();
-
-        assertSame(store, factory.create(definition, Collections.singletonList(adapter)));
+    private DefaultLangChain4jEmbeddingStoreAdapter adapter(
+            String name, LangChain4jEmbeddingStoreProviderAdapter provider) {
+        return new DefaultLangChain4jEmbeddingStoreAdapter(
+                Collections.singletonMap(name, provider));
     }
 
-    @Test
-    public void shouldRejectUnknownProvider() {
-        EmbeddingStoreFactory factory = new DefaultEmbeddingStoreFactory();
-
-        EmbeddingStoreException exception = assertThrows(EmbeddingStoreException.class,
-                () -> factory.create(definition("knowledge", "unknown"), Collections.<EmbeddingStoreProviderAdapter>emptyList()));
-
-        assertTrue(exception.getMessage().contains("unknown"));
-    }
-
-    @Test
-    public void shouldIncludeProviderAndKeyWhenAdapterCreationFails() {
-        EmbeddingStoreDefinition definition = definition("knowledge", "milvus");
-        EmbeddingStoreProviderAdapter adapter = new FakeAdapter("milvus", null);
-        EmbeddingStoreFactory factory = new DefaultEmbeddingStoreFactory();
-
-        EmbeddingStoreException exception = assertThrows(EmbeddingStoreException.class,
-                () -> factory.create(definition, Collections.singletonList(adapter)));
-
-        assertTrue(exception.getMessage().contains("milvus"));
-        assertTrue(exception.getMessage().contains("knowledge"));
-        assertSame(((FakeAdapter) adapter).failure, exception.getCause());
-        assertFalse(exception.getMessage().contains(((FakeAdapter) adapter).failure.getMessage()));
-    }
-
-    @Test
-    public void shouldIncludeProviderAndKeyWhenAdapterSupportCheckFails() {
-        EmbeddingStoreDefinition definition = definition("knowledge", "milvus");
-        FailingSupportAdapter adapter = new FailingSupportAdapter();
-        EmbeddingStoreFactory factory = new DefaultEmbeddingStoreFactory();
-
-        EmbeddingStoreException exception = assertThrows(EmbeddingStoreException.class,
-                () -> factory.create(definition, Collections.singletonList(adapter)));
-
-        assertTrue(exception.getMessage().contains("milvus"));
-        assertTrue(exception.getMessage().contains("knowledge"));
-        assertSame(adapter.failure, exception.getCause());
-        assertFalse(exception.getMessage().contains(adapter.failure.getMessage()));
-    }
-
-    @Test
-    public void shouldPreserveProviderSupportFailureThroughNeutralFactory() {
-        FailingSupportAdapter providerAdapter = new FailingSupportAdapter();
-        AiEmbeddingStoreAdapter adapter = new DefaultEmbeddingStoreFactory(
-                Collections.<EmbeddingStoreProviderAdapter>singletonList(providerAdapter));
-
-        AiEmbeddingStoreException exception = assertThrows(AiEmbeddingStoreException.class,
-                () -> new com.xiongx9527.fw.plus.ai.store.embedding.DefaultAiEmbeddingStoreFactory()
-                        .create(neutralDefinition("knowledge", "milvus"),
-                                Collections.singletonList(adapter)));
-
-        assertSame(providerAdapter.failure, exception.getCause());
-    }
-
-    @Test
-    public void shouldPreserveProviderCreationFailureThroughNeutralFactory() {
-        FakeAdapter providerAdapter = new FakeAdapter("milvus", null);
-        AiEmbeddingStoreAdapter adapter = new DefaultEmbeddingStoreFactory(
-                Collections.<EmbeddingStoreProviderAdapter>singletonList(providerAdapter));
-
-        AiEmbeddingStoreException exception = assertThrows(AiEmbeddingStoreException.class,
-                () -> new com.xiongx9527.fw.plus.ai.store.embedding.DefaultAiEmbeddingStoreFactory()
-                        .create(neutralDefinition("knowledge", "milvus"),
-                                Collections.singletonList(adapter)));
-
-        assertNotNull(exception.getCause());
-        assertSame(providerAdapter.failure, exception.getCause().getCause());
-    }
-
-    private EmbeddingStoreDefinition definition(String key, String provider) {
-        EmbeddingStoreDefinition definition = new EmbeddingStoreDefinition();
-        definition.setKey(key);
-        definition.setProvider(provider);
-        return definition;
-    }
-
-    private AiEmbeddingStoreDefinition neutralDefinition(String key, String provider) {
+    private AiEmbeddingStoreDefinition definition(String key, String provider) {
         Map<String, Object> properties = new LinkedHashMap<String, Object>();
         properties.put("dimension", 2);
         AiEmbeddingStoreDefinition definition = new AiEmbeddingStoreDefinition();
@@ -210,11 +213,14 @@ public class DefaultEmbeddingStoreFactoryTest {
         return false;
     }
 
-    private static class FakeAdapter implements EmbeddingStoreProviderAdapter {
+    private static class FakeAdapter implements LangChain4jEmbeddingStoreProviderAdapter {
 
         private final String provider;
         private final EmbeddingStore<TextSegment> store;
         private final IllegalStateException failure = new IllegalStateException("sensitive adapter failure");
+        private AiEmbeddingStoreDefinition supportedDefinition;
+        private AiEmbeddingStoreDefinition createdDefinition;
+        private int createCalls;
 
         private FakeAdapter(String provider, EmbeddingStore<TextSegment> store) {
             this.provider = provider;
@@ -222,12 +228,15 @@ public class DefaultEmbeddingStoreFactoryTest {
         }
 
         @Override
-        public boolean supports(String provider) {
-            return this.provider.equals(provider);
+        public boolean supports(AiEmbeddingStoreDefinition definition) {
+            this.supportedDefinition = definition;
+            return provider.equals(definition.getProvider());
         }
 
         @Override
-        public EmbeddingStore<TextSegment> create(EmbeddingStoreDefinition definition) {
+        public EmbeddingStore<TextSegment> create(AiEmbeddingStoreDefinition definition) {
+            this.createdDefinition = definition;
+            this.createCalls++;
             if (store == null) {
                 throw failure;
             }
@@ -235,17 +244,17 @@ public class DefaultEmbeddingStoreFactoryTest {
         }
     }
 
-    private static class FailingSupportAdapter implements EmbeddingStoreProviderAdapter {
+    private static class FailingSupportAdapter implements LangChain4jEmbeddingStoreProviderAdapter {
 
         private final IllegalStateException failure = new IllegalStateException("sensitive support failure");
 
         @Override
-        public boolean supports(String provider) {
+        public boolean supports(AiEmbeddingStoreDefinition definition) {
             throw failure;
         }
 
         @Override
-        public EmbeddingStore<TextSegment> create(EmbeddingStoreDefinition definition) {
+        public EmbeddingStore<TextSegment> create(AiEmbeddingStoreDefinition definition) {
             return null;
         }
     }

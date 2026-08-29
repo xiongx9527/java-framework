@@ -21,6 +21,8 @@ import java.util.List;
 
 final class LangChain4jAiEmbeddingStore implements AiEmbeddingStore {
 
+    private static final String FRAMEWORK = "langchain4j";
+
     private final AiEmbeddingStoreDefinition definition;
     private final EmbeddingStore<TextSegment> nativeStore;
 
@@ -36,7 +38,7 @@ final class LangChain4jAiEmbeddingStore implements AiEmbeddingStore {
 
     @Override
     public String getFramework() {
-        return definition.getFramework();
+        return FRAMEWORK;
     }
 
     @Override
@@ -106,10 +108,6 @@ final class LangChain4jAiEmbeddingStore implements AiEmbeddingStore {
             }
         }
         return new AiEmbeddingSearchResult(matches);
-    }
-
-    EmbeddingStore<TextSegment> nativeStore() {
-        return nativeStore;
     }
 
     private AiEmbeddingMatch toNeutral(dev.langchain4j.store.embedding.EmbeddingMatch<TextSegment> match) {

@@ -1,10 +1,8 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.provider;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter.store.InMemoryEmbeddingStoreProviderAdapter;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.model.MagicDynamicVectorDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.model.VectorDataSourceInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyflow.AbstractLangChain4jTinyflowVectorStoreContractTest;
-import com.xiongx9527.fw.plus.ai.langchain4j.adapter.store.DefaultEmbeddingStoreFactory;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStore;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreAdapter;
 import com.xiongx9527.fw.plus.ai.store.embedding.DefaultAiEmbeddingStoreFactory;
@@ -17,8 +15,7 @@ public class MagicApiTinyflowVectorStoreProviderContractTest
 
 	@Override
 	protected ProviderFixture createProviderFixture() {
-		AiEmbeddingStoreAdapter langChain4jAdapter = new DefaultEmbeddingStoreFactory(
-				Collections.singletonList(new InMemoryEmbeddingStoreProviderAdapter()));
+		AiEmbeddingStoreAdapter langChain4jAdapter = createLangChain4jInMemoryAdapter();
 		MagicDynamicVectorDataSource dataSource = new MagicDynamicVectorDataSource(
 				new DefaultAiEmbeddingStoreRegistry(Collections.<String, AiEmbeddingStore>emptyMap(), null),
 				new DefaultAiEmbeddingStoreFactory(), Collections.singletonList(langChain4jAdapter));

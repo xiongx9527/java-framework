@@ -1,7 +1,8 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.tinyflow;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter.store.InMemoryEmbeddingStoreProviderAdapter;
-import com.xiongx9527.fw.plus.ai.langchain4j.adapter.store.DefaultEmbeddingStoreFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter.store.LangChain4jEmbeddingStoreAdapterAutoConfiguration;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.store.DefaultLangChain4jEmbeddingStoreAdapter;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.store.LangChain4jEmbeddingStoreProviderAdapter;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingDocument;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingMatch;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingQuery;
@@ -74,14 +75,25 @@ public abstract class AbstractLangChain4jTinyflowVectorStoreContractTest
 	}
 
 	protected final AiEmbeddingStore createLangChain4jInMemoryStore() {
+		return createLangChain4jInMemoryAdapter().create(inMemoryDefinition());
+	}
+
+	protected final DefaultLangChain4jEmbeddingStoreAdapter createLangChain4jInMemoryAdapter() {
+		LangChain4jEmbeddingStoreProviderAdapter provider =
+				new LangChain4jEmbeddingStoreAdapterAutoConfiguration()
+						.inMemoryEmbeddingStoreProviderAdapter(null);
+		return new DefaultLangChain4jEmbeddingStoreAdapter(
+				Collections.singletonMap("inMemoryEmbeddingStoreProviderAdapter", provider));
+	}
+
+	protected final AiEmbeddingStoreDefinition inMemoryDefinition() {
 		AiEmbeddingStoreDefinition definition = new AiEmbeddingStoreDefinition();
 		definition.setKey(STORE_KEY);
 		definition.setFramework("langchain4j");
 		definition.setProvider("in-memory");
 		definition.setType(AiEmbeddingStoreType.VECTOR);
 		definition.setEnabled(true);
-		return new DefaultEmbeddingStoreFactory(Collections.singletonList(
-				new InMemoryEmbeddingStoreProviderAdapter())).create(definition);
+		return definition;
 	}
 
 	private StageRetryScenario stageRetryScenario(TinyflowVectorStoreProvider provider, String vectorId) {
