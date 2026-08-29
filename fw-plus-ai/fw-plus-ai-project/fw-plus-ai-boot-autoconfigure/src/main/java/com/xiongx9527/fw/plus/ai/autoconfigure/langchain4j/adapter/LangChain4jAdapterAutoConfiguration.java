@@ -8,8 +8,8 @@ import org.springframework.context.annotation.Import;
 @Configuration
 @ConditionalOnProperty(prefix = "fw.plus.ai.langchain4j.adapter", name = "enabled", havingValue = "true", matchIfMissing = true)
 @ConditionalOnClass(name = {
-		"com.xiongx9527.fw.plus.ai.langchain4j.adapter.DefaultLangChain4jModelFactory",
-		"com.xiongx9527.fw.plus.ai.langchain4j.adapter.DefaultEmbeddingStoreFactory",
+		"com.xiongx9527.fw.plus.ai.langchain4j.adapter.model.DefaultLangChain4jModelFactory",
+		"com.xiongx9527.fw.plus.ai.langchain4j.adapter.store.DefaultEmbeddingStoreFactory",
 		"dev.langchain4j.store.embedding.EmbeddingStore"
 })
 @Import({LangChain4jModelAdapterAutoConfiguration.class,

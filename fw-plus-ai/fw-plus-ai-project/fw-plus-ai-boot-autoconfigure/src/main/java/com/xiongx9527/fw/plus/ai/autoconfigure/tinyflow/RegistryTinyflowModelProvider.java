@@ -8,7 +8,7 @@ import java.lang.reflect.Constructor;
 
 public final class RegistryTinyflowModelProvider {
 
-	private static final String REGISTRY_TYPE = "com.xiongx9527.fw.plus.ai." + "lang" + "chain4j.adapter."
+	private static final String REGISTRY_TYPE = "com.xiongx9527.fw.plus.ai." + "lang" + "chain4j.adapter.model."
 			+ "LangChain4jModelRegistry";
 	private static final String PROVIDER_TYPE = "com.xiongx9527.fw.plus.ai.autoconfigure." + "lang" + "chain4j.tinyflow."
 			+ "LangChain4jRegistryTinyflowModelProvider";

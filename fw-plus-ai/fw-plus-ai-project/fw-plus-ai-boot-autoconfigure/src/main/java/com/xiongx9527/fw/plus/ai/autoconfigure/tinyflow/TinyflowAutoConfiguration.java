@@ -96,7 +96,7 @@ public class TinyflowAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	@ConditionalOnClass(name = "com.xiongx9527.fw.plus.ai." + "lang" + "chain4j.adapter.LangChain4jModelRegistry")
+	@ConditionalOnClass(name = "com.xiongx9527.fw.plus.ai." + "lang" + "chain4j.adapter.model.LangChain4jModelRegistry")
 	public TinyflowModelProvider tinyflowModelProvider(ObjectProvider<AiModelRegistry> modelRegistry,
 			org.springframework.context.ApplicationContext applicationContext) {
 		return RegistryTinyflowModelProvider.create(modelRegistry.getIfAvailable(), applicationContext);

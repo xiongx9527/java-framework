@@ -10,7 +10,7 @@ import com.xiongx9527.fw.plus.ai.tinyflow.workflow.TinyflowWorkflowRepository;
 import com.xiongx9527.fw.plus.ai.tinyflow.node.TinyflowNodeDescriptor;
 import com.xiongx9527.fw.plus.ai.tinyflow.node.TinyflowNodeProvider;
 import com.xiongx9527.fw.plus.ai.tinyflow.node.TinyflowNodeProviderRegistry;
-import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModelRegistry;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.model.LangChain4jModelRegistry;
 import dev.tinyflow.core.chain.repository.ChainStateField;
 import dev.tinyflow.core.chain.ChainState;
 import dev.tinyflow.core.chain.runtime.ChainExecutor;

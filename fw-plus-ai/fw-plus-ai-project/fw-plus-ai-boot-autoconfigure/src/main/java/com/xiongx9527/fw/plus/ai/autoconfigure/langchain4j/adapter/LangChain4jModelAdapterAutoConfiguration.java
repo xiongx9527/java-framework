@@ -1,9 +1,9 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model.provider.ReflectiveLangChain4jModelProviderAdapter;
-import com.xiongx9527.fw.plus.ai.langchain4j.adapter.DefaultLangChain4jModelFactory;
-import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModelProviderAdapter;
-import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModelType;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.model.DefaultLangChain4jModelFactory;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.model.LangChain4jModelProviderAdapter;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.model.LangChain4jModelType;
 import com.xiongx9527.fw.plus.ai.model.AiModelAdapter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -14,7 +14,7 @@ import java.util.Collections;
 import java.util.List;
 
 @Configuration
-@ConditionalOnClass(name = "com.xiongx9527.fw.plus.ai.langchain4j.adapter.DefaultLangChain4jModelFactory")
+@ConditionalOnClass(name = "com.xiongx9527.fw.plus.ai.langchain4j.adapter.model.DefaultLangChain4jModelFactory")
 public class LangChain4jModelAdapterAutoConfiguration {
 
 	@Bean
