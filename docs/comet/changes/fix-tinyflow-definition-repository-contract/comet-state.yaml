@@ -1,0 +1,312 @@
+schema: comet.native.v4
+name: fix-tinyflow-definition-repository-contract
+language: zh-CN
+phase: archive
+status: active
+state_version: 7
+brief: brief.md
+spec_changes:
+  - capability: tinyflow-definition-repository-contract
+    operation: create
+    source: specs/tinyflow-definition-repository-contract/spec.md
+workspace:
+  isolation: worktree
+  change_branch: comet/fix-tinyflow-definition-repository-contract
+  target_branch: dev
+  finish: merge
+loop:
+  stage: archive-ready
+  goal_cycle: 1
+  iteration: 1
+  attempt: 1
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: archive
+acceptance:
+  - id: A1
+    source: brief.md
+    text: "**A1：默认仓库契约一致。** 给定未提供自定义 `TinyflowChainDefinitionRepository` 的应用上下文，当
+      Tinyflow 自动配置启动时，系统创建唯一默认 Definition Repository；该 Bean 同时可按
+      `TinyflowChainDefinitionRepository` 使用，并支持注册、查询和删除定义。"
+    result: passed
+    reason:
+      text: "`InMemoryChainDefinitionRepository` 现已实现
+        `TinyflowChainDefinitionRepository`，保留注册、按 ID 查询和删除行为；Runtime 的 Tinyflow
+        Core Java 8 测试通过，自动配置测试通过。"
+      truncated: false
+  - id: A2
+    source: brief.md
+    text: "**A2：自定义仓库完整替换默认实现。** 给定应用提供自定义 `TinyflowChainDefinitionRepository`，当
+      Tinyflow 自动配置启动并注册工作流时，系统不创建默认内存仓库，`ChainExecutor` 与 `TinyflowService`
+      使用同一个自定义仓库，注册后的定义可从该仓库查询。"
+    result: passed
+    reason:
+      text: 现有
+        `TinyflowAutoConfigurationTest.shouldUseCustomWritableDefinitionRepositoryInsteadOfTheDefault`
+        验证自定义仓库替换默认实现，并确认 `ChainExecutor`、`TinyflowService`
+        和注册后的定义使用同一自定义仓库；测试通过。
+      truncated: false
+  - id: A3
+    source: brief.md
+    text: "**A3：阻塞命令恢复。** 在 Java 8 下构建 Tinyflow Core 并执行 AI Boot
+      `fw-plus-ai-boot-autoconfigure` direct consumer/condition 测试时，不再出现
+      `InMemoryChainDefinitionRepository` 与 `TinyflowChainDefinitionRepository`
+      互相不可转换的编译错误，相关测试通过。"
+    result: passed
+    reason:
+      text: Runtime 的 Tinyflow Core Java 8 测试和 AI Boot direct consumer Java 8 reactor
+        测试均通过，分别为 74/74 与 329/329；原
+        `InMemoryChainDefinitionRepository`/`TinyflowChainDefinitionRepository`
+        类型转换错误不再出现。
+      truncated: false
+  - id: A4
+    source: brief.md
+    text: "**A4：改动范围受控。** 候选实现只恢复 Tinyflow Definition Repository
+      的两处遗漏契约迁移及必要的正式产物；不包含 Agentic 候选、其他 Tinyflow 行为或无关文件改动。"
+    result: passed
+    reason:
+      text: 实现 diff 仅包含 `InMemoryChainDefinitionRepository` 与 `DefaultTinyflowService`
+        两个 Tinyflow Core Java 文件；未包含 Agentic 候选或其他 Tinyflow 行为改动。
+      truncated: false
+  - id: A5
+    source: specs/tinyflow-definition-repository-contract/spec.md
+    text: 默认内存仓库通过接口提供服务 - **WHEN** 应用没有提供自定义 `TinyflowChainDefinitionRepository` -
+      **THEN** 自动配置创建唯一默认 Definition Repository Bean - **AND** 该 Bean 可按
+      `TinyflowChainDefinitionRepository` 注入 - **AND** 注册的 `ChainDefinition` 可按
+      ID 查询并删除
+    result: passed
+    reason:
+      text: 默认实现已通过 `TinyflowChainDefinitionRepository` 接口提供可写仓库能力，编译后签名检查通过，Core Java
+        8 测试通过。
+      truncated: false
+  - id: A6
+    source: specs/tinyflow-definition-repository-contract/spec.md
+    text: 自定义仓库贯穿执行与服务链 - **WHEN** 应用提供一个自定义 `TinyflowChainDefinitionRepository` -
+      **THEN** 自动配置不创建默认内存仓库 - **AND** `ChainExecutor` 与
+      `DefaultTinyflowService` 使用该同一自定义仓库 - **AND** 通过
+      `TinyflowService.register` 注册工作流后，该仓库包含对应定义
+    result: passed
+    reason:
+      text: 服务字段与 public 构造器第三参数均已改为 `TinyflowChainDefinitionRepository`，自定义仓库可贯穿
+        `ChainExecutor` 与服务注册链路；自动配置测试通过。
+      truncated: false
+  - id: A7
+    source: specs/tinyflow-definition-repository-contract/spec.md
+    text: AI Boot direct consumer 构建通过 - **WHEN** 使用 Java 8 构建 Tinyflow Core 并执行
+      `fw-plus-ai-boot-autoconfigure` 测试 - **THEN** 不出现
+      `InMemoryChainDefinitionRepository` 与 `TinyflowChainDefinitionRepository`
+      互相不可转换的编译错误 - **AND** Tinyflow 自动配置的默认仓库与自定义仓库测试通过
+    result: passed
+    reason:
+      text: AI Boot direct consumer Java 8 测试完整通过，包含 `TinyflowAutoConfigurationTest`
+        10/10，且 Tinyflow Core 测试 74/74；Runtime 检查无类型契约编译失败。
+      truncated: false
+  - id: A8
+    source: specs/tinyflow-definition-repository-contract/spec.md
+    text: 候选路径受控 - **WHEN** 将修复候选与 `dev` 基线比较 - **THEN** 普通实现改动仅涉及
+      `InMemoryChainDefinitionRepository` 和 `DefaultTinyflowService` 的类型声明 -
+      **AND** 不包含 `backport-langchain4j-agentic` 工作区中的候选文件
+    result: passed
+    reason:
+      text: 候选范围检查与 `git diff --check` 均通过；普通实现仅涉及两个指定 Tinyflow 文件，未发现
+        `backport-langchain4j-agentic` 或 `fw-plus-ai-langchain4j-agentic` 路径。
+      truncated: false
+builder_handoff:
+  candidate_id: 62f86b77-664f-4912-b097-3bbcf29e39be
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:ec3cc005-e237-4805-ae17-fc929d4644ef
+  iteration: 1
+  summary:
+    text: 恢复 Tinyflow Definition Repository 的完整接口契约：默认内存实现重新实现
+      TinyflowChainDefinitionRepository，DefaultTinyflowService 字段和构造器改为依赖该接口；未修改
+      AutoConfiguration、Agentic 候选或其他 Tinyflow 行为。
+    truncated: false
+  addressed_acceptance_ids:
+    - A1
+    - A2
+    - A3
+    - A4
+    - A5
+    - A6
+    - A7
+    - A8
+  checks:
+    - name:
+        text: Java 8 Tinyflow Core tests
+        truncated: false
+      result: passed
+      note:
+        text: Maven 3.6.3；74 tests，0 failures，0 errors，0 skipped。
+        truncated: false
+    - name:
+        text: Java 8 AI Boot direct consumer and condition tests
+        truncated: false
+      result: passed
+      note:
+        text: 准备同一 dev 基线的最新 Core owner 本地依赖后，reactor 6/6 SUCCESS；329 tests，0 failures，0
+          errors，0 skipped；TinyflowAutoConfigurationTest 10/10。
+        truncated: false
+    - name:
+        text: Compiled public signature inspection
+        truncated: false
+      result: passed
+      note:
+        text: javap 确认 InMemoryChainDefinitionRepository implements
+          TinyflowChainDefinitionRepository，DefaultTinyflowService 构造器第三参数为该接口。
+        truncated: false
+    - name:
+        text: Candidate path and diff integrity
+        truncated: false
+      result: passed
+      note:
+        text: git diff --check 通过；普通 Java 实现仅改动 DefaultTinyflowService 和
+          InMemoryChainDefinitionRepository；未包含 Agentic 文件。
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: 工作树未包含 Maven Wrapper 文件，验证使用本机 Maven 3.6.3 与 Java 8。
+      truncated: false
+    - text: DefaultTinyflowService
+        构造器参数由具体实现提升为接口会改变旧二进制方法描述符；这是已确认的可替换仓库契约迁移，仓库内源码调用和运行测试均通过。
+      truncated: false
+    - text: 首次 AI Boot 重跑受本地 Maven 仓库陈旧 LangChain4j adapter/Azure owner JAR 影响；从同一 dev
+        worktree 重装对应 owner 后完整测试通过，未修改无关源码。
+      truncated: false
+  known_limits_truncated: false
+  review:
+    status: passed
+    summary:
+      text: 独立 Java 只读复核未发现 Critical/High 问题；确认两处实现改动最小、接口契约一致、Java 8/Spring Boot 2.7
+        兼容、A1-A4 范围受控，且 74/74 Core 与 329/329 AI Boot 测试证据充分。
+      truncated: false
+    reviewer_execution_ref: claude-code:java-reviewer:ac20adb4321c553bb
+  submitted_at: 2026-09-02T08:31:35.460Z
+blockers: []
+verification:
+  candidate_id: 62f86b77-664f-4912-b097-3bbcf29e39be
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:f05d80b1-b6d5-4be5-a8ff-364030d7a6d7
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: tinyflow-core-java8-tests
+      name:
+        text: Tinyflow Core Java 8 tests
+        truncated: false
+      argv_display:
+        - text: zsh
+          truncated: false
+        - text: -lc
+          truncated: false
+        - text: export JAVA_HOME=$(/usr/libexec/java_home -v 1.8) && export
+            PATH="$JAVA_HOME/bin:$PATH" &&
+            /Users/xiongxiao/Workspaces/Maven/apache-maven-3.6.3/bin/mvn -q -f
+            fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/pom.xml
+            clean test -DskipTests=false
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 9165
+    - id: ai-boot-direct-consumer-java8-tests
+      name:
+        text: AI Boot direct consumer Java 8 tests
+        truncated: false
+      argv_display:
+        - text: zsh
+          truncated: false
+        - text: -lc
+          truncated: false
+        - text: export JAVA_HOME=$(/usr/libexec/java_home -v 1.8) && export
+            PATH="$JAVA_HOME/bin:$PATH" &&
+            /Users/xiongxiao/Workspaces/Maven/apache-maven-3.6.3/bin/mvn -q -f
+            fw-plus-ai/fw-plus-ai-project/pom.xml -pl
+            fw-plus-ai-boot-autoconfigure -am test -DskipTests=false
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 36832
+    - id: tinyflow-contract-signatures
+      name:
+        text: Compiled Tinyflow contract signatures
+        truncated: false
+      argv_display:
+        - text: zsh
+          truncated: false
+        - text: -lc
+          truncated: false
+        - text: set -eu;
+            classes=fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/target/classes;
+            javap -classpath "$classes"
+            com.xiongx9527.fw.plus.ai.tinyflow.runtime.InMemoryChainDefinitionRepository
+            | grep -F 'implements
+            com.xiongx9527.fw.plus.ai.tinyflow.runtime.TinyflowChainDefinitionRepository';
+            javap -classpath "$classes"
+            com.xiongx9527.fw.plus.ai.tinyflow.runtime.DefaultTinyflowService |
+            grep -F 'TinyflowChainDefinitionRepository'
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 582
+    - id: tinyflow-candidate-scope
+      name:
+        text: Tinyflow candidate scope and diff integrity
+        truncated: false
+      argv_display:
+        - text: zsh
+          truncated: false
+        - text: -lc
+          truncated: false
+        - text: set -eu; git diff --check; paths=$(git diff --name-only -- '*.java');
+            expected=$'fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/runtime/DefaultTinyflowService.java\nfw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/runtime/InMemoryChainDefinitionRepository.java';
+            test "$paths" = "$expected"; ! git diff --name-only | grep -E
+            'backport-langchain4j-agentic|fw-plus-ai-langchain4j-agentic'
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 169
+  summary:
+    text: A1-A8 均有对应实现、签名、范围和 Java 8 测试证据，未发现需要回 Build 修复的问题。
+    truncated: false
+  risks:
+    - text: "`DefaultTinyflowService`
+        构造器参数从具体实现提升为接口会改变旧二进制方法描述符；这是本次可替换仓库契约迁移的预期兼容性变化，仓库内源码与测试已验证。"
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-09-02T08:39:40.901Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: A1-A8 均有对应实现、签名、范围和 Java 8 测试证据，未发现需要回 Build 修复的问题。
+      truncated: false
+    completed_at: 2026-09-02T08:39:40.901Z
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pass
+verification_report: verification.md
+archived: false
+created_at: 2026-09-01T22:54:00.234Z
