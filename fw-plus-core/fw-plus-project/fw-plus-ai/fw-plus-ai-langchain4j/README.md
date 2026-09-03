@@ -6,7 +6,7 @@ fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是�
 
 为保持项目整体 Java 8 兼容性，本目录中的 provider 模块采用与 LangChain4j 原模块相同的包名和类名重写关键类，用本工程内的源码覆盖 `0.35` 中不兼容 Java 8 的实现。模型与向量能力统一由 `fw-plus-ai-langchain4j-adapter` 接入中立 SPI。
 
-这些覆盖模块只面向 Java 8 编译或运行环境。Java 17 及以上环境应优先使用 LangChain4j `0.35` 原始 artifact，不需要使用本目录的 Java 8 覆盖模块。
+下表中的 `0.35` provider覆盖模块只面向Java 8编译或运行环境；Java 17及以上环境应优先使用对应LangChain4j `0.35`原始artifact。新增的Agentic完整回移不是provider覆盖，适用边界单独见下节。
 
 ## 当前已覆盖的类包
 
@@ -17,7 +17,8 @@ fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是�
 | `fw-plus-ai-langchain4j-anthropic` | `langchain4j-anthropic-spring-boot-starter` | `dev.langchain4j.anthropic.spring` | `AutoConfig`, `ChatModelProperties`, `Properties` |
 | `fw-plus-ai-langchain4j-azure-ai-search` | `langchain4j-azure-ai-search-spring-boot-starter` | `dev.langchain4j.azure.aisearch.spring` | `AutoConfig`, `Properties` |
 | `fw-plus-ai-langchain4j-azure-open-ai` | `langchain4j-azure-open-ai-spring-boot-starter` | `dev.langchain4j.azure.openai.spring` | `AutoConfig`, `ChatModelProperties`, `EmbeddingModelProperties`, `ImageModelProperties`, `Properties` |
-| `fw-plus-ai-langchain4j-core` | `langchain4j-spring-boot-starter` | `dev.langchain4j.spring`, `dev.langchain4j.service.spring`, `dev.langchain4j.rag.spring` | `LangChain4jAutoConfig`, `AiService`, `AiServiceFactory`, `AiServiceScannerProcessor`, `AiServiceWiringMode`, `AiServicesAutoConfig`, `ClassPathAiServiceScanner`, `RagAutoConfig`, `RagProperties`, `RetrievalProperties` |
+| `fw-plus-ai-langchain4j-core` | `langchain4j-core` | `dev.langchain4j.*` Core owner兼容包 | Agentic所需的Model、Tool、Invocation、Guardrail、Observability、JSON与并发兼容API |
+| `fw-plus-ai-langchain4j-spring-boot-starter` | `langchain4j-spring-boot-starter` | `dev.langchain4j.spring`, `dev.langchain4j.service.spring`, `dev.langchain4j.rag.spring` | `LangChain4jAutoConfig`, `AiService`, `AiServiceFactory`, `AiServiceScannerProcessor`, `AiServiceWiringMode`, `AiServicesAutoConfig`, `ClassPathAiServiceScanner`, `RagAutoConfig`, `RagProperties`, `RetrievalProperties` |
 | `fw-plus-ai-langchain4j-dashscope` | `langchain4j-dashscope-spring-boot-starter` | `dev.langchain4j.dashscope.spring` | `AutoConfig`, `ChatModelProperties`, `EmbeddingModelProperties`, `LanguageModelProperties`, `Properties`, `TokenizerProperties` |
 | `fw-plus-ai-langchain4j-elasticsearch` | `langchain4j-elasticsearch-spring-boot-starter` | `dev.langchain4j.store.embedding.elasticsearch.spring` | `ElasticsearchClientHelper`, `ElasticsearchEmbeddingStoreAutoConfiguration`, `ElasticsearchEmbeddingStoreProperties` |
 | `fw-plus-ai-langchain4j-github-models` | `langchain4j-github-models-spring-boot-starter` | `dev.langchain4j.model.githubmodels.spring` | `AutoConfig`, `ChatModelProperties`, `EmbeddingModelProperties`, `Properties` |
@@ -30,9 +31,26 @@ fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是�
 | `fw-plus-ai-langchain4j-vertex-ai-gemini` | `langchain4j-vertex-ai-gemini` | `dev.langchain4j.vertexai.spring` | `AutoConfig`, `ChatModelProperties`, `Properties` |
 | `fw-plus-ai-langchain4j-voyage-ai` | `langchain4j-voyage-ai-spring-boot-starter` | `dev.langchain4j.voyageai.spring` | `AutoConfig`, `EmbeddingModelProperties`, `Properties`, `ScoringModelProperties` |
 
-## 待新增覆盖的类包
+## LangChain4j Agentic Java 8 回移
 
-当前已确认的 LangChain4j `0.35` 非 Java 8 字节码 artifact 均已在本目录落地覆盖模块，暂无待新增项。
+`fw-plus-ai-langchain4j-agentic` 固定回移 LangChain4j tag `1.19.0`、commit
+`09a2aa3861ba468af3507c28f5676048cd5db4c6` 的 `langchain4j-agentic:1.19.0-beta29`
+生产源码。官方清单含153个Java文件，本地另有3个Java 8 helper；94个官方文件保持字节一致，
+59个因record/现代语法与JDK API回移而修改，包名保持`dev.langchain4j.agentic.*`。
+由于LangChain4j `0.35.0`没有官方Agentic artifact，该模块是新增Java 8能力，不是替换
+`0.35.0` JAR。
+
+LangChain4j角色由唯一的`fw-plus-ai-langchain4j-parent`聚合器管理：
+`fw-plus-ai-langchain4j`是aggregate owner JAR，`fw-plus-ai-langchain4j-core`是Core owner
+JAR，`fw-plus-ai-langchain4j-spring-boot-starter`仅承载10个Spring覆盖类，Agentic通过普通本地
+owner坐标取得兼容依赖。
+
+aggregate/Core对官方`0.35.0`同FQCN的必要替换登记在
+`compat/overlay-allowlist.tsv`，由unit/packaging IT验证Shade excludes、成品字节、Java 8 class major、
+重复class、SPI和最终生产classpath。API parity还比较public/protected类型层次、泛型、访问标志、
+构造器/方法/字段、throws、常量和注解值；离线行为测试通过真实public root覆盖workflow、Planner、
+Supervisor/listener、HITL持久化恢复、并行失败及异步/流式路径。完整来源、修改类别、许可和Java 8
+不可表达差异见`fw-plus-ai-langchain4j-agentic/UPSTREAM.md`。
 
 ## Java 8 / Java 17 依赖版本对照
 
@@ -79,11 +97,11 @@ fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是�
 修改本目录的兼容覆盖类后，至少验证：
 
 ```bash
-cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
-./mvnw clean install -pl fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j -DskipTests
+cd fw-plus-core
+./mvnw -f fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j-parent/pom.xml clean install
 
-cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-ai
-./mvnw test -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure
+cd ../fw-plus-ai
+./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure -am test
 ```
 
-当前工作区的 Maven Wrapper 若不可用，可按项目实际环境使用 Java 8 的 Maven 命令替代，但最终应确认 Java 8 下编译通过。
+命令必须使用JDK 8。当前worktree的Maven Wrapper运行文件若缺失，可用Maven 3.6.3执行等价命令，但不能跳过unit、Failsafe IT、owner成品或生产classpath门禁。

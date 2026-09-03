@@ -302,7 +302,10 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 		Set<String> artifactIds = dependencyArtifactIds(adapterPom);
 		assertTrue("Core adapter should depend on fw-plus-ai-model", artifactIds.contains("fw-plus-ai-model"));
 		assertTrue("Core adapter should depend on fw-plus-ai-store-embedding", artifactIds.contains("fw-plus-ai-store-embedding"));
-		assertTrue("Core adapter should depend on langchain4j-core", artifactIds.contains("langchain4j-core"));
+		assertTrue("Core adapter should depend on fw-plus-ai-langchain4j-core",
+				artifactIds.contains("fw-plus-ai-langchain4j-core"));
+		assertFalse("Core adapter must not depend on the official langchain4j-core owner",
+				artifactIds.contains("langchain4j-core"));
 		assertFalse("Core adapter must not depend on a removed Spring Boot starter", artifactIds.contains("fw-plus-ai-langchain4j-adapter-spring-boot-starter"));
 		for (String requiredDependency : REQUIRED_STARTER_DEPENDENCIES) {
 			if (!"fw-plus-ai-langchain4j-adapter".equals(requiredDependency)) {

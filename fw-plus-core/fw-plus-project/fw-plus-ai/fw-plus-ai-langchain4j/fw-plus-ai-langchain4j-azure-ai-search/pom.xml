@@ -5,8 +5,9 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.xiongx9527.fw.plus</groupId>
-        <artifactId>fw-plus-ai-langchain4j</artifactId>
+        <artifactId>fw-plus-ai-langchain4j-parent</artifactId>
         <version>${revision}</version>
+        <relativePath>../../fw-plus-ai-langchain4j-parent/pom.xml</relativePath>
     </parent>
 
     <artifactId>fw-plus-ai-langchain4j-azure-ai-search</artifactId>
@@ -26,7 +27,23 @@
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-azure-ai-search</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>dev.langchain4j</groupId>
+                    <artifactId>langchain4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>dev.langchain4j</groupId>
+                    <artifactId>langchain4j-core</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
-    </dependencies>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j</artifactId>
+            <version>${revision}</version>
+        </dependency>
+</dependencies>
 
 </project>

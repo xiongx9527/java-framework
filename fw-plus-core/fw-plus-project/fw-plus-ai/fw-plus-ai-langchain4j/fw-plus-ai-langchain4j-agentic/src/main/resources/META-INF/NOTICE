@@ -1,0 +1,19 @@
+fw-plus-ai-langchain4j-agentic
+
+This module is derived from LangChain4j's langchain4j-agentic module,
+licensed under the Apache License, Version 2.0.
+
+Fixed upstream source:
+  Repository: https://github.com/langchain4j/langchain4j
+  Tag: 1.19.0
+  Commit: 09a2aa3861ba468af3507c28f5676048cd5db4c6
+  Artifact: dev.langchain4j:langchain4j-agentic:1.19.0-beta29
+
+The Java 8 backport retains 153 upstream production source paths. Compared
+with the fixed upstream sources JAR, 94 files remain byte-identical and 59
+files are modified for Java 8 syntax, JDK API, dependency, compatibility and
+verified behavior requirements. Three local Java 8 helper source files are added.
+
+See UPSTREAM.md and UPSTREAM-MANIFEST.txt in the module source distribution
+for the complete source provenance, modification categories, dependency owner
+mapping, compatibility scope and known differences.
