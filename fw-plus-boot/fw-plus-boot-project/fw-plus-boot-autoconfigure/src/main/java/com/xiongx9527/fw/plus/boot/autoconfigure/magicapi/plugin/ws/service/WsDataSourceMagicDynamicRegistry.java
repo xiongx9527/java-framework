@@ -1,7 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.service;
 
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.handler.BaseDynamicWebSocketHandler;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.model.WsDataSourceInfo;
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.handler.AbstractWebSocketHandler;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -110,7 +110,7 @@ public class WsDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRegist
 	@Override
 	protected void unregister(MappingNode<WsDataSourceInfo> mappingNode) {
 		try {
-			SpringUtils.getBean(BaseDynamicWebSocketHandler.class)
+			SpringUtils.getBean(AbstractWebSocketHandler.class)
 					.cleanupByAppId(mappingNode.getEntity().getKey());
 		} catch (Exception e) {
 			log.error("Failed to cleanup sessions for appId: {}", mappingNode.getEntity().getKey(), e);

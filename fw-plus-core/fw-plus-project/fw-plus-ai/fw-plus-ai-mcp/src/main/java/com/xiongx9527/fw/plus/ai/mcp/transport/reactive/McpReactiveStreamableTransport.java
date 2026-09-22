@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.mcp.transport.reactive;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xiongx9527.fw.plus.ai.mcp.transport.AbstractStreamableTransport;
+import com.xiongx9527.fw.plus.ai.mcp.transport.SseSink;
 import org.springframework.http.codec.ServerSentEvent;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;

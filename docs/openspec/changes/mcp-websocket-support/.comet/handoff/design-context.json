@@ -1,0 +1,16 @@
+{
+  "change": "mcp-websocket-support",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "task_hash_policy": "task-content-v1",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "5563624a68ca27aaf0e3b6870946c6ed3865b7ab0df5f90fed96d53a19a2a672",
+  "files": [
+    { "path": "docs/openspec/changes/mcp-websocket-support/proposal.md", "sha256": "972060d8360f7be3b6a71a13d5237c228750014be9d42b9c07b58857ed5cfcaf" },
+    { "path": "docs/openspec/changes/mcp-websocket-support/design.md", "sha256": "6fce050aeff0cdca5eac033c71cad5a98ec6162b8617df16e30fa502b13880b0" },
+    { "path": "docs/openspec/changes/mcp-websocket-support/tasks.md", "sha256": "21260e4116493bcb6ff229d23b0084ae51d21a486bc27e971052af02c1578a84" },
+    { "path": "docs/openspec/changes/mcp-websocket-support/specs/mcp/session-externalization/spec.md", "sha256": "a94c942e8eea4ccf0bbbf345edd62b4f45d7877222395759936ed1be07428504" },
+    { "path": "docs/openspec/changes/mcp-websocket-support/specs/mcp/websocket-transport/spec.md", "sha256": "6d317363d4bc90f71d6a39058a585e0a94d817223437c933c4810a582e8b726a" }
+  ]
+}

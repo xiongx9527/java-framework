@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.mcp;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpInstanceProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.websocket.McpWebSocketAutoConfiguration;
 import com.xiongx9527.fw.plus.ai.mcp.server.McpAsyncServerImpl;
 import com.xiongx9527.fw.plus.ai.mcp.server.McpServerBuilder;
 import com.xiongx9527.fw.plus.ai.mcp.server.McpServerCapabilities;
@@ -54,7 +55,7 @@ import java.util.function.Function;
  * @date 2025-09-21
  */
 @Configuration
-@Import({McpWebMvcAutoConfiguration.class, McpWebFluxAutoConfiguration.class})
+@Import({McpWebMvcAutoConfiguration.class, McpWebFluxAutoConfiguration.class, McpWebSocketAutoConfiguration.class})
 @ConditionalOnClass(McpAsyncServerImpl.class)
 @ConditionalOnProperty(prefix = "fw-plus.ai.mcp", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(McpProperties.class)

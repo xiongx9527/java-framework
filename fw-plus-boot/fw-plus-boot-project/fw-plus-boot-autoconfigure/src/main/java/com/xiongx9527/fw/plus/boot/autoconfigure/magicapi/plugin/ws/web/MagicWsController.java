@@ -2,11 +2,11 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.web;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.common.BaseService;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.handler.BaseDynamicWebSocketHandler;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.model.WsDataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.model.WsSubscribeInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.service.WsDataSourceInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.service.WsSubscribeInfoMagicResourceStorage;
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.handler.AbstractWebSocketHandler;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.ListUtils;
@@ -34,7 +34,7 @@ public class MagicWsController extends MagicController implements MagicException
 
     private final WsDataSourceInfoMagicResourceStorage wsDataSourceInfoMagicResourceStorage;
 
-    private final BaseDynamicWebSocketHandler baseDynamicWebSocketHandler;
+    private final AbstractWebSocketHandler webSocketHandler;
 
     public MagicWsController(MagicConfiguration configuration) {
         this(configuration, null, null, null);
@@ -43,11 +43,11 @@ public class MagicWsController extends MagicController implements MagicException
     public MagicWsController(MagicConfiguration configuration,
                              WsSubscribeInfoMagicResourceStorage wsSubscribeInfoMagicResourceStorage,
                              WsDataSourceInfoMagicResourceStorage wsDataSourceInfoMagicResourceStorage,
-                             BaseDynamicWebSocketHandler baseDynamicWebSocketHandler) {
+                             AbstractWebSocketHandler webSocketHandler) {
         super(configuration);
         this.wsSubscribeInfoMagicResourceStorage = wsSubscribeInfoMagicResourceStorage;
         this.wsDataSourceInfoMagicResourceStorage = wsDataSourceInfoMagicResourceStorage;
-        this.baseDynamicWebSocketHandler = baseDynamicWebSocketHandler;
+        this.webSocketHandler = webSocketHandler;
     }
 
     /**
@@ -90,7 +90,7 @@ public class MagicWsController extends MagicController implements MagicException
         try {
             validateDataSourceInfo(properties);
             getSecretKeyAndSignatureAlgorithm();
-            BaseDynamicWebSocketHandler handler = getBaseDynamicWebSocketHandler();
+            AbstractWebSocketHandler handler = getWebSocketHandler();
             if (handler == null) {
                 return failure("WebSocket handler不可用");
             }
@@ -200,12 +200,12 @@ public class MagicWsController extends MagicController implements MagicException
         }
     }
 
-    private BaseDynamicWebSocketHandler getBaseDynamicWebSocketHandler() {
-        if (baseDynamicWebSocketHandler != null) {
-            return baseDynamicWebSocketHandler;
+    private AbstractWebSocketHandler getWebSocketHandler() {
+        if (webSocketHandler != null) {
+            return webSocketHandler;
         }
         try {
-            return SpringUtils.getBean(BaseDynamicWebSocketHandler.class);
+            return SpringUtils.getBean(AbstractWebSocketHandler.class);
         } catch (Exception e) {
             return null;
         }

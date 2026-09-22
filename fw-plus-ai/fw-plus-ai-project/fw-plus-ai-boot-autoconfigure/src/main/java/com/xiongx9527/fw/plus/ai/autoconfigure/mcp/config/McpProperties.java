@@ -18,6 +18,8 @@ import java.util.List;
 public class McpProperties {
 
 	private boolean enabled = true;
+	private boolean sseEnabled = true;
+	private boolean websocketEnabled = false;
 	private String defaultInstance = "default";
 	private List<String> allowedOrigins = new ArrayList<>();
 	private List<McpInstanceProperties> instances = new ArrayList<>();

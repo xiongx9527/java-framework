@@ -605,6 +605,12 @@
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-ws-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>

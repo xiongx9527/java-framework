@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|write|search_replace",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"/Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.grok/skills/comet/scripts/comet-hook-router.mjs\" --platform \"grok\" --project-root \"/Users/xiongxiao/Workspaces/Idea/codes/New/java-framework\""
+          }
+        ]
+      }
+    ]
+  }
+}

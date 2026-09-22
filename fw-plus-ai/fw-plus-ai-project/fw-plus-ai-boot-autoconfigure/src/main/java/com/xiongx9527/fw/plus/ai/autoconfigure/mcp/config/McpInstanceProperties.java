@@ -26,6 +26,8 @@ public class McpInstanceProperties {
 	private boolean completionsEnabled = true;
 	private boolean loggingEnabled = true;
 	private long sessionTimeoutSeconds = 1800L; // 30 minutes
+	private String ssePath = "/mcp/sse";
+	private String websocketPath = "/mcp/ws";
 
 	public String getName() {
 		return name;

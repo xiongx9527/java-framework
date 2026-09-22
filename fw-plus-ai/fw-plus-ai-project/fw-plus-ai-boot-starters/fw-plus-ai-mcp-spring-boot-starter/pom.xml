@@ -25,6 +25,12 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+        <!-- Spring WebSocket 传输：随 Starter 传递，支持 WebSocket JSON-RPC -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+
         <!-- Spring WebFlux 传输：optional，由使用方按需显式引入，避免强制双栈共存 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

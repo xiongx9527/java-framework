@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.mcp.transport.servlet;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xiongx9527.fw.plus.ai.mcp.transport.AbstractStreamableTransport;
+import com.xiongx9527.fw.plus.ai.mcp.transport.SseSink;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**

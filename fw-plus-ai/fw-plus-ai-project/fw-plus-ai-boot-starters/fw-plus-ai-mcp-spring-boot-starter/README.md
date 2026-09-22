@@ -15,30 +15,39 @@
 
 ```yaml
 fw-plus:
-  mcp:
-    enabled: true
-    allowed-origins: "*"
-    instances:
-      - name: default
-        path: /mcp
-        session-timeout-seconds: 1800
-        enabled: true
+  ai:
+    mcp:
+      enabled: true
+      sse-enabled: true
+      sse-path: /mcp/sse
+      websocket-enabled: false
+      websocket-path: /mcp/ws
+      allowed-origins: "*"
+      instances:
+        - name: default
+          path: /mcp
+          session-timeout-seconds: 1800
+          enabled: true
 ```
 
-- `fw-plus.mcp.enabled`：是否启用 MCP Server 自动配置；默认 `true`。
-- `fw-plus.mcp.allowed-origins`：Streamable HTTP 端点允许的来源；默认不过滤。
-- `fw-plus.mcp.instances`：多实例配置；未配置时会提供一个默认实例。
+- `fw-plus.ai.mcp.enabled`：是否启用 MCP Server 自动配置；默认 `true`。
+- `fw-plus.ai.mcp.sse-enabled`：是否启用 SSE (Streamable HTTP) 传输；默认 `true`。
+- `fw-plus.ai.mcp.sse-path`：SSE 端点路径；默认 `/mcp/sse`。
+- `fw-plus.ai.mcp.websocket-enabled`：是否启用 WebSocket 传输；默认 `false`。
+- `fw-plus.ai.mcp.websocket-path`：WebSocket 端点路径；默认 `/mcp/ws`。
+- `fw-plus.ai.mcp.allowed-origins`：端点允许的来源；默认不过滤。
+- `fw-plus.ai.mcp.instances`：多实例配置；未配置时会提供一个默认实例。
 - 每个实例支持 `name`、`path`、`session-timeout-seconds`、`enabled`。
-- 默认端点路径为 `/mcp`；`initialize` 会返回 `2025-11-25` 版本并生成 `Mcp-Session-Id`。
 
 ## 传输栈选择
 
-| 应用类型 | 引入依赖 | 生效配置 |
+| 传输类型 | 引入依赖 | 生效配置 |
 | --- | --- | --- |
-| Spring MVC / Servlet | Starter 默认传递 `spring-boot-starter-web` | `McpWebMvcAutoConfiguration` |
-| Spring WebFlux | 额外引入 `spring-boot-starter-webflux` | `McpWebFluxAutoConfiguration` |
+| Streamable HTTP (SSE) | Starter 默认传递 `spring-boot-starter-web` | `McpWebMvcAutoConfiguration` |
+| Streamable HTTP (SSE) - Reactive | 额外引入 `spring-boot-starter-webflux` | `McpWebFluxAutoConfiguration` |
+| WebSocket | Starter 默认传递 `spring-boot-starter-websocket` | `McpWebSocketAutoConfiguration` |
 
-两个传输配置互斥：Spring MVC 应用不会装配 WebFlux MCP Bean，反之亦然。
+SSE 和 WebSocket 传输独立开关，可以同时启用。
 
 ## 扩展 MCP 能力
 

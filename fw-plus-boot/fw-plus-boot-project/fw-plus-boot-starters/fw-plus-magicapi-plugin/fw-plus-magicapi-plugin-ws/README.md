@@ -4,11 +4,11 @@ MagicAPI WebSocket 插件，用于在 MagicAPI 中维护 WebSocket 数据源、�
 
 ## 依赖与启用
 
-在业务应用引入 WS 插件 starter 后，默认启用：
+在业务应用引入 `fw-plus-magicapi-plugin-ws` 后默认启用。该插件的 WS 依赖来自 `fw-plus-ws-spring-boot-starter`（提供 `spring-boot-starter-websocket` 与 `jjwt-*`），需要单独使用 WS 能力时也可直接依赖该 starter。
 
 ```yaml
-magic-api:
-  plugin:
+fw:
+  plus:
     ws:
       enabled: true
       websocket:
@@ -22,23 +22,25 @@ magic-api:
 
 | 配置项 | 默认值 | 说明 |
 | --- | --- | --- |
-| `magic-api.plugin.ws.enabled` | `true` | 是否启用 WS 插件 |
-| `magic-api.plugin.ws.websocket.path` | `/ws/api` | WebSocket 连接路径，会叠加 `magic-api.web` 前缀 |
-| `magic-api.plugin.ws.websocket.trustedDomain` | 空 | 允许跨域来源；未配置时不允许跨域，显式 `*` 才允许任意来源 |
-| `magic-api.plugin.ws.websocket.subProtocols` | 空 | 可选 WebSocket 子协议，逗号分隔 |
-| `magic-api.plugin.ws.token.secret` | 无 | JWT 签名密钥，必须显式配置 |
-| `magic-api.plugin.ws.token.expireHours` | `2` | 连接 token 有效期，单位小时 |
-| `magic-api.plugin.ws.param.token` | `token` | 连接 URL 中 token 参数名 |
-| `magic-api.plugin.ws.param.clientId` | `clientId` | 连接 URL 中客户端标识参数名 |
-| `magic-api.plugin.ws.init.type` | `init` | 建连时执行的业务标识 |
-| `magic-api.plugin.ws.close.type` | `close` | 断连时执行的业务标识 |
-| `magic-api.plugin.ws.redis.channel.broadcast` | `websocket:broadcast` | Redis 集群广播频道 |
+| `fw.plus.ws.enabled` | `true` | 是否启用 WS 插件 |
+| `fw.plus.ws.websocket.path` | `/ws/api` | WebSocket 连接路径，会叠加 `magic-api.web` 前缀 |
+| `fw.plus.ws.websocket.trustedDomain` | 空 | 允许跨域来源；未配置时不允许跨域，显式 `*` 才允许任意来源 |
+| `fw.plus.ws.websocket.subProtocols` | 空 | 可选 WebSocket 子协议，逗号分隔 |
+| `fw.plus.ws.token.secret` | 无 | JWT 签名密钥，必须显式配置 |
+| `fw.plus.ws.token.expireHours` | `2` | 连接 token 有效期，单位小时 |
+| `fw.plus.ws.param.token` | `token` | 连接 URL 中 token 参数名 |
+| `fw.plus.ws.param.clientId` | `clientId` | 连接 URL 中客户端标识参数名 |
+| `fw.plus.ws.init.type` | `init` | 建连时执行的业务标识 |
+| `fw.plus.ws.close.type` | `close` | 断连时执行的业务标识 |
+| `fw.plus.ws.redis.channel.broadcast` | `websocket:broadcast` | Redis 集群广播频道 |
+
+> 配置前缀为 `fw.plus.ws`。旧前缀 `magic-api.plugin.ws` 已不再被读取，升级时需要同步修改配置。
 
 > `token.secret` 不再提供内置默认值。生产环境建议使用 32 字节以上随机字符串，并通过配置中心或环境变量注入。
 
 ## 最快接入流程
 
-1. 引入 WS 插件 starter，并配置 `magic-api.plugin.ws.token.secret` 和 `websocket.trustedDomain`。
+1. 引入 WS 插件（`fw-plus-magicapi-plugin-ws`），并配置 `fw.plus.ws.token.secret` 和 `fw.plus.ws.websocket.trustedDomain`。
 2. 在 MagicAPI 控制台新增 `ws-datasource`，例如 `key=default`、`secret=123`。
 3. 新增一个 MagicAPI HTTP API，用于给前端签发连接 token。
 4. 前端调用 token API 获取 token，再连接 `/ws/api?token=...&clientId=...`。
@@ -49,7 +51,8 @@ magic-api:
 ```yaml
 magic-api:
   web: /magic/web
-  plugin:
+fw:
+  plus:
     ws:
       enabled: true
       websocket:
@@ -334,8 +337,8 @@ ws['default'].broadcastDistributedMessageToAllClient('system notice');
 当 Spring 容器中存在 `StringRedisTemplate` 时，插件会创建 Redis 版 WebSocket handler，并通过 `redis.channel.broadcast` 配置的频道分发跨节点消息。
 
 ```yaml
-magic-api:
-  plugin:
+fw:
+  plus:
     ws:
       redis:
         channel:
@@ -346,7 +349,7 @@ magic-api:
 
 ## 安全建议
 
-- 必须配置 `magic-api.plugin.ws.token.secret`，不要使用短弱密钥。
+- 必须配置 `fw.plus.ws.token.secret`，不要使用短弱密钥。
 - 生产环境不要配置 `websocket.trustedDomain: '*'`，应配置明确的业务域名。
 - `clientId` 应使用业务侧不可猜测或已鉴权的用户标识，避免被客户端伪造导致消息串扰。
 - 不要在日志中输出完整 token 或数据源 secret。

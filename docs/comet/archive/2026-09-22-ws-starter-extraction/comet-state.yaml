@@ -1,0 +1,702 @@
+schema: comet.native.v4
+name: ws-starter-extraction
+language: zh-CN
+phase: archive
+status: done
+state_version: 12
+brief: brief.md
+spec_changes:
+  - capability: ws-starter
+    operation: create
+    source: specs/ws-starter/spec.md
+workspace:
+  isolation: current
+  change_branch: dev
+  target_branch: dev
+  finish: null
+loop:
+  stage: done
+  goal_cycle: 1
+  iteration: 2
+  attempt: 2
+  retry_epoch: 0
+  failed_iteration_count: 1
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: null
+acceptance:
+  - id: A1
+    source: brief.md
+    text: E1 构建不回归：`cd fw-plus-boot/fw-plus-boot-project && mvn -DskipTests compile`
+      成功（新模块参与构建）；`fw-plus-magicapi-spring-boot-starter-sample` 仍能编译（前端构建可用
+      `-Dexec.skip=true` 跳过）。
+    result: passed
+    reason:
+      text: 新 starter 已在 fw-plus-boot-starters <modules> 与 fw-plus-boot-dependencies
+        dependencyManagement（${project.version}）登记；autoconfigure/target/classes
+        中存在含 flatten() 的本次修改产物，证明该模块编译通过；Runtime C1（fw-plus-boot-project 全层
+        install，reactor 含新 starter SUCCESS）与 C2（样例编译）通过。
+      truncated: false
+  - id: A2
+    source: brief.md
+    text: E2 依赖传递不缩水：对 `fw-plus-magicapi-plugin-ws`
+      解析依赖树时，`spring-boot-starter-websocket` 与
+      `jjwt-api`/`jjwt-impl`/`jjwt-jackson` 仍然出现在编译/运行期依赖中，且来源为
+      `fw-plus-ws-spring-boot-starter`。
+    result: passed
+    reason:
+      text: 独立离线 dependency:tree：插件编译期依赖含
+        fw-plus-ws-spring-boot-starter:0.1.1-SNAPSHOT，spring-boot-starter-websocket:2.7.18
+        与 jjwt-api/impl/jackson:0.12.7 均经该 starter 带出，插件自身无 jjwt 直接声明。
+      truncated: false
+  - id: A3
+    source: specs/ws-starter/spec.md
+    text: starter 模块只含 pom 且已登记 - **WHEN** 检查
+      `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-ws-spring-boot-starter`
+      目录内容，并检索 `fw-plus-boot-starters/pom.xml` 与
+      `fw-plus-boot-dependencies/pom.xml` - **THEN** 该模块下除 `pom.xml`（以及 Maven
+      生成的 `.flattened-pom.xml`、`target/`）外不存在 `src/`
+      等源码或资源目录；`fw-plus-boot-starters` 的 `<modules>`
+      含该模块，`fw-plus-boot-dependencies` 的 `dependencyManagement` 含该 artifactId 与
+      `${project.version}` 版本
+    result: passed
+    reason:
+      text: starter 目录仅 pom.xml（+.flattened-pom.xml 与 target/），无 src/ 等源码资源目录；starter
+        模块已在 fw-plus-boot-starters modules 与 BOM dependencyManagement 登记，版本为
+        ${project.version}。
+      truncated: false
+  - id: A4
+    source: specs/ws-starter/spec.md
+    text: starter 依赖集合完整 - **WHEN** 读取 `fw-plus-ws-spring-boot-starter/pom.xml`
+      的依赖声明 - **THEN** 其中包含
+      `fw-plus-boot-starter`、`spring-boot-starter-websocket` 与 jjwt
+      三件套（`jjwt-api`、`jjwt-impl`、`jjwt-jackson`），且不声明
+      `fw-plus-magicapi-plugin-ws` 等上层插件
+    result: passed
+    reason:
+      text: starter pom 依赖集合为 fw-plus-boot-starter + spring-boot-starter-websocket +
+        jjwt-api/impl/jackson，且未声明 fw-plus-magicapi-plugin-ws 等上层插件。
+      truncated: false
+  - id: A5
+    source: specs/ws-starter/spec.md
+    text: 插件依赖 starter 且不重复声明 - **WHEN** 读取 `fw-plus-magicapi-plugin-ws/pom.xml`
+      的依赖声明 - **THEN** 该模块声明了对 `fw-plus-ws-spring-boot-starter` 的依赖，且不再包含
+      `jjwt-api`、`jjwt-impl`、`jjwt-jackson` 的直接声明；其原有
+      `src/console`、`src/main/resources/magic-editor/ws` 内容与前端构建配置保持不变
+    result: passed
+    reason:
+      text: 插件 pom 仅依赖 fw-plus-ws-spring-boot-starter，无 jjwt 直接声明；src/console 与
+        src/main/resources/magic-editor/ws 及前端构建配置未改动。
+      truncated: false
+  - id: A6
+    source: specs/ws-starter/spec.md
+    text: 依赖树仍包含 WS 与 JWT 构件 - **WHEN** 对 `fw-plus-magicapi-plugin-ws` 解析依赖树 -
+      **THEN** 依赖树中通过 `fw-plus-ws-spring-boot-starter` 出现
+      `spring-boot-starter-websocket` 与 `jjwt-api`、`jjwt-impl`、`jjwt-jackson`
+    result: passed
+    reason:
+      text: dependency:tree 显示 spring-boot-starter-websocket 与 jjwt-api/impl/jackson 经
+        fw-plus-ws-spring-boot-starter 出现在 ws 插件依赖树中。
+      truncated: false
+  - id: A7
+    source: specs/ws-starter/spec.md
+    text: 新前缀配置生效 - **WHEN** 应用以
+      `fw.plus.ws.token.secret`、`fw.plus.ws.websocket.path`、`fw.plus.ws.token.expireHours`、`fw.plus.ws.param.clientId`
+      等键提供配置 - **THEN** 这些值被 WS 配置对象绑定，并在 token 签发、端点注册与连接参数解析中生效
+    result: passed
+    reason:
+      text: 静态：@ConfigurationProperties("fw.plus.ws") 与两处
+        @ConditionalOnProperty(prefix="fw.plus.ws") 均已迁移。运行时（自行复现探针）：新前缀下嵌套 YAML
+        被绑定为嵌套 Map，经 flatten() 展开后 token
+        签发（getTokenSecret=s3cr3t-value、getTokenExpireHours=7）、端点注册（getWebsocketPath=/custom-ws）、连接参数解析（getClientIdParamName=cid-x）全部取到配置值并生效，ASSERT_NEW_PREFIX_BOUND_AND_EFFECTIVE=OK；未展开时的扁平键读取为
+        null，正是上一轮缺陷现场。
+      truncated: false
+  - id: A8
+    source: specs/ws-starter/spec.md
+    text: 旧前缀不再被读取 - **WHEN** 应用只提供 `magic-api.plugin.ws.*` 而未提供 `fw.plus.ws.*` -
+      **THEN** 旧键不参与 WS 配置绑定，WS 行为回落到 `fw.plus.ws.*` 的默认值（`enabled`
+      缺省启用、`websocket.path` 缺省 `/ws/api`、`token.expireHours` 缺省 2）
+    result: passed
+    reason:
+      text: 运行时仅提供 magic-api.plugin.ws.* 时 BOUND={}，旧键不参与绑定；WS 行为回落默认值（enabled
+        缺省启用、websocket.path=/ws/api、token.expireHours=2），token.secret 无默认值且未配置时抛
+        IllegalStateException；src/main 无 magic-api.plugin.ws 残留，配置元数据旧前缀计数为
+        0，测试属性已改为 fw.plus.ws.enabled=false，README 注明旧前缀不再被读取。
+      truncated: false
+builder_handoff:
+  candidate_id: b7c62089-92ba-44a3-a652-772621629db1
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:47164f1e-daea-4923-980e-6636cca86d78
+  iteration: 2
+  summary:
+    text: |-
+      本轮（iteration 2）只做一处修复，用于让 A7 真正成立；iteration 1 的 starter 抽取与配置前缀迁移保持不变。
+
+      修复背景：独立验收发现既有缺陷——WS 配置读路径是 MagicAPIWsConfig（@ConfigurationProperties("fw.plus.ws")，extends HashMap<String,Object>）+ MagicBaseService#getConfigValue 的 configMap.get("token.secret") 这类点号扁平键；而 Spring Boot 将嵌套 YAML（fw.plus.ws.token.secret）绑定进 Map<String,Object> 时得到的是嵌套 Map（{token={secret=...}}），扁平键取不到值，导致 getWebsocketPath() 回落 /ws/api、getTokenExpireHours() 回落 2、getTokenSecret() 抛 IllegalStateException。该缺陷与前缀改名无关（旧前缀下同样存在），但 A7 要求「值被绑定并在 token 签发、端点注册、连接参数解析中生效」，因此必须修复。
+
+      本轮改动（2 个文件，均在 fw-plus-boot-autoconfigure 的 magicapi/plugin/ws 包内，未触碰共享代码）：
+      ① MagicAPIWsConfig 新增 public Map<String,Object> flatten()，递归把嵌套 Map 展开为点号扁平键（叶子值原样保留；空 Map 不产生条目；null 跳过），并新增私有静态 flattenInto(prefix, source, target)。
+      ② ws common/BaseService#getConfig() 由「直接返回配置 Bean」改为「返回 config.flatten()」，使 getConfigValueAsString("token.secret") 这类扁平键读取可以命中嵌套写法；键名层级与默认值（enabled 缺省启用、websocket.path 缺省 /ws/api、token.expireHours 缺省 2 等）完全不变。
+
+      iteration 1 的实现（保持有效）：① 新增纯 POM 模块 fw-plus-ws-spring-boot-starter（只含依赖声明，无 src/、无 Java、无 auto-configuration、无 spring.factories）；依赖 fw-plus-boot-starter + spring-boot-starter-websocket + jjwt-api/impl/jackson，父 POM 为 fw-plus-boot-starters，版本 ${revision}。② fw-plus-boot-starters/pom.xml 增加该模块；fw-plus-boot-dependencies 的 dependencyManagement 增加该 starter（${project.version}）。③ fw-plus-magicapi-plugin-ws/pom.xml 改为依赖该 starter，删除本模块 3 个 jjwt 声明；src/console 前端与 src/main/resources/magic-editor/ws 资源及前端构建配置未改动。④ WS 的 Java 实现未迁移，仍在 fw-plus-boot-autoconfigure 的 magicapi/plugin/ws 包，包名/类名/MagicApiPluginAutoConfiguration 的 @Import 均未变。⑤ 配置前缀迁移：两个 @ConditionalOnProperty 前缀与 @ConfigurationProperties 均改为 fw.plus.ws；BaseService 异常文案改为 fw.plus.ws.token.secret must be configured；MagicAPIServletIsolationAutoConfigurationTest 中属性改为 fw.plus.ws.enabled=false；README 的 yaml 示例、配置表与安全建议改为 fw.plus.ws 前缀并注明旧前缀不再被读取。
+
+      处理的验收项：A1~A8 全部提交验收。
+
+      实际运行的开发期检查：fw-plus-boot-project 全层 mvn -Dmaven.test.skip=true -Dexec.skip=true install 成功（reactor 中 fw-plus-ws-spring-boot-starter SUCCESS）；fw-plus-magicapi-spring-boot-starter-sample 编译成功；对 fw-plus-magicapi-plugin-ws 执行 dependency:tree，确认 fw-plus-ws-spring-boot-starter:0.1.1-SNAPSHOT 下带出 spring-boot-starter-websocket:2.7.18 与 jjwt-api/impl/jackson:0.12.7；starter 目录仅 pom.xml（+.flattened-pom.xml/target）且已在 starters modules 与 BOM 登记；全仓 src/main 检索 magic-api.plugin.ws 残留 0 处（仅剩 README 迁移说明、测试注释与 change 文档）；运行时探针以真实 SpringApplication + 真实 application.yml 分别以新/旧前缀提供同一组配置：新前缀 BOUND 收到该子树且读取生效（getWebsocketPath=/custom-ws、getTokenExpireHours=7、getTokenSecret=s3cr3t-value、getClientIdParamName=cid-x），仅旧前缀时 BOUND={} 且回落默认值（/ws/api、2、token.secret 未配置抛异常）。
+
+      未运行的开发期检查：未运行任何单元测试（fw-plus-boot-autoconfigure 的测试源码因 mqtt 包遗留测试引用已迁移的包而无法编译，属既有问题，与本次无关；故所有 Maven 操作使用 -Dmaven.test.skip=true）。另已完成一次独立只读复核（执行标识 agent-c08e6ff8），复核对本轮修复判定通过，并确认 getConfig() 的调用方均为只读扁平键读取、无写操作、不波及 vue3/mqtt 等其它插件。
+    truncated: false
+  addressed_acceptance_ids:
+    - A1
+    - A2
+    - A3
+    - A4
+    - A5
+    - A6
+    - A7
+    - A8
+  checks:
+    - name:
+        text: fw-plus-boot-project 全层构建安装（mvn -Dmaven.test.skip=true -Dexec.skip=true
+          install）
+        truncated: false
+      result: passed
+      note:
+        text: BUILD SUCCESS，约 17s；reactor 含 fw-plus-ws-spring-boot-starter 且为 SUCCESS。
+        truncated: false
+    - name:
+        text: 样例模块编译（fw-plus-magicapi-spring-boot-starter-sample，-Dexec.skip=true）
+        truncated: false
+      result: passed
+      note:
+        text: BUILD SUCCESS，约 5s。
+        truncated: false
+    - name:
+        text: ws 插件依赖树（mvn dependency:tree）
+        truncated: false
+      result: passed
+      note:
+        text: fw-plus-ws-spring-boot-starter:0.1.1-SNAPSHOT 下带出
+          spring-boot-starter-websocket:2.7.18（含 spring-websocket 5.3.31）与
+          jjwt-api/impl/jackson:0.12.7。
+        truncated: false
+    - name:
+        text: starter 结构与登记核对
+        truncated: false
+      result: passed
+      note:
+        text: 仅 pom.xml（+.flattened-pom.xml/target），无 src/；fw-plus-boot-starters modules
+          与 fw-plus-boot-dependencies 均含该 artifactId，BOM 用 ${project.version}。
+        truncated: false
+    - name:
+        text: POM 依赖集合核对
+        truncated: false
+      result: passed
+      note:
+        text: starter = fw-plus-boot-starter + spring-boot-starter-websocket + jjwt
+          三件套；插件仅依赖 starter，不再直接声明 jjwt。
+        truncated: false
+    - name:
+        text: 前缀静态核对与配置元数据
+        truncated: false
+      result: passed
+      note:
+        text: 两个 @ConditionalOnProperty 与 @ConfigurationProperties 均为
+          fw.plus.ws；spring-configuration-metadata.json 组为 fw.plus.ws
+          且无旧前缀；src/main 中 magic-api.plugin.ws 残留 0 处；getConfig() 已接入
+          config.flatten()。
+        truncated: false
+    - name:
+        text: 配置前缀运行时核对（真实 SpringApplication + application.yml）
+        truncated: false
+      result: passed
+      note:
+        text: 新前缀：子树被绑定且读取生效（path=/custom-ws、expireHours=7、secret=s3cr3t-value、clientId=cid-x）；仅旧前缀：BOUND={}，回落默认值
+          /ws/api、2，token.secret 未配置时抛
+          IllegalStateException。修复前同一探针读到的全是默认值/异常，修复后一致通过。
+        truncated: false
+    - name:
+        text: 单元测试
+        truncated: false
+      result: not-run
+      note:
+        text: fw-plus-boot-autoconfigure 测试源码存在既有编译中断（mqtt
+          包遗留测试引用已迁移的包），无法运行任何本模块单测；本次全部 Maven 操作使用 -Dmaven.test.skip=true。
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: 修复采用读取侧展开（MagicAPIWsConfig.flatten() + getConfig()），未改成强类型
+        @ConfigurationProperties POJO；这是把改动限制在 WS 包内、不触碰共享 MagicBaseService
+        的最小方案。
+      truncated: false
+    - text: 未运行单元测试：fw-plus-boot-autoconfigure 的测试源码因 mqtt
+        包遗留测试引用已迁移的包而无法编译（既有问题，与本次无关）。
+      truncated: false
+    - text: 运行时核对使用独立探针（真实 SpringApplication + 真实 application.yml + 真实编译产物 + 复刻
+        getConfig() 的扁平化读取链路），未加载完整 Spring Boot 自动配置/Redis/WebSocket
+        握手栈，因此未覆盖端到端握手与 token 拦截器集成。
+      truncated: false
+    - text: 旧前缀 magic-api.plugin.ws.* 不再被读取（按 D5 不提供兼容）；使用旧前缀的应用升级后会因 token.secret
+        缺失在首个 token 签发时报错，README 已注明需同步改配置。
+      truncated: false
+  known_limits_truncated: false
+  review:
+    status: passed
+    summary:
+      text: 由独立只读复核子代理完成（执行标识 agent-c08e6ff8），依据 git diff 与实际编译产物独立核查本轮修复：确认
+        flatten()/flattenInto 实现与描述一致、无夹带无关改动；叶子值（字符串/数字/布尔/列表）安全、空 Map 与 null
+        处理合理；全仓检索确认 getConfig() 的调用方均为只读扁平键读取、无写操作或强转依赖，不波及 vue3/mqtt
+        等其它插件；键名层级与默认值未变；并以只读方式运行修复后的探针复现新/旧前缀两个场景，结果与预期一致（新前缀读取生效、旧前缀不绑定且回落默认值）。未发现与验收项不符之处。已知轻微提示：每次
+        getConfig() 重新展开（量级可忽略），以及工作区仍存在与本 change 无关的 MCP/AI 未提交改动。
+      truncated: false
+    reviewer_execution_ref: agent-c08e6ff8
+  submitted_at: 2026-09-22T04:15:58.618Z
+blockers: []
+verification:
+  candidate_id: b7c62089-92ba-44a3-a652-772621629db1
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:df937c97-8dee-43be-bc1c-2f6decb9400a
+  iteration: 2
+  attempt: 2
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: C1
+      name:
+        text: A1 构建：fw-plus-boot-project 全层 install（-Dmaven.test.skip
+          -Dexec.skip），reactor 含新 starter 且 SUCCESS
+        truncated: false
+      argv_display:
+        - text: -c
+          truncated: false
+        - text: >
+            #!/bin/bash
+
+            set -u
+
+            export
+            JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home
+
+            MVN=/Users/xiongxiao/Workspaces/Maven/apache-maven-3.6.3/bin/mvn
+
+            cd fw-plus-boot/fw-plus-boot-project || { echo "C1_SETUP_FAIL"; exit
+            1; }
+
+            OUT=$($MVN -B -Dmaven.test.skip=true -Dexec.skip=true install 2>&1)
+
+            printf '%s\n' "$OUT" > /tmp/ws-verify-build.log
+
+            grep -E "SUCCESS|FAILURE|BUILD " /tmp/ws-verify-build.log | tail -60
+
+            grep -q 'BUILD SUCCESS' /tmp/ws-verify-build.log || { echo "C1_FAIL:
+            install 未成功"; exit 1; }
+
+            grep -Eq 'fw-plus-ws-spring-boot-starter .* SUCCESS'
+            /tmp/ws-verify-build.log || { echo "C1_FAIL: reactor 未包含新 starter
+            或未成功"; exit 1; }
+
+            echo "WS_C1_BUILD_OK"
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 24504
+    - id: C2
+      name:
+        text: A1 构建：magic-api 样例模块（fw-plus-magicapi-spring-boot-starter-sample）编译通过
+        truncated: false
+      argv_display:
+        - text: -c
+          truncated: false
+        - text: |
+            #!/bin/bash
+            set -u
+            export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home
+            MVN=/Users/xiongxiao/Workspaces/Maven/apache-maven-3.6.3/bin/mvn
+            cd fw-plus-sample/fw-plus-boot-samples/fw-plus-magicapi-spring-boot-starter-sample || { echo "C2_SETUP_FAIL"; exit 1; }
+            $MVN -q -Dmaven.test.skip=true -Dexec.skip=true compile || { echo "C2_FAIL: 样例编译失败"; exit 1; }
+            echo "WS_C2_SAMPLE_OK"
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 7296
+    - id: C3
+      name:
+        text: A2+A6 依赖：ws 插件 dependency:tree 中经 fw-plus-ws-spring-boot-starter 带出
+          spring-boot-starter-websocket 与 jjwt 三件套
+        truncated: false
+      argv_display:
+        - text: -c
+          truncated: false
+        - text: |
+            #!/bin/bash
+            set -u
+            export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home
+            MVN=/Users/xiongxiao/Workspaces/Maven/apache-maven-3.6.3/bin/mvn
+            T=/tmp/ws-verify-tree.txt
+            cd fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-ws || { echo "C3_SETUP_FAIL"; exit 1; }
+            $MVN -q dependency:tree -DoutputFile=$T -Dscope=compile >/dev/null 2>&1 || $MVN -q dependency:tree -DoutputFile=$T >/dev/null 2>&1
+            test -s $T || { echo "C3_FAIL: 依赖树为空"; exit 1; }
+            cat $T | head -25
+            grep -q 'fw-plus-ws-spring-boot-starter:jar:0.1.1-SNAPSHOT:compile' $T || { echo "C3_FAIL: 未出现 fw-plus-ws-spring-boot-starter"; exit 1; }
+            SUB=$(grep -A8 'fw-plus-ws-spring-boot-starter:jar' $T)
+            for a in "spring-boot-starter-websocket" "io.jsonwebtoken:jjwt-api" "io.jsonwebtoken:jjwt-impl" "io.jsonwebtoken:jjwt-jackson"; do
+              echo "$SUB" | grep -q "$a" || { echo "C3_FAIL: starter 子树缺少 $a"; exit 1; }
+            done
+            echo "WS_C3_TREE_OK"
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 5124
+    - id: C4
+      name:
+        text: A3 结构：starter 仅含 pom、无 src，且已在 fw-plus-boot-starters modules 与 BOM 登记
+        truncated: false
+      argv_display:
+        - text: -c
+          truncated: false
+        - text: |
+            #!/bin/bash
+            set -u
+            M=fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-ws-spring-boot-starter
+            A=fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/pom.xml
+            B=fw-plus-boot/fw-plus-boot-project/fw-plus-boot-dependencies/pom.xml
+            test -f "$M/pom.xml" || { echo "C4_FAIL: starter pom 不存在"; exit 1; }
+            test ! -d "$M/src" || { echo "C4_FAIL: starter 含 src 目录"; exit 1; }
+            EXTRA=$(find "$M" -mindepth 1 -maxdepth 1 ! -name pom.xml ! -name target ! -name '.flattened-pom.xml')
+            if [ -n "$EXTRA" ]; then echo "C4_FAIL: starter 目录存在预期外条目: $EXTRA"; exit 1; fi
+            grep -q '<module>fw-plus-ws-spring-boot-starter</module>' "$A" || { echo "C4_FAIL: fw-plus-boot-starters 未登记该模块"; exit 1; }
+            grep -q '<artifactId>fw-plus-ws-spring-boot-starter</artifactId>' "$B" || { echo "C4_FAIL: BOM 未登记该 starter"; exit 1; }
+            grep -A2 '<artifactId>fw-plus-ws-spring-boot-starter</artifactId>' "$B" | grep -q '\${project.version}' || { echo "C4_FAIL: BOM 未使用 \${project.version}"; exit 1; }
+            echo "starter 目录内容: $(ls -A "$M" | tr '\n' ' ')"
+            echo "WS_C4_STRUCTURE_OK"
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 1683
+    - id: C5
+      name:
+        text: A4+A5 依赖声明：starter 集合完整且不反向依赖插件；插件依赖 starter 且不再直接声明 jjwt
+        truncated: false
+      argv_display:
+        - text: -c
+          truncated: false
+        - text: |
+            #!/bin/bash
+            set -u
+            S=fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-ws-spring-boot-starter/pom.xml
+            P=fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-ws/pom.xml
+            for a in fw-plus-boot-starter spring-boot-starter-websocket jjwt-api jjwt-impl jjwt-jackson; do
+              grep -q "<artifactId>$a</artifactId>" "$S" || { echo "C5_FAIL: starter 缺少 $a"; exit 1; }
+            done
+            grep -q 'fw-plus-magicapi-plugin-ws' "$S" && { echo "C5_FAIL: starter 反向依赖了插件"; exit 1; }
+            grep -q '<artifactId>fw-plus-ws-spring-boot-starter</artifactId>' "$P" || { echo "C5_FAIL: 插件未依赖 starter"; exit 1; }
+            for a in jjwt-api jjwt-impl jjwt-jackson; do
+              grep -q "<artifactId>$a</artifactId>" "$P" && { echo "C5_FAIL: 插件仍直接声明 $a"; exit 1; }
+            done
+            echo "WS_C5_POM_OK"
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 2685
+    - id: C6
+      name:
+        text: A7+A8 前缀静态核对：注解与配置元数据迁移到 fw.plus.ws、无旧前缀残留、getConfig() 已接入扁平化读取
+        truncated: false
+      argv_display:
+        - text: -c
+          truncated: false
+        - text: |
+            #!/bin/bash
+            set -u
+            B=fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure
+            W=$B/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/ws
+            grep -q '@ConfigurationProperties("fw.plus.ws")' $W/starter/MagicAPIWsConfig.java || { echo "C6_FAIL: 配置类前缀未迁移"; exit 1; }
+            grep -q 'prefix = "fw.plus.ws"' $W/starter/MagicAPIWsConfiguration.java || { echo "C6_FAIL: 条件注解前缀未迁移(config)"; exit 1; }
+            grep -q 'prefix = "fw.plus.ws"' $W/starter/MagicAPIWsHandlerConfiguration.java || { echo "C6_FAIL: 条件注解前缀未迁移(handler)"; exit 1; }
+            M=$B/target/classes/META-INF/spring-configuration-metadata.json
+            test -f "$M" || { echo "C6_FAIL: 缺少 spring-configuration-metadata.json"; exit 1; }
+            grep -q '"name": "fw.plus.ws"' "$M" || { echo "C6_FAIL: 元数据未登记 fw.plus.ws 组"; exit 1; }
+            grep -q 'magic-api.plugin.ws' "$M" && { echo "C6_FAIL: 元数据仍含旧前缀"; exit 1; }
+            grep -q 'fw.plus.ws.token.secret must be configured' $W/common/BaseService.java || { echo "C6_FAIL: 异常文案未迁移"; exit 1; }
+            grep -q 'config.flatten()' $W/common/BaseService.java || { echo "C6_FAIL: getConfig() 未使用展开后的扁平键配置"; exit 1; }
+            grep -q 'public Map<String, Object> flatten()' $W/starter/MagicAPIWsConfig.java || { echo "C6_FAIL: 配置类缺少嵌套展开方法"; exit 1; }
+            N=$(find fw-plus-core fw-plus-boot fw-plus-cloud fw-plus-ai fw-plus-sample -type f \( -name '*.java' -o -name '*.xml' -o -name '*.yml' -o -name '*.yaml' -o -name '*.properties' -o -name '*.json' \) -path '*/src/main/*' -not -path '*/target/*' -print0 2>/dev/null | xargs -0 grep -l 'magic-api\.plugin\.ws' 2>/dev/null | wc -l | tr -d ' ')
+            echo "main 源码/配置中旧前缀残留文件数: $N"
+            test "$N" = "0" || { echo "C6_FAIL: main 中仍有旧前缀"; exit 1; }
+            echo "WS_C6_PREFIX_OK"
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 96723
+    - id: C7
+      name:
+        text: A7+A8 前缀运行时核对：真实 Spring 应用加载真实
+          application.yml，新前缀下配置被绑定并经真实读取链路生效，仅旧前缀时不绑定且回落默认值
+        truncated: false
+      argv_display:
+        - text: -c
+          truncated: false
+        - text: |
+            #!/bin/bash
+            # C7: 运行时前缀绑定与生效探针（真实 Spring 应用 + 真实 application.yml + 真实配置读取路径）
+            set -u
+            export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home
+            JAVAC="$JAVA_HOME/bin/javac"
+            JAVA="$JAVA_HOME/bin/java"
+            MVN=/Users/xiongxiao/Workspaces/Maven/apache-maven-3.6.3/bin/mvn
+            MOD="fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure"
+            D=/tmp/ws-prefix-runtime-check
+
+            rm -rf "$D"; mkdir -p "$D"
+
+            cd "$MOD" || { echo "C7_SETUP_FAIL: module dir not found"; exit 1; }
+            # 保证被检查模块的 target/classes 是当前源码编译产物（不依赖其它检查的执行顺序）
+            "$MVN" -q -B -Dmaven.test.skip=true -Dexec.skip=true compile >/dev/null 2>&1 \
+              || { echo "C7_COMPILE_FAIL"; exit 1; }
+            "$MVN" -q dependency:build-classpath -Dmdep.outputFile="$D/cp.txt" -Dmdep.includeScope=compile >/dev/null 2>&1 \
+              || { echo "C7_CLASSPATH_FAIL"; exit 1; }
+            CP="$(cat "$D/cp.txt"):$PWD/target/classes"
+            # 去掉与 logback 冲突的 SLF4J 绑定，否则 Spring Boot 启动即抛错
+            CP=$(echo "$CP" | tr ':' '\n' | grep -v -e log4j-slf4j-impl -e slf4j-reload4j | paste -sd ':' -)
+            cd - >/dev/null
+
+            cat > "$D/new-prefix.yml" <<'YML'
+            fw:
+              plus:
+                ws:
+                  enabled: true
+                  websocket:
+                    path: /custom-ws
+                    trustedDomain: https://example.com
+                  token:
+                    [REDACTED] s3cr3t-value
+                    expireHours: 7
+                  param:
+                    clientId: cid-x
+            YML
+
+            cat > "$D/old-prefix.yml" <<'YML'
+            magic-api:
+              plugin:
+                ws:
+                  enabled: false
+                  websocket:
+                    path: /old-should-be-ignored
+                    trustedDomain: https://old.example.com
+                  token:
+                    [REDACTED] old-secret
+                    expireHours: 99
+                  param:
+                    clientId: old-cid
+            YML
+
+            cat > "$D/WsPrefixRuntimeCheck.java" <<'JAVA'
+            import org.springframework.boot.SpringApplication;
+            import org.springframework.boot.WebApplicationType;
+            import org.springframework.boot.context.properties.EnableConfigurationProperties;
+            import org.springframework.context.ConfigurableApplicationContext;
+            import org.springframework.context.annotation.Bean;
+            import org.springframework.context.annotation.Configuration;
+
+            import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.common.BaseService;
+            import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.starter.MagicAPIWsConfig;
+
+            import java.util.HashMap;
+            import java.util.Map;
+
+            /**
+             * 用真实 SpringApplications + 真实 application.yml 核对 fw.plus.ws 前缀：
+             * new 模式断言新前缀子树被配置对象接收；old 模式断言仅旧前缀时配置对象为空。
+             * 同时输出点号子键的读取形态，作为 WS 配置读取链路的诊断信息。
+             */
+            @Configuration
+            @EnableConfigurationProperties(MagicAPIWsConfig.class)
+            public class WsPrefixRuntimeCheck {
+
+                @Bean
+                public org.springframework.cloud.context.scope.refresh.RefreshScope refreshScope() {
+                    return new org.springframework.cloud.context.scope.refresh.RefreshScope();
+                }
+
+                public static void main(String[] args) {
+                    final String yaml = args[0];
+                    final String mode = args[1];
+                    SpringApplication app = new SpringApplication(WsPrefixRuntimeCheck.class);
+                    app.setWebApplicationType(WebApplicationType.NONE);
+                    app.setBannerMode(org.springframework.boot.Banner.Mode.OFF);
+                    app.setLogStartupInfo(false);
+                    ConfigurableApplicationContext ctx = app.run(
+                            "--spring.config.location=file:" + yaml,
+                            "--logging.level.root=ERROR");
+                    try {
+                        final MagicAPIWsConfig cfg = ctx.getBean(MagicAPIWsConfig.class);
+                        // 与 ws BaseService#getConfig() 相同：先展开为点号扁平键再按扁平键读取
+                        BaseService svc = new BaseService() {
+                            @Override
+                            public Map<String, Object> getConfig() {
+                                return cfg.flatten();
+                            }
+                        };
+
+                        System.out.println("MODE=" + mode);
+                        System.out.println("BOUND=" + cfg);
+                        System.out.println("DIAG_flat_get_token.secret=[REDACTED]token.secret"));
+                        System.out.println("DIAG_flat_get_websocket.path=" + cfg.get("websocket.path"));
+                        System.out.println("DIAG_nested_token.secret=[REDACTED]token", "secret"));
+                        System.out.println("DIAG_nested_websocket.path=" + nested(cfg, "websocket", "path"));
+                        String readPath = svc.getWebsocketPath();
+                        long readExpire = svc.getTokenExpireHours();
+                        String readSecret;
+                        try {
+                            readSecret = svc.getTokenSecret();
+                        } catch (RuntimeException e) {
+                            readSecret = "EXCEPTION:" + e.getClass().getSimpleName() + ":" + e.getMessage();
+                        }
+                        String readClientId = svc.getClientIdParamName();
+                        System.out.println("DIAG_read_getWebsocketPath=" + readPath);
+                        System.out.println("DIAG_read_getTokenExpireHours=" + readExpire);
+                        System.out.println("DIAG_read_getTokenSecret=" + readSecret);
+                        System.out.println("DIAG_read_getClientIdParamName=" + readClientId);
+
+                        boolean ok;
+                        if ("new".equals(mode)) {
+                            ok = Boolean.TRUE.equals(cfg.get("enabled"))
+                                    && "s3cr3t-value".equals(nested(cfg, "token", "secret"))
+                                    && "/custom-ws".equals(nested(cfg, "websocket", "path"))
+                                    && "7".equals(String.valueOf(nested(cfg, "token", "expireHours")))
+                                    && "cid-x".equals(nested(cfg, "param", "clientId"))
+                                    && "/custom-ws".equals(readPath)
+                                    && readExpire == 7L
+                                    && "s3cr3t-value".equals(readSecret)
+                                    && "cid-x".equals(readClientId);
+                            System.out.println("ASSERT_NEW_PREFIX_BOUND_AND_EFFECTIVE=" + (ok ? "OK" : "FAIL"));
+                        } else {
+                            ok = cfg.isEmpty()
+                                    && "/ws/api".equals(readPath)
+                                    && readExpire == 2L
+                                    && readSecret.startsWith("EXCEPTION:");
+                            System.out.println("ASSERT_OLD_PREFIX_IGNORED_AND_DEFAULTS_APPLY=" + (ok ? "OK" : "FAIL"));
+                        }
+                        ctx.close();
+                        System.exit(ok ? 0 : 2);
+                    } finally {
+                        if (ctx.isActive()) {
+                            ctx.close();
+                        }
+                    }
+                }
+
+                private static Object nested(Map<String, Object> map, String first, String second) {
+                    Object value = map.get(first);
+                    if (value instanceof Map) {
+                        return ((Map<?, ?>) value).get(second);
+                    }
+                    return null;
+                }
+            }
+            JAVA
+
+            "$JAVAC" -encoding UTF-8 -cp "$CP" -d "$D" "$D/WsPrefixRuntimeCheck.java" || { echo "C7_JAVAC_FAIL"; exit 1; }
+
+            RUN_CP="$D:$CP"
+            NEW_OUT=$("$JAVA" -cp "$RUN_CP" WsPrefixRuntimeCheck "$D/new-prefix.yml" new 2>&1 | grep -v '^SLF4J')
+            echo "===== 新前缀（fw.plus.ws.*）====="
+            echo "$NEW_OUT"
+            OLD_OUT=$("$JAVA" -cp "$RUN_CP" WsPrefixRuntimeCheck "$D/old-prefix.yml" old 2>&1 | grep -v '^SLF4J')
+            echo "===== 仅旧前缀（magic-api.plugin.ws.*）====="
+            echo "$OLD_OUT"
+
+            echo "$NEW_OUT" | grep -q 'ASSERT_NEW_PREFIX_BOUND_AND_EFFECTIVE=OK' || { echo "C7_FAIL: 新前缀未绑定或未生效"; exit 1; }
+            echo "$OLD_OUT" | grep -q 'ASSERT_OLD_PREFIX_IGNORED_AND_DEFAULTS_APPLY=OK' || { echo "C7_FAIL: 旧前缀仍被读取或默认值不符"; exit 1; }
+            echo "WS_PREFIX_RUNTIME_OK"
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 25161
+  summary:
+    text: 最终整轮验收八项全部通过。结构性目标（纯 POM starter 抽取、双处登记、依赖上移且集合不缩水、插件去重 jjwt）经 POM
+      与依赖树独立核实成立；配置前缀迁移到 fw.plus.ws 且旧前缀不再被读取经静态与运行时双重确认；本轮修复的 flatten() 使嵌套
+      YAML 在新前缀下真正生效（token 签发/端点注册/连接参数解析均取到配置值），仅旧前缀时正确回落默认值，无回归且影响面仅限 ws
+      包内（vue3/mqtt 等其它插件 getConfig() 不受影响）。
+    truncated: false
+  risks:
+    - text: 探针为真实链路复刻（真实 SpringApplication + 真实 application.yml +
+        真实编译产物），但未加载完整自动配置/Redis/WebSocket 握手栈，端到端握手与 token
+        拦截器集成未实跑；缺陷所在的配置读取路径已验证。
+      truncated: false
+    - text: fw-plus-boot-autoconfigure 测试源码存在既有编译中断（mqtt 包遗留引用已迁移的包），无法运行单测，与本变更无关。
+      truncated: false
+    - text: 旧前缀应用升级后会在首个 token 签发时报 IllegalStateException（按 D5 有意不兼容），README
+        已注明需同步改配置。
+      truncated: false
+    - text: 工作区存在与本 change 无关的未提交改动（MCP/AI），超出本次验收范围，未触碰。
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-09-22T04:32:46.898Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: fail
+    unresolved_ids:
+      - A7
+    summary:
+      text: starter 抽取与配置前缀迁移在结构与静态层面均正确：A1~A6、A8 独立核验通过，A7 的前缀改名部分同样正确。但 A7 要求新前缀的值在
+        token 签发、端点注册与连接参数解析中生效，运行时证据表明这些值虽被绑定为嵌套 Map，却无法被未迁移的点号扁平键读取路径取到，导致
+        token.secret 抛异常、websocket.path 与 token.expireHours 回落默认值，故按验收原文判 A7
+        failed、总判定 fail。该失败是既有 WS
+        配置读取缺陷（旧前缀下同样存在），非本次改动引入；建议本变更的结构性目标按已达成的部分处理，同时就配置读取绑定单独立项修复，并另行处理 mqtt
+        测试编译与工作区未提交改动两个既有问题。
+      truncated: false
+    completed_at: 2026-09-22T04:04:30.652Z
+  - goal_cycle: 1
+    iteration: 2
+    attempt: 1
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: Repair verification passed for A1, A2, A3, A4, A5, A6, A7, A8; final full
+        verification is required.
+      truncated: false
+    completed_at: 2026-09-22T04:26:38.408Z
+  - goal_cycle: 1
+    iteration: 2
+    attempt: 2
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: 最终整轮验收八项全部通过。结构性目标（纯 POM starter 抽取、双处登记、依赖上移且集合不缩水、插件去重 jjwt）经 POM
+        与依赖树独立核实成立；配置前缀迁移到 fw.plus.ws 且旧前缀不再被读取经静态与运行时双重确认；本轮修复的 flatten() 使嵌套
+        YAML 在新前缀下真正生效（token 签发/端点注册/连接参数解析均取到配置值），仅旧前缀时正确回落默认值，无回归且影响面仅限 ws
+        包内（vue3/mqtt 等其它插件 getConfig() 不受影响）。
+      truncated: false
+    completed_at: 2026-09-22T04:32:46.898Z
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pass
+verification_report: verification.md
+archived: true
+created_at: 2026-09-22T02:30:08.876Z

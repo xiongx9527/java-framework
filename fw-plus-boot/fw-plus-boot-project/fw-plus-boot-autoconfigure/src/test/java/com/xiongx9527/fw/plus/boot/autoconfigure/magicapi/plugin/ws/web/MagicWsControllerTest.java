@@ -1,10 +1,10 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.web;
 
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.handler.BaseDynamicWebSocketHandler;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.model.WsDataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.model.WsSubscribeInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.service.WsDataSourceInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.service.WsSubscribeInfoMagicResourceStorage;
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.handler.AbstractWebSocketHandler;
 import org.junit.jupiter.api.Test;
 import org.ssssssss.magicapi.core.config.MagicConfiguration;
 import org.ssssssss.magicapi.core.model.JsonBean;
@@ -103,7 +103,7 @@ class MagicWsControllerTest {
 
 	@Test
 	void datasourceTestShouldReturnOkWhenTokenSecretIsConfigured() {
-		BaseDynamicWebSocketHandler handler = mock(BaseDynamicWebSocketHandler.class);
+		AbstractWebSocketHandler handler = mock(AbstractWebSocketHandler.class);
 		MagicWsController controller = new MagicWsController(new MagicConfiguration(), null, null, null) {
 			@Override
 			public Map<String, Object> getConfig() {
@@ -130,7 +130,7 @@ class MagicWsControllerTest {
 
 	private MagicWsController controller(WsSubscribeInfoMagicResourceStorage subscribeStorage,
 	                                    WsDataSourceInfoMagicResourceStorage dataSourceStorage,
-	                                    BaseDynamicWebSocketHandler handler) {
+	                                    AbstractWebSocketHandler handler) {
 		return new MagicWsController(new MagicConfiguration(), subscribeStorage, dataSourceStorage, handler) {
 			@Override
 			public Map<String, Object> getConfig() {

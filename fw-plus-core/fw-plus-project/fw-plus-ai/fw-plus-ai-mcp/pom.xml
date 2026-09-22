@@ -36,6 +36,15 @@
             <optional>true</optional>
         </dependency>
         <!--
+            Spring WebSocket 传输实现所需的 spring-websocket / spring-messaging。
+            scope=optional（compile 期可见、不向下传递）。
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <!--
             Spring WebFlux（Reactive）传输实现所需的 spring-webflux / reactor。
             同样为 optional，仅当使用方引入 WebFlux 时才装配响应式端点。
         -->

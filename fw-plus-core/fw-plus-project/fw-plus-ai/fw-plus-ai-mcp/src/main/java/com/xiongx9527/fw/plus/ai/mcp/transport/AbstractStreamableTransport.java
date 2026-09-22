@@ -4,6 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xiongx9527.fw.plus.ai.mcp.protocol.McpJsonRpcRequest;
 import com.xiongx9527.fw.plus.ai.mcp.protocol.McpJsonRpcResponse;
 import com.xiongx9527.fw.plus.ai.mcp.server.McpAsyncServerImpl;
+import com.xiongx9527.fw.plus.ai.mcp.transport.SseSink;
+import com.xiongx9527.fw.plus.ai.mcp.transport.session.InMemoryMcpSessionStore;
+import com.xiongx9527.fw.plus.ai.mcp.transport.session.McpSessionData;
+import com.xiongx9527.fw.plus.ai.mcp.transport.session.McpSessionStore;
+import com.xiongx9527.fw.plus.ai.mcp.transport.session.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,7 +60,9 @@ public abstract class AbstractStreamableTransport implements McpStreamableTransp
 	protected final long sessionTimeoutMillis;
 	private final ObjectMapper objectMapper;
 
-	private final Map<String, Session> sessions = new ConcurrentHashMap<>();
+	private final McpSessionStore sessionStore;
+	/** 仅追踪活跃的 SSE sink（运行时态，不持久化） */
+	private final Map<String, Session> activeSessions = new ConcurrentHashMap<>();
 	private final List<String> allowedOrigins = new ArrayList<>();
 	private volatile McpAsyncServerImpl server;
 	private volatile boolean running;
@@ -63,10 +70,18 @@ public abstract class AbstractStreamableTransport implements McpStreamableTransp
 
 	protected AbstractStreamableTransport(String name, String path, long sessionTimeoutMillis,
 			ObjectMapper objectMapper) {
+		this(name, path, sessionTimeoutMillis, objectMapper,
+				new InMemoryMcpSessionStore(sessionTimeoutMillis));
+	}
+
+	protected AbstractStreamableTransport(String name, String path, long sessionTimeoutMillis,
+			ObjectMapper objectMapper, McpSessionStore sessionStore) {
 		this.name = name;
 		this.path = normalizePath(path);
 		this.sessionTimeoutMillis = sessionTimeoutMillis;
 		this.objectMapper = objectMapper;
+		this.sessionStore = sessionStore != null ? sessionStore
+				: new InMemoryMcpSessionStore(sessionTimeoutMillis);
 	}
 
 	// ==================== McpTransportLifecycle ====================
@@ -90,11 +105,13 @@ public abstract class AbstractStreamableTransport implements McpStreamableTransp
 
 	@Override
 	public String createSession() {
-		expireSessions();
-		Session session = new Session(UUID.randomUUID().toString());
-		sessions.put(session.id, session);
-		logger.debug("MCP instance '{}' created session {}", name, session.id);
-		return session.id;
+		String sessionId = UUID.randomUUID().toString();
+		McpSessionData data = McpSessionData.of(sessionId, 0L, System.currentTimeMillis(),
+				new ArrayDeque<McpSessionData.SseEvent>());
+		sessionStore.save(sessionId, data);
+		activeSessions.put(sessionId, new Session(data));
+		logger.debug("MCP instance '{}' created session {}", name, sessionId);
+		return sessionId;
 	}
 
 	@Override
@@ -102,14 +119,14 @@ public abstract class AbstractStreamableTransport implements McpStreamableTransp
 		if (sessionId == null) {
 			return false;
 		}
-		expireSessions();
-		return sessions.containsKey(sessionId);
+		return sessionStore.load(sessionId) != null;
 	}
 
 	@Override
 	public void closeSession(String sessionId) {
-		Session session = sessionId != null ? sessions.remove(sessionId) : null;
+		Session session = sessionId != null ? activeSessions.remove(sessionId) : null;
 		if (session == null) {
+			sessionStore.remove(sessionId);
 			return;
 		}
 		SseSink sink = session.sink;
@@ -121,12 +138,13 @@ public abstract class AbstractStreamableTransport implements McpStreamableTransp
 				logger.debug("Error completing SSE sink of session {}", sessionId, e);
 			}
 		}
+		sessionStore.remove(sessionId);
 		logger.debug("MCP instance '{}' closed session {}", name, sessionId);
 	}
 
 	@Override
 	public void closeAll() {
-		for (String sessionId : new ArrayList<>(sessions.keySet())) {
+		for (String sessionId : new ArrayList<>(activeSessions.keySet())) {
 			closeSession(sessionId);
 		}
 	}
@@ -167,29 +185,48 @@ public abstract class AbstractStreamableTransport implements McpStreamableTransp
 
 	@Override
 	public void notifyClients(String method, Object params) {
-		for (String sessionId : new ArrayList<>(sessions.keySet())) {
+		for (String sessionId : new ArrayList<>(activeSessions.keySet())) {
 			notifyClient(sessionId, method, params);
 		}
 	}
 
 	@Override
 	public void notifyClient(String sessionId, String method, Object params) {
-		Session session = sessionId != null ? sessions.get(sessionId) : null;
-		if (session == null) {
+		Session session = sessionId != null ? activeSessions.get(sessionId) : null;
+		McpSessionData stored = sessionId != null ? sessionStore.load(sessionId) : null;
+		if (stored == null && session == null) {
 			logger.debug("Drop notification [{}]: unknown session {}", method, sessionId);
 			return;
 		}
 		String payload = buildNotification(method, params);
 		long eventId;
-		SseSink sink;
-		synchronized (session) {
-			eventId = ++session.eventSeq;
-			session.events.addLast(new SseEvent(Long.toString(eventId), payload));
-			while (session.events.size() > MAX_EVENT_BUFFER) {
-				session.events.removeFirst();
+		Deque<McpSessionData.SseEvent> eventBuffer;
+		synchronized (resolveSyncLock(sessionId)) {
+			if (session != null) {
+				eventId = ++session.eventSeq;
+				session.events.addLast(new McpSessionData.SseEvent(Long.toString(eventId), payload));
+				while (session.events.size() > MAX_EVENT_BUFFER) {
+					session.events.removeFirst();
+				}
+				eventBuffer = session.events;
+			} else {
+				eventId = stored.getEventSeq() + 1;
+				stored.setEventSeq(eventId);
+				ArrayDeque<McpSessionData.SseEvent> newEvents = new ArrayDeque<>(stored.getEvents());
+				newEvents.addLast(new McpSessionData.SseEvent(Long.toString(eventId), payload));
+				while (newEvents.size() > MAX_EVENT_BUFFER) {
+					newEvents.removeFirst();
+				}
+				stored.setEvents(newEvents);
+				stored.setEventSeq(eventId);
+				eventBuffer = newEvents;
 			}
-			sink = session.sink;
 		}
+		// 持久化事件缓冲
+		sessionStore.save(sessionId, McpSessionData.of(
+				sessionId, eventId, System.currentTimeMillis(), eventBuffer));
+		// 发送到活跃 sink
+		SseSink sink = session != null ? session.sink : null;
 		if (sink != null) {
 			write(sink, Long.toString(eventId), payload);
 		}
@@ -222,19 +259,26 @@ public abstract class AbstractStreamableTransport implements McpStreamableTransp
 	 * @return 会话不存在时返回 {@code false}
 	 */
 	protected boolean attachSink(String sessionId, SseSink sink, String lastEventId) {
-		Session session = sessionId != null ? sessions.get(sessionId) : null;
+		Session session = sessionId != null ? activeSessions.get(sessionId) : null;
 		if (session == null) {
-			return false;
+			// 尝试从持久化存储恢复
+			McpSessionData data = sessionStore.load(sessionId);
+			if (data != null) {
+				session = new Session(data);
+				activeSessions.put(sessionId, session);
+			} else {
+				return false;
+			}
 		}
 		SseSink previous;
-		List<SseEvent> replay = new ArrayList<>();
+		List<McpSessionData.SseEvent> replay = new ArrayList<>();
 		synchronized (session) {
 			previous = session.sink;
 			session.sink = sink;
 			session.lastAccess = System.currentTimeMillis();
 			if (lastEventId != null && !lastEventId.isEmpty()) {
-				for (SseEvent event : session.events) {
-					if (compareEventId(event.id, lastEventId) > 0) {
+				for (McpSessionData.SseEvent event : session.events) {
+					if (compareEventId(event.getId(), lastEventId) > 0) {
 						replay.add(event);
 					}
 				}
@@ -247,8 +291,8 @@ public abstract class AbstractStreamableTransport implements McpStreamableTransp
 				logger.debug("Error completing replaced SSE sink of session {}", sessionId, e);
 			}
 		}
-		for (SseEvent event : replay) {
-			write(sink, event.id, event.payload);
+		for (McpSessionData.SseEvent event : replay) {
+			write(sink, event.getId(), event.getPayload());
 		}
 		return true;
 	}
@@ -257,13 +301,15 @@ public abstract class AbstractStreamableTransport implements McpStreamableTransp
 	 * 会话 SSE 通道结束时解绑（客户端断开、超时、错误）
 	 */
 	protected void detachSink(String sessionId, SseSink sink) {
-		Session session = sessionId != null ? sessions.get(sessionId) : null;
+		Session session = sessionId != null ? activeSessions.get(sessionId) : null;
 		if (session == null) {
 			return;
 		}
-		synchronized (session) {
+		synchronized (resolveSyncLock(sessionId)) {
 			if (session.sink == sink) {
 				session.sink = null;
+				// 持久化当前状态
+				sessionStore.save(sessionId, session.toData());
 			}
 		}
 	}
@@ -272,7 +318,8 @@ public abstract class AbstractStreamableTransport implements McpStreamableTransp
 	 * 会话是否仍存在（供 SSE 超时回调判断）
 	 */
 	protected boolean isKnownSession(String sessionId) {
-		return sessionId != null && sessions.containsKey(sessionId);
+		return sessionId != null && (activeSessions.containsKey(sessionId)
+				|| sessionStore.load(sessionId) != null);
 	}
 
 	/**
@@ -332,6 +379,11 @@ public abstract class AbstractStreamableTransport implements McpStreamableTransp
 
 	// ==================== 内部方法 ====================
 
+	private Object resolveSyncLock(String sessionId) {
+		Session session = activeSessions.get(sessionId);
+		return session != null ? session : new Object();
+	}
+
 	private void write(SseSink sink, String eventId, String payload) {
 		try {
 			sink.send(eventId, payload);
@@ -340,7 +392,7 @@ public abstract class AbstractStreamableTransport implements McpStreamableTransp
 		}
 	}
 
-	private String buildNotification(String method, Object params) {
+	protected String buildNotification(String method, Object params) {
 		Map<String, Object> notification = new LinkedHashMap<>();
 		notification.put("jsonrpc", "2.0");
 		if (params != null) {
@@ -355,63 +407,8 @@ public abstract class AbstractStreamableTransport implements McpStreamableTransp
 	}
 
 	private void expireSessions() {
-		long now = System.currentTimeMillis();
-		for (Map.Entry<String, Session> entry : sessions.entrySet()) {
-			Session session = entry.getValue();
-			if (now - session.lastAccess > sessionTimeoutMillis) {
-				closeSession(entry.getKey());
-			}
-		}
-	}
-
-	/**
-	 * SSE 写入通道抽象：屏蔽 SseEmitter 与 reactor Sinks 差异
-	 */
-	protected interface SseSink {
-
-		/**
-		 * 写入一条 SSE 事件
-		 */
-		void send(String eventId, String jsonData);
-
-		/**
-		 * 正常结束通道
-		 */
-		void complete();
-
-		/**
-		 * 以异常结束通道
-		 */
-		void completeWithError(Throwable error);
-	}
-
-	/**
-	 * 会话状态
-	 */
-	protected static final class Session {
-
-		final String id;
-		final Deque<SseEvent> events = new ArrayDeque<>();
-		volatile SseSink sink;
-		long eventSeq;
-		volatile long lastAccess = System.currentTimeMillis();
-
-		Session(String id) {
-			this.id = id;
-		}
-	}
-
-	/**
-	 * 缓冲的 SSE 事件
-	 */
-	protected static final class SseEvent {
-
-		final String id;
-		final String payload;
-
-		SseEvent(String id, String payload) {
-			this.id = id;
-			this.payload = payload;
+		if (sessionStore instanceof InMemoryMcpSessionStore) {
+			((InMemoryMcpSessionStore) sessionStore).expireSessions();
 		}
 	}
 
@@ -513,6 +510,6 @@ public abstract class AbstractStreamableTransport implements McpStreamableTransp
 	 * 内部调试用：当前会话数
 	 */
 	public int sessionCount() {
-		return sessions.size();
+		return activeSessions.size();
 	}
 }

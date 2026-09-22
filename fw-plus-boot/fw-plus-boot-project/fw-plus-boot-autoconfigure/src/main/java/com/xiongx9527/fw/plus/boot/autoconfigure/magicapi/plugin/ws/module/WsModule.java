@@ -2,9 +2,9 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.module;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.common.BaseService;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.handler.BaseDynamicWebSocketHandler;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.model.WsDataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.service.WsDataSourceInfoMagicResourceStorage;
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.handler.AbstractWebSocketHandler;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.ListUtils;
@@ -26,7 +26,7 @@ public class WsModule implements DynamicAttribute<WsModule, WsModule> , DynamicM
     /**
      * WebSocket处理器
      */
-    private final BaseDynamicWebSocketHandler baseDynamicWebSocketHandler;
+    private final AbstractWebSocketHandler webSocketHandler;
 
     /**
      * 数据源键名
@@ -36,11 +36,11 @@ public class WsModule implements DynamicAttribute<WsModule, WsModule> , DynamicM
     /**
      * WebSocket模块构造函数
      *
-     * @param baseDynamicWebSocketHandler WebSocket处理器
+     * @param webSocketHandler WebSocket处理器
      * @param key 数据源键名
      */
-    public WsModule(BaseDynamicWebSocketHandler baseDynamicWebSocketHandler, String key) {
-        this.baseDynamicWebSocketHandler = baseDynamicWebSocketHandler;
+    public WsModule(AbstractWebSocketHandler webSocketHandler, String key) {
+        this.webSocketHandler = webSocketHandler;
         this.key = key;
     }
 
@@ -51,7 +51,7 @@ public class WsModule implements DynamicAttribute<WsModule, WsModule> , DynamicM
      * @param message 要发送的消息内容
      */
     public void broadcastMessageToClient(String clientId , String message) {
-        this.baseDynamicWebSocketHandler.broadcastMessageToClient(key, clientId, message);
+        this.webSocketHandler.broadcastMessageToClient(key, clientId, message);
     }
 
     /**
@@ -60,7 +60,7 @@ public class WsModule implements DynamicAttribute<WsModule, WsModule> , DynamicM
      * @param message 要广播的消息内容
      */
     public void broadcastDistributedMessageToAllClient(String message) {
-        this.baseDynamicWebSocketHandler.broadcastDistributedMessageToAllClient(key, message);
+        this.webSocketHandler.broadcastDistributedMessageToAllClient(key, message);
     }
 
     /**
@@ -127,7 +127,7 @@ public class WsModule implements DynamicAttribute<WsModule, WsModule> , DynamicM
         if (StringUtils.isEmpty(dataSourceKey)) {
             return this;
         }
-        return new WsModule(this.baseDynamicWebSocketHandler,dataSourceKey);
+        return new WsModule(this.webSocketHandler,dataSourceKey);
     }
 
     /**
@@ -138,7 +138,7 @@ public class WsModule implements DynamicAttribute<WsModule, WsModule> , DynamicM
      */
     @Override
     public WsModule getDynamicAttribute(String key) {
-        return new WsModule(this.baseDynamicWebSocketHandler,key);
+        return new WsModule(this.webSocketHandler,key);
     }
 
 }
