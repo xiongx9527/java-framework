@@ -388,7 +388,7 @@ public class MyFileStorageService {
             HttpRequest request = HttpUtil.createGet(url, true);
             HttpResponse response = request.execute();
             if (response.isOk()) {
-                name = response.getFileNameFromDisposition();
+                name = response.getFileNameFromDisposition("");
                 byte[] bytes = response.bodyBytes();
                 return this.upload(bytes,name);
             } else {

@@ -3,10 +3,6 @@ org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
   com.xiongx9527.fw.plus.ai.autoconfigure.BaseAutoConfiguration,\
   com.xiongx9527.fw.plus.ai.autoconfigure.model.AiModelAutoConfiguration,\
   com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration,\
-  com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.starter.MagicAPITinyflowConfiguration,\
-  com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.tinyflow.MagicApiTinyflowLangChain4jAutoConfiguration,\
   com.xiongx9527.fw.plus.ai.autoconfigure.store.embedding.AiEmbeddingStoreAutoConfiguration,\
-  com.xiongx9527.fw.plus.ai.autoconfigure.tinyflow.TinyflowAutoConfiguration,\
-	com.xiongx9527.fw.plus.ai.autoconfigure.tinyflow.dify.TinyflowDifyExternalAutoConfiguration,\
-  com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.starter.MagicAPITinyflowRuntimeAutoConfiguration,\
-  com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter.LangChain4jAdapterAutoConfiguration
+  com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter.LangChain4jAdapterAutoConfiguration,\
+  com.xiongx9527.fw.plus.ai.autoconfigure.mcp.McpAutoConfiguration

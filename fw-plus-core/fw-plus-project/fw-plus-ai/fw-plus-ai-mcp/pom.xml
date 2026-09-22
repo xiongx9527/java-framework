@@ -3,21 +3,57 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <parent>
         <groupId>com.xiongx9527.fw.plus</groupId>
-        <artifactId>fw-plus-ai</artifactId>
+        <artifactId>fw-plus-parent</artifactId>
         <version>${revision}</version>
+        <relativePath>../../fw-plus-parent/pom.xml</relativePath>
     </parent>
+
     <artifactId>fw-plus-ai-mcp</artifactId>
-    <properties>
-        <main.basedir>${basedir}/../../..</main.basedir>
-    </properties>
+    <name>fw-plus-ai-mcp</name>
+    <description>MCP (Model Context Protocol) Core Implementation</description>
 
     <dependencies>
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-ai-base</artifactId>
+            <artifactId>fw-plus-common</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-json</artifactId>
+        </dependency>
+        <!--
+            Spring MVC（Servlet）传输实现所需的 spring-webmvc / javax.servlet。
+            scope=optional（compile 期可见、不向下传递），保证 core 同时支持 MVC 与
+            WebFlux 两套传输，又不把任何一栈强加给使用方（见 spec 2.4）。
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <!--
+            Spring WebFlux（Reactive）传输实现所需的 spring-webflux / reactor。
+            同样为 optional，仅当使用方引入 WebFlux 时才装配响应式端点。
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <!-- 测试依赖 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
-
 </project>

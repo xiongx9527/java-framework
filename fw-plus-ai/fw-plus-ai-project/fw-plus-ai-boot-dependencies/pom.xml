@@ -134,13 +134,7 @@
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.ai</groupId>
-                <artifactId>fw-plus-ai-magicapi-plugin-tinyflow</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus.ai</groupId>
-                <artifactId>fw-plus-ai-tinyflow-spring-boot-starter</artifactId>
+                <artifactId>fw-plus-ai-mcp-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
