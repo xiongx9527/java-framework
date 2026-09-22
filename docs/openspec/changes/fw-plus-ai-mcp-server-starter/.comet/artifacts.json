@@ -1,8 +1,0 @@
-{
-  "openspec_proposal": "docs/openspec/changes/fw-plus-ai-mcp-server-starter/proposal.md",
-  "openspec_design": "docs/openspec/changes/fw-plus-ai-mcp-server-starter/design.md",
-  "openspec_tasks": "docs/openspec/changes/fw-plus-ai-mcp-server-starter/tasks.md",
-  "openspec_delta_spec": "docs/openspec/changes/fw-plus-ai-mcp-server-starter/specs/mcp-server/spec.md",
-  "handoff_context": "docs/openspec/changes/fw-plus-ai-mcp-server-starter/.comet/handoff/design-context.json",
-  "handoff_markdown": "docs/openspec/changes/fw-plus-ai-mcp-server-starter/.comet/handoff/design-context.md"
-}
