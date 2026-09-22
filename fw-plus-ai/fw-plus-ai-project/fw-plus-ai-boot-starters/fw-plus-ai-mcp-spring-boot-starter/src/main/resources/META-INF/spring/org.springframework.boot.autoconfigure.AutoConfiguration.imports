@@ -1,0 +1,3 @@
+com.xiongx9527.fw.plus.ai.autoconfigure.mcp.McpAutoConfiguration
+com.xiongx9527.fw.plus.ai.autoconfigure.mcp.McpWebMvcAutoConfiguration
+com.xiongx9527.fw.plus.ai.autoconfigure.mcp.McpWebFluxAutoConfiguration

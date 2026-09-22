@@ -58,6 +58,20 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- fw-plus-ai-mcp 协议内核（core 层构件，经 core BOM 管理版本） -->
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-mcp</artifactId>
+        </dependency>
+
+        <!-- Spring MVC（Servlet）传输：optional，不把 MVC 强加给 WebFlux 使用方 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
         <dependency>
             <groupId>com.xiongx9527.fw.plus.ai</groupId>
             <artifactId>fw-plus-ai-boot</artifactId>
@@ -97,22 +111,6 @@
             <optional>true</optional>
         </dependency>
 
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-ai-tinyflow-core</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-            <exclusions>
-                <exclusion>
-                    <groupId>dev.langchain4j</groupId>
-                    <artifactId>langchain4j</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>dev.langchain4j</groupId>
-                    <artifactId>langchain4j-core</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
 
 		<dependency>
 			<groupId>com.xiongx9527.fw.plus</groupId>
@@ -121,20 +119,7 @@
 			<optional>true</optional>
 		</dependency>
 
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-ai-tinyflow-core</artifactId>
-            <version>${revision}</version>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
 
-		<dependency>
-			<groupId>com.xiongx9527.fw.plus</groupId>
-			<artifactId>fw-plus-ai-tinyflow-local</artifactId>
-			<version>${revision}</version>
-			<optional>true</optional>
-		</dependency>
 
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>

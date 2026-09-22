@@ -1,6 +1,0 @@
-{
-  "openspec_proposal": "docs/openspec/changes/split-langchain4j-adapter-packages/proposal.md",
-  "openspec_design": "docs/openspec/changes/split-langchain4j-adapter-packages/design.md",
-  "openspec_tasks": "docs/openspec/changes/split-langchain4j-adapter-packages/tasks.md",
-  "archive_directory": "docs/openspec/changes/archive/2026-08-29-split-langchain4j-adapter-packages"
-}

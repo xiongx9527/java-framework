@@ -1,0 +1,15 @@
+{
+  "change": "fw-plus-ai-mcp-server-starter",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "task_hash_policy": "task-content-v1",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "e7b85945c99f9893d4a8ba0e144fb726ecdc66a9eb6f56241fe39e8509220d23",
+  "files": [
+    { "path": "docs/openspec/changes/fw-plus-ai-mcp-server-starter/proposal.md", "sha256": "201c4990cbc02dc7d5cd6d8f13fae89f1791d4a8cf7c8c41c779728d2fed671a" },
+    { "path": "docs/openspec/changes/fw-plus-ai-mcp-server-starter/design.md", "sha256": "1c910f29e40e63f51e69f7f5a77d6f75a3257c27d1def7cd83d2f271378026ea" },
+    { "path": "docs/openspec/changes/fw-plus-ai-mcp-server-starter/tasks.md", "sha256": "f27833cf48d97cbb1ed15ac89573fbfdbe6bdc8df3751b0f763719bb71350b6d" },
+    { "path": "docs/openspec/changes/fw-plus-ai-mcp-server-starter/specs/mcp-server/spec.md", "sha256": "1b9cc5eb9297399f1d29534c7be939f3b539a6c52413d09c67451deb5124ec98" }
+  ]
+}

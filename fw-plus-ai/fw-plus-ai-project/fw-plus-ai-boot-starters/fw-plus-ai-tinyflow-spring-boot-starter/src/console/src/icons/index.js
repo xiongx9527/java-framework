@@ -1,1 +1,0 @@
-/* Tinyflow UI icon entrypoint. */
