@@ -2,6 +2,7 @@
 change: mcp-websocket-support
 design-doc: docs/openspec/changes/mcp-websocket-support/design.md
 base-ref: c7b3b0651df147815c409a3432ebdb7cd64987c0
+archived-with: 2026-09-22-mcp-websocket-support
 ---
 
 <!-- comet-task-authority: docs/openspec/changes/mcp-websocket-support/tasks.md -->

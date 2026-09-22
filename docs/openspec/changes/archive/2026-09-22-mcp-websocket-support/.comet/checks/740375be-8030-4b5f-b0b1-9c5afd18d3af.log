@@ -1,0 +1,469 @@
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] Fw-Plus Build                                                      [pom]
+[INFO] Fw-Plus Project                                                    [pom]
+[INFO] Fw-Plus Dependencies                                               [pom]
+[INFO] Fw-Plus Parent                                                     [pom]
+[INFO] Fw-Plus Annotation                                                 [jar]
+[INFO] Fw-Plus Common                                                     [jar]
+[INFO] fw-plus-ai-mcp                                                     [jar]
+[INFO] 
+[INFO] ----------------< com.xiongx9527.fw.plus:fw-plus-build >----------------
+[INFO] Building Fw-Plus Build 0.1.1-SNAPSHOT                              [1/7]
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- maven-clean-plugin:3.2.0:clean (default-clean) @ fw-plus-build ---
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:clean (flatten.clean) @ fw-plus-build ---
+[INFO] Deleting /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/.flattened-pom.xml
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:flatten (flatten) @ fw-plus-build ---
+[INFO] Generating flattened POM of project com.xiongx9527.fw.plus:fw-plus-build:pom:0.1.1-SNAPSHOT...
+[INFO] 
+[INFO] --- maven-install-plugin:2.5.2:install (default-install) @ fw-plus-build ---
+[INFO] Installing /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/.flattened-pom.xml to /Users/xiongxiao/.m2/repository/com/xiongx9527/fw/plus/fw-plus-build/0.1.1-SNAPSHOT/fw-plus-build-0.1.1-SNAPSHOT.pom
+[INFO] 
+[INFO] ---------------< com.xiongx9527.fw.plus:fw-plus-project >---------------
+[INFO] Building Fw-Plus Project 0.1.1-SNAPSHOT                            [2/7]
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- maven-clean-plugin:3.2.0:clean (default-clean) @ fw-plus-project ---
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:clean (flatten.clean) @ fw-plus-project ---
+[INFO] Deleting /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/.flattened-pom.xml
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:flatten (flatten) @ fw-plus-project ---
+[INFO] Generating flattened POM of project com.xiongx9527.fw.plus:fw-plus-project:pom:0.1.1-SNAPSHOT...
+[INFO] 
+[INFO] --- maven-install-plugin:2.5.2:install (default-install) @ fw-plus-project ---
+[INFO] Installing /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/.flattened-pom.xml to /Users/xiongxiao/.m2/repository/com/xiongx9527/fw/plus/fw-plus-project/0.1.1-SNAPSHOT/fw-plus-project-0.1.1-SNAPSHOT.pom
+[INFO] 
+[INFO] ------------< com.xiongx9527.fw.plus:fw-plus-dependencies >-------------
+[INFO] Building Fw-Plus Dependencies 0.1.1-SNAPSHOT                       [3/7]
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- maven-clean-plugin:3.2.0:clean (default-clean) @ fw-plus-dependencies ---
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:clean (flatten.clean) @ fw-plus-dependencies ---
+[INFO] Deleting /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-dependencies/.flattened-pom.xml
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:flatten (flatten) @ fw-plus-dependencies ---
+[INFO] Generating flattened POM of project com.xiongx9527.fw.plus:fw-plus-dependencies:pom:0.1.1-SNAPSHOT...
+[INFO] 
+[INFO] --- maven-install-plugin:2.5.2:install (default-install) @ fw-plus-dependencies ---
+[INFO] Installing /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-dependencies/.flattened-pom.xml to /Users/xiongxiao/.m2/repository/com/xiongx9527/fw/plus/fw-plus-dependencies/0.1.1-SNAPSHOT/fw-plus-dependencies-0.1.1-SNAPSHOT.pom
+[INFO] 
+[INFO] ---------------< com.xiongx9527.fw.plus:fw-plus-parent >----------------
+[INFO] Building Fw-Plus Parent 0.1.1-SNAPSHOT                             [4/7]
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- maven-clean-plugin:3.2.0:clean (default-clean) @ fw-plus-parent ---
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:clean (flatten.clean) @ fw-plus-parent ---
+[INFO] Deleting /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-parent/.flattened-pom.xml
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:flatten (flatten) @ fw-plus-parent ---
+[INFO] Generating flattened POM of project com.xiongx9527.fw.plus:fw-plus-parent:pom:0.1.1-SNAPSHOT...
+[INFO] 
+[INFO] --- maven-install-plugin:2.5.2:install (default-install) @ fw-plus-parent ---
+[INFO] Installing /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-parent/.flattened-pom.xml to /Users/xiongxiao/.m2/repository/com/xiongx9527/fw/plus/fw-plus-parent/0.1.1-SNAPSHOT/fw-plus-parent-0.1.1-SNAPSHOT.pom
+[INFO] 
+[INFO] -------------< com.xiongx9527.fw.plus:fw-plus-annotation >--------------
+[INFO] Building Fw-Plus Annotation 0.1.1-SNAPSHOT                         [5/7]
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- maven-clean-plugin:3.2.0:clean (default-clean) @ fw-plus-annotation ---
+[INFO] Deleting /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-annotation/target
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:clean (flatten.clean) @ fw-plus-annotation ---
+[INFO] Deleting /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-annotation/.flattened-pom.xml
+[INFO] 
+[INFO] --- maven-resources-plugin:3.2.0:resources (default-resources) @ fw-plus-annotation ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] skip non existing resourceDirectory /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-annotation/src/main/resources
+[INFO] skip non existing resourceDirectory /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-annotation/src/main/resources
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:flatten (flatten) @ fw-plus-annotation ---
+[INFO] Generating flattened POM of project com.xiongx9527.fw.plus:fw-plus-annotation:jar:0.1.1-SNAPSHOT...
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.10.1:compile (default-compile) @ fw-plus-annotation ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 2 source files to /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-annotation/target/classes
+[INFO] 
+[INFO] --- maven-resources-plugin:3.2.0:testResources (default-testResources) @ fw-plus-annotation ---
+[INFO] Not copying test resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.10.1:testCompile (default-testCompile) @ fw-plus-annotation ---
+[INFO] Not compiling test sources
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.22.2:test (default-test) @ fw-plus-annotation ---
+[INFO] Tests are skipped.
+[INFO] 
+[INFO] --- maven-jar-plugin:3.2.2:jar (default-jar) @ fw-plus-annotation ---
+[INFO] Building jar: /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-annotation/target/fw-plus-annotation-0.1.1-SNAPSHOT.jar
+[INFO] 
+[INFO] --- maven-install-plugin:2.5.2:install (default-install) @ fw-plus-annotation ---
+[INFO] Installing /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-annotation/target/fw-plus-annotation-0.1.1-SNAPSHOT.jar to /Users/xiongxiao/.m2/repository/com/xiongx9527/fw/plus/fw-plus-annotation/0.1.1-SNAPSHOT/fw-plus-annotation-0.1.1-SNAPSHOT.jar
+[INFO] Installing /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-annotation/.flattened-pom.xml to /Users/xiongxiao/.m2/repository/com/xiongx9527/fw/plus/fw-plus-annotation/0.1.1-SNAPSHOT/fw-plus-annotation-0.1.1-SNAPSHOT.pom
+[INFO] 
+[INFO] ---------------< com.xiongx9527.fw.plus:fw-plus-common >----------------
+[INFO] Building Fw-Plus Common 0.1.1-SNAPSHOT                             [6/7]
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- maven-clean-plugin:3.2.0:clean (default-clean) @ fw-plus-common ---
+[INFO] Deleting /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-common/target
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:clean (flatten.clean) @ fw-plus-common ---
+[INFO] Deleting /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-common/.flattened-pom.xml
+[INFO] 
+[INFO] --- maven-resources-plugin:3.2.0:resources (default-resources) @ fw-plus-common ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] Copying 0 resource
+[INFO] Copying 1 resource
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:flatten (flatten) @ fw-plus-common ---
+[INFO] Generating flattened POM of project com.xiongx9527.fw.plus:fw-plus-common:jar:0.1.1-SNAPSHOT...
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.10.1:compile (default-compile) @ fw-plus-common ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 56 source files to /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-common/target/classes
+[INFO] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-common/src/main/java/com/xiongx9527/fw/plus/common/validator/CommonsValidator.java: /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-common/src/main/java/com/xiongx9527/fw/plus/common/validator/CommonsValidator.java使用或覆盖了已过时的 API。
+[INFO] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-common/src/main/java/com/xiongx9527/fw/plus/common/validator/CommonsValidator.java: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+[INFO] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-common/src/main/java/com/xiongx9527/fw/plus/common/databind/ISensitiveStrategy.java: 某些输入文件使用了未经检查或不安全的操作。
+[INFO] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-common/src/main/java/com/xiongx9527/fw/plus/common/databind/ISensitiveStrategy.java: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+[INFO] 
+[INFO] --- maven-resources-plugin:3.2.0:testResources (default-testResources) @ fw-plus-common ---
+[INFO] Not copying test resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.10.1:testCompile (default-testCompile) @ fw-plus-common ---
+[INFO] Not compiling test sources
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.22.2:test (default-test) @ fw-plus-common ---
+[INFO] Tests are skipped.
+[INFO] 
+[INFO] --- maven-jar-plugin:3.2.2:jar (default-jar) @ fw-plus-common ---
+[INFO] Building jar: /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-common/target/fw-plus-common-0.1.1-SNAPSHOT.jar
+[INFO] 
+[INFO] --- maven-install-plugin:2.5.2:install (default-install) @ fw-plus-common ---
+[INFO] Installing /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-common/target/fw-plus-common-0.1.1-SNAPSHOT.jar to /Users/xiongxiao/.m2/repository/com/xiongx9527/fw/plus/fw-plus-common/0.1.1-SNAPSHOT/fw-plus-common-0.1.1-SNAPSHOT.jar
+[INFO] Installing /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-common/.flattened-pom.xml to /Users/xiongxiao/.m2/repository/com/xiongx9527/fw/plus/fw-plus-common/0.1.1-SNAPSHOT/fw-plus-common-0.1.1-SNAPSHOT.pom
+[INFO] 
+[INFO] ---------------< com.xiongx9527.fw.plus:fw-plus-ai-mcp >----------------
+[INFO] Building fw-plus-ai-mcp 0.1.1-SNAPSHOT                             [7/7]
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- maven-clean-plugin:3.2.0:clean (default-clean) @ fw-plus-ai-mcp ---
+[INFO] Deleting /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-mcp/target
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:clean (flatten.clean) @ fw-plus-ai-mcp ---
+[INFO] Deleting /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-mcp/.flattened-pom.xml
+[INFO] 
+[INFO] --- maven-resources-plugin:3.2.0:resources (default-resources) @ fw-plus-ai-mcp ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] Copying 0 resource
+[INFO] Copying 0 resource
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:flatten (flatten) @ fw-plus-ai-mcp ---
+[INFO] Generating flattened POM of project com.xiongx9527.fw.plus:fw-plus-ai-mcp:jar:0.1.1-SNAPSHOT...
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.10.1:compile (default-compile) @ fw-plus-ai-mcp ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 61 source files to /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-mcp/target/classes
+[INFO] 
+[INFO] --- maven-resources-plugin:3.2.0:testResources (default-testResources) @ fw-plus-ai-mcp ---
+[INFO] Not copying test resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.10.1:testCompile (default-testCompile) @ fw-plus-ai-mcp ---
+[INFO] Not compiling test sources
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.22.2:test (default-test) @ fw-plus-ai-mcp ---
+[INFO] Tests are skipped.
+[INFO] 
+[INFO] --- maven-jar-plugin:3.2.2:jar (default-jar) @ fw-plus-ai-mcp ---
+[INFO] Building jar: /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-mcp/target/fw-plus-ai-mcp-0.1.1-SNAPSHOT.jar
+[INFO] 
+[INFO] --- maven-install-plugin:2.5.2:install (default-install) @ fw-plus-ai-mcp ---
+[INFO] Installing /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-mcp/target/fw-plus-ai-mcp-0.1.1-SNAPSHOT.jar to /Users/xiongxiao/.m2/repository/com/xiongx9527/fw/plus/fw-plus-ai-mcp/0.1.1-SNAPSHOT/fw-plus-ai-mcp-0.1.1-SNAPSHOT.jar
+[INFO] Installing /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-mcp/.flattened-pom.xml to /Users/xiongxiao/.m2/repository/com/xiongx9527/fw/plus/fw-plus-ai-mcp/0.1.1-SNAPSHOT/fw-plus-ai-mcp-0.1.1-SNAPSHOT.pom
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for Fw-Plus Build 0.1.1-SNAPSHOT:
+[INFO] 
+[INFO] Fw-Plus Build ...................................... SUCCESS [  0.710 s]
+[INFO] Fw-Plus Project .................................... SUCCESS [  0.039 s]
+[INFO] Fw-Plus Dependencies ............................... SUCCESS [  0.275 s]
+[INFO] Fw-Plus Parent ..................................... SUCCESS [  0.158 s]
+[INFO] Fw-Plus Annotation ................................. SUCCESS [  1.935 s]
+[INFO] Fw-Plus Common ..................................... SUCCESS [  2.841 s]
+[INFO] fw-plus-ai-mcp ..................................... SUCCESS [  1.616 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  8.379 s
+[INFO] Finished at: 2026-09-22T15:41:13+08:00
+[INFO] ------------------------------------------------------------------------
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] Fw-Plus-AI Build                                                   [pom]
+[INFO] fw-plus-ai-project                                                 [pom]
+[INFO] fw-plus-ai-boot-dependencies                                       [pom]
+[INFO] fw-plus-ai-boot-parent                                             [pom]
+[INFO] fw-plus-ai-boot-common                                             [jar]
+[INFO] fw-plus-ai-boot                                                    [jar]
+[INFO] fw-plus-ai-boot-autoconfigure                                      [jar]
+[INFO] fw-plus-ai-boot-starters                                           [pom]
+[INFO] fw-plus-ai-mcp-spring-boot-starter                                 [jar]
+[INFO] 
+[INFO] -------------< com.xiongx9527.fw.plus.ai:fw-plus-ai-build >-------------
+[INFO] Building Fw-Plus-AI Build 0.1.1-SNAPSHOT                           [1/9]
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- maven-clean-plugin:3.2.0:clean (default-clean) @ fw-plus-ai-build ---
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:clean (flatten.clean) @ fw-plus-ai-build ---
+[INFO] Deleting /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/.flattened-pom.xml
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:flatten (flatten) @ fw-plus-ai-build ---
+[INFO] Generating flattened POM of project com.xiongx9527.fw.plus.ai:fw-plus-ai-build:pom:0.1.1-SNAPSHOT...
+[INFO] 
+[INFO] --- maven-install-plugin:2.5.2:install (default-install) @ fw-plus-ai-build ---
+[INFO] Installing /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/.flattened-pom.xml to /Users/xiongxiao/.m2/repository/com/xiongx9527/fw/plus/ai/fw-plus-ai-build/0.1.1-SNAPSHOT/fw-plus-ai-build-0.1.1-SNAPSHOT.pom
+[INFO] 
+[INFO] ------------< com.xiongx9527.fw.plus.ai:fw-plus-ai-project >------------
+[INFO] Building fw-plus-ai-project 0.1.1-SNAPSHOT                         [2/9]
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- maven-clean-plugin:3.2.0:clean (default-clean) @ fw-plus-ai-project ---
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:clean (flatten.clean) @ fw-plus-ai-project ---
+[INFO] Deleting /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/.flattened-pom.xml
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:flatten (flatten) @ fw-plus-ai-project ---
+[INFO] Generating flattened POM of project com.xiongx9527.fw.plus.ai:fw-plus-ai-project:pom:0.1.1-SNAPSHOT...
+[INFO] 
+[INFO] --- maven-install-plugin:2.5.2:install (default-install) @ fw-plus-ai-project ---
+[INFO] Installing /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/.flattened-pom.xml to /Users/xiongxiao/.m2/repository/com/xiongx9527/fw/plus/ai/fw-plus-ai-project/0.1.1-SNAPSHOT/fw-plus-ai-project-0.1.1-SNAPSHOT.pom
+[INFO] 
+[INFO] -------< com.xiongx9527.fw.plus.ai:fw-plus-ai-boot-dependencies >-------
+[INFO] Building fw-plus-ai-boot-dependencies 0.1.1-SNAPSHOT               [3/9]
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- maven-clean-plugin:3.2.0:clean (default-clean) @ fw-plus-ai-boot-dependencies ---
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:clean (flatten.clean) @ fw-plus-ai-boot-dependencies ---
+[INFO] Deleting /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-dependencies/.flattened-pom.xml
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:flatten (flatten) @ fw-plus-ai-boot-dependencies ---
+[INFO] Generating flattened POM of project com.xiongx9527.fw.plus.ai:fw-plus-ai-boot-dependencies:pom:0.1.1-SNAPSHOT...
+[INFO] 
+[INFO] --- maven-install-plugin:2.5.2:install (default-install) @ fw-plus-ai-boot-dependencies ---
+[INFO] Installing /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-dependencies/.flattened-pom.xml to /Users/xiongxiao/.m2/repository/com/xiongx9527/fw/plus/ai/fw-plus-ai-boot-dependencies/0.1.1-SNAPSHOT/fw-plus-ai-boot-dependencies-0.1.1-SNAPSHOT.pom
+[INFO] 
+[INFO] ----------< com.xiongx9527.fw.plus.ai:fw-plus-ai-boot-parent >----------
+[INFO] Building fw-plus-ai-boot-parent 0.1.1-SNAPSHOT                     [4/9]
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- maven-clean-plugin:3.2.0:clean (default-clean) @ fw-plus-ai-boot-parent ---
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:clean (flatten.clean) @ fw-plus-ai-boot-parent ---
+[INFO] Deleting /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-parent/.flattened-pom.xml
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:flatten (flatten) @ fw-plus-ai-boot-parent ---
+[INFO] Generating flattened POM of project com.xiongx9527.fw.plus.ai:fw-plus-ai-boot-parent:pom:0.1.1-SNAPSHOT...
+[INFO] 
+[INFO] --- maven-install-plugin:2.5.2:install (default-install) @ fw-plus-ai-boot-parent ---
+[INFO] Installing /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-parent/.flattened-pom.xml to /Users/xiongxiao/.m2/repository/com/xiongx9527/fw/plus/ai/fw-plus-ai-boot-parent/0.1.1-SNAPSHOT/fw-plus-ai-boot-parent-0.1.1-SNAPSHOT.pom
+[INFO] 
+[INFO] ----------< com.xiongx9527.fw.plus.ai:fw-plus-ai-boot-common >----------
+[INFO] Building fw-plus-ai-boot-common 0.1.1-SNAPSHOT                     [5/9]
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- maven-clean-plugin:3.2.0:clean (default-clean) @ fw-plus-ai-boot-common ---
+[INFO] Deleting /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-common/target
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:clean (flatten.clean) @ fw-plus-ai-boot-common ---
+[INFO] Deleting /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-common/.flattened-pom.xml
+[INFO] 
+[INFO] --- maven-resources-plugin:3.2.0:resources (default-resources) @ fw-plus-ai-boot-common ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] skip non existing resourceDirectory /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-common/src/main/resources
+[INFO] skip non existing resourceDirectory /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-common/src/main/resources
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:flatten (flatten) @ fw-plus-ai-boot-common ---
+[INFO] Generating flattened POM of project com.xiongx9527.fw.plus.ai:fw-plus-ai-boot-common:jar:0.1.1-SNAPSHOT...
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.10.1:compile (default-compile) @ fw-plus-ai-boot-common ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- maven-resources-plugin:3.2.0:testResources (default-testResources) @ fw-plus-ai-boot-common ---
+[INFO] Not copying test resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.10.1:testCompile (default-testCompile) @ fw-plus-ai-boot-common ---
+[INFO] Not compiling test sources
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.22.2:test (default-test) @ fw-plus-ai-boot-common ---
+[INFO] Tests are skipped.
+[INFO] 
+[INFO] --- maven-jar-plugin:3.2.2:jar (default-jar) @ fw-plus-ai-boot-common ---
+[WARNING] JAR will be empty - no content was marked for inclusion!
+[INFO] Building jar: /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-common/target/fw-plus-ai-boot-common-0.1.1-SNAPSHOT.jar
+[INFO] 
+[INFO] --- maven-install-plugin:2.5.2:install (default-install) @ fw-plus-ai-boot-common ---
+[INFO] Installing /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-common/target/fw-plus-ai-boot-common-0.1.1-SNAPSHOT.jar to /Users/xiongxiao/.m2/repository/com/xiongx9527/fw/plus/ai/fw-plus-ai-boot-common/0.1.1-SNAPSHOT/fw-plus-ai-boot-common-0.1.1-SNAPSHOT.jar
+[INFO] Installing /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-common/.flattened-pom.xml to /Users/xiongxiao/.m2/repository/com/xiongx9527/fw/plus/ai/fw-plus-ai-boot-common/0.1.1-SNAPSHOT/fw-plus-ai-boot-common-0.1.1-SNAPSHOT.pom
+[INFO] 
+[INFO] -------------< com.xiongx9527.fw.plus.ai:fw-plus-ai-boot >--------------
+[INFO] Building fw-plus-ai-boot 0.1.1-SNAPSHOT                            [6/9]
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- maven-clean-plugin:3.2.0:clean (default-clean) @ fw-plus-ai-boot ---
+[INFO] Deleting /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot/target
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:clean (flatten.clean) @ fw-plus-ai-boot ---
+[INFO] Deleting /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot/.flattened-pom.xml
+[INFO] 
+[INFO] --- maven-resources-plugin:3.2.0:resources (default-resources) @ fw-plus-ai-boot ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] skip non existing resourceDirectory /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot/src/main/resources
+[INFO] skip non existing resourceDirectory /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot/src/main/resources
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:flatten (flatten) @ fw-plus-ai-boot ---
+[INFO] Generating flattened POM of project com.xiongx9527.fw.plus.ai:fw-plus-ai-boot:jar:0.1.1-SNAPSHOT...
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.10.1:compile (default-compile) @ fw-plus-ai-boot ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- maven-resources-plugin:3.2.0:testResources (default-testResources) @ fw-plus-ai-boot ---
+[INFO] Not copying test resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.10.1:testCompile (default-testCompile) @ fw-plus-ai-boot ---
+[INFO] Not compiling test sources
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.22.2:test (default-test) @ fw-plus-ai-boot ---
+[INFO] Tests are skipped.
+[INFO] 
+[INFO] --- maven-jar-plugin:3.2.2:jar (default-jar) @ fw-plus-ai-boot ---
+[WARNING] JAR will be empty - no content was marked for inclusion!
+[INFO] Building jar: /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot/target/fw-plus-ai-boot-0.1.1-SNAPSHOT.jar
+[INFO] 
+[INFO] --- maven-install-plugin:2.5.2:install (default-install) @ fw-plus-ai-boot ---
+[INFO] Installing /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot/target/fw-plus-ai-boot-0.1.1-SNAPSHOT.jar to /Users/xiongxiao/.m2/repository/com/xiongx9527/fw/plus/ai/fw-plus-ai-boot/0.1.1-SNAPSHOT/fw-plus-ai-boot-0.1.1-SNAPSHOT.jar
+[INFO] Installing /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot/.flattened-pom.xml to /Users/xiongxiao/.m2/repository/com/xiongx9527/fw/plus/ai/fw-plus-ai-boot/0.1.1-SNAPSHOT/fw-plus-ai-boot-0.1.1-SNAPSHOT.pom
+[INFO] 
+[INFO] ------< com.xiongx9527.fw.plus.ai:fw-plus-ai-boot-autoconfigure >-------
+[INFO] Building fw-plus-ai-boot-autoconfigure 0.1.1-SNAPSHOT              [7/9]
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- maven-clean-plugin:3.2.0:clean (default-clean) @ fw-plus-ai-boot-autoconfigure ---
+[INFO] Deleting /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/target
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:clean (flatten.clean) @ fw-plus-ai-boot-autoconfigure ---
+[INFO] Deleting /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/.flattened-pom.xml
+[INFO] 
+[INFO] --- maven-resources-plugin:3.2.0:resources (default-resources) @ fw-plus-ai-boot-autoconfigure ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] Copying 0 resource
+[INFO] Copying 2 resources
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:flatten (flatten) @ fw-plus-ai-boot-autoconfigure ---
+[INFO] Generating flattened POM of project com.xiongx9527.fw.plus.ai:fw-plus-ai-boot-autoconfigure:jar:0.1.1-SNAPSHOT...
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.10.1:compile (default-compile) @ fw-plus-ai-boot-autoconfigure ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 54 source files to /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/target/classes
+[INFO] 
+[INFO] --- maven-resources-plugin:3.2.0:testResources (default-testResources) @ fw-plus-ai-boot-autoconfigure ---
+[INFO] Not copying test resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.10.1:testCompile (default-testCompile) @ fw-plus-ai-boot-autoconfigure ---
+[INFO] Not compiling test sources
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.22.2:test (default-test) @ fw-plus-ai-boot-autoconfigure ---
+[INFO] Tests are skipped.
+[INFO] 
+[INFO] --- maven-jar-plugin:3.2.2:jar (default-jar) @ fw-plus-ai-boot-autoconfigure ---
+[INFO] Building jar: /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/target/fw-plus-ai-boot-autoconfigure-0.1.1-SNAPSHOT.jar
+[INFO] 
+[INFO] --- maven-install-plugin:2.5.2:install (default-install) @ fw-plus-ai-boot-autoconfigure ---
+[INFO] Installing /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/target/fw-plus-ai-boot-autoconfigure-0.1.1-SNAPSHOT.jar to /Users/xiongxiao/.m2/repository/com/xiongx9527/fw/plus/ai/fw-plus-ai-boot-autoconfigure/0.1.1-SNAPSHOT/fw-plus-ai-boot-autoconfigure-0.1.1-SNAPSHOT.jar
+[INFO] Installing /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/.flattened-pom.xml to /Users/xiongxiao/.m2/repository/com/xiongx9527/fw/plus/ai/fw-plus-ai-boot-autoconfigure/0.1.1-SNAPSHOT/fw-plus-ai-boot-autoconfigure-0.1.1-SNAPSHOT.pom
+[INFO] 
+[INFO] ---------< com.xiongx9527.fw.plus.ai:fw-plus-ai-boot-starters >---------
+[INFO] Building fw-plus-ai-boot-starters 0.1.1-SNAPSHOT                   [8/9]
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- maven-clean-plugin:3.2.0:clean (default-clean) @ fw-plus-ai-boot-starters ---
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:clean (flatten.clean) @ fw-plus-ai-boot-starters ---
+[INFO] Deleting /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/.flattened-pom.xml
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:flatten (flatten) @ fw-plus-ai-boot-starters ---
+[INFO] Generating flattened POM of project com.xiongx9527.fw.plus.ai:fw-plus-ai-boot-starters:pom:0.1.1-SNAPSHOT...
+[INFO] 
+[INFO] --- maven-install-plugin:2.5.2:install (default-install) @ fw-plus-ai-boot-starters ---
+[INFO] Installing /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/.flattened-pom.xml to /Users/xiongxiao/.m2/repository/com/xiongx9527/fw/plus/ai/fw-plus-ai-boot-starters/0.1.1-SNAPSHOT/fw-plus-ai-boot-starters-0.1.1-SNAPSHOT.pom
+[INFO] 
+[INFO] ----< com.xiongx9527.fw.plus.ai:fw-plus-ai-mcp-spring-boot-starter >----
+[INFO] Building fw-plus-ai-mcp-spring-boot-starter 0.1.1-SNAPSHOT         [9/9]
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- maven-clean-plugin:3.2.0:clean (default-clean) @ fw-plus-ai-mcp-spring-boot-starter ---
+[INFO] Deleting /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-mcp-spring-boot-starter/target
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:clean (flatten.clean) @ fw-plus-ai-mcp-spring-boot-starter ---
+[INFO] Deleting /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-mcp-spring-boot-starter/.flattened-pom.xml
+[INFO] 
+[INFO] --- maven-resources-plugin:3.2.0:resources (default-resources) @ fw-plus-ai-mcp-spring-boot-starter ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] Copying 0 resource
+[INFO] Copying 2 resources
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:flatten (flatten) @ fw-plus-ai-mcp-spring-boot-starter ---
+[INFO] Generating flattened POM of project com.xiongx9527.fw.plus.ai:fw-plus-ai-mcp-spring-boot-starter:jar:0.1.1-SNAPSHOT...
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.10.1:compile (default-compile) @ fw-plus-ai-mcp-spring-boot-starter ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- maven-resources-plugin:3.2.0:testResources (default-testResources) @ fw-plus-ai-mcp-spring-boot-starter ---
+[INFO] Not copying test resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.10.1:testCompile (default-testCompile) @ fw-plus-ai-mcp-spring-boot-starter ---
+[INFO] Not compiling test sources
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.22.2:test (default-test) @ fw-plus-ai-mcp-spring-boot-starter ---
+[INFO] Tests are skipped.
+[INFO] 
+[INFO] --- maven-jar-plugin:3.2.2:jar (default-jar) @ fw-plus-ai-mcp-spring-boot-starter ---
+[INFO] Building jar: /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-mcp-spring-boot-starter/target/fw-plus-ai-mcp-spring-boot-starter-0.1.1-SNAPSHOT.jar
+[INFO] 
+[INFO] --- maven-install-plugin:2.5.2:install (default-install) @ fw-plus-ai-mcp-spring-boot-starter ---
+[INFO] Installing /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-mcp-spring-boot-starter/target/fw-plus-ai-mcp-spring-boot-starter-0.1.1-SNAPSHOT.jar to /Users/xiongxiao/.m2/repository/com/xiongx9527/fw/plus/ai/fw-plus-ai-mcp-spring-boot-starter/0.1.1-SNAPSHOT/fw-plus-ai-mcp-spring-boot-starter-0.1.1-SNAPSHOT.jar
+[INFO] Installing /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-mcp-spring-boot-starter/.flattened-pom.xml to /Users/xiongxiao/.m2/repository/com/xiongx9527/fw/plus/ai/fw-plus-ai-mcp-spring-boot-starter/0.1.1-SNAPSHOT/fw-plus-ai-mcp-spring-boot-starter-0.1.1-SNAPSHOT.pom
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for Fw-Plus-AI Build 0.1.1-SNAPSHOT:
+[INFO] 
+[INFO] Fw-Plus-AI Build ................................... SUCCESS [  1.789 s]
+[INFO] fw-plus-ai-project ................................. SUCCESS [  0.267 s]
+[INFO] fw-plus-ai-boot-dependencies ....................... SUCCESS [  0.691 s]
+[INFO] fw-plus-ai-boot-parent ............................. SUCCESS [  0.398 s]
+[INFO] fw-plus-ai-boot-common ............................. SUCCESS [  2.304 s]
+[INFO] fw-plus-ai-boot .................................... SUCCESS [  0.990 s]
+[INFO] fw-plus-ai-boot-autoconfigure ...................... SUCCESS [  9.545 s]
+[INFO] fw-plus-ai-boot-starters ........................... SUCCESS [  0.387 s]
+[INFO] fw-plus-ai-mcp-spring-boot-starter ................. SUCCESS [  0.672 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  18.788 s
+[INFO] Finished at: 2026-09-22T15:41:34+08:00
+[INFO] ------------------------------------------------------------------------

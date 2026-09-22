@@ -1,0 +1,9 @@
+{
+  "openspec_proposal": "docs/openspec/changes/mcp-websocket-support/proposal.md",
+  "openspec_design": "docs/openspec/changes/mcp-websocket-support/design.md",
+  "openspec_tasks": "docs/openspec/changes/mcp-websocket-support/tasks.md",
+  "openspec_delta_spec": "docs/openspec/changes/mcp-websocket-support/specs/mcp/session-externalization/spec.md",
+  "handoff_context": "docs/openspec/changes/archive/2026-09-22-mcp-websocket-support/.comet/handoff/design-context.json",
+  "handoff_markdown": "docs/openspec/changes/archive/2026-09-22-mcp-websocket-support/.comet/handoff/design-context.md",
+  "archive_directory": "docs/openspec/changes/archive/2026-09-22-mcp-websocket-support"
+}
