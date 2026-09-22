@@ -14,7 +14,7 @@ import java.util.List;
  * @author xiongxiao
  * @date 2025-09-21
  */
-@ConfigurationProperties(prefix = "fw-plus.mcp")
+@ConfigurationProperties(prefix = "fw-plus.ai.mcp")
 public class McpProperties {
 
 	private boolean enabled = true;
