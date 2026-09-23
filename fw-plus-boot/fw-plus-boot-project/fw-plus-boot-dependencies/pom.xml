@@ -82,6 +82,8 @@
         <spring-cloud-stream-rocketmq.version>2.3.0.RELEASE</spring-cloud-stream-rocketmq.version>
 		<!-- spring-cloud-azure-starter-stream-eventhubs版本号 -->
 		<spring-cloud-azure-starter-stream-eventhubs.version>5.21.0</spring-cloud-azure-starter-stream-eventhubs.version>
+		<!-- centrifugo-java版本号 -->
+		<centrifuge.version>0.7.0</centrifuge.version>
 	</properties>
     <name>Fw-Plus-Boot Dependencies</name>
     <description>
@@ -611,6 +613,12 @@
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-centrifuge-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -769,6 +777,12 @@
                 <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-java-entity</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.centrifugal</groupId>
+                <artifactId>centrifuge-java</artifactId>
+                <version>${centrifuge.version}</version>
             </dependency>
 
             <!--

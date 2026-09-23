@@ -12,7 +12,6 @@
     <packaging>pom</packaging>
     <modules>
         <module>fw-plus-ai-magicapi-sample</module>
-        <module>fw-plus-ai-mcp-server-sample</module>
     </modules>
     <version>0.1.1-SNAPSHOT</version>
     <artifactId>fw-plus-ai-samples</artifactId>

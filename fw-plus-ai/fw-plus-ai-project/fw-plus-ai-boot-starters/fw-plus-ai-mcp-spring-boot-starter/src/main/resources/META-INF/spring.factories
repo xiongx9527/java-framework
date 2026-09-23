@@ -1,6 +1,0 @@
-# Spring Boot auto-configuration（与 AutoConfiguration.imports 双注册，Boot 2.7 兼容老式加载）
-# 指向 AI 层 autoconfigure 中的 MCP 自动配置，避免在 Starter 中重复实现装配逻辑
-org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.McpAutoConfiguration,\
-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.McpWebMvcAutoConfiguration,\
-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.McpWebFluxAutoConfiguration
