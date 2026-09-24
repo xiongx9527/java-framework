@@ -13,7 +13,8 @@ Starter 为 thin starter，仅含 `pom.xml`。实现位于 `fw-plus-boot-autocon
 | `enabled` | `true` | 总开关 |
 | `token.secret` | 必填 | JWT 密钥，缺失抛 `IllegalStateException` |
 | `token.expireHours` | `2` | Token 有效期 |
-| `websocket.path` | `/ws/api` | 端点路径 |
+| `websocket.path` | `/ws/api` | 主端点路径 |
+| `websocket.paths` | 空 | 追加端点路径，与 `websocket.path` 合并去重后全部注册 |
 | `websocket.trustedDomain` | 空 | 受信任来源，逗号分隔；空表示不允许跨域 |
 | `websocket.subProtocols` | 空 | 子协议，逗号分隔 |
 | `websocket.supportsPartialMessages` | `false` | 是否支持部分消息 |
@@ -82,6 +83,16 @@ Token 为 JWT，取 `subject` 作为 appId；未配置 `fw.plus.ws.token.secret`
 webmvc 栈：`WsEndpointRegistrar implements WebSocketConfigurer`，在 `@ConditionalOnWebApplication(type=SERVLET)` 下生效。
 webflux 栈：注册响应式 `WebSocketHandler` 与 `SimpleUrlHandlerMapping`，在 `@ConditionalOnWebApplication(type=REACTIVE)` 下生效。订阅脚本提交到独立有界线程池，不阻塞 Reactor event loop。
 
+## 多端点与多注册来源
+
+端点注册矩阵 = 全部 `WsBasePathProvider` 的 basePath ×（`websocket.path` + `websocket.paths`）。两条栈按同一份配置展开出同一组完整路径。
+
+相对路径：主路径在前，`websocket.paths` 按配置顺序追加；逐项去空白并补前导斜杠，`LinkedHashSet` 保序去重。主路径显式置空串时不补 `/ws/api`，保留改造前 webmvc 语义：只按基础路径注册。基础路径：容器内 `WsBasePathProvider` 候选全部纳入，`@Primary` 优先，其余按 `@Order` 或 `Ordered` 排序；无候选时按无 basePath 处理。连接处斜杠的拼接由 `WsEndpointPathResolver.joinBasePath` 统一处理。
+
+webmvc 逐条 `registry.addHandler`，跨域、子协议与握手拦截器对每条路径同等生效；单条路径注册失败只记录日志，不影响其余路径。webflux 把全部路径写入同一个 `SimpleUrlHandlerMapping` 的 urlMap，Bean 名与 order（`Ordered.LOWEST_PRECEDENCE - 100`）保持稳定。
+
+多注册来源：webmvc 侧地基注册器不独占 `WebSocketConfigurer`，由 Spring `DelegatingWebSocketConfiguration` 收集容器内全部实例；宿主可自行实例化 `WsEndpointRegistrar`（公开类）或写自己的 `WebSocketConfigurer`，与地基注册器并存生效，也可用同名 Bean `wsEndpointRegistrar` 整体覆盖地基注册。webflux 侧宿主自带 `SimpleUrlHandlerMapping` 时与地基 mapping 由 order 决定先后，互不覆盖。一个应用只会是 servlet 或 reactive 一种栈，不构造双栈共存的上下文。
+
 ## SPI
 
 - `WsBusinessDispatcher`：`existsApp`、`findEnabledSubscribes`、`execute`。未注册时地基退化为纯通道。
@@ -95,7 +106,9 @@ WS 能力在 `spring.factories` 与 `META-INF/spring/org.springframework.boot.au
 
 ## Scenario
 
-- **Scenario A1**：WsConfig 为 POJO，`fw.plus.ws.*` 全部键可绑定，`flatten()` 扁平键集合与改造前逐键一致。
+Scenario 编号延续历史变更：A1 至 A16 为此前 change 已验收的既有场景，A17 起为本 change 新增。
+
+- **Scenario A1**：WsConfig 为类型安全嵌套 POJO，`fw.plus.ws.*` 下 `websocket.path`、`websocket.paths` 与其余既有键均可绑定；`flatten()` 扁平键集合在改造前的基础上仅新增 `websocket.paths`。
 - **Scenario A2**：`WsBaseService` getter 名与返回类型不变，magic-api ws 插件零改动取到相同配置值。
 - **Scenario A3**：只发业务文本消息不发 ping 的会话超过 `expireMinutes` 仍有效，不被关闭、不返回 SERVICE_OVERLOAD。
 - **Scenario A4**：关闭走 `DisposableBean`，无 `Runtime.addShutdownHook`，重复创建 handler 不累积钩子。
@@ -111,3 +124,5 @@ WS 能力在 `spring.factories` 与 `META-INF/spring/org.springframework.boot.au
 - **Scenario A14**：WS 自动配置只登记 `WsAutoConfiguration` 一项，`spring.factories` 与 `AutoConfiguration.imports` 一致；Redis 与 webflux 装配经 `@Import` 生效，与分别登记时行为一致。
 - **Scenario A15**：死配置已移除，新拼写可用且旧拼写保留 `@Deprecated` 委托，无第三方内部 API 依赖。
 - **Scenario A16**：starter 提供 README，`fw-plus-sample` 新增可编译样例并在 samples pom 注册。
+- **Scenario A17**：webmvc 栈按 `websocket.paths` 与多个 `WsBasePathProvider` 展开出全部端点，每条路径的跨域、子协议与握手拦截器一致；容器内存在多个 base path provider 不再抛 `NoUniqueBeanDefinitionException`。
+- **Scenario A18**：同一应用内除地基注册器外还有宿主自注册的 configurer（webmvc）或 mapping（webflux）时，双方路径都能完成注册与握手，互不覆盖；两端展开出的完整路径集合一致。
