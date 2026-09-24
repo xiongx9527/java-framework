@@ -171,8 +171,8 @@ class WsEndpointHttpUpgradeTest {
     private String issueToken() {
         WsBaseService.SecretKeyAndSignatureAlgorithm keyAndAlgorithm = handler.getSecretKeyAndSignatureAlgorithm();
         return Jwts.builder()
-                .setSubject(APP_ID)
-                .signWith(keyAndAlgorithm.getSecretKey(), keyAndAlgorithm.getAlgorithm())
+                .subject(APP_ID)
+                .signWith(keyAndAlgorithm.getSecretKey())
                 .compact();
     }
 

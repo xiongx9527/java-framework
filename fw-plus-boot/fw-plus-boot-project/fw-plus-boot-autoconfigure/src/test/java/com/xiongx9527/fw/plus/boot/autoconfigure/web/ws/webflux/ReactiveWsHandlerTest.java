@@ -232,8 +232,8 @@ class ReactiveWsHandlerTest {
 		};
 		WsBaseService.SecretKeyAndSignatureAlgorithm key = service.getSecretKeyAndSignatureAlgorithm();
 		return Jwts.builder()
-				.setSubject(appId)
-				.signWith(key.getSecretKey(), key.getAlgorithm())
+				.subject(appId)
+				.signWith(key.getSecretKey())
 				.compact();
 	}
 

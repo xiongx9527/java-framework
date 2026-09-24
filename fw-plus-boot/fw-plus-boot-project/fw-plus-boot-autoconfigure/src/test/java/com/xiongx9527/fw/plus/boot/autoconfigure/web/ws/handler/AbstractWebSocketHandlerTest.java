@@ -416,8 +416,8 @@ class AbstractWebSocketHandlerTest {
 
     private static String mint(WsBaseService.SecretKeyAndSignatureAlgorithm key, String appId) {
         return Jwts.builder()
-                .setSubject(appId)
-                .signWith(key.getSecretKey(), key.getAlgorithm())
+                .subject(appId)
+                .signWith(key.getSecretKey())
                 .compact();
     }
 

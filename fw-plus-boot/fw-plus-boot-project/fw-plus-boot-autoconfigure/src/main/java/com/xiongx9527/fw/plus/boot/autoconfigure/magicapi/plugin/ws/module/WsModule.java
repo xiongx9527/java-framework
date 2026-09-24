@@ -98,13 +98,12 @@ public class WsModule implements DynamicAttribute<WsModule, WsModule> , DynamicM
                 throw new RuntimeException("Failed to obtain secret key and signature algorithm");
             }
             javax.crypto.SecretKey secretKey = secretKeyAndSignatureAlgorithm.getSecretKey();
-            io.jsonwebtoken.SignatureAlgorithm algorithm = secretKeyAndSignatureAlgorithm.getAlgorithm();
 
             io.jsonwebtoken.JwtBuilder builder = io.jsonwebtoken.Jwts.builder()
-                    .setSubject(appId)
-                    .setIssuedAt(now)
-                    .setExpiration(expireDate)
-                    .signWith(algorithm, secretKey);
+                    .subject(appId)
+                    .issuedAt(now)
+                    .expiration(expireDate)
+                    .signWith(secretKey);
             return builder.compact();
         } catch (SecurityException e) {
             throw e;

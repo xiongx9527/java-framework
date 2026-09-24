@@ -258,10 +258,10 @@ public interface WsBaseService {
         SecretKeyAndSignatureAlgorithm keyAndAlg = getSecretKeyAndSignatureAlgorithm();
         try {
             Claims claims = Jwts.parser()
-                    .setSigningKey(keyAndAlg.getSecretKey())
+                    .verifyWith(keyAndAlg.getSecretKey())
                     .build()
-                    .parseClaimsJws(token)
-                    .getBody();
+                    .parseSignedClaims(token)
+                    .getPayload();
             return claims.getSubject();
         } catch (Exception e) {
             throw new RuntimeException("Failed to validate token", e);

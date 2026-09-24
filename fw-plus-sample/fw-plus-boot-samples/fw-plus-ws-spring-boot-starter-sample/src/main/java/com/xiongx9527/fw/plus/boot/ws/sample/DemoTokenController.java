@@ -44,8 +44,8 @@ public class DemoTokenController {
 	public Map<String, String> issueToken(@RequestParam(defaultValue = "default") String subject) {
 		WsBaseService.SecretKeyAndSignatureAlgorithm key = tokenFactory.getSecretKeyAndSignatureAlgorithm();
 		String token = Jwts.builder()
-				.setSubject(subject)
-				.signWith(key.getSecretKey(), key.getAlgorithm())
+				.subject(subject)
+				.signWith(key.getSecretKey())
 				.compact();
 		Map<String, String> result = new LinkedHashMap<>(4);
 		result.put("subject", subject);
