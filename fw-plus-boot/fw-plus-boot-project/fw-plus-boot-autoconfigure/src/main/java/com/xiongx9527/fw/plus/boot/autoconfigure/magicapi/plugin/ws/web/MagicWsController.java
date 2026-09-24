@@ -171,10 +171,10 @@ public class MagicWsController extends MagicController implements MagicException
         java.util.Date now = new java.util.Date();
         java.util.Date expireDate = new java.util.Date(now.getTime() + java.util.concurrent.TimeUnit.HOURS.toMillis(getTokenExpireHours()));
         return io.jsonwebtoken.Jwts.builder()
-                .setSubject(appId)
-                .setIssuedAt(now)
-                .setExpiration(expireDate)
-                .signWith(secretKeyAndSignatureAlgorithm.getAlgorithm(), secretKeyAndSignatureAlgorithm.getSecretKey())
+                .subject(appId)
+                .issuedAt(now)
+                .expiration(expireDate)
+                .signWith(secretKeyAndSignatureAlgorithm.getSecretKey())
                 .compact();
     }
 

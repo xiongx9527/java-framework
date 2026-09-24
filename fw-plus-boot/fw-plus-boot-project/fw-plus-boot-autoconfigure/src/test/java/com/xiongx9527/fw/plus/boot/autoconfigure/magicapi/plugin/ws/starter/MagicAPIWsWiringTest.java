@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.starter;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.handler.BaseDynamicWebSocketHandler;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.handler.MagicAPIHandshakeInterceptor;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.module.WsModule;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.model.WsDataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.service.WsDataSourceInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.service.WsDataSourceMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.service.WsSubscribeInfoMagicResourceStorage;
@@ -13,6 +14,9 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.spi.WsBusinessDispatcher
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.starter.WsAutoConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.starter.WsEndpointRegistrar;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -23,8 +27,14 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistra
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 import org.springframework.web.socket.server.HandshakeInterceptor;
 import org.ssssssss.magicapi.core.config.MagicAPIProperties;
+import org.ssssssss.magicapi.core.model.MagicEntity;
+import org.ssssssss.magicapi.core.service.MagicResourceService;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,6 +50,15 @@ import static org.mockito.Mockito.when;
  * @author zzy
  */
 class MagicAPIWsWiringTest {
+
+    /**
+     * 32 字节密钥，走 HS256 分支，与 {@code getSecretKeyAndSignatureAlgorithm()} 的选择路径一致。
+     */
+    private static final String TOKEN_SECRET = "0123456789abcdef0123456789abcdef";
+
+    private static final String APP_ID = "ws-token-app";
+
+    private static final String APP_SECRET = "ws-token-secret";
 
     private final MagicAPIProperties properties = new MagicAPIProperties();
 
@@ -105,6 +124,39 @@ class MagicAPIWsWiringTest {
                     Map<String, ?> interceptorMap = (Map<String, ?>) field.get(registrar);
 
                     assertThat(interceptorMap.values()).containsExactly(interceptor);
+                });
+    }
+
+    /**
+     * jjwt 迁移后 token 语义不变的消费侧证据：{@code WsModule.generateToken} 签发的 token，
+     * subject 取数据源 key，过期时间按 {@code fw.plus.ws.token.expireHours} 生效。
+     */
+    @Test
+    void generatedTokenShouldHonorConfiguredAppIdAndExpireHours() {
+        runner.withPropertyValues(
+                        "fw.plus.ws.token.secret=" + TOKEN_SECRET,
+                        "fw.plus.ws.token.expireHours=7")
+                .run(context -> {
+                    WsDataSourceInfo dataSourceInfo = new WsDataSourceInfo();
+                    dataSourceInfo.setKey(APP_ID);
+                    dataSourceInfo.setName(APP_ID);
+                    dataSourceInfo.setSecret(APP_SECRET);
+                    List<MagicEntity> dataSources = new ArrayList<>();
+                    dataSources.add(dataSourceInfo);
+                    MagicResourceService magicResourceService = mock(MagicResourceService.class);
+                    when(magicResourceService.files("ws-datasource")).thenReturn(dataSources);
+                    context.getBean(WsDataSourceInfoMagicResourceStorage.class).setMagicResourceService(magicResourceService);
+
+                    WsModule module = new WsModule(context.getBean(AbstractWebSocketHandler.class), APP_ID);
+                    Claims claims = Jwts.parser()
+                            .verifyWith(Keys.hmacShaKeyFor(TOKEN_SECRET.getBytes(StandardCharsets.UTF_8)))
+                            .build()
+                            .parseSignedClaims(module.generateToken(APP_SECRET))
+                            .getPayload();
+
+                    assertThat(claims.getSubject()).isEqualTo(APP_ID);
+                    assertThat(claims.getExpiration().getTime() - claims.getIssuedAt().getTime())
+                            .isEqualTo(TimeUnit.HOURS.toMillis(7L));
                 });
     }
 

@@ -78,10 +78,10 @@ class WsHandshakeAuthenticationTest {
     void tokenSignedByForeignSecretShouldCloseWithPolicyViolation() {
         runner.withPropertyValues("fw.plus.ws.token.secret=" + SECRET).run(context -> {
             AbstractWebSocketHandler handler = context.getBean(AbstractWebSocketHandler.class);
-            String foreignToken = Jwts.builder().setSubject("app-a")
+            String foreignToken = Jwts.builder()
+                    .subject("app-a")
                     .signWith(io.jsonwebtoken.security.Keys.hmacShaKeyFor(
-                                    FOREIGN_SECRET.getBytes(java.nio.charset.StandardCharsets.UTF_8)),
-                            io.jsonwebtoken.SignatureAlgorithm.HS512)
+                            FOREIGN_SECRET.getBytes(java.nio.charset.StandardCharsets.UTF_8)))
                     .compact();
             TestWebSocketSession session = new TestWebSocketSession("s-foreign")
                     .handshakeUri("ws://localhost/ws/api?token=" + foreignToken + "&clientId=c1");
@@ -128,8 +128,8 @@ class WsHandshakeAuthenticationTest {
         WsBaseService.SecretKeyAndSignatureAlgorithm keyAndAlgorithm =
                 handler.getSecretKeyAndSignatureAlgorithm();
         return Jwts.builder()
-                .setSubject(appId)
-                .signWith(keyAndAlgorithm.getSecretKey(), keyAndAlgorithm.getAlgorithm())
+                .subject(appId)
+                .signWith(keyAndAlgorithm.getSecretKey())
                 .compact();
     }
 }
