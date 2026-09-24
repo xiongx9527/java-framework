@@ -1,0 +1,9 @@
+fw:
+  plus:
+    centrifugo:
+      enabled: true
+      instances:
+        - name: node-1
+          endpoint: ws://localhost:9000/connection/websocket
+          token: token-1
+          enabled: true

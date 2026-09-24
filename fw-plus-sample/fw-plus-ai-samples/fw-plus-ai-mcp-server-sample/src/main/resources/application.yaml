@@ -1,0 +1,17 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: fw-plus-ai-mcp-server-sample
+  autoconfigure:
+    # 样例只验证 MCP 能力；Magic-API 插件装配依赖使用方按需引入的 magic-api core
+    exclude: com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration
+
+fw-plus:
+  ai:
+    mcp:
+      server:
+        name: fw-plus-ai-mcp-server-sample
+        version: 0.1.0
+      transport: streamable-http

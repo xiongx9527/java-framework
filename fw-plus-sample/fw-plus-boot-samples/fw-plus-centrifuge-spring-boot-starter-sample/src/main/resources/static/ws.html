@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Centrifugo WS Sample</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 24px; }
+        .card { max-width: 560px; }
+        .field { margin-bottom: 12px; }
+        label { display: inline-block; width: 100px; }
+        input { width: 280px; }
+        .row { margin-top: 12px; }
+        .result { margin-top: 12px; padding: 8px; border: 1px dashed #ccc; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Centrifugo WS Sample</h1>
+        <p>前端直接连接 Centrifugo，不经过 Java 服务转发。</p>
+
+        <div class="field">
+            <label>url</label>
+            <input id="url" value="ws://localhost:9000/connection/websocket">
+        </div>
+        <div class="field">
+            <label>token</label>
+            <input id="token" value="">
+        </div>
+        <div class="field">
+            <label>channel</label>
+            <input id="channel" value="chat">
+        </div>
+        <div class="row">
+            <button onclick="connectWs()">连接</button>
+            <button onclick="subscribeChannel()">订阅</button>
+            <button onclick="sendMessage()">发送</button>
+            <button onclick="disconnectWs()">断开</button>
+        </div>
+
+        <div id="result" class="result" style="display:none;"></div>
+        <p>提示：token 为空时，仅用于本地 Centrifugo 无 token 场景；生产环境请使用真实 token。</p>
+    </div>
+
+    <script>
+        let ws = null;
+        const resultBox = document.getElementById('result');
+
+        function showResult(text) {
+            resultBox.style.display = 'block';
+            resultBox.textContent = text;
+        }
+
+        function connectWs() {
+            const url = document.getElementById('url').value.trim();
+            if (!url) {
+                showResult('请填写 url');
+                return;
+            }
+            if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+                showResult('已经连接或连接中');
+                return;
+            }
+            ws = new WebSocket(url);
+            ws.onopen = () => showResult('ws open');
+            ws.onmessage = (event) => showResult('ws message: ' + event.data);
+            ws.onerror = (event) => showResult('ws error');
+            ws.onclose = (event) => showResult('ws close: code=' + event.code + ', reason=' + event.reason);
+        }
+
+        function disconnectWs() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+        }
+
+        function subscribeChannel() {
+            const token = document.getElementById('token').value.trim();
+            const channel = document.getElementById('channel').value.trim();
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                showResult('请先连接');
+                return;
+            }
+            if (!channel) {
+                showResult('请填写 channel');
+                return;
+            }
+            const payload = {
+                id: Date.now(),
+                method: 'subscribe',
+                params: { channel: channel }
+            };
+            if (token) {
+                payload.params.token = token;
+            }
+            ws.send(JSON.stringify(payload));
+            showResult('subscribe sent: ' + JSON.stringify(payload));
+        }
+
+        function sendMessage() {
+            const channel = document.getElementById('channel').value.trim();
+            const message = 'hello from browser ' + Date.now();
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                showResult('请先连接');
+                return;
+            }
+            if (!channel) {
+                showResult('请填写 channel');
+                return;
+            }
+            const payload = {
+                id: Date.now(),
+                method: 'publish',
+                params: {
+                    channel: channel,
+                    data: message
+                }
+            };
+            ws.send(JSON.stringify(payload));
+            showResult('publish sent: ' + JSON.stringify(payload));
+        }
+    </script>
+</body>
+</html>
