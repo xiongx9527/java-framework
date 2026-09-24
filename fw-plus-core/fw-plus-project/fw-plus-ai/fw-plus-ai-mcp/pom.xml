@@ -5,9 +5,8 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.xiongx9527.fw.plus</groupId>
-        <artifactId>fw-plus-parent</artifactId>
+        <artifactId>fw-plus-ai</artifactId>
         <version>${revision}</version>
-        <relativePath>../../fw-plus-parent/pom.xml</relativePath>
     </parent>
     <artifactId>fw-plus-ai-mcp</artifactId>
     <name>fw-plus-ai-mcp</name>
@@ -17,7 +16,6 @@
             <groupId>com.ajaxjs</groupId>
             <artifactId>aj-mcp-server</artifactId>
             <version>1.6</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>

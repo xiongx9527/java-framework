@@ -17,11 +17,11 @@
     </license>
   </licenses>
   <properties>
-    <main.basedir>${basedir}/../../..</main.basedir>
     <maven.test.skip>true</maven.test.skip>
     <maven.install.skip>true</maven.install.skip>
-    <maven.deploy.skip>true</maven.deploy.skip>
     <maven.javadoc.skip>true</maven.javadoc.skip>
+    <main.basedir>${basedir}/../../..</main.basedir>
+    <maven.deploy.skip>true</maven.deploy.skip>
   </properties>
   <dependencies>
     <dependency>

@@ -69,14 +69,6 @@ public abstract class ServerStreamableHttpRegistry extends ServerStreamableHttp 
     }
 
     /**
-     * 发送消息
-     *
-     * @param sessionId 会话 ID
-     * @param json      消息内容
-     */
-    public abstract void sendMsg(String sessionId, String json) ;
-
-    /**
      * 广播消息
      *
      *
@@ -87,21 +79,18 @@ public abstract class ServerStreamableHttpRegistry extends ServerStreamableHttp 
     }
 
     /**
-     * 广播消息
-     *
-     * @param json 消息内容
-     */
-    public abstract void broadcastMsg(String json) ;
-
-    /**
      * Sends a message to a specific client on another server.
+     * <p>
+     * 非 final：集群子类需要按本地 GET 事件流持有情况决定投递还是静默跳过，避免消息经
+     * 中间节点反复转发。重写时应保留 {@code serverId} 来源守卫语义。
+     * </p>
      *
      * @param serverId The ID of the target server.
      * @param sessionId The session ID of the target client.
      * @param json The JSON data to send.
      */
     @Override
-    public final void sendOther(String serverId, String sessionId, String json) {
+    public void sendOther(String serverId, String sessionId, String json) {
         if (!this.serverId.equals(serverId)) {
             this.sendMsg(sessionId, json);
         }
@@ -109,12 +98,15 @@ public abstract class ServerStreamableHttpRegistry extends ServerStreamableHttp 
 
     /**
      * Broadcasts a message to all clients on another server.
+     * <p>
+     * 非 final：集群子类重写为仅本地分发，不再把来自其它节点的消息发布回集群频道。
+     * </p>
      *
      * @param serverId The ID of the target server.
      * @param data The data to broadcast.
      */
     @Override
-    public final void broadcastOther(String serverId, String data) {
+    public void broadcastOther(String serverId, String data) {
         if (!this.serverId.equals(serverId)) {
             this.broadcastMsg(data);
         }

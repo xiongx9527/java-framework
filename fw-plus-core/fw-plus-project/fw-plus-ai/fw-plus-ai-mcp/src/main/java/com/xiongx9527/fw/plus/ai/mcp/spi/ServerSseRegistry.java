@@ -118,14 +118,6 @@ public abstract class ServerSseRegistry extends ServerSse implements BaseServerR
     }
 
     /**
-     * 发送消息
-     *
-     * @param uuid 会话 ID
-     * @param data 消息内容
-     */
-    public abstract void sendMsg(String uuid, String data) ;
-
-    /**
      * 广播消息
      *
      * @param data 消息内容
@@ -134,23 +126,20 @@ public abstract class ServerSseRegistry extends ServerSse implements BaseServerR
         this.broadcastMsg(data);
     }
 
-    /**
-     * 广播消息
-     *
-     * @param data 消息内容
-     */
-    public abstract void broadcastMsg(String data) ;
-
 
     /**
      * Sends a message to a specific client on another server.
+     * <p>
+     * 非 final：集群子类需要按本机会话持有情况决定投递还是静默跳过，避免消息经中间节点
+     * 反复转发。重写时应保留 {@code serverId} 来源守卫语义。
+     * </p>
      *
      * @param serverId The ID of the target server.
      * @param sessionId The session ID of the target client.
      * @param json The JSON data to send.
      */
     @Override
-    public final void sendOther(String serverId, String sessionId, String json) {
+    public void sendOther(String serverId, String sessionId, String json) {
         if (!this.serverId.equals(serverId)) {
             this.sendMsg(sessionId, json);
         }
@@ -158,12 +147,15 @@ public abstract class ServerSseRegistry extends ServerSse implements BaseServerR
 
     /**
      * Broadcasts a message to all clients on another server.
+     * <p>
+     * 非 final：集群子类重写为仅本地分发，不再把来自其它节点的消息发布回集群频道。
+     * </p>
      *
      * @param serverId The ID of the target server.
      * @param data The data to broadcast.
      */
     @Override
-    public final void broadcastOther(String serverId, String data) {
+    public void broadcastOther(String serverId, String data) {
         if (!this.serverId.equals(serverId)) {
             this.broadcastMsg(data);
         }
