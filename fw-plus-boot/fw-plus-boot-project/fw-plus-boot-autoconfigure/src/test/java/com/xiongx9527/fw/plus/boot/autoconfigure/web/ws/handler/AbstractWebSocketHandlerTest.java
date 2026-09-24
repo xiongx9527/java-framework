@@ -1,9 +1,11 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.handler;
 
 import com.alibaba.fastjson2.JSONObject;
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.common.WsBaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.spi.WsBusinessDispatcher;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.spi.WsInvocationContext;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.spi.WsSubscribeScript;
+import io.jsonwebtoken.Jwts;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.socket.BinaryMessage;
@@ -14,6 +16,7 @@ import org.springframework.web.socket.WebSocketSession;
 
 import java.lang.reflect.Method;
 import java.net.URI;
+import java.nio.ByteBuffer;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,6 +27,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * WebSocket 地基的会话/消息/错误处理行为测试（与 magic 无关）。
@@ -31,6 +35,16 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author zzy
  */
 class AbstractWebSocketHandlerTest {
+
+    /**
+     * 64 字节密钥，足以触发 HS512 分支。
+     */
+    private static final String SECRET_A = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+
+    /**
+     * 用于验证密钥热更新的第二个密钥。
+     */
+    private static final String SECRET_B = "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210";
 
     @Test
     void handleMessageShouldReturnTextPongForTextPing() throws Exception {
@@ -137,8 +151,10 @@ class AbstractWebSocketHandlerTest {
     }
 
     @Test
-    void handleMessageShouldCloseBinaryMessageWithUnsupportedDataStatus() throws Exception {
-        TestWebSocketHandler handler = new TestWebSocketHandler();
+    void binaryDisabledShouldCloseBinaryMessageWithUnsupportedDataStatus() throws Exception {
+        Map<String, Object> config = new HashMap<>();
+        config.put("binary.enabled", "false");
+        TestWebSocketHandler handler = TestWebSocketHandler.withConfig(config);
         TestWebSocketSession session = openSession("s7");
         registerSession(handler, session, "app-a", "client-a");
 
@@ -146,6 +162,37 @@ class AbstractWebSocketHandlerTest {
 
         assertThat(session.closeStatus.getCode()).isEqualTo(CloseStatus.NOT_ACCEPTABLE.getCode());
         assertThat(session.textMessages).isEmpty();
+    }
+
+    @Test
+    void binaryEnabledShouldDispatchBinaryMessageToBinarySubscribes() throws Exception {
+        WsInvocationContext.MessageKind[] capturedKind = new WsInvocationContext.MessageKind[1];
+        byte[][] capturedBody = new byte[1][];
+        WsBusinessDispatcher dispatcher = new WsBusinessDispatcher() {
+            @Override
+            public List<? extends WsSubscribeScript> findEnabledSubscribes(String appId, String businessType) {
+                if (!"binary".equals(businessType)) {
+                    return Collections.emptyList();
+                }
+                return Collections.singletonList(subscribe("bin"));
+            }
+
+            @Override
+            public Object execute(WsSubscribeScript subscribe1, WsInvocationContext context) {
+                capturedKind[0] = context.getMessageKind();
+                capturedBody[0] = context.getBinaryBody();
+                return null;
+            }
+        };
+        TestWebSocketHandler handler = new TestWebSocketHandler().withDispatcher(dispatcher);
+        TestWebSocketSession session = openSession("s8");
+        registerSession(handler, session, "app-a", "client-a");
+
+        handler.handleMessage(session, new BinaryMessage(new byte[]{1, 2, 3}));
+
+        assertThat(capturedKind[0]).isEqualTo(WsInvocationContext.MessageKind.BINARY);
+        assertThat(capturedBody[0]).containsExactly((byte) 1, (byte) 2, (byte) 3);
+        assertThat(session.closeStatus).isNull();
     }
 
     @Test
@@ -189,6 +236,199 @@ class AbstractWebSocketHandlerTest {
         assertThat(json).containsKey("timestamp");
     }
 
+    @Test
+    void afterConnectionEstablishedShouldApplyConfiguredFrameSizeLimits() throws Exception {
+        Map<String, Object> config = new HashMap<>();
+        config.put("token.secret", SECRET_A);
+        config.put("session.maxTextMessageSize", 1234);
+        config.put("session.maxBinaryMessageSize", 4321);
+        TestWebSocketHandler handler = TestWebSocketHandler.withConfig(config);
+        TestWebSocketSession session = openSession("frames1", handshakeQuery(handler, "app-a", "client-a"));
+
+        handler.afterConnectionEstablished(session);
+
+        assertThat(session.closeStatus).isNull();
+        assertThat(session.getTextMessageSizeLimit()).isEqualTo(1234);
+        assertThat(session.getBinaryMessageSizeLimit()).isEqualTo(4321);
+    }
+
+    @Test
+    void afterConnectionEstablishedShouldDefaultFrameSizeLimitsTo65536() throws Exception {
+        Map<String, Object> config = new HashMap<>();
+        config.put("token.secret", SECRET_A);
+        TestWebSocketHandler handler = TestWebSocketHandler.withConfig(config);
+        TestWebSocketSession session = openSession("frames2", handshakeQuery(handler, "app-a", "client-a"));
+
+        handler.afterConnectionEstablished(session);
+
+        assertThat(session.getTextMessageSizeLimit()).isEqualTo(65536);
+        assertThat(session.getBinaryMessageSizeLimit()).isEqualTo(65536);
+    }
+
+    @Test
+    void afterConnectionEstablishedShouldRejectWhenTotalSessionLimitReached() throws Exception {
+        Map<String, Object> config = new HashMap<>();
+        config.put("token.secret", SECRET_A);
+        config.put("session.maxTotalSessions", 1);
+        TestWebSocketHandler handler = TestWebSocketHandler.withConfig(config);
+
+        TestWebSocketSession first = openSession("total1", handshakeQuery(handler, "app-a", "client-a"));
+        handler.afterConnectionEstablished(first);
+        assertThat(first.closeStatus).isNull();
+        assertThat(handler.sessionCount()).isEqualTo(1);
+
+        TestWebSocketSession second = openSession("total2", handshakeQuery(handler, "app-a", "client-b"));
+        handler.afterConnectionEstablished(second);
+
+        assertThat(second.closeStatus).isNotNull();
+        assertThat(second.closeStatus.getCode()).isEqualTo(CloseStatus.SERVICE_OVERLOAD.getCode());
+        assertThat(handler.sessionCount()).isEqualTo(1);
+    }
+
+    @Test
+    void afterConnectionEstablishedShouldRejectWhenPerClientSessionLimitReached() throws Exception {
+        Map<String, Object> config = new HashMap<>();
+        config.put("token.secret", SECRET_A);
+        config.put("session.maxTotalSessions", 100);
+        config.put("session.maxSessionsPerClient", 1);
+        TestWebSocketHandler handler = TestWebSocketHandler.withConfig(config);
+
+        TestWebSocketSession first = openSession("per1", handshakeQuery(handler, "app-a", "client-a"));
+        handler.afterConnectionEstablished(first);
+        assertThat(first.closeStatus).isNull();
+
+        TestWebSocketSession second = openSession("per2", handshakeQuery(handler, "app-a", "client-a"));
+        handler.afterConnectionEstablished(second);
+        assertThat(second.closeStatus).isNotNull();
+        assertThat(second.closeStatus.getCode()).isEqualTo(CloseStatus.SERVICE_OVERLOAD.getCode());
+
+        // 上限只作用于同一 clientId，其它客户端不受影响
+        TestWebSocketSession other = openSession("per3", handshakeQuery(handler, "app-a", "client-b"));
+        handler.afterConnectionEstablished(other);
+        assertThat(other.closeStatus).isNull();
+    }
+
+    @Test
+    void afterConnectionEstablishedShouldRejectMissingTokenWithPolicyViolation() throws Exception {
+        Map<String, Object> config = new HashMap<>();
+        config.put("token.secret", SECRET_A);
+        TestWebSocketHandler handler = TestWebSocketHandler.withConfig(config);
+        TestWebSocketSession session = openSession("auth1", "?clientId=client-a");
+
+        handler.afterConnectionEstablished(session);
+
+        assertThat(session.closeStatus).isNotNull();
+        assertThat(session.closeStatus.getCode()).isEqualTo(CloseStatus.POLICY_VIOLATION.getCode());
+    }
+
+    @Test
+    void secretRotationShouldTakeEffectWithoutRestart() {
+        Map<String, Object> config = new HashMap<>();
+        config.put("token.secret", SECRET_A);
+        TestWebSocketHandler handler = TestWebSocketHandler.withConfig(config);
+
+        WsBaseService.SecretKeyAndSignatureAlgorithm before = handler.getSecretKeyAndSignatureAlgorithm();
+        String tokenSignedWithOldSecret = mint(before, "app-a");
+
+        config.put("token.secret", SECRET_B);
+        WsBaseService.SecretKeyAndSignatureAlgorithm after = handler.getSecretKeyAndSignatureAlgorithm();
+
+        assertThat(after.getSecretKey()).isNotEqualTo(before.getSecretKey());
+        assertThatThrownBy(() -> handler.validateAndExtractAppIdFromToken(tokenSignedWithOldSecret))
+                .as("密钥变更后旧密钥签发的 token 不再被接受")
+                .isInstanceOf(RuntimeException.class);
+        assertThat(handler.validateAndExtractAppIdFromToken(mint(after, "app-a"))).isEqualTo("app-a");
+    }
+
+    @Test
+    void cacheEvictionShouldNotCloseOpenSessionByDefault() throws Exception {
+        TestWebSocketHandler handler = TestWebSocketHandler.withConfig(evictionConfig(false));
+        TestWebSocketSession first = openSession("evict1", handshakeQuery(handler, "app-a", "client-a"));
+        handler.afterConnectionEstablished(first);
+
+        // 登记第二个 clientId 触发 Guava maximumSize 驱逐 client-a 的缓存条目
+        TestWebSocketSession second = openSession("evict2", handshakeQuery(handler, "app-a", "client-b"));
+        handler.afterConnectionEstablished(second);
+        assertThat(second.closeStatus).isNull();
+
+        Thread.sleep(200L);
+        assertThat(first.isOpen()).as("默认不因缓存驱逐而关闭仍打开的长连接").isTrue();
+        assertThat(first.closeStatus).isNull();
+    }
+
+    @Test
+    void cacheEvictionShouldCloseOpenSessionWhenCloseOnEvictionEnabled() throws Exception {
+        TestWebSocketHandler handler = TestWebSocketHandler.withConfig(evictionConfig(true));
+        TestWebSocketSession first = openSession("evict3", handshakeQuery(handler, "app-a", "client-a"));
+        handler.afterConnectionEstablished(first);
+
+        TestWebSocketSession second = openSession("evict4", handshakeQuery(handler, "app-a", "client-b"));
+        handler.afterConnectionEstablished(second);
+
+        eventually(() -> first.closeStatus != null, 3000L);
+        assertThat(first.closeStatus).as("closeOnCacheEviction=true 时恢复旧行为").isNotNull();
+        assertThat(first.closeStatus.getCode()).isEqualTo(CloseStatus.SERVICE_OVERLOAD.getCode());
+    }
+
+    @Test
+    void localBroadcastShouldDeliverSynchronouslyByDefault() throws Exception {
+        Map<String, Object> config = new HashMap<>();
+        config.put("token.secret", SECRET_A);
+        TestWebSocketHandler handler = TestWebSocketHandler.withConfig(config);
+        TestWebSocketSession session = openSession("bc1", handshakeQuery(handler, "app-a", "client-a"));
+        handler.afterConnectionEstablished(session);
+
+        boolean accepted = handler.broadcastMessageToClientLocalOnly("app-a", "client-a", "sync-push");
+
+        assertThat(accepted).isTrue();
+        assertThat(session.textMessages).containsExactly("sync-push");
+    }
+
+    @Test
+    void asyncBroadcastShouldStillDeliverToTargetSession() throws Exception {
+        Map<String, Object> config = new HashMap<>();
+        config.put("token.secret", SECRET_A);
+        config.put("broadcast.async", true);
+        TestWebSocketHandler handler = TestWebSocketHandler.withConfig(config);
+        TestWebSocketSession session = openSession("bc2", handshakeQuery(handler, "app-a", "client-a"));
+        handler.afterConnectionEstablished(session);
+
+        boolean accepted = handler.broadcastMessageToClientLocalOnly("app-a", "client-a", "async-push");
+
+        assertThat(accepted).isTrue();
+        eventually(() -> !session.textMessages.isEmpty(), 3000L);
+        assertThat(session.textMessages).containsExactly("async-push");
+    }
+
+    private static Map<String, Object> evictionConfig(boolean closeOnEviction) {
+        Map<String, Object> config = new HashMap<>();
+        config.put("token.secret", SECRET_A);
+        config.put("session.cache.maxClients", 1);
+        config.put("session.cache.concurrencyLevel", 1);
+        config.put("session.delayMillis", 0);
+        config.put("session.closeOnCacheEviction", closeOnEviction);
+        return config;
+    }
+
+    private static String handshakeQuery(TestWebSocketHandler handler, String appId, String clientId) {
+        return "?token=" + mint(handler.getSecretKeyAndSignatureAlgorithm(), appId) + "&clientId=" + clientId;
+    }
+
+    private static String mint(WsBaseService.SecretKeyAndSignatureAlgorithm key, String appId) {
+        return Jwts.builder()
+                .setSubject(appId)
+                .signWith(key.getSecretKey(), key.getAlgorithm())
+                .compact();
+    }
+
+    private static void eventually(java.util.function.BooleanSupplier condition, long timeoutMillis)
+            throws InterruptedException {
+        long deadline = System.currentTimeMillis() + timeoutMillis;
+        while (!condition.getAsBoolean() && System.currentTimeMillis() < deadline) {
+            Thread.sleep(20L);
+        }
+    }
+
     private static WsSubscribeScript subscribe(String name) {
         return new WsSubscribeScript() {
             @Override
@@ -212,6 +452,10 @@ class AbstractWebSocketHandlerTest {
         return new TestWebSocketSession(id);
     }
 
+    private static TestWebSocketSession openSession(String id, String query) {
+        return new TestWebSocketSession(id, URI.create("ws://localhost/ws/api" + query));
+    }
+
     private static void registerSession(TestWebSocketHandler handler, TestWebSocketSession session,
                                         String appId, String clientId) throws Exception {
         Method addSession = AbstractWebSocketHandler.class.getDeclaredMethod(
@@ -224,6 +468,8 @@ class AbstractWebSocketHandlerTest {
 
         private static final ThreadLocal<Map<String, Object>> NEXT_CONFIG = new ThreadLocal<>();
 
+        private final Map<String, Object> config;
+
         static TestWebSocketHandler withConfig(Map<String, Object> config) {
             NEXT_CONFIG.set(config);
             try {
@@ -235,6 +481,7 @@ class AbstractWebSocketHandlerTest {
 
         TestWebSocketHandler() {
             super(null);
+            this.config = NEXT_CONFIG.get();
         }
 
         TestWebSocketHandler withDispatcher(WsBusinessDispatcher dispatcher) {
@@ -244,7 +491,11 @@ class AbstractWebSocketHandlerTest {
 
         @Override
         public Map<String, Object> getConfig() {
-            Map<String, Object> config = NEXT_CONFIG.get();
+            // 构造期间实例字段尚未赋值，此时仍从 ThreadLocal 取
+            Map<String, Object> pending = NEXT_CONFIG.get();
+            if (pending != null) {
+                return pending;
+            }
             return config == null ? Collections.emptyMap() : config;
         }
 
@@ -258,17 +509,17 @@ class AbstractWebSocketHandlerTest {
 
         @Override
         public int getMaxClientSessions() {
-            return 100;
+            return getConfigValueAsInt("session.cache.maxClients", 10000);
         }
 
         @Override
         public int getSessionCacheExpireMinutes() {
-            return 30;
+            return getConfigValueAsInt("session.cache.expireMinutes", 30);
         }
 
         @Override
         public int getCacheConcurrencyLevel() {
-            return 4;
+            return getConfigValueAsInt("session.cache.concurrencyLevel", 4);
         }
     }
 
@@ -277,11 +528,20 @@ class AbstractWebSocketHandlerTest {
         private final String id;
         private final Map<String, Object> attributes = new HashMap<>();
         private final List<String> textMessages = new ArrayList<>();
+        private final List<byte[]> binaryMessages = new ArrayList<>();
+        private final URI uri;
+        private int textMessageSizeLimit;
+        private int binaryMessageSizeLimit;
         private boolean open = true;
         private CloseStatus closeStatus;
 
         TestWebSocketSession(String id) {
+            this(id, URI.create("ws://localhost/ws/api"));
+        }
+
+        TestWebSocketSession(String id, URI uri) {
             this.id = id;
+            this.uri = uri;
         }
 
         @Override
@@ -296,7 +556,7 @@ class AbstractWebSocketHandlerTest {
 
         @Override
         public URI getUri() {
-            return URI.create("ws://localhost/ws/api");
+            return uri;
         }
 
         @Override
@@ -326,20 +586,22 @@ class AbstractWebSocketHandlerTest {
 
         @Override
         public void setTextMessageSizeLimit(int messageSizeLimit) {
+            this.textMessageSizeLimit = messageSizeLimit;
         }
 
         @Override
         public int getTextMessageSizeLimit() {
-            return 8192;
+            return textMessageSizeLimit;
         }
 
         @Override
         public void setBinaryMessageSizeLimit(int messageSizeLimit) {
+            this.binaryMessageSizeLimit = messageSizeLimit;
         }
 
         @Override
         public int getBinaryMessageSizeLimit() {
-            return 8192;
+            return binaryMessageSizeLimit;
         }
 
         @Override
@@ -351,6 +613,11 @@ class AbstractWebSocketHandlerTest {
         public void sendMessage(WebSocketMessage<?> message) {
             if (message instanceof TextMessage) {
                 textMessages.add(((TextMessage) message).getPayload());
+            } else if (message instanceof BinaryMessage) {
+                ByteBuffer payload = ((BinaryMessage) message).getPayload();
+                byte[] bytes = new byte[payload.remaining()];
+                payload.get(bytes);
+                binaryMessages.add(bytes);
             }
         }
 

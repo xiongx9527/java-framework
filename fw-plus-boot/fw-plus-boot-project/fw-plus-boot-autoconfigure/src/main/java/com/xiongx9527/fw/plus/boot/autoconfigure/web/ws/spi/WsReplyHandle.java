@@ -30,4 +30,15 @@ public interface WsReplyHandle {
     default void sendJson(Object payload) {
         sendText(payload == null ? null : JSON.toJSONString(payload));
     }
+
+    /**
+     * 向当前会话发送二进制消息。
+     *
+     * <p>默认实现不支持二进制（例如只实现了文本通道的宿主），实现方可覆写。</p>
+     *
+     * @param payload 二进制内容
+     */
+    default void sendBinary(byte[] payload) {
+        throw new UnsupportedOperationException("Binary reply is not supported by this handle");
+    }
 }

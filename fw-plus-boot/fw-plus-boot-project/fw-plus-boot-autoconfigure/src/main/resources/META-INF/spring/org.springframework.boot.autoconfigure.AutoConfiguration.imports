@@ -12,3 +12,7 @@ com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.MqttAutoConfiguration
 com.xiongx9527.fw.plus.boot.autoconfigure.config.ConfigConfiguration
 com.xiongx9527.fw.plus.boot.autoconfigure.admin.server.AdminServerAutoConfiguration
 com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration
+com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.starter.WsAutoConfiguration
+com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.starter.WsRedisConfiguration
+com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.webflux.WsWebFluxAutoConfiguration
+com.xiongx9527.fw.plus.boot.autoconfigure.centrifuge.CentrifugoAutoConfiguration

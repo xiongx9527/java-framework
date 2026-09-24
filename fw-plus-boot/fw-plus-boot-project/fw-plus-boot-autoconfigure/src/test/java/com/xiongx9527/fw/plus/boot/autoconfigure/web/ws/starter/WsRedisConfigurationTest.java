@@ -4,7 +4,9 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.config.WsConfig;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.handler.AbstractWebSocketHandler;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.handler.RedisWebSocketHandler;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.handler.SimpleWebSocketHandler;
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.redis.WsRedisMessageListenerContainer;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
@@ -67,9 +69,9 @@ class WsRedisConfigurationTest {
             assertThat(handler).isInstanceOf(RedisWebSocketHandler.class);
             assertThat(handler).isNotInstanceOf(SimpleWebSocketHandler.class);
 
-            assertThat(context).hasSingleBean(WsRedisConfiguration.WsRedisMessageListenerContainer.class);
+            assertThat(context).hasSingleBean(WsRedisMessageListenerContainer.class);
             RedisMessageListenerContainer container =
-                    context.getBean(WsRedisConfiguration.WsRedisMessageListenerContainer.class);
+                    context.getBean(WsRedisMessageListenerContainer.class);
 
             assertThat(boundTopics(container)).containsExactly("websocket:broadcast");
             assertThat(boundListeners(container))
@@ -82,7 +84,7 @@ class WsRedisConfigurationTest {
         redisPresentRunner().withPropertyValues("fw.plus.ws.redis.channel.broadcast=app:ws:broadcast")
                 .run(context -> {
                     RedisMessageListenerContainer container =
-                            context.getBean(WsRedisConfiguration.WsRedisMessageListenerContainer.class);
+                            context.getBean(WsRedisMessageListenerContainer.class);
 
                     assertThat(boundTopics(container)).containsExactly("app:ws:broadcast");
                 });
@@ -93,7 +95,7 @@ class WsRedisConfigurationTest {
         runner.run(context -> {
             assertThat(context).hasSingleBean(AbstractWebSocketHandler.class);
             assertThat(context.getBean(AbstractWebSocketHandler.class)).isInstanceOf(SimpleWebSocketHandler.class);
-            assertThat(context).doesNotHaveBean(WsRedisConfiguration.WsRedisMessageListenerContainer.class);
+            assertThat(context).doesNotHaveBean(WsRedisMessageListenerContainer.class);
         });
     }
 
@@ -103,7 +105,7 @@ class WsRedisConfigurationTest {
         redisPresentRunner().withBean(AbstractWebSocketHandler.class, () -> custom).run(context -> {
             assertThat(context.getBean(AbstractWebSocketHandler.class)).isSameAs(custom);
             RedisMessageListenerContainer container =
-                    context.getBean(WsRedisConfiguration.WsRedisMessageListenerContainer.class);
+                    context.getBean(WsRedisMessageListenerContainer.class);
             assertThat(boundTopics(container)).isEmpty();
         });
     }
@@ -115,18 +117,22 @@ class WsRedisConfigurationTest {
     static class NonStartingContainerConfiguration {
 
         @Bean
-        WsRedisConfiguration.WsRedisMessageListenerContainer redisMessageListenerContainer(WsConfig wsConfig) {
-            return new NonStartingContainer(wsConfig);
+        WsRedisMessageListenerContainer redisMessageListenerContainer(WsConfig wsConfig,
+                                                                      RedisConnectionFactory connectionFactory,
+                                                                      ObjectProvider<AbstractWebSocketHandler> handlerProvider) {
+            return new NonStartingContainer(wsConfig, connectionFactory, handlerProvider);
         }
     }
 
     /**
      * 覆写 {@code isAutoStartup()} 的监听容器，仅供无 Redis 环境下的装配测试使用。
      */
-    static class NonStartingContainer extends WsRedisConfiguration.WsRedisMessageListenerContainer {
+    static class NonStartingContainer extends WsRedisMessageListenerContainer {
 
-        NonStartingContainer(WsConfig wsConfig) {
-            super(wsConfig);
+        NonStartingContainer(WsConfig wsConfig,
+                             RedisConnectionFactory connectionFactory,
+                             ObjectProvider<AbstractWebSocketHandler> handlerProvider) {
+            super(wsConfig, connectionFactory, handlerProvider);
         }
 
         @Override

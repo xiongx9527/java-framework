@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.starter;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.common.WsBaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.handler.AbstractWebSocketHandler;
 import io.jsonwebtoken.Jwts;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
@@ -18,6 +19,8 @@ import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -88,6 +91,34 @@ class WsEndpointHttpUpgradeTest {
     })
     @EnableWebSocket
     static class WsTestApplication {
+    }
+
+    /**
+     * 预热 Servlet 容器，隔离与本用例无关的惰性初始化耗时。
+     *
+     * <p>首个进入容器的请求会触发 DispatcherServlet 与 HandlerMapping 的惰性初始化；在负载较高的
+     * 机器上这段耗时可能达到数秒。JSR-356 客户端在握手时对 HTTP 升级响应有约 5 秒读超时，
+     * 若把这笔初始化开销算进握手窗口，用例会随机报
+     * {@code The HTTP upgrade to WebSocket failed but partial data may have been received}。
+     * 这里先用一次普通 HTTP GET 把容器预热，使后续断言只测量 WebSocket 升级本身；
+     * 不断言该预热请求的状态码，也不改变本用例对握手鉴权与 ping/pong 往返的检查强度。</p>
+     */
+    @BeforeEach
+    void warmUpServletContainer() {
+        HttpURLConnection connection = null;
+        try {
+            connection = (HttpURLConnection) new URL(
+                    "http://localhost:" + port + ENDPOINT_PATH).openConnection();
+            connection.setConnectTimeout(30_000);
+            connection.setReadTimeout(30_000);
+            connection.getResponseCode();
+        } catch (Exception ignored) {
+            // 预热失败不影响断言：真实握手仍会独立失败并给出明确原因
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
     }
 
     @Test

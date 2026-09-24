@@ -30,7 +30,7 @@ class RedisWebSocketHandlerTest {
     @Test
     void distributedBroadcastShouldPublishToConfiguredChannel() throws Exception {
         WsConfig wsConfig = new WsConfig();
-        wsConfig.put("redis.channel.broadcast", "custom:ws:broadcast");
+        wsConfig.getRedis().getChannel().setBroadcast("custom:ws:broadcast");
         StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
         RedisWebSocketHandler handler = new RedisWebSocketHandler(wsConfig);
         injectRedisTemplate(handler, redisTemplate);
@@ -115,13 +115,13 @@ class RedisWebSocketHandlerTest {
         }
 
         @Override
-        boolean broadcastMessageToClientLocalOnly(String appId, String clientId, String message) {
+        public boolean broadcastMessageToClientLocalOnly(String appId, String clientId, String message) {
             clientBroadcasts.add(appId + "|" + clientId + "|" + message);
             return true;
         }
 
         @Override
-        void broadcastMessageToAllClientLocalOnly(String appId, String message) {
+        public void broadcastMessageToAllClientLocalOnly(String appId, String message) {
             allBroadcasts.add(appId + "|" + message);
         }
     }

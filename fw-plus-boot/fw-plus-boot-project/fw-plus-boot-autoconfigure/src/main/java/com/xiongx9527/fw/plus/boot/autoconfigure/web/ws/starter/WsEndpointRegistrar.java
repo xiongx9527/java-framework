@@ -13,8 +13,11 @@ import org.springframework.beans.BeansException;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistration;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
+import org.springframework.web.socket.server.support.DefaultHandshakeHandler;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -78,8 +81,7 @@ public class WsEndpointRegistrar implements WebSocketConfigurer, WsBaseService {
             registration.setAllowedOrigins(getAllowedOrigins());
             String[] subProtocols = getSubProtocols();
             if (subProtocols.length > 0) {
-                org.springframework.web.socket.server.support.DefaultHandshakeHandler handshakeHandler =
-                        new org.springframework.web.socket.server.support.DefaultHandshakeHandler();
+                DefaultHandshakeHandler handshakeHandler = new DefaultHandshakeHandler();
                 handshakeHandler.setSupportedProtocols(subProtocols);
                 registration.setHandshakeHandler(handshakeHandler);
             }
@@ -145,7 +147,7 @@ public class WsEndpointRegistrar implements WebSocketConfigurer, WsBaseService {
 
         // 将逗号分隔的域名列表拆分为数组，并清理空白元素
         String[] domains = trustedDomain.split(",");
-        java.util.List<String> cleanedDomains = new java.util.ArrayList<>();
+        List<String> cleanedDomains = new ArrayList<>();
         for (String domain : domains) {
             String trimmedDomain = domain.trim();
             if (StringUtils.isNotBlank(trimmedDomain)) {
