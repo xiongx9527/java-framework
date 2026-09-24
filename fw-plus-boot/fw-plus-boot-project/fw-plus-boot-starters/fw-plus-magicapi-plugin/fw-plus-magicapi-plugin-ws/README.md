@@ -30,6 +30,7 @@ fw:
 | `fw.plus.ws.websocket.subProtocols` | 空 | 可选 WebSocket 子协议，逗号分隔 |
 | `fw.plus.ws.token.secret` | 无 | JWT 签名密钥，必须显式配置 |
 | `fw.plus.ws.token.expireHours` | `2` | 连接 token 有效期，单位小时 |
+| `fw.plus.ws.tokens` | 空 | 按端点路径绑定的 token 规则，每项 `path` + `secret` + 可选 `expireHours` |
 | `fw.plus.ws.param.token` | `token` | 连接 URL 中 token 参数名 |
 | `fw.plus.ws.param.clientId` | `clientId` | 连接 URL 中客户端标识参数名 |
 | `fw.plus.ws.init.type` | `init` | 建连时执行的业务标识 |
@@ -63,6 +64,9 @@ fw:
       token:
         secret: ${WS_TOKEN_SECRET}
         expireHours: 2
+      tokens:                            # 一个实例一条路径 + 一套 token
+        - path: /ws/api2                 # 数据源绑定的端点路径
+          secret: ${WS_TOKEN_SECRET2}    # 该路径专用的 JWT 密钥
       param:
         token: token
         clientId: clientId
@@ -84,6 +88,7 @@ fw:
   "name": "默认数据源",
   "key": "default",
   "secret": "123",
+  "path": "/ws/api",
   "description": "默认 WebSocket 应用"
 }
 ```
@@ -95,6 +100,7 @@ fw:
 | `name` | 是 | 数据源显示名称 |
 | `key` | 是 | 应用标识，即脚本和连接 token 中的 `appId` |
 | `secret` | 是 | 生成连接 token 时校验的应用密钥 |
+| `path` | 否 | 绑定的 WS 端点路径，对应 `fw.plus.ws.tokens` 中一条规则的 `path` |
 | `description` | 否 | 描述 |
 
 `key` 创建后不允许修改，同一个 `key` 必须唯一。
@@ -243,6 +249,24 @@ fw:
           - /ws/api3
   # 连接地址：ws://<host>:<port>/<magic-api.web>/ws/api2?token=<token>&clientId=<clientId>
 ```
+
+多个应用共用一套 MagicAPI 时，按「一个实例一条路径 + 一套 token」拆分：把数据源的 `path` 配到 `fw.plus.ws.tokens` 的一条规则上，`generateToken` 与该路径的握手校验就使用同一套密钥，实例之间互不串用。
+
+```yaml
+fw:
+  plus:
+    ws:
+      token:
+        secret: ${WS_TOKEN_SECRET}      # 未绑定路径时的全局兜底密钥
+      tokens:
+        - path: /ws/order                # 对应 path 为 /ws/order 的数据源
+          secret: ${WS_TOKEN_SECRET_ORDER}
+        - path: /ws/pay                  # 可单独设置有效期
+          secret: ${WS_TOKEN_SECRET_PAY}
+          expireHours: 4
+```
+
+规则按握手请求的完整路径匹配：精确命中优先，其次按尾段后缀命中；未命中或规则密钥留空时回落全局 `token.secret`。规则未填 `expireHours` 时继承全局 `token.expireHours`。
 
 端点注册来源不限于插件自身：宿主自行注册的 `WebSocketConfigurer`（webmvc 栈需在应用类上声明 `@EnableWebSocket`）或自带的 `SimpleUrlHandlerMapping`（webflux 栈）都与地基端点并存，互不覆盖。magic-api 插件的握手鉴权与订阅派发对所有路径一致生效。
 

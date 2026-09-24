@@ -12,8 +12,15 @@ fw:
         expireHours: 2
       websocket:
         path: /ws/api
+        paths:
+          - /ws/api2
         # 演示用：允许任意来源；生产请改为具体域名
         trustedDomain: '*'
+      tokens:
+        # 一个实例一条路径 + 一套 token：/ws/api2 改用专用密钥，/ws/api 仍用全局密钥
+        - path: /ws/api2
+          secret: aaaabbbbccccddddeeeeffff00001111aaaabbbbccccddddeeeeffff00001111
+          expireHours: 4
       binary:
         enabled: true
         type: binary

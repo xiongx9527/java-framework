@@ -89,12 +89,12 @@ public class MagicWsController extends MagicController implements MagicException
     public JsonBean<Object> test(@RequestBody WsDataSourceInfo properties) {
         try {
             validateDataSourceInfo(properties);
-            getSecretKeyAndSignatureAlgorithm();
+            getSecretKeyAndSignatureAlgorithm(getTokenSecret(properties.getPath()));
             AbstractWebSocketHandler handler = getWebSocketHandler();
             if (handler == null) {
                 return failure("WebSocket handler不可用");
             }
-            createTestToken(properties.getKey());
+            createTestToken(properties.getKey(), properties.getPath());
             return new JsonBean<>("ok");
         } catch (Exception e) {
             log.error("Failed to test websocket datasource", e);
@@ -166,10 +166,17 @@ public class MagicWsController extends MagicController implements MagicException
         return bodyId == null ? null : bodyId.toString();
     }
 
-    private String createTestToken(String appId) {
-        SecretKeyAndSignatureAlgorithm secretKeyAndSignatureAlgorithm = getSecretKeyAndSignatureAlgorithm();
+    /**
+     * 按数据源绑定的端点路径签发测试 token，与 {@code WsModule.generateToken} 使用同一套解析规则。
+     *
+     * @param appId 数据源 key
+     * @param path  数据源绑定的端点路径，可为空
+     * @return 测试 token
+     */
+    private String createTestToken(String appId, String path) {
+        SecretKeyAndSignatureAlgorithm secretKeyAndSignatureAlgorithm = getSecretKeyAndSignatureAlgorithm(getTokenSecret(path));
         java.util.Date now = new java.util.Date();
-        java.util.Date expireDate = new java.util.Date(now.getTime() + java.util.concurrent.TimeUnit.HOURS.toMillis(getTokenExpireHours()));
+        java.util.Date expireDate = new java.util.Date(now.getTime() + java.util.concurrent.TimeUnit.HOURS.toMillis(getTokenExpireHours(path)));
         return io.jsonwebtoken.Jwts.builder()
                 .subject(appId)
                 .issuedAt(now)

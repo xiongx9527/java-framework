@@ -4,6 +4,7 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.alibaba.fastjson2.JSONValidator;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.common.WsBaseService;
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.common.WsTokenResolver;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.config.WsConfig;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.session.WsSessionInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.session.WsSessionRegistry;
@@ -63,6 +64,18 @@ public class ReactiveWsHandler implements org.springframework.web.reactive.socke
 			@Override
 			public Map<String, Object> getConfig() {
 				return wsConfig == null ? WsBaseService.super.getConfig() : wsConfig.flatten();
+			}
+
+			@Override
+			public String getTokenSecret(String requestPath) {
+				String pathSecret = wsConfig == null ? null : WsTokenResolver.resolveSecret(wsConfig, requestPath);
+				return StringUtils.isBlank(pathSecret) ? getTokenSecret() : pathSecret;
+			}
+
+			@Override
+			public long getTokenExpireHours(String requestPath) {
+				Long pathExpireHours = wsConfig == null ? null : WsTokenResolver.resolveExpireHours(wsConfig, requestPath);
+				return pathExpireHours == null ? getTokenExpireHours() : pathExpireHours;
 			}
 		};
 		this.registry = new WsSessionRegistry(config.getMaxClientSessions(), config.getSessionCacheExpireMinutes(),
@@ -264,7 +277,7 @@ public class ReactiveWsHandler implements org.springframework.web.reactive.socke
 		}
 		String appId;
 		try {
-			appId = config.validateAndExtractAppIdFromToken(token);
+			appId = config.validateAndExtractAppIdFromToken(token, config.getTokenSecret(uri == null ? null : uri.getPath()));
 		} catch (Exception e) {
 			log.error("Failed to validate token: {}", config.maskSensitiveValue(token), e);
 			return AuthResult.reject(org.springframework.web.socket.CloseStatus.POLICY_VIOLATION, "token验证失败");

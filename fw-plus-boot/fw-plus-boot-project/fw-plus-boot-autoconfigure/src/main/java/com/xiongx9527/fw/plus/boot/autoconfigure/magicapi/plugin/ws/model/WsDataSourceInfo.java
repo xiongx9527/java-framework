@@ -19,6 +19,14 @@ public class WsDataSourceInfo extends MagicEntity {
 	private String secret;
 
 	/**
+	 * 绑定的端点路径；对应 {@code fw.plus.ws.tokens} 中一条规则的 path。
+	 *
+	 * <p>「一个实例对应一条路径 + 一个 token」：签发 token 时按该路径解析绑定的密钥，
+	 * 客户端也连接同一路径完成握手校验。留空表示使用全局 token 配置。</p>
+	 */
+	private String path;
+
+	/**
 	 * 描述
 	 */
 	private String description;
@@ -35,6 +43,7 @@ public class WsDataSourceInfo extends MagicEntity {
 		dataSourceInfo.setKey(this.key);
 		dataSourceInfo.setDescription(this.description);
 		dataSourceInfo.setSecret(this.secret);
+		dataSourceInfo.setPath(this.path);
 		dataSourceInfo.setProperties(copyProperties());
 		return dataSourceInfo;
 	}
@@ -46,6 +55,7 @@ public class WsDataSourceInfo extends MagicEntity {
 		dataSourceInfo.setKey(this.key);
 		dataSourceInfo.setDescription(this.description);
 		dataSourceInfo.setSecret(this.secret);
+		dataSourceInfo.setPath(this.path);
 		dataSourceInfo.setProperties(copyProperties());
 		return dataSourceInfo;
 	}

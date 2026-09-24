@@ -28,6 +28,12 @@ class WsHandshakeAuthenticationTest {
     private static final String FOREIGN_SECRET =
             "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210";
 
+    /**
+     * 绑定 /ws/api2 的独立密钥，与全局 SECRET 不同，用于验证按端点路径选密钥。
+     */
+    private static final String APP2_SECRET =
+            "aaaabbbbccccddddeeeeffff00001111aaaabbbbccccddddeeeeffff00001111";
+
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(RefreshAutoConfiguration.class, WsAutoConfiguration.class));
 
@@ -127,6 +133,71 @@ class WsHandshakeAuthenticationTest {
     private static String issue(AbstractWebSocketHandler handler, String appId) {
         WsBaseService.SecretKeyAndSignatureAlgorithm keyAndAlgorithm =
                 handler.getSecretKeyAndSignatureAlgorithm();
+        return Jwts.builder()
+                .subject(appId)
+                .signWith(keyAndAlgorithm.getSecretKey())
+                .compact();
+    }
+
+    @Test
+    void boundEndpointShouldAcceptTokenSignedByBoundSecret() {
+        runner.withPropertyValues("fw.plus.ws.token.secret=" + SECRET,
+                        "fw.plus.ws.websocket.paths=/ws/api2",
+                        "fw.plus.ws.tokens[0].path=/ws/api2",
+                        "fw.plus.ws.tokens[0].secret=" + APP2_SECRET,
+                        "fw.plus.ws.tokens[0].expireHours=4")
+                .run(context -> {
+                    AbstractWebSocketHandler handler = context.getBean(AbstractWebSocketHandler.class);
+                    // 规则写相对路径，请求带基础路径前缀，按后缀边界命中
+                    TestWebSocketSession session = new TestWebSocketSession("s-bound")
+                            .handshakeUri("ws://localhost/magic-api/web/ws/api2?token="
+                                    + signWith(handler, "app-2", APP2_SECRET) + "&clientId=c1");
+
+                    handler.afterConnectionEstablished(session);
+
+                    assertThat(session.closeStatus()).isNull();
+                    assertThat(session.attributesMap()).containsKey("sessionInfo");
+                });
+    }
+
+    @Test
+    void boundEndpointShouldRejectTokenSignedByGlobalSecret() {
+        runner.withPropertyValues("fw.plus.ws.token.secret=" + SECRET,
+                        "fw.plus.ws.tokens[0].path=/ws/api2",
+                        "fw.plus.ws.tokens[0].secret=" + APP2_SECRET)
+                .run(context -> {
+                    AbstractWebSocketHandler handler = context.getBean(AbstractWebSocketHandler.class);
+                    TestWebSocketSession session = new TestWebSocketSession("s-bound-wrong-secret")
+                            .handshakeUri("ws://localhost/ws/api2?token="
+                                    + signWith(handler, "app-2", SECRET) + "&clientId=c1");
+
+                    handler.afterConnectionEstablished(session);
+
+                    assertThat(session.closeStatus().getCode()).isEqualTo(CloseStatus.POLICY_VIOLATION.getCode());
+                    assertThat(session.attributesMap()).doesNotContainKey("sessionInfo");
+                });
+    }
+
+    @Test
+    void unboundEndpointShouldFallBackToGlobalSecret() {
+        runner.withPropertyValues("fw.plus.ws.token.secret=" + SECRET,
+                        "fw.plus.ws.tokens[0].path=/ws/api2",
+                        "fw.plus.ws.tokens[0].secret=" + APP2_SECRET)
+                .run(context -> {
+                    AbstractWebSocketHandler handler = context.getBean(AbstractWebSocketHandler.class);
+                    TestWebSocketSession session = new TestWebSocketSession("s-unbound")
+                            .handshakeUri("ws://localhost/ws/api?token=" + issue(handler, "app-a") + "&clientId=c1");
+
+                    handler.afterConnectionEstablished(session);
+
+                    assertThat(session.closeStatus()).isNull();
+                    assertThat(session.attributesMap()).containsKey("sessionInfo");
+                });
+    }
+
+    private static String signWith(AbstractWebSocketHandler handler, String appId, String secret) {
+        WsBaseService.SecretKeyAndSignatureAlgorithm keyAndAlgorithm =
+                handler.getSecretKeyAndSignatureAlgorithm(secret);
         return Jwts.builder()
                 .subject(appId)
                 .signWith(keyAndAlgorithm.getSecretKey())

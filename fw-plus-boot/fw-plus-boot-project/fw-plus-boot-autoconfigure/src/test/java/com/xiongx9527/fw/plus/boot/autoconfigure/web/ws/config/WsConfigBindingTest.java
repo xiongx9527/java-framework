@@ -30,6 +30,7 @@ class WsConfigBindingTest {
 			assertThat(config.getToken().getExpireHours()).isEqualTo(2L);
 			assertThat(config.getWebsocket().getPath()).isEqualTo("/ws/api");
 			assertThat(config.getWebsocket().getPaths()).isEmpty();
+			assertThat(config.getTokens()).isEmpty();
 			assertThat(config.getWebsocket().getTrustedDomain()).isEmpty();
 			assertThat(config.getWebsocket().getSubProtocols()).isEmpty();
 			assertThat(config.getWebsocket().isSupportsPartialMessages()).isFalse();
@@ -87,6 +88,30 @@ class WsConfigBindingTest {
 			assertThat(config.getWebsocket().getPaths()).containsExactly("/ws/api2", "/ws/api3");
 			assertThat(config.flatten().get("websocket.paths"))
 					.isEqualTo(config.getWebsocket().getPaths());
+		});
+	}
+
+	@Test
+	void pathBoundTokenRulesShouldBind() {
+		runner.withPropertyValues(
+				"fw.plus.ws.tokens[0].path=/ws/api2",
+				"fw.plus.ws.tokens[0].secret=app2-secret",
+				"fw.plus.ws.tokens[0].expireHours=4",
+				"fw.plus.ws.tokens[1].path=/ws/api3",
+				"fw.plus.ws.tokens[1].secret=app3-secret").run(context -> {
+			WsConfig config = context.getBean(WsConfig.class);
+			assertThat(config.getTokens()).hasSize(2);
+
+			WsConfig.TokenRule first = config.getTokens().get(0);
+			assertThat(first.getPath()).isEqualTo("/ws/api2");
+			assertThat(first.getSecret()).isEqualTo("app2-secret");
+			assertThat(first.getExpireHours()).isEqualTo(4L);
+
+			WsConfig.TokenRule second = config.getTokens().get(1);
+			assertThat(second.getPath()).isEqualTo("/ws/api3");
+			assertThat(second.getSecret()).isEqualTo("app3-secret");
+			// 未显式配置有效期时保持 null，读取侧据此继承全局 token.expireHours
+			assertThat(second.getExpireHours()).isNull();
 		});
 	}
 

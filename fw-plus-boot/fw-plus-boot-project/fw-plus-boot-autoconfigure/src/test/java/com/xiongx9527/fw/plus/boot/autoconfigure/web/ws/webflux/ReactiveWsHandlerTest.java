@@ -46,6 +46,9 @@ class ReactiveWsHandlerTest {
 
 	private static final String SECRET = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
+	private static final String APP2_SECRET =
+			"aaaabbbbccccddddeeeeffff00001111aaaabbbbccccddddeeeeffff00001111";
+
 	private static final DefaultDataBufferFactory FACTORY = new DefaultDataBufferFactory();
 
 	@Test
@@ -71,6 +74,46 @@ class ReactiveWsHandlerTest {
 
 		assertThat(session.closedStatus.get()).isNotNull();
 		assertThat(session.closedStatus.get().getCode()).isEqualTo(1008);
+	}
+
+	@Test
+	void boundEndpointShouldAcceptTokenSignedByBoundSecret() {
+		WsConfig config = wsConfig();
+		addTokenRule(config, "/ws/api2", APP2_SECRET, 4L);
+		ReactiveWsHandler handler = new ReactiveWsHandler(config);
+		// 规则写相对路径，请求带基础路径前缀，按后缀边界命中
+		TestReactiveSession session = new TestReactiveSession("s-b1",
+				uri(token("app-2", APP2_SECRET), "c1", "/magic-api/web/ws/api2"), Flux.empty());
+
+		handler.handle(session).block(Duration.ofSeconds(5));
+
+		assertThat(session.closedStatus.get()).isNull();
+	}
+
+	@Test
+	void boundEndpointShouldRejectTokenSignedByGlobalSecret() {
+		WsConfig config = wsConfig();
+		addTokenRule(config, "/ws/api2", APP2_SECRET, null);
+		ReactiveWsHandler handler = new ReactiveWsHandler(config);
+		TestReactiveSession session = new TestReactiveSession("s-b2",
+				uri(token("app-2", SECRET), "c1", "/ws/api2"), Flux.empty());
+
+		handler.handle(session).block(Duration.ofSeconds(5));
+
+		assertThat(session.closedStatus.get()).isNotNull();
+		assertThat(session.closedStatus.get().getCode()).isEqualTo(1008);
+	}
+
+	@Test
+	void unboundEndpointShouldFallBackToGlobalSecret() {
+		WsConfig config = wsConfig();
+		addTokenRule(config, "/ws/api2", APP2_SECRET, null);
+		ReactiveWsHandler handler = new ReactiveWsHandler(config);
+		TestReactiveSession session = new TestReactiveSession("s-b3", uri(token("app-a"), "c1"), Flux.empty());
+
+		handler.handle(session).block(Duration.ofSeconds(5));
+
+		assertThat(session.closedStatus.get()).isNull();
 	}
 
 	@Test
@@ -215,6 +258,21 @@ class ReactiveWsHandlerTest {
 				? "?clientId=" + clientId
 				: "?token=" + token + "&clientId=" + clientId;
 		return URI.create("ws://localhost:8080/ws/api" + query);
+	}
+
+	private static URI uri(String token, String clientId, String path) {
+		String query = token.isEmpty()
+				? "?clientId=" + clientId
+				: "?token=" + token + "&clientId=" + clientId;
+		return URI.create("ws://localhost:8080" + path + query);
+	}
+
+	private static void addTokenRule(WsConfig config, String path, String secret, Long expireHours) {
+		WsConfig.TokenRule rule = new WsConfig.TokenRule();
+		rule.setPath(path);
+		rule.setSecret(secret);
+		rule.setExpireHours(expireHours);
+		config.getTokens().add(rule);
 	}
 
 	private static String token(String appId) {

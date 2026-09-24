@@ -15,8 +15,9 @@ import java.util.Map;
  *
  * <p>握手要求 query 参数 {@code token} 是合法的 JWT，其 {@code subject} 即 appId。
  * 本接口复用地基的密钥与算法选择逻辑（{@link WsBaseService#getSecretKeyAndSignatureAlgorithm()}）
- * 按 {@code fw.plus.ws.token.secret} 签发 token，方便本地联调：
- * {@code curl 'http://localhost:8080/demo/token?subject=default'}。</p>
+ * 按端点路径解析密钥签发 token，方便本地联调：
+ * {@code curl 'http://localhost:8080/demo/token?subject=default'}
+ * 与 {@code curl 'http://localhost:8080/demo/token?subject=default&path=/ws/api2'}。</p>
  *
  * @author zzy
  */
@@ -35,14 +36,17 @@ public class DemoTokenController {
 	}
 
 	/**
-	 * 按当前配置的密钥签发一个握手用 token。
+	 * 按端点路径解析出的密钥签发一个握手用 token。
 	 *
 	 * @param subject token 的 subject，也是握手后的 appId
+	 * @param path    握手端点路径；命中 {@code fw.plus.ws.tokens} 规则时用该路径专用密钥，否则用全局密钥
 	 * @return 包含 subject 与 token 的响应
 	 */
 	@GetMapping("/demo/token")
-	public Map<String, String> issueToken(@RequestParam(defaultValue = "default") String subject) {
-		WsBaseService.SecretKeyAndSignatureAlgorithm key = tokenFactory.getSecretKeyAndSignatureAlgorithm();
+	public Map<String, String> issueToken(@RequestParam(defaultValue = "default") String subject,
+			@RequestParam(required = false) String path) {
+		WsBaseService.SecretKeyAndSignatureAlgorithm key =
+				tokenFactory.getSecretKeyAndSignatureAlgorithm(tokenFactory.getTokenSecret(path));
 		String token = Jwts.builder()
 				.subject(subject)
 				.signWith(key.getSecretKey())

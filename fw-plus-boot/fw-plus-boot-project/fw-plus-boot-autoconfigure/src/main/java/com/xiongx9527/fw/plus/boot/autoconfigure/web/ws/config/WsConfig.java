@@ -39,6 +39,19 @@ public class WsConfig {
 
 	private Websocket websocket = new Websocket();
 
+	/**
+	 * 按端点路径绑定的 token 规则列表，实现「一个实例对应一条路径 + 一套 token」。
+	 *
+	 * <p>每条规则把端点路径（{@link TokenRule#getPath()}）与独立的 JWT 密钥、有效期绑定；
+	 * 握手鉴权与 magic 侧签发 token 时都按请求路径命中规则，未命中则回落到 {@link Token}
+	 * 的全局配置。规则路径可写相对路径（如 {@code /ws/api2}），也可写含基础路径的完整路径，
+	 * 两者都能命中。</p>
+	 *
+	 * <p>该列表不进入 {@link #flatten()} 的扁平键：读取侧由
+	 * {@code WsTokenResolver} 直接按对象解析，扁平键保持纯标量契约。</p>
+	 */
+	private List<TokenRule> tokens = new ArrayList<>();
+
 	private Session session = new Session();
 
 	private Scheduler scheduler = new Scheduler();
@@ -131,6 +144,28 @@ public class WsConfig {
 		 * Token 有效期（小时）。
 		 */
 		private long expireHours = 2L;
+	}
+
+	/**
+	 * 单条按路径绑定的 token 规则。
+	 */
+	@Data
+	public static class TokenRule {
+
+		/**
+		 * 绑定的端点路径；相对路径（如 {@code /ws/api2}）或含基础路径的完整路径均可。
+		 */
+		private String path = "";
+
+		/**
+		 * 该路径使用的 JWT 密钥；留空表示回落全局密钥。
+		 */
+		private String secret = "";
+
+		/**
+		 * 该路径的 token 有效期（小时）；{@code null} 表示继承 {@link Token#getExpireHours()}。
+		 */
+		private Long expireHours;
 	}
 
 	/**

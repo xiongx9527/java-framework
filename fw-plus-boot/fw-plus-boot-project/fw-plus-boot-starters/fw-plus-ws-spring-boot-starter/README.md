@@ -26,6 +26,10 @@ fw:
       token:
         secret: 请替换为至少32位的密钥        # 必填，缺失时连接鉴权直接失败
         expireHours: 2
+      tokens:                                # 一个实例一条路径 + 一套 token
+        - path: /ws/api2                     # 绑定的端点路径
+          secret: 实例2签名密钥               # 该路径专用的 JWT 密钥
+          expireHours: 4                     # 可选，缺省继承 token.expireHours
       websocket:
         path: /ws/api
         paths:                     # 追加端点路径，与主路径共用同一套处理器
@@ -45,6 +49,7 @@ fw:
 | `enabled` | `true` | 总开关 |
 | `token.secret` | 必填 | JWT 密钥 |
 | `token.expireHours` | `2` | Token 有效期（小时） |
+| `tokens` | 空 | 按端点路径绑定的 token 规则；每项含 `path`、`secret` 与可选 `expireHours` |
 | `websocket.path` | `/ws/api` | 端点路径 |
 | `websocket.paths` | 空 | 追加端点路径，逗号分隔或列表；与主路径去重后逐条注册 |
 | `websocket.trustedDomain` | 空 | 受信任来源，逗号分隔；留空表示不允许跨域 |
@@ -124,6 +129,33 @@ fw:
 基础路径来自容器内的 `WsBasePathProvider` Bean，可声明多个：每个基础路径与每条相对路径都会注册，同一完整路径只注册一次。多个候选按 `@Primary` 优先、其余按 `@Order`/`Ordered` 定序；一个都没有时按无基础路径处理。
 
 webflux 栈的展开结果与 webmvc 完全一致，两端共用同一套拼接规则；`websocket.path` 显式置空属配置错误，两端表现一致，只在基础路径后追加一个连接斜杠。
+
+## 一个实例对应一条路径 + 一个 token
+
+多个应用共用一套地基时，每个实例一条端点路径、一套 token 密钥，互不串用：
+
+```yaml
+fw:
+  plus:
+    ws:
+      token:
+        secret: 全局兜底密钥
+        expireHours: 2
+      tokens:
+        - path: /ws/order
+          secret: 订单实例专用密钥
+        - path: /ws/pay
+          secret: 支付实例专用密钥
+          expireHours: 4
+```
+
+匹配按握手请求的完整路径（含 `WsBasePathProvider` 提供的基础路径）进行，顺序为：
+
+1. 精确命中：规则 `path` 与请求完整路径完全相等；
+2. 后缀命中：请求路径以规则 `path` 结尾且尾段完整（`/my-api` 不会命中规则 `/api`）；
+3. 未命中，或规则 `secret` 留空：回落全局 `fw.plus.ws.token.secret`。
+
+规则的 `expireHours` 缺省时继承全局 `token.expireHours`。规则 `path` 也可以直接写完整路径，此时精确匹配优先，不会被同尾缀的短规则抢先。MagicAPI 侧的 `ws-datasource` 填写同一个 `path`，签发与握手就自动使用同一套密钥。
 
 ## 与宿主自注册的端点并存
 

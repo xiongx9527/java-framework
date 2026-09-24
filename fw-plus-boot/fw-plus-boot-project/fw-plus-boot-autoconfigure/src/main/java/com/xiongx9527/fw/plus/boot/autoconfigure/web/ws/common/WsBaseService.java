@@ -183,27 +183,93 @@ public interface WsBaseService {
     }
 
     /**
-     * 获取 Token 密钥。
+     * 按端点请求路径获取 Token 过期时间（小时）。
      *
-     * @return Token 密钥
+     * <p>命中 {@code fw.plus.ws.tokens} 中绑定该路径且显式配置了有效期的规则时使用规则值；
+     * 否则回落到全局 {@link #getTokenExpireHours()}。</p>
+     *
+     * @param requestPath 握手请求路径，可为空
+     * @return Token 过期时间（小时）
      */
-    default String getTokenSecret() {
-        String tokenSecret = getConfigValueAsString("token.secret", "");
-        if (StringUtils.isBlank(tokenSecret)) {
-            throw new IllegalStateException("fw.plus.ws.token.secret must be configured");
+    default long getTokenExpireHours(String requestPath) {
+        Long pathExpireHours = null;
+        if (StringUtils.isNotBlank(requestPath)) {
+            WsConfig wsConfig = getWsConfig();
+            if (wsConfig != null) {
+                pathExpireHours = WsTokenResolver.resolveExpireHours(wsConfig, requestPath);
+            }
         }
-        return tokenSecret;
+        return pathExpireHours == null ? getTokenExpireHours() : pathExpireHours;
     }
 
     /**
-     * 根据配置获取 Token 密钥和签名算法。
-     *
-     * @return 包含密钥和签名算法的对象
-     */
-    default SecretKeyAndSignatureAlgorithm getSecretKeyAndSignatureAlgorithm() {
-        // 构建JWT token，明确指定UTF-8编码以确保跨平台一致性
-        // 确保使用适合的签名算法和足够长度的密钥
-        byte[] keyBytes = getTokenSecret().getBytes(StandardCharsets.UTF_8);
+     * 获取 Token 密钥。
+	 *
+	 * @return Token 密钥
+	 */
+	default String getTokenSecret() {
+		String tokenSecret = getConfigValueAsString("token.secret", "");
+		if (StringUtils.isBlank(tokenSecret)) {
+			throw new IllegalStateException("fw.plus.ws.token.secret must be configured");
+		}
+		return tokenSecret;
+	}
+
+	/**
+	 * 按端点请求路径获取 Token 密钥。
+	 *
+	 * <p>命中 {@code fw.plus.ws.tokens} 中绑定该路径的规则时使用规则密钥；未命中（或规则密钥留空）
+	 * 时回落到全局 {@link #getTokenSecret()}，保持单端点应用的既有必填语义。</p>
+	 *
+	 * @param requestPath 握手请求路径（{@code URI#getPath()}），可为空
+	 * @return 该路径对应的 Token 密钥
+	 */
+	default String getTokenSecret(String requestPath) {
+		String pathSecret = null;
+		if (StringUtils.isNotBlank(requestPath)) {
+			WsConfig wsConfig = getWsConfig();
+			if (wsConfig != null) {
+				pathSecret = WsTokenResolver.resolveSecret(wsConfig, requestPath);
+			}
+		}
+		return StringUtils.isNotBlank(pathSecret) ? pathSecret : getTokenSecret();
+	}
+
+	/**
+	 * 获取 WS 地基配置对象；上下文不可用（如纯单元构造）时返回 {@code null}。
+	 *
+	 * @return WS 地基配置，可为 {@code null}
+	 */
+	default WsConfig getWsConfig() {
+		try {
+			return SpringUtils.getBean(WsConfig.class);
+		} catch (Exception e) {
+			return null;
+		}
+	}
+
+	/**
+	 * 根据配置获取 Token 密钥和签名算法。
+	 *
+	 * @return 包含密钥和签名算法的对象
+	 */
+	default SecretKeyAndSignatureAlgorithm getSecretKeyAndSignatureAlgorithm() {
+		return getSecretKeyAndSignatureAlgorithm(getTokenSecret());
+	}
+
+	/**
+	 * 按指定密钥获取签名密钥与算法。
+	 *
+	 * <p>密钥长度决定 HS256/384/512 的选择，长度不足时以 SHA-512 摘要补齐；多端点场景下同一进程
+	 * 会并存多套密钥，调用方（如处理器）可按密钥字符串缓存结果。</p>
+	 *
+	 * @param secret JWT 密钥
+	 * @return 包含密钥和签名算法的对象
+	 */
+	default SecretKeyAndSignatureAlgorithm getSecretKeyAndSignatureAlgorithm(String secret) {
+		// 构建JWT token，明确指定UTF-8编码以确保跨平台一致性
+		// 确保使用适合的签名算法和足够长度的密钥
+		byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
 
         // 定义算法所需的最小密钥长度常量
         final int HS512_MIN_KEY_LENGTH = 64;  // 512位
@@ -255,7 +321,18 @@ public interface WsBaseService {
      * @return token 有效时返回对应的 appId
      */
     default String validateAndExtractAppIdFromToken(String token) {
-        SecretKeyAndSignatureAlgorithm keyAndAlg = getSecretKeyAndSignatureAlgorithm();
+        return validateAndExtractAppIdFromToken(token, getTokenSecret());
+    }
+
+    /**
+     * 按指定密钥验证 JWT token 的有效性并提取 appId。
+     *
+     * @param token  JWT token 字符串
+     * @param secret 该端点路径绑定的 JWT 密钥
+     * @return token 有效时返回对应的 appId
+     */
+    default String validateAndExtractAppIdFromToken(String token, String secret) {
+        SecretKeyAndSignatureAlgorithm keyAndAlg = getSecretKeyAndSignatureAlgorithm(secret);
         try {
             Claims claims = Jwts.parser()
                     .verifyWith(keyAndAlg.getSecretKey())

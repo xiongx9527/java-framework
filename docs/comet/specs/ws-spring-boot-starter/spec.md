@@ -13,6 +13,7 @@ Starter 为 thin starter，仅含 `pom.xml`。实现位于 `fw-plus-boot-autocon
 | `enabled` | `true` | 总开关 |
 | `token.secret` | 必填 | JWT 密钥，缺失抛 `IllegalStateException` |
 | `token.expireHours` | `2` | Token 有效期 |
+| `tokens` | 空 | 按端点路径绑定的 token 规则，每项含 `path`、`secret` 与可选 `expireHours` |
 | `websocket.path` | `/ws/api` | 主端点路径 |
 | `websocket.paths` | 空 | 追加端点路径，与 `websocket.path` 合并去重后全部注册 |
 | `websocket.trustedDomain` | 空 | 受信任来源，逗号分隔；空表示不允许跨域 |
@@ -93,6 +94,20 @@ webmvc 逐条 `registry.addHandler`，跨域、子协议与握手拦截器对每
 
 多注册来源：webmvc 侧地基注册器不独占 `WebSocketConfigurer`，由 Spring `DelegatingWebSocketConfiguration` 收集容器内全部实例；宿主可自行实例化 `WsEndpointRegistrar`（公开类）或写自己的 `WebSocketConfigurer`，与地基注册器并存生效，也可用同名 Bean `wsEndpointRegistrar` 整体覆盖地基注册。webflux 侧宿主自带 `SimpleUrlHandlerMapping` 时与地基 mapping 由 order 决定先后，互不覆盖。一个应用只会是 servlet 或 reactive 一种栈，不构造双栈共存的上下文。
 
+## 一个实例对应一条路径 + 一个 token
+
+`fw.plus.ws.tokens` 是规则列表，每条规则 = 一条端点路径 + 一套 token 密钥（`path` + `secret` + 可选 `expireHours`）。多个应用共用一套地基时，各实例只认自己路径上的密钥，互不串用。
+
+解析由 `WsTokenResolver` 完成，纯静态、无 Spring 依赖，webmvc 握手、webflux 握手与 magic 侧的 `ws['xxx'].generateToken()`、`/ws/datasource/test` 共用同一套规则。按握手请求的完整路径（含基础路径）依次匹配：
+
+1. 精确命中：规则 `path` 规范化后与请求完整路径完全相等；
+2. 后缀命中：请求路径以规则 `path` 结尾且长度严格更长（规则路径本身带斜杠，`/my-api` 不会命中 `/api`）；
+3. 未命中，或命中规则的 `secret` 留空：回落全局 `fw.plus.ws.token.secret`，为空时抛 `IllegalStateException("fw.plus.ws.token.secret must be configured")`。
+
+规则的 `expireHours` 缺省时继承全局 `token.expireHours`。规则可写相对路径（靠后缀边界命中带基础路径的请求），也可直接写完整路径；精确匹配整轮优先于后缀匹配整轮，因此写在后面的完整路径规则不会被同尾缀的短规则抢先。命中同一规则的请求由 `AbstractWebSocketHandler` / `ReactiveWsHandler` 使用该规则的密钥验签，`secretKeyCache` 仍以密钥字符串为键，多套密钥并存时自动区分。
+
+magic 侧 `WsDataSourceInfo` 新增 `path` 字段：填写后签发 token 与数据源测试都按该路径解析密钥；留空表示使用全局密钥。
+
 ## SPI
 
 - `WsBusinessDispatcher`：`existsApp`、`findEnabledSubscribes`、`execute`。未注册时地基退化为纯通道。
@@ -126,3 +141,4 @@ Scenario 编号延续历史变更：A1 至 A16 为此前 change 已验收的既�
 - **Scenario A16**：starter 提供 README，`fw-plus-sample` 新增可编译样例并在 samples pom 注册。
 - **Scenario A17**：webmvc 栈按 `websocket.paths` 与多个 `WsBasePathProvider` 展开出全部端点，每条路径的跨域、子协议与握手拦截器一致；容器内存在多个 base path provider 不再抛 `NoUniqueBeanDefinitionException`。
 - **Scenario A18**：同一应用内除地基注册器外还有宿主自注册的 configurer（webmvc）或 mapping（webflux）时，双方路径都能完成注册与握手，互不覆盖；两端展开出的完整路径集合一致。
+- **Scenario A19**：一个实例对应一条路径 + 一个 token。同一份配置下 `/ws/order` 与 `/ws/pay` 绑定不同密钥，用对方密钥签发的 token 在两端都被拒，用本端密钥签发的 token 通过；未命中任何规则的路径回落全局 `token.secret`；规则未配 `expireHours` 时继承全局有效期。webmvc 与 webflux 两栈判定一致，magic 侧按 `ws-datasource.path` 签发与测试同一套密钥。

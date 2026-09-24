@@ -66,6 +66,9 @@ public class WsModule implements DynamicAttribute<WsModule, WsModule> , DynamicM
     /**
      * 生成JWT Token
      *
+     * <p>按该数据源绑定的端点路径解析 token 密钥：命中 {@code fw.plus.ws.tokens} 规则时用规则密钥
+     * 与有效期签发，客户端连接同一路径即可通过握手校验；未绑定时回落到全局 token 配置。</p>
+     *
      * @param secret 应用密钥
      * @return 生成的JWT Token字符串
      * @throws SecurityException 当appId或密钥无效时抛出此异常
@@ -85,15 +88,16 @@ public class WsModule implements DynamicAttribute<WsModule, WsModule> , DynamicM
                 throw new SecurityException("Invalid appId or secret");
             }
 
-            // 从配置中获取过期时间（默认2小时）
-            long expireHours = getTokenExpireHours();
+            // 从配置中获取过期时间（默认2小时），按数据源绑定的路径解析
+            long expireHours = getTokenExpireHours(dataSourceInfo.getPath());
 
             Date now = new Date();
             // 设置过期时间，使用TimeUnit提高可读性并避免整数溢出
             long expireMillis = now.getTime() + java.util.concurrent.TimeUnit.HOURS.toMillis(expireHours);
             Date expireDate = new Date(expireMillis);
 
-            SecretKeyAndSignatureAlgorithm secretKeyAndSignatureAlgorithm = getSecretKeyAndSignatureAlgorithm();
+            SecretKeyAndSignatureAlgorithm secretKeyAndSignatureAlgorithm =
+                    getSecretKeyAndSignatureAlgorithm(getTokenSecret(dataSourceInfo.getPath()));
             if (secretKeyAndSignatureAlgorithm == null) {
                 throw new RuntimeException("Failed to obtain secret key and signature algorithm");
             }

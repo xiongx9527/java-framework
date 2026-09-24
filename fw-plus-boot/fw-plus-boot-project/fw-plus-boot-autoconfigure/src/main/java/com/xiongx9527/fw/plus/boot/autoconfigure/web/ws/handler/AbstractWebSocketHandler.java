@@ -10,6 +10,7 @@ import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.broadcast.WsBroadcastExecutor;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.common.WsBaseService;
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.common.WsTokenResolver;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.config.WsConfig;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.spi.WsBusinessDispatcher;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.spi.WsInvocationContext;
@@ -232,18 +233,45 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
      */
     @Override
     public SecretKeyAndSignatureAlgorithm getSecretKeyAndSignatureAlgorithm() {
-        String secret = getTokenSecret();
+        return getSecretKeyAndSignatureAlgorithm(getTokenSecret());
+    }
+
+    /**
+     * 按指定密钥获取签名密钥与算法，多端点场景下同一进程并存多套密钥，仍按密钥字符串去重计算。
+     */
+    @Override
+    public SecretKeyAndSignatureAlgorithm getSecretKeyAndSignatureAlgorithm(String secret) {
         SecretKeyAndSignatureAlgorithm cached = secretKeyCache.get(secret);
         if (cached == null) {
             synchronized (secretKeyCache) {
                 cached = secretKeyCache.get(secret);
                 if (cached == null) {
-                    cached = WsBaseService.super.getSecretKeyAndSignatureAlgorithm();
+                    cached = WsBaseService.super.getSecretKeyAndSignatureAlgorithm(secret);
                     secretKeyCache.put(secret, cached);
                 }
             }
         }
         return cached;
+    }
+
+    /**
+     * 按请求路径解析 token 密钥：命中 {@code fw.plus.ws.tokens} 规则用规则密钥，否则回落全局。
+     *
+     * <p>直接使用构造注入的 {@link WsConfig}，避免每次握手走容器查找。</p>
+     */
+    @Override
+    public String getTokenSecret(String requestPath) {
+        String pathSecret = wsConfig == null ? null : WsTokenResolver.resolveSecret(wsConfig, requestPath);
+        return StringUtils.isNotBlank(pathSecret) ? pathSecret : getTokenSecret();
+    }
+
+    /**
+     * 按请求路径解析 token 有效期，未显式配置的路径继承全局值。
+     */
+    @Override
+    public long getTokenExpireHours(String requestPath) {
+        Long pathExpireHours = wsConfig == null ? null : WsTokenResolver.resolveExpireHours(wsConfig, requestPath);
+        return pathExpireHours == null ? getTokenExpireHours() : pathExpireHours;
     }
 
     /**
@@ -416,6 +444,7 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
 
             // 获取URI参数
             URI uri = session.getUri();
+            String requestPath = uri != null ? uri.getPath() : null;
             String query = uri != null ? uri.getQuery() : null;
 
             // 获取Session ID
@@ -445,7 +474,7 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
             // 验证token并提取appId
             String appId;
             try {
-                appId = validateAndExtractAppIdFromToken(token);
+                appId = validateAndExtractAppIdFromToken(token, getTokenSecret(requestPath));
                 if (StringUtils.isBlank(appId)) {
                     log.error("Invalid token: {}", maskSensitiveValue(token));
                     closeSession(session, "无效的token", CloseStatus.POLICY_VIOLATION);
