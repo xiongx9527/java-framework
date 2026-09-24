@@ -6,6 +6,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.model.WsSubs
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.service.WsDataSourceInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.service.WsSubscribeInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.spi.WsInvocationContext;
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.webmvc.ServletWsSession;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.spi.WsSubscribeScript;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.socket.WebSocketSession;
@@ -103,7 +104,7 @@ class BaseDynamicWebSocketHandlerTest {
         JSONObject params = new JSONObject();
         params.put("keyword", "订单");
         WsInvocationContext context = new WsInvocationContext(WsInvocationContext.Phase.MESSAGE,
-                "default", "client-a", "sess-1", "order-refresh", params, session, null);
+                "default", "client-a", "sess-1", "order-refresh", params, new ServletWsSession(session), null);
 
         Object result = handler.execute(subscribeInfo, context);
 

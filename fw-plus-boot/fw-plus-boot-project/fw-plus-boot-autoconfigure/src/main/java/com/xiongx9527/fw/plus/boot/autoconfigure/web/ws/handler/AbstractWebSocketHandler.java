@@ -3,17 +3,24 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.handler;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.alibaba.fastjson2.JSONValidator;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.RemovalCause;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.broadcast.WsBroadcastExecutor;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.common.WsBaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.config.WsConfig;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.spi.WsBusinessDispatcher;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.spi.WsInvocationContext;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.spi.WsReplyHandle;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.spi.WsSubscribeScript;
-import io.jsonwebtoken.lang.Collections;
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.webmvc.ServletWsSession;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.socket.BinaryMessage;
 import org.springframework.web.socket.CloseStatus;
@@ -24,11 +31,24 @@ import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.WebSocketMessage;
 import org.springframework.web.socket.WebSocketSession;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.InetAddress;
+import java.nio.ByteBuffer;
 import java.net.URI;
+import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 与业务无关的 WebSocket 处理器地基。
@@ -40,7 +60,7 @@ import java.util.concurrent.ScheduledExecutorService;
  * @author zzy
  */
 @Slf4j
-public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBaseService {
+public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBaseService, DisposableBean {
 
     /**
      * WebSocket 通用配置，构造期即可用于读取会话缓存、线程池等参数
@@ -53,20 +73,25 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
     private final ScheduledExecutorService scheduledExecutor;
 
     /**
-     * 缓存的JWT密钥和签名算法，避免每次验证/生成token时重复计算MessageDigest（延迟初始化）
+     * 按密钥内容缓存的JWT签名密钥与算法，避免每次验证/生成token时重复计算MessageDigest。
      */
-    private volatile SecretKeyAndSignatureAlgorithm cachedSecretKeyAndAlgorithm;
+    private final Map<String, SecretKeyAndSignatureAlgorithm> secretKeyCache = new ConcurrentHashMap<>();
+
+    /**
+     * 异步广播投递线程池，按需创建。
+     */
+    private volatile WsBroadcastExecutor broadcastExecutor;
 
     /**
      * 存储客户端ID与会话列表的映射关系，用于管理同一客户端的多个会话
      * 使用Guava Cache限制大小并支持自动过期
      */
-    private final com.google.common.cache.Cache<String, List<WebSocketSession>> clientIdSessionListMap;
+    private final Cache<String, List<WebSocketSession>> clientIdSessionListMap;
 
     /**
      * WebSocketSession 不保证并发 sendMessage 安全，按 sessionId 串行化发送。
      */
-    private final Map<String, Object> sessionSendLockMap = new java.util.concurrent.ConcurrentHashMap<>();
+    private final Map<String, Object> sessionSendLockMap = new ConcurrentHashMap<>();
 
     /**
      * WebSocket服务器ID，用于标识当前服务器实例
@@ -85,19 +110,24 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
             t.setDaemon(true);
             return t;
         });
-        this.clientIdSessionListMap = com.google.common.cache.CacheBuilder.newBuilder()
+        this.clientIdSessionListMap = CacheBuilder.newBuilder()
                 .maximumSize(getMaxClientSessions())
-                .expireAfterWrite(getSessionCacheExpireMinutes(), java.util.concurrent.TimeUnit.MINUTES)
+                .expireAfterWrite(getSessionCacheExpireMinutes(), TimeUnit.MINUTES)
                 .concurrencyLevel(getCacheConcurrencyLevel())
-                .removalListener(new com.google.common.cache.RemovalListener<String, List<WebSocketSession>>() {
+                .removalListener(new RemovalListener<String, List<WebSocketSession>>() {
                     @Override
-                    public void onRemoval(com.google.common.cache.RemovalNotification<String, List<WebSocketSession>> notification) {
-                        if (notification.getCause() == com.google.common.cache.RemovalCause.REPLACED) {
+                    public void onRemoval(RemovalNotification<String, List<WebSocketSession>> notification) {
+                        if (notification.getCause() == RemovalCause.REPLACED) {
                             log.debug("Client session list refreshed in cache: {}", notification.getKey());
                             return;
                         }
                         log.warn("Client session list removed from cache: {} - {}",
                                 notification.getKey(), notification.getCause());
+                        // 缓存驱逐不等于连接失效：默认只摘除登记、不主动关闭仍打开的长连接，
+                        // 否则只发业务消息从不发 ping 的客户端会在 expireMinutes 后被误杀。
+                        if (!isCloseOnCacheEviction()) {
+                            return;
+                        }
                         try {
                             List<WebSocketSession> sessions = notification.getValue();
                             if (sessions != null) {
@@ -116,7 +146,6 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
                     }
                 })
                 .build();
-        addShutdownHook();
     }
 
     /**
@@ -150,10 +179,14 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
     }
 
     /**
-     * 添加JVM关闭钩子，确保在应用关闭时能清理所有资源
+     * 容器销毁时清理所有资源。
+     *
+     * <p>早前这里注册的是 JVM shutdown hook：每创建一个处理器就多一个无法注销的钩子，
+     * 且不受 Spring 关闭顺序管理。改为 {@link DisposableBean} 后由容器统一驱动。</p>
      */
-    private void addShutdownHook() {
-        Runtime.getRuntime().addShutdownHook(new Thread(this::cleanupAllResources));
+    @Override
+    public void destroy() {
+        cleanupAllResources();
     }
 
     /**
@@ -163,7 +196,7 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
         try {
             // 先收集所有活跃会话引用，避免 session.close() 触发 afterConnectionClosed
             // 回调中修改缓存导致迭代器行为不确定
-            List<WebSocketSession> allSessions = new java.util.ArrayList<>();
+            List<WebSocketSession> allSessions = new ArrayList<>();
             for (Map.Entry<String, List<WebSocketSession>> entry : clientIdSessionListMap.asMap().entrySet()) {
                 for (WebSocketSession session : entry.getValue()) {
                     if (session.isOpen()) {
@@ -182,6 +215,9 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
             }
             clientIdSessionListMap.invalidateAll();
             scheduledExecutor.shutdown();
+            if (broadcastExecutor != null) {
+                broadcastExecutor.shutdown();
+            }
             log.info("All WebSocket resources have been cleaned up");
         } catch (Exception e) {
             log.error("Error during cleanup of all resources", e);
@@ -189,18 +225,25 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
     }
 
     /**
-     * 返回缓存的JWT密钥和签名算法，延迟初始化避免配置未就绪问题
+     * 返回密钥对应的签名密钥与算法，按密钥内容缓存以避免重复计算摘要。
+     *
+     * <p>缓存以密钥字符串为键：配置刷新（{@code @RefreshScope}）更换
+     * {@code fw.plus.ws.token.secret} 后会自然命中新条目，无需重启进程。</p>
      */
     @Override
     public SecretKeyAndSignatureAlgorithm getSecretKeyAndSignatureAlgorithm() {
-        if (cachedSecretKeyAndAlgorithm == null) {
-            synchronized (this) {
-                if (cachedSecretKeyAndAlgorithm == null) {
-                    cachedSecretKeyAndAlgorithm = WsBaseService.super.getSecretKeyAndSignatureAlgorithm();
+        String secret = getTokenSecret();
+        SecretKeyAndSignatureAlgorithm cached = secretKeyCache.get(secret);
+        if (cached == null) {
+            synchronized (secretKeyCache) {
+                cached = secretKeyCache.get(secret);
+                if (cached == null) {
+                    cached = WsBaseService.super.getSecretKeyAndSignatureAlgorithm();
+                    secretKeyCache.put(secret, cached);
                 }
             }
         }
-        return cachedSecretKeyAndAlgorithm;
+        return cached;
     }
 
     /**
@@ -211,13 +254,13 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
     private String generateWebSocketServerId() {
         try {
             // 尝试获取主机名和进程ID来生成唯一ID
-            String hostName = java.net.InetAddress.getLocalHost().getHostName();
+            String hostName = InetAddress.getLocalHost().getHostName();
             String processId = java.lang.management.ManagementFactory.getRuntimeMXBean().getName().split("@")[0];
             return hostName + "-" + processId;
         } catch (Exception e) {
             // 如果无法获取主机信息，则使用UUID生成唯一ID
             log.warn("Failed to generate server ID based on host and process, using UUID instead", e);
-            return "server-" + java.util.UUID.randomUUID().toString();
+            return "server-" + UUID.randomUUID().toString();
         }
     }
 
@@ -237,17 +280,17 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
      * @return 包含参数键值对的映射
      */
     private Map<String, String> parseQueryParams(String query) {
-        Map<String, String> params = new java.util.HashMap<>();
+        Map<String, String> params = new HashMap<>();
         if (query != null && !query.isEmpty()) {
             String[] pairs = query.split("&");
             for (String pair : pairs) {
                 String[] keyValue = pair.split("=", 2);
                 if (keyValue.length == 2) {
                     try {
-                        String key = java.net.URLDecoder.decode(keyValue[0], "UTF-8");
-                        String value = java.net.URLDecoder.decode(keyValue[1], "UTF-8");
+                        String key = URLDecoder.decode(keyValue[0], "UTF-8");
+                        String value = URLDecoder.decode(keyValue[1], "UTF-8");
                         params.put(key, value);
-                    } catch (java.io.UnsupportedEncodingException e) {
+                    } catch (UnsupportedEncodingException e) {
                         log.warn("Failed to decode query parameter: {}", pair, e);
                         // 如果解码失败，仍然使用原始值
                         params.put(keyValue[0], keyValue[1]);
@@ -267,10 +310,10 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
      */
     private List<? extends WsSubscribeScript> findEnabledSubscribes(String appId, String businessType) {
         if (businessDispatcher == null) {
-            return java.util.Collections.emptyList();
+            return Collections.emptyList();
         }
         List<? extends WsSubscribeScript> subscribes = businessDispatcher.findEnabledSubscribes(appId, businessType);
-        return subscribes == null ? java.util.Collections.emptyList() : subscribes;
+        return subscribes == null ? Collections.emptyList() : subscribes;
     }
 
     /**
@@ -281,7 +324,7 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
      * @param clientId  客户端ID
      */
     private void init(String appId, String sessionId, String clientId) {
-        String businessType = getInitBussinessType();
+        String businessType = getInitBusinessType();
         List<? extends WsSubscribeScript> subscribeInfoList = findEnabledSubscribes(appId, businessType);
         for (WsSubscribeScript subscribeInfo : subscribeInfoList) {
             try {
@@ -303,7 +346,7 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
      * @param clientId  客户端ID
      */
     private void end(String appId, String sessionId, String clientId) {
-        String businessType = getCloseBussinessType();
+        String businessType = getCloseBusinessType();
         List<? extends WsSubscribeScript> subscribeInfoList = findEnabledSubscribes(appId, businessType);
         for (WsSubscribeScript subscribeInfo : subscribeInfoList) {
             try {
@@ -325,7 +368,7 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
     public void cleanupByAppId(String appId) {
         Map<String, List<WebSocketSession>> snapshot = clientIdSessionListMap.asMap();
         // 使用 List 存储 (clientId, sessionId) 对，避免 HashMap 覆盖导致同 clientId 多会话时清理遗漏
-        List<String[]> pairs = new java.util.ArrayList<>();
+        List<String[]> pairs = new ArrayList<>();
         for (Map.Entry<String, List<WebSocketSession>> e : snapshot.entrySet()) {
             for (WebSocketSession session : e.getValue()) {
                 try {
@@ -355,6 +398,10 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         String sessionId = session.getId();
+
+        // 限制单帧大小，避免超大帧把内存打满
+        session.setTextMessageSizeLimit(getMaxTextMessageSize());
+        session.setBinaryMessageSizeLimit(getMaxBinaryMessageSize());
 
         try {
             // 获取客户端IP地址（getRemoteAddress 可能在连接异常关闭时返回 null）
@@ -417,6 +464,20 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
                 return;
             }
 
+            // 连接数上限：超限时拒绝握手，避免单实例会话无上限增长
+            int maxTotalSessions = getMaxTotalSessions();
+            if (maxTotalSessions > 0 && sessionCount() >= maxTotalSessions) {
+                log.error("Max total sessions reached - limit: {}", maxTotalSessions);
+                closeSession(session, "连接数已达上限", CloseStatus.SERVICE_OVERLOAD);
+                return;
+            }
+            int maxSessionsPerClient = getMaxSessionsPerClient();
+            if (maxSessionsPerClient > 0 && sessionsOf(clientId).size() >= maxSessionsPerClient) {
+                log.error("Max sessions per client reached - clientId: {}, limit: {}", clientId, maxSessionsPerClient);
+                closeSession(session, "客户端连接数已达上限", CloseStatus.SERVICE_OVERLOAD);
+                return;
+            }
+
             // 添加会话到管理映射
             addSession(appId, session, clientId);
 
@@ -451,6 +512,8 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
             log.warn("Received message from invalid session: {}", session.getId());
             return;
         }
+        // 任意入站消息都视为活跃：只发业务消息、从不发 ping 的长连接不应被判超时
+        updateLastActiveTime(session);
         // 刷新缓存过期计时，避免仅发送业务消息不发 ping 的活跃客户端被驱逐
         refreshCacheEntry(session);
 
@@ -461,11 +524,18 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
             return;
         }
         if (message instanceof PongMessage) {
-            updateLastPingTime(session);
+            updateLastActiveTime(session);
             return;
         }
         if (message instanceof BinaryMessage) {
-            session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Unsupported binary message"));
+            if (!isBinaryEnabled()) {
+                session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Unsupported binary message"));
+                return;
+            }
+            ByteBuffer buffer = ((BinaryMessage) message).getPayload();
+            byte[] payload = new byte[buffer.remaining()];
+            buffer.get(payload);
+            handleBinaryMessage(session, payload);
             return;
         }
         if (!(message instanceof TextMessage)) {
@@ -508,7 +578,34 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
         }
     }
 
-    private void sendErrorMessage(WebSocketSession session, String code, String message) throws java.io.IOException {
+    /**
+     * 处理二进制消息：按 {@code fw.plus.ws.binary.type} 声明的业务类型进入订阅派发链路。
+     *
+     * @param session WebSocket会话对象
+     * @param payload 二进制内容
+     */
+    private void handleBinaryMessage(WebSocketSession session, byte[] payload) {
+        SessionInfo sessionInfo = (SessionInfo) session.getAttributes().get("sessionInfo");
+        if (sessionInfo == null) {
+            return;
+        }
+        String businessType = getBinaryBusinessType();
+        List<? extends WsSubscribeScript> subscribeInfoList =
+                findEnabledSubscribes(sessionInfo.getAppId(), businessType);
+        for (WsSubscribeScript subscribeInfo : subscribeInfoList) {
+            try {
+                WsInvocationContext context = new WsInvocationContext(WsInvocationContext.Phase.MESSAGE,
+                        sessionInfo.getAppId(), sessionInfo.getClientId(), session.getId(),
+                        WsInvocationContext.MessageKind.BINARY, businessType, null, payload,
+                        new ServletWsSession(session), createReplyHandle(session));
+                businessDispatcher.execute(subscribeInfo, context);
+            } catch (Exception e) {
+                log.error("Error processing binary subscribe message: {}", e.getMessage(), e);
+            }
+        }
+    }
+
+    private void sendErrorMessage(WebSocketSession session, String code, String message) throws IOException {
         JSONObject errorObject = new JSONObject();
         errorObject.put("type", "error");
         errorObject.put("success", false);
@@ -545,8 +642,8 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
         }
     }
 
-    private void sendPongMessage(WebSocketSession session, PingMessage message) throws java.io.IOException {
-        updateLastPingTime(session);
+    private void sendPongMessage(WebSocketSession session, PingMessage message) throws IOException {
+        updateLastActiveTime(session);
         Object sendLock = sessionSendLockMap.computeIfAbsent(session.getId(), key -> new Object());
         synchronized (sendLock) {
             if (!isSessionValid(session)) {
@@ -556,10 +653,10 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
         }
     }
 
-    private void updateLastPingTime(WebSocketSession session) {
+    private void updateLastActiveTime(WebSocketSession session) {
         SessionInfo sessionInfo = (SessionInfo) session.getAttributes().get("sessionInfo");
         if (sessionInfo != null) {
-            sessionInfo.setLastPingTime(System.currentTimeMillis());
+            sessionInfo.setLastActiveTime(System.currentTimeMillis());
             session.getAttributes().put("sessionInfo", sessionInfo);
         }
     }
@@ -592,7 +689,7 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
         } else {
             try {
                 sendErrorMessage(session, "UNKNOWN_TYPE", "No enabled websocket subscribe script matched message type");
-            } catch (java.io.IOException e) {
+            } catch (IOException e) {
                 log.error("Failed to send unknown type error message", e);
             }
         }
@@ -609,7 +706,7 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
             // 更新会话的最后ping时间
             SessionInfo sessionInfo = (SessionInfo) session.getAttributes().get("sessionInfo");
             if (sessionInfo != null) {
-                sessionInfo.setLastPingTime(System.currentTimeMillis());
+                sessionInfo.setLastActiveTime(System.currentTimeMillis());
                 // 更新会话属性
                 session.getAttributes().put("sessionInfo", sessionInfo);
             }
@@ -653,14 +750,14 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
             try {
                 WsInvocationContext context = new WsInvocationContext(WsInvocationContext.Phase.MESSAGE,
                         appId, sessionInfo == null ? null : sessionInfo.getClientId(), session.getId(),
-                        businessType, jsonObject, session, createReplyHandle(session));
+                        businessType, jsonObject, new ServletWsSession(session), createReplyHandle(session));
                 Object result = businessDispatcher.execute(subscribeInfo, context);
                 log.info("Result of {} sessionId:{} ,appId:{} script: {}", businessType, session.getId(), appId, result);
             } catch (Exception e) {
                 log.error("Error processing subscribe message: {}", e.getMessage(), e);
                 try {
                     sendErrorMessage(session, "SCRIPT_ERROR", "Error processing websocket subscribe script: " + e.getMessage());
-                } catch (java.io.IOException sendException) {
+                } catch (IOException sendException) {
                     log.error("Failed to send script error message", sendException);
                 }
             }
@@ -726,7 +823,7 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
     private void cleanSession(String clientId, String sessionId) {
         List<WebSocketSession> sessionList = clientIdSessionListMap.getIfPresent(clientId);
         if (sessionList != null) {
-            List<WebSocketSession> sessionsToRemove = new java.util.ArrayList<>();
+            List<WebSocketSession> sessionsToRemove = new ArrayList<>();
             for (WebSocketSession session : sessionList) {
                 if (StringUtils.isNotBlank(sessionId)) {
                     if (session.getId().equals(sessionId)) {
@@ -764,7 +861,7 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
         session.getAttributes().put("sessionInfo", sessionInfo);
 
         List<WebSocketSession> sessions = clientIdSessionListMap.asMap()
-                .computeIfAbsent(clientId, k -> new java.util.concurrent.CopyOnWriteArrayList<>());
+                .computeIfAbsent(clientId, k -> new CopyOnWriteArrayList<>());
         sessions.add(session);
         // 显式 put 以刷新 Guava Cache 的写入过期计时，避免活跃客户端因仅通过 asMap 操作而被驱逐
         clientIdSessionListMap.put(clientId, sessions);
@@ -780,7 +877,7 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
      * @param message 要发送的消息内容
      * @throws Exception 如果发送消息过程中发生错误
      */
-    private void sendMessage(WebSocketSession session, String message) throws java.io.IOException {
+    private void sendMessage(WebSocketSession session, String message) throws IOException {
         if (!isSessionValid(session)) {
             log.warn("Attempted to send message to invalid session: {}", session.getId());
             return;
@@ -802,13 +899,85 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
      * @return 回发句柄
      */
     private WsReplyHandle createReplyHandle(WebSocketSession session) {
-        return message -> {
-            try {
-                sendMessage(session, message);
-            } catch (Exception e) {
-                log.error("Failed to reply message to session: {}", session.getId(), e);
+        return new WsReplyHandle() {
+            @Override
+            public void sendText(String message) {
+                try {
+                    sendMessage(session, message);
+                } catch (Exception e) {
+                    log.error("Failed to reply message to session: {}", session.getId(), e);
+                }
+            }
+
+            @Override
+            public void sendBinary(byte[] payload) {
+                try {
+                    sendBinaryMessage(session, payload);
+                } catch (Exception e) {
+                    log.error("Failed to reply binary message to session: {}", session.getId(), e);
+                }
             }
         };
+    }
+
+    /**
+     * 向指定的WebSocket会话发送二进制消息。
+     *
+     * @param session WebSocket会话对象
+     * @param payload 要发送的二进制内容
+     * @throws IOException 发送失败时抛出
+     */
+    private void sendBinaryMessage(WebSocketSession session, byte[] payload) throws IOException {
+        if (!isSessionValid(session)) {
+            log.warn("Attempted to send binary message to invalid session: {}", session.getId());
+            return;
+        }
+        Object sendLock = sessionSendLockMap.computeIfAbsent(session.getId(), key -> new Object());
+        synchronized (sendLock) {
+            if (!isSessionValid(session)) {
+                log.warn("Attempted to send binary message to invalid session after waiting for send lock: {}",
+                        session.getId());
+                return;
+            }
+            session.sendMessage(new BinaryMessage(payload));
+        }
+    }
+
+    /**
+     * 异步广播投递线程池，仅在 {@code fw.plus.ws.broadcast.async=true} 时创建。
+     *
+     * @return 广播线程池
+     */
+    private synchronized WsBroadcastExecutor broadcastExecutor() {
+        if (broadcastExecutor == null) {
+            broadcastExecutor = new WsBroadcastExecutor(
+                    getScriptThreadPoolCoreSize(), getScriptThreadPoolMaxSize(), getScriptThreadPoolQueueCapacity());
+        }
+        return broadcastExecutor;
+    }
+
+    /**
+     * 当前登记的会话总数，用于全局连接数上限判断。
+     *
+     * @return 会话总数
+     */
+    public int sessionCount() {
+        int total = 0;
+        for (List<WebSocketSession> sessions : clientIdSessionListMap.asMap().values()) {
+            total += sessions == null ? 0 : sessions.size();
+        }
+        return total;
+    }
+
+    /**
+     * 指定 clientId 下登记的会话列表。
+     *
+     * @param clientId 客户端 ID
+     * @return 会话列表，未登记时返回空列表
+     */
+    public List<WebSocketSession> sessionsOf(String clientId) {
+        List<WebSocketSession> sessions = clientIdSessionListMap.getIfPresent(clientId);
+        return sessions == null ? Collections.emptyList() : sessions;
     }
 
     /**
@@ -840,25 +1009,35 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
         }
 
         // 检查会话是否超时
-        Long lastPingTime = sessionInfo.getLastPingTime();
-        if (lastPingTime == null) {
+        Long lastActiveTime = sessionInfo.getLastActiveTime();
+        if (lastActiveTime == null) {
             return false;
         }
         long timeoutMillis = (long) getSessionCacheExpireMinutes() * 60 * 1000;
-        return (System.currentTimeMillis() - lastPingTime) <= timeoutMillis;
+        return (System.currentTimeMillis() - lastActiveTime) <= timeoutMillis;
     }
 
     /**
      * 仅向本地指定客户端投递消息，不发布到 Redis（供Redis消息监听器使用，避免消息反弹循环）。
      *
-     * @return true 如果至少有一条消息成功发送到本地会话
+     * <p>开启 {@code fw.plus.ws.broadcast.async} 后投递改为尽力而为的异步提交，
+     * 返回值只表示任务已被接受，不再表示已实际发出。</p>
+     *
+     * @return true 同步模式下表示至少成功发送一条；异步模式下表示任务已被接受
      */
     boolean broadcastMessageToClientLocalOnly(String appId, String clientId, String message) {
+        if (isBroadcastAsync()) {
+            return broadcastExecutor().submit(() -> doBroadcastClientLocalOnly(appId, clientId, message));
+        }
+        return doBroadcastClientLocalOnly(appId, clientId, message);
+    }
+
+    private boolean doBroadcastClientLocalOnly(String appId, String clientId, String message) {
         List<WebSocketSession> sessionList = this.clientIdSessionListMap.getIfPresent(clientId);
         boolean sent = false;
-        if (!Collections.isEmpty(sessionList)) {
-            List<WebSocketSession> sessionsToRemove = new java.util.ArrayList<>();
-            List<WebSocketSession> sessionsToSend = new java.util.ArrayList<>();
+        if (CollectionUtils.isNotEmpty(sessionList)) {
+            List<WebSocketSession> sessionsToRemove = new ArrayList<>();
+            List<WebSocketSession> sessionsToSend = new ArrayList<>();
             for (WebSocketSession session : sessionList) {
                 SessionInfo sessionInfo = (SessionInfo) session.getAttributes().get("sessionInfo");
                 if (sessionInfo != null && appId.equals(sessionInfo.getAppId())) {
@@ -919,7 +1098,7 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
                 } catch (Exception e) {
                     log.error("Error closing session: {}", session.getId(), e);
                 }
-            }, delayMillis, java.util.concurrent.TimeUnit.MILLISECONDS);
+            }, delayMillis, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
             log.error("Error during delayed close operation for session: {}", session.getId(), e);
             try {
@@ -945,18 +1124,26 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
     /**
      * 仅向本地客户端广播消息，不发布到Redis（供Redis消息监听器使用，避免消息放大循环）
      */
-    void broadcastMessageToAllClientLocalOnly(String appId, String message) {
+    public void broadcastMessageToAllClientLocalOnly(String appId, String message) {
         if (appId == null) {
             log.warn("broadcastMessageToAllClientLocalOnly called with null appId, ignoring");
             return;
         }
-        Map<String, List<WebSocketSession>> sessionsToCleanup = new java.util.LinkedHashMap<>();
+        if (isBroadcastAsync()) {
+            broadcastExecutor().submit(() -> doBroadcastAllClientLocalOnly(appId, message));
+            return;
+        }
+        doBroadcastAllClientLocalOnly(appId, message);
+    }
+
+    private void doBroadcastAllClientLocalOnly(String appId, String message) {
+        Map<String, List<WebSocketSession>> sessionsToCleanup = new LinkedHashMap<>();
         for (Map.Entry<String, List<WebSocketSession>> entry : clientIdSessionListMap.asMap().entrySet()) {
             for (WebSocketSession session : entry.getValue()) {
                 try {
                     SessionInfo sessionInfo = (SessionInfo) session.getAttributes().get("sessionInfo");
                     if (sessionInfo == null || !isSessionValid(session)) {
-                        sessionsToCleanup.computeIfAbsent(entry.getKey(), k -> new java.util.ArrayList<>()).add(session);
+                        sessionsToCleanup.computeIfAbsent(entry.getKey(), k -> new ArrayList<>()).add(session);
                         continue;
                     }
                     if (!appId.equals(sessionInfo.getAppId())) {
@@ -965,7 +1152,7 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
                     sendMessage(session, message);
                 } catch (Exception e) {
                     log.error("Failed to send message to session: {}", session.getId(), e);
-                    sessionsToCleanup.computeIfAbsent(entry.getKey(), k -> new java.util.ArrayList<>()).add(session);
+                    sessionsToCleanup.computeIfAbsent(entry.getKey(), k -> new ArrayList<>()).add(session);
                 }
             }
         }
@@ -1087,7 +1274,7 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
         /**
          * 最后一次ping时间
          */
-        private Long lastPingTime;
+        private Long lastActiveTime;
 
         /**
          * 会话创建时间
@@ -1098,7 +1285,7 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
             this.appId = appId;
             this.clientId = clientId;
             this.createTime = System.currentTimeMillis();
-            this.lastPingTime = this.createTime;
+            this.lastActiveTime = this.createTime;
         }
     }
 }

@@ -1,0 +1,26 @@
+server:
+  port: 8080
+
+fw:
+  plus:
+    ws:
+      enabled: true
+      appId: default
+      token:
+        # 至少 32 位；缺失时 WebSocket 握手鉴权直接失败
+        secret: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+        expireHours: 2
+      websocket:
+        path: /ws/api
+        # 演示用：允许任意来源；生产请改为具体域名
+        trustedDomain: '*'
+      binary:
+        enabled: true
+        type: binary
+      broadcast:
+        # 默认同步；置 true 时本地广播提交到有界线程池
+        async: false
+
+logging:
+  level:
+    com.xiongx9527.fw.plus.boot.autoconfigure.web.ws: info

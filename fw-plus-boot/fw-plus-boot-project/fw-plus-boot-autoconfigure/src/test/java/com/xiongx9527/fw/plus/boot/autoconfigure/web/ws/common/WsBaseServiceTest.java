@@ -22,16 +22,14 @@ class WsBaseServiceTest {
         WsBaseService service = service(new HashMap<>());
 
         assertThat(service.getWebsocketPath()).isEqualTo("/ws/api");
-        assertThat(service.getWebsocketBasePath()).isEmpty();
-        assertThat(service.getWebsocketEndpoint()).isEqualTo("/ws/execute");
         assertThat(service.getTrustedDomain()).isEmpty();
         assertThat(service.getTokenExpireHours()).isEqualTo(2L);
         assertThat(service.getMaxClientIdLength()).isEqualTo(50);
         assertThat(service.getTokenParamName()).isEqualTo("token");
         assertThat(service.getClientIdParamName()).isEqualTo("clientId");
-        assertThat(service.getDefaultKey()).isEqualTo("default");
-        assertThat(service.getInitBussinessType()).isEqualTo("init");
-        assertThat(service.getCloseBussinessType()).isEqualTo("close");
+        assertThat(service.getDefaultAppId()).isEqualTo("default");
+        assertThat(service.getInitBusinessType()).isEqualTo("init");
+        assertThat(service.getCloseBusinessType()).isEqualTo("close");
         assertThat(service.getBroadcastChannelName()).isEqualTo("websocket:broadcast");
         assertThat(service.getMaxClientSessions()).isEqualTo(10000);
         assertThat(service.getSessionCacheExpireMinutes()).isEqualTo(30);

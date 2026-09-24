@@ -111,7 +111,8 @@ public class BaseDynamicWebSocketHandler implements WsBusinessDispatcher, BaseSe
             if (context.getSession() != null) {
                 context.getSession().getAttributes().put("subscribeInfo", subscribeInfo);
             }
-            putBusinessMessageContext(magicScriptContext, context.getBusinessType(), context.getParams());
+            putBusinessMessageContext(magicScriptContext, context.getBusinessType(),
+                    resolveParams(context));
         } else {
             putBusinessType(magicScriptContext, subscribeInfo.getBusinessId());
         }
@@ -130,6 +131,25 @@ public class BaseDynamicWebSocketHandler implements WsBusinessDispatcher, BaseSe
     void putBusinessType(MagicScriptContext magicScriptContext, String businessType) {
         magicScriptContext.set("type", businessType);
         magicScriptContext.set("businessType", businessType);
+    }
+
+    /**
+     * 取得脚本可见的消息体：二进制帧没有 JSON 参数，这里把原始内容以 Base64 暴露为
+     * {@code params.data}，并附带 {@code params.length}，使订阅脚本能取到同一份数据。
+     *
+     * @param context 调用上下文
+     * @return 脚本消息体
+     */
+    private static JSONObject resolveParams(WsInvocationContext context) {
+        JSONObject params = context.getParams();
+        if (params != null || context.getMessageKind() != WsInvocationContext.MessageKind.BINARY) {
+            return params;
+        }
+        byte[] body = context.getBinaryBody();
+        JSONObject binaryParams = new JSONObject();
+        binaryParams.put("data", body == null ? null : java.util.Base64.getEncoder().encodeToString(body));
+        binaryParams.put("length", body == null ? 0 : body.length);
+        return binaryParams;
     }
 
     /**
