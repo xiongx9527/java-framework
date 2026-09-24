@@ -27,7 +27,6 @@
         <module>fw-plus-influxdb-spring-boot-starter</module>
         <module>fw-plus-admin-server-spring-boot-starter</module>
         <module>fw-plus-ws-spring-boot-starter</module>
-        <module>fw-plus-centrifuge-spring-boot-starter</module>
     </modules>
     <artifactId>fw-plus-boot-starters</artifactId>
     <name>Fw-Plus-Boot Starters</name>

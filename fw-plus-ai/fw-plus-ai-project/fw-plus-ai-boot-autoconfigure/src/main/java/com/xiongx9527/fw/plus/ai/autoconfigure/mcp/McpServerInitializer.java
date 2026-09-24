@@ -1,57 +1,72 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.mcp;
 
-import com.ajaxjs.mcp.server.McpServer;
-import com.ajaxjs.mcp.server.feature.FeatureMgr;
 import com.ajaxjs.mcp.transport.McpTransportSync;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
+import com.xiongx9527.fw.plus.ai.mcp.feature.McpFeatureScanner;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.context.ApplicationContext;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 
 /**
- * MCP Server 启动器，在 Spring Boot 应用启动后扫描特性并启动 MCP Server。
+ * MCP Server 启动器，在 Spring Boot 应用启动后扫描特性并启动各 runtime。
  * <p>
  * 特性扫描放在启动阶段而非 Bean 创建阶段：此时应用上下文已完全就绪，可以可靠定位
  * {@code @SpringBootConfiguration} 启动类，也避免自动配置阶段做类路径扫描拖慢启动。
  * </p>
+ * <p>
+ * 一次扫描即可按 {@code @McpServer} 注解把能力路由到各 runtime 的 FeatureMgr（扫描源为全部
+ * runtime 的 basePackages 并集）；随后逐个 runtime 绑定传输并 {@code start()}。
+ * </p>
  */
 public class McpServerInitializer implements ApplicationRunner {
 
-    private final McpServer server;
+    private final List<McpServerRuntime> runtimes;
 
     private final McpProperties properties;
 
     private final ApplicationContext context;
 
-    private final FeatureMgr featureMgr;
-
-    public McpServerInitializer(McpServer server, McpProperties properties, ApplicationContext context,
-                                FeatureMgr featureMgr) {
-        this.server = server;
+    public McpServerInitializer(List<McpServerRuntime> runtimes, McpProperties properties,
+                                ApplicationContext context) {
+        this.runtimes = runtimes;
         this.properties = properties;
         this.context = context;
-        this.featureMgr = featureMgr;
     }
 
     @Override
     public void run(ApplicationArguments args) {
-        for (String basePackage : resolveBasePackages(properties, context))
-            featureMgr.init(basePackage);
-
-        McpTransportSync transport = context.getBeanProvider(McpTransportSync.class).getIfAvailable();
-        if (transport != null) {
-            server.setTransport(transport);
+        Map<String, com.ajaxjs.mcp.server.feature.FeatureMgr> featureMgrs = new LinkedHashMap<>();
+        for (McpServerRuntime runtime : runtimes) {
+            featureMgrs.put(runtime.getKey(), runtime.getFeatureMgr());
         }
-        server.start();
+
+        McpFeatureScanner scanner = new McpFeatureScanner();
+        for (String basePackage : resolveBasePackages(properties, context, runtimes)) {
+            try {
+                scanner.register(java.util.Collections.singletonList(basePackage), featureMgrs);
+            } catch (Exception e) {
+                throw new IllegalStateException("Unable to scan MCP features in package '" + basePackage + "'", e);
+            }
+        }
+
+        for (McpServerRuntime runtime : runtimes) {
+            if (runtime.getRegistry() instanceof McpTransportSync) {
+                runtime.getServer().setTransport((McpTransportSync) runtime.getRegistry());
+            }
+            runtime.getServer().start();
+        }
     }
 
     /**
-     * 解析 {@code @McpService} 的扫描包路径。
+     * 解析待扫描的包路径集合。
      * <p>
      * {@code fw-plus.ai.mcp.base-packages} 支持逗号分隔的多个包，与 {@code @SpringBootConfiguration}
      * 启动类所在包取并集：配置包在前、默认包在后，重复包只扫描一次。
@@ -59,10 +74,11 @@ public class McpServerInitializer implements ApplicationRunner {
      *
      * @param properties MCP 配置属性
      * @param context    Spring 应用上下文，用于定位启动类
+     * @param runtimes   全部 runtime，其 basePackages 一并纳入扫描源
      * @return 待扫描的包路径，无可用包时返回空列表
      */
-    static List<String> resolveBasePackages(McpProperties properties, ApplicationContext context) {
-        // LinkedHashSet 保持配置包在前、默认包在后的顺序并去重。
+    static List<String> resolveBasePackages(McpProperties properties, ApplicationContext context,
+                                            List<McpServerRuntime> runtimes) {
         LinkedHashSet<String> packages = new LinkedHashSet<>();
         String basePackages = properties.getBasePackages();
 
@@ -72,6 +88,10 @@ public class McpServerInitializer implements ApplicationRunner {
                 if (!trimmed.isEmpty())
                     packages.add(trimmed);
             }
+        }
+
+        for (McpServerRuntime runtime : runtimes) {
+            packages.addAll(runtime.getBasePackages());
         }
 
         String defaultPackage = defaultBasePackage(context);

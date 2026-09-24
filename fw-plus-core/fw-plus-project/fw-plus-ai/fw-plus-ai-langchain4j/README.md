@@ -6,7 +6,7 @@ fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是�
 
 为保持项目整体 Java 8 兼容性，本目录中的 provider 模块采用与 LangChain4j 原模块相同的包名和类名重写关键类，用本工程内的源码覆盖 `0.35` 中不兼容 Java 8 的实现。模型与向量能力统一由 `fw-plus-ai-langchain4j-adapter` 接入中立 SPI。
 
-下表中的 `0.35` provider覆盖模块只面向Java 8编译或运行环境；Java 17及以上环境应优先使用对应LangChain4j `0.35`原始artifact。新增的Agentic完整回移不是provider覆盖，适用边界单独见下节。
+下表中的 `0.35` provider覆盖模块只面向Java 8编译或运行环境；Java 17及以上环境应优先使用对应LangChain4j `0.35`原始artifact。
 
 ## 当前已覆盖的类包
 
@@ -17,7 +17,7 @@ fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是�
 | `fw-plus-ai-langchain4j-anthropic` | `langchain4j-anthropic-spring-boot-starter` | `dev.langchain4j.anthropic.spring` | `AutoConfig`, `ChatModelProperties`, `Properties` |
 | `fw-plus-ai-langchain4j-azure-ai-search` | `langchain4j-azure-ai-search-spring-boot-starter` | `dev.langchain4j.azure.aisearch.spring` | `AutoConfig`, `Properties` |
 | `fw-plus-ai-langchain4j-azure-open-ai` | `langchain4j-azure-open-ai-spring-boot-starter` | `dev.langchain4j.azure.openai.spring` | `AutoConfig`, `ChatModelProperties`, `EmbeddingModelProperties`, `ImageModelProperties`, `Properties` |
-| `fw-plus-ai-langchain4j-core` | `langchain4j-core` | `dev.langchain4j.*` Core owner兼容包 | Agentic所需的Model、Tool、Invocation、Guardrail、Observability、JSON与并发兼容API |
+| `fw-plus-ai-langchain4j-core` | `langchain4j-core` | `dev.langchain4j.*` Core owner兼容包 | Model、Tool、Invocation、Guardrail、Observability、JSON与并发兼容API |
 | `fw-plus-ai-langchain4j-spring-boot-starter` | `langchain4j-spring-boot-starter` | `dev.langchain4j.spring`, `dev.langchain4j.service.spring`, `dev.langchain4j.rag.spring` | `LangChain4jAutoConfig`, `AiService`, `AiServiceFactory`, `AiServiceScannerProcessor`, `AiServiceWiringMode`, `AiServicesAutoConfig`, `ClassPathAiServiceScanner`, `RagAutoConfig`, `RagProperties`, `RetrievalProperties` |
 | `fw-plus-ai-langchain4j-dashscope` | `langchain4j-dashscope-spring-boot-starter` | `dev.langchain4j.dashscope.spring` | `AutoConfig`, `ChatModelProperties`, `EmbeddingModelProperties`, `LanguageModelProperties`, `Properties`, `TokenizerProperties` |
 | `fw-plus-ai-langchain4j-elasticsearch` | `langchain4j-elasticsearch-spring-boot-starter` | `dev.langchain4j.store.embedding.elasticsearch.spring` | `ElasticsearchClientHelper`, `ElasticsearchEmbeddingStoreAutoConfiguration`, `ElasticsearchEmbeddingStoreProperties` |
@@ -30,27 +30,6 @@ fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是�
 | `fw-plus-ai-langchain4j-redis` | `langchain4j-redis-spring-boot-starter` | `dev.langchain4j.store.embedding.redis.spring` | `RedisEmbeddingStoreAutoConfiguration`, `RedisEmbeddingStoreProperties` |
 | `fw-plus-ai-langchain4j-vertex-ai-gemini` | `langchain4j-vertex-ai-gemini` | `dev.langchain4j.vertexai.spring` | `AutoConfig`, `ChatModelProperties`, `Properties` |
 | `fw-plus-ai-langchain4j-voyage-ai` | `langchain4j-voyage-ai-spring-boot-starter` | `dev.langchain4j.voyageai.spring` | `AutoConfig`, `EmbeddingModelProperties`, `Properties`, `ScoringModelProperties` |
-
-## LangChain4j Agentic Java 8 回移
-
-`fw-plus-ai-langchain4j-agentic` 固定回移 LangChain4j tag `1.19.0`、commit
-`09a2aa3861ba468af3507c28f5676048cd5db4c6` 的 `langchain4j-agentic:1.19.0-beta29`
-生产源码。官方清单含153个Java文件，本地另有3个Java 8 helper；94个官方文件保持字节一致，
-59个因record/现代语法与JDK API回移而修改，包名保持`dev.langchain4j.agentic.*`。
-由于LangChain4j `0.35.0`没有官方Agentic artifact，该模块是新增Java 8能力，不是替换
-`0.35.0` JAR。
-
-LangChain4j角色由唯一的`fw-plus-ai-langchain4j-parent`聚合器管理：
-`fw-plus-ai-langchain4j`是aggregate owner JAR，`fw-plus-ai-langchain4j-core`是Core owner
-JAR，`fw-plus-ai-langchain4j-spring-boot-starter`仅承载10个Spring覆盖类，Agentic通过普通本地
-owner坐标取得兼容依赖。
-
-aggregate/Core对官方`0.35.0`同FQCN的必要替换登记在
-`compat/overlay-allowlist.tsv`，由unit/packaging IT验证Shade excludes、成品字节、Java 8 class major、
-重复class、SPI和最终生产classpath。API parity还比较public/protected类型层次、泛型、访问标志、
-构造器/方法/字段、throws、常量和注解值；离线行为测试通过真实public root覆盖workflow、Planner、
-Supervisor/listener、HITL持久化恢复、并行失败及异步/流式路径。完整来源、修改类别、许可和Java 8
-不可表达差异见`fw-plus-ai-langchain4j-agentic/UPSTREAM.md`。
 
 ## Java 8 / Java 17 依赖版本对照
 
@@ -98,7 +77,7 @@ Supervisor/listener、HITL持久化恢复、并行失败及异步/流式路径�
 
 ```bash
 cd fw-plus-core
-./mvnw -f fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j-parent/pom.xml clean install
+./mvnw -f fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/pom.xml clean install
 
 cd ../fw-plus-ai
 ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure -am test

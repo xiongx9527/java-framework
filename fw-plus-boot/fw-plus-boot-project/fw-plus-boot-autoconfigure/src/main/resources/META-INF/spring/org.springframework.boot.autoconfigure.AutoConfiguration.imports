@@ -15,4 +15,3 @@ com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration
 com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.starter.WsAutoConfiguration
 com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.starter.WsRedisConfiguration
 com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.webflux.WsWebFluxAutoConfiguration
-com.xiongx9527.fw.plus.boot.autoconfigure.centrifuge.CentrifugoAutoConfiguration

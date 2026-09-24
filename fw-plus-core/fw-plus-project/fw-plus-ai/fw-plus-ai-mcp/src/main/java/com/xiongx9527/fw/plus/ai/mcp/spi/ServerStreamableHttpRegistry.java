@@ -59,6 +59,16 @@ public abstract class ServerStreamableHttpRegistry extends ServerStreamableHttp 
     }
 
     /**
+     * 判断本注册表是否持有指定会话，用于多实例下的会话归属校验。
+     *
+     * @param sessionId 会话 ID
+     * @return 本实例是否持有该会话
+     */
+    public boolean hasSession(String sessionId) {
+        return resolveStreams().containsKey(sessionId);
+    }
+
+    /**
      * 发送消息
      *
      * @param sessionId 会话 ID

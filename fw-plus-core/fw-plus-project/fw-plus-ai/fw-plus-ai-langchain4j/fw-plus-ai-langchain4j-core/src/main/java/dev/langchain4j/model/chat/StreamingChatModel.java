@@ -11,7 +11,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-/** Streaming chat model API used by Agentic and bridged to the 0.35 callback model. */
+/** Streaming chat model API bridged to the 0.35 callback model. */
 public interface StreamingChatModel extends dev.langchain4j.model.chat.StreamingChatLanguageModel {
 
     default void chat(ChatRequest request, StreamingChatResponseHandler handler) {

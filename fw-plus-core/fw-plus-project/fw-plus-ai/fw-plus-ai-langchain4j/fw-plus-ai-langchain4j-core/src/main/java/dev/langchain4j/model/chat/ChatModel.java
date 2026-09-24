@@ -12,7 +12,7 @@ import java.util.Set;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** Chat model API used by Agentic and compatible with the 0.35 model contract. */
+/** Chat model API compatible with the 0.35 model contract. */
 public interface ChatModel extends dev.langchain4j.model.chat.ChatLanguageModel {
 
     default ChatResponse chat(ChatRequest chatRequest) {

@@ -50,7 +50,7 @@ public class JacksonChatMessageJsonCodec implements ChatMessageJsonCodec {
         return chatMessageJsonMapperBuilder().build();
     }
 
-    /** Configures the Jackson view used by both the standalone and Agentic scope codecs. */
+    /** Configures the Jackson view used by the scope-aware codecs. */
     public static JsonMapper.Builder chatMessageJsonMapperBuilder() {
         return JsonMapper.builder()
                 .visibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY)

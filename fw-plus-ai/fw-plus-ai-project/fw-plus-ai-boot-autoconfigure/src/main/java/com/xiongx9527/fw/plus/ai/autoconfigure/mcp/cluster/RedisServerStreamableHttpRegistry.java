@@ -19,9 +19,16 @@ public class RedisServerStreamableHttpRegistry extends DefaultServerStreamableHt
 
     private final McpRedisBroadcaster broadcaster;
 
+    private final String routeKey;
+
     public RedisServerStreamableHttpRegistry(McpServer server, McpRedisBroadcaster broadcaster) {
+        this(server, broadcaster, "default");
+    }
+
+    public RedisServerStreamableHttpRegistry(McpServer server, McpRedisBroadcaster broadcaster, String routeKey) {
         super(server, broadcaster.getServerId());
         this.broadcaster = broadcaster;
+        this.routeKey = routeKey;
     }
 
     /**
@@ -86,7 +93,7 @@ public class RedisServerStreamableHttpRegistry extends DefaultServerStreamableHt
             return;
 
         try {
-            broadcaster.broadcast(sessionId, json);
+            broadcaster.broadcast(sessionId, json, routeKey);
         } catch (Exception e) {
             log.warn("Failed to broadcast MCP message via redis: {}", e.getMessage());
         }

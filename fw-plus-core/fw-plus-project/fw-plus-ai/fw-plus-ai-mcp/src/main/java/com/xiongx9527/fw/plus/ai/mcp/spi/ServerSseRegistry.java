@@ -60,6 +60,16 @@ public abstract class ServerSseRegistry extends ServerSse implements BaseServerR
     }
 
     /**
+     * 判断本注册表是否持有指定会话，用于多实例下的会话归属校验。
+     *
+     * @param sessionId 会话 ID
+     * @return 本实例是否持有该会话
+     */
+    public boolean hasSession(String sessionId) {
+        return resolveConnections().containsKey(sessionId);
+    }
+
+    /**
      * 反射获取父类实例上的 {@code connections} 对象。
      *
      * @return 父类 {@code connections} 字段引用的实例，本身即 {@link java.util.concurrent.ConcurrentHashMap}

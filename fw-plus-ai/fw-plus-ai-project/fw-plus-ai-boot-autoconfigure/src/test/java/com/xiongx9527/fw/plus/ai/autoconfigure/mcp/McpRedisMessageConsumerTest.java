@@ -3,14 +3,15 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.mcp;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.cluster.McpRedisBroadcaster;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.cluster.McpRedisMessageConsumer;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.cluster.RedisClusterRegistry;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
 import com.xiongx9527.fw.plus.ai.mcp.spi.BaseServerRegistry;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.context.ApplicationContext;
 import org.springframework.data.redis.connection.Message;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -25,14 +26,14 @@ class McpRedisMessageConsumerTest {
 
 	private final ObjectMapper objectMapper = new ObjectMapper();
 
+	private static final String SELF_NODE = "server-1";
+
 	@Test
 	void shouldIgnoreMessagesFromSelf() throws Exception {
-		ApplicationContext context = mock(ApplicationContext.class);
-		McpRedisBroadcaster broadcaster = broadcaster();
-		McpRedisMessageConsumer consumer = new McpRedisMessageConsumer(context, broadcaster);
-		RedisClusterRegistry registry = registry(context);
+		BaseServerRegistry registry = registry();
+		McpRedisMessageConsumer consumer = consumer("default", registry);
 
-		consumer.onMessage(messageFor(payload(broadcaster.getServerId(), null, "hello")), new byte[0]);
+		consumer.onMessage(messageFor(payload(SELF_NODE, null, "hello", null)), new byte[0]);
 
 		verify(registry, never()).broadcastOther(any(), any());
 		verify(registry, never()).sendOther(any(), any(), any());
@@ -40,77 +41,134 @@ class McpRedisMessageConsumerTest {
 
 	@Test
 	void shouldSendOtherForTargetedMessage() throws Exception {
-		ApplicationContext context = mock(ApplicationContext.class);
-		McpRedisMessageConsumer consumer = new McpRedisMessageConsumer(context, broadcaster());
-		RedisClusterRegistry registry = registry(context);
+		BaseServerRegistry registry = registry();
+		McpRedisMessageConsumer consumer = consumer("default", registry);
 
-		consumer.onMessage(messageFor(payload("other-node", "session-123", "payload body")), new byte[0]);
+		consumer.onMessage(messageFor(payload("other-node", "session-123", "payload body", null)), new byte[0]);
 
 		verify(registry).sendOther("other-node", "session-123", "payload body");
 	}
 
 	@Test
 	void shouldBroadcastOtherWhenSessionIdIsMissing() throws Exception {
-		ApplicationContext context = mock(ApplicationContext.class);
-		McpRedisMessageConsumer consumer = new McpRedisMessageConsumer(context, broadcaster());
-		RedisClusterRegistry registry = registry(context);
+		BaseServerRegistry registry = registry();
+		McpRedisMessageConsumer consumer = consumer("default", registry);
 
-		consumer.onMessage(messageFor(payload("other-node", null, "payload body")), new byte[0]);
+		consumer.onMessage(messageFor(payload("other-node", null, "payload body", null)), new byte[0]);
 
 		verify(registry).broadcastOther("other-node", "payload body");
 	}
 
 	@Test
 	void shouldIgnoreEmptyMessageBody() throws Exception {
-		ApplicationContext context = mock(ApplicationContext.class);
-		McpRedisMessageConsumer consumer = new McpRedisMessageConsumer(context, broadcaster());
-		RedisClusterRegistry registry = registry(context);
+		BaseServerRegistry registry = registry();
+		McpRedisMessageConsumer consumer = consumer("default", registry);
 
-		consumer.onMessage(messageFor(payload("other-node", null, "")), new byte[0]);
+		consumer.onMessage(messageFor(payload("other-node", null, "", null)), new byte[0]);
+
+		verify(registry, never()).broadcastOther(any(), any());
+	}
+
+	@Test
+	void shouldDeliverToAllRegistriesWhenRouteKeyIsMissing() throws Exception {
+		BaseServerRegistry defaultRegistry = registry();
+		BaseServerRegistry weatherRegistry = registry();
+		McpRedisMessageConsumer consumer = consumer(
+				registryRoute("default", defaultRegistry),
+				registryRoute("weather", weatherRegistry));
+
+		consumer.onMessage(messageFor(payload("other-node", null, "data", null)), new byte[0]);
+
+		verify(defaultRegistry).broadcastOther("other-node", "data");
+		verify(weatherRegistry).broadcastOther("other-node", "data");
+	}
+
+	@Test
+	void shouldRouteByRouteKeyToSingleRuntime() throws Exception {
+		BaseServerRegistry defaultRegistry = registry();
+		BaseServerRegistry weatherRegistry = registry();
+		McpRedisMessageConsumer consumer = consumer(
+				registryRoute("default", defaultRegistry),
+				registryRoute("weather", weatherRegistry));
+
+		consumer.onMessage(messageFor(payload("other-node", null, "weather data", "weather")), new byte[0]);
+
+		verify(defaultRegistry, never()).broadcastOther(any(), any());
+		verify(weatherRegistry).broadcastOther("other-node", "weather data");
+	}
+
+	@Test
+	void shouldNotDeliverForUnknownRouteKey() throws Exception {
+		BaseServerRegistry registry = registry();
+		McpRedisMessageConsumer consumer = consumer("default", registry);
+
+		consumer.onMessage(messageFor(payload("other-node", null, "data", "no-such-key")), new byte[0]);
 
 		verify(registry, never()).broadcastOther(any(), any());
 	}
 
 	@Test
 	void shouldNotPropagateDeliveryFailure() throws Exception {
-		ApplicationContext context = mock(ApplicationContext.class);
-		McpRedisMessageConsumer consumer = new McpRedisMessageConsumer(context, broadcaster());
-		RedisClusterRegistry registry = registry(context);
+		BaseServerRegistry registry = registry();
+		McpRedisMessageConsumer consumer = consumer("default", registry);
 		doThrow(new IllegalStateException("no session")).when(registry).sendOther("other-node", "session-123", "payload body");
 
-		assertThatCode(() -> consumer.onMessage(messageFor(payload("other-node", "session-123", "payload body")), new byte[0]))
+		assertThatCode(() -> consumer.onMessage(messageFor(payload("other-node", "session-123", "payload body", null)), new byte[0]))
 				.doesNotThrowAnyException();
 	}
 
 	@Test
 	void shouldIgnoreMalformedPayload() {
-		ApplicationContext context = mock(ApplicationContext.class);
-		McpRedisMessageConsumer consumer = new McpRedisMessageConsumer(context, broadcaster());
+		McpRedisMessageConsumer consumer = consumer("default", registry());
 
 		Message message = mock(Message.class);
 		when(message.getBody()).thenReturn("not-json".getBytes());
 
 		assertThatCode(() -> consumer.onMessage(message, new byte[0])).doesNotThrowAnyException();
-		verify(context, never()).getBeanProvider(BaseServerRegistry.class);
 	}
 
-	private static McpRedisBroadcaster broadcaster() {
-		return new McpRedisBroadcaster(null, "server-1");
+	private BaseServerRegistry registry() {
+		return mock(BaseServerRegistry.class);
 	}
 
-	private RedisClusterRegistry registry(ApplicationContext context) {
-		RedisClusterRegistry registry = mock(RedisClusterRegistry.class);
-		ObjectProvider<BaseServerRegistry> provider = registryProvider(registry);
-		when(context.getBeanProvider(BaseServerRegistry.class)).thenReturn(provider);
-		return registry;
+	private static final class RegistryRoute {
+
+		private final String key;
+
+		private final BaseServerRegistry registry;
+
+		RegistryRoute(String key, BaseServerRegistry registry) {
+			this.key = key;
+			this.registry = registry;
+		}
 	}
 
-	private Map<String, Object> payload(String serverId, String sessionId, String message) {
+	private RegistryRoute registryRoute(String key, BaseServerRegistry registry) {
+		return new RegistryRoute(key, registry);
+	}
+
+	private McpRedisMessageConsumer consumer(String key, BaseServerRegistry registry) {
+		return consumer(registryRoute(key, registry));
+	}
+
+	private McpRedisMessageConsumer consumer(RegistryRoute... routes) {
+		McpRedisBroadcaster broadcaster = new McpRedisBroadcaster(null, SELF_NODE);
+		List<McpServerRuntime> runtimes = new ArrayList<>();
+		for (RegistryRoute route : routes) {
+			runtimes.add(new McpServerRuntime(route.key, null, null, null, route.registry, null,
+					Collections.emptyList()));
+		}
+		return new McpRedisMessageConsumer(runtimes, broadcaster);
+	}
+
+	private Map<String, Object> payload(String serverId, String sessionId, String message, String routeKey) {
 		Map<String, Object> payload = new LinkedHashMap<>();
 		payload.put("serverId", serverId);
 		if (sessionId != null)
 			payload.put("sessionId", sessionId);
 		payload.put("message", message);
+		if (routeKey != null)
+			payload.put("routeKey", routeKey);
 		return payload;
 	}
 
@@ -118,12 +176,5 @@ class McpRedisMessageConsumerTest {
 		Message redisMessage = mock(Message.class);
 		when(redisMessage.getBody()).thenReturn(objectMapper.writeValueAsBytes(payload));
 		return redisMessage;
-	}
-
-	@SuppressWarnings("unchecked")
-	private ObjectProvider<BaseServerRegistry> registryProvider(BaseServerRegistry registry) {
-		ObjectProvider<BaseServerRegistry> provider = mock(ObjectProvider.class);
-		when(provider.getIfAvailable()).thenReturn(registry);
-		return provider;
 	}
 }

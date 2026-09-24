@@ -23,7 +23,7 @@ public interface LangChain4jManaged {
         return current == null ? null : clazz.cast(current.get(clazz));
     }
 
-    /** Restores a previous managed context, useful for nested Agentic calls. */
+    /** Restores a previous managed context, useful for nested calls. */
     static Map<Class<? extends LangChain4jManaged>, LangChain4jManaged> push(
             Map<Class<? extends LangChain4jManaged>, LangChain4jManaged> next) {
         Map<Class<? extends LangChain4jManaged>, LangChain4jManaged> previous = CURRENT.get();

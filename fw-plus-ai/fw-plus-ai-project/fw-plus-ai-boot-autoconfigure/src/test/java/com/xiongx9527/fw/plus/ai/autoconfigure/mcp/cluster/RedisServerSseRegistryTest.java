@@ -48,7 +48,7 @@ class RedisServerSseRegistryTest {
 		registry.sendMsg("ghost", "hello");
 
 		assertThat(output.toString()).isEmpty();
-		verify(broadcaster).broadcast("ghost", "hello");
+		verify(broadcaster).broadcast("ghost", "hello", "default");
 	}
 
 	@Test
@@ -58,7 +58,7 @@ class RedisServerSseRegistryTest {
 		registry.broadcastMsg("hi");
 
 		assertThat(output.toString()).isEqualTo("data: hi\n\n");
-		verify(broadcaster).broadcast(null, "hi");
+		verify(broadcaster).broadcast(null, "hi", "default");
 	}
 
 	@Test

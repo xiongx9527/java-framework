@@ -862,17 +862,6 @@
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-common</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>io.github.centrifugal</groupId>
-            <artifactId>centrifuge-java</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.google.protobuf</groupId>
-                    <artifactId>protobuf-java</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
     </dependencies>
 
 </project>

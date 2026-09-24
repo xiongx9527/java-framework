@@ -18,9 +18,16 @@ public class RedisServerSseRegistry extends DefaultServerSseRegistry implements 
 
     private final McpRedisBroadcaster broadcaster;
 
+    private final String routeKey;
+
     public RedisServerSseRegistry(McpServer server, McpRedisBroadcaster broadcaster) {
+        this(server, broadcaster, "default");
+    }
+
+    public RedisServerSseRegistry(McpServer server, McpRedisBroadcaster broadcaster, String routeKey) {
         super(server, broadcaster.getServerId());
         this.broadcaster = broadcaster;
+        this.routeKey = routeKey;
     }
 
     /**
@@ -85,7 +92,7 @@ public class RedisServerSseRegistry extends DefaultServerSseRegistry implements 
             return;
 
         try {
-            broadcaster.broadcast(sessionId, data);
+            broadcaster.broadcast(sessionId, data, routeKey);
         } catch (Exception e) {
             log.warn("Failed to broadcast MCP message via redis: {}", e.getMessage());
         }

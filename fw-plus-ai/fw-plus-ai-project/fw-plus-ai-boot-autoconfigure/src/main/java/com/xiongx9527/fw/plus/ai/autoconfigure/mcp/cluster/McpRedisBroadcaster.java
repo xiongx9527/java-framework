@@ -64,9 +64,21 @@ public class McpRedisBroadcaster {
      * @param message   JSON 消息体
      */
     public void broadcast(String sessionId, String message) {
+        broadcast(sessionId, message, null);
+    }
+
+    /**
+     * 发布一条 MCP 消息到集群频道。
+     *
+     * @param sessionId 目标会话 id，为空表示广播给集群内全部会话
+     * @param message   JSON 消息体
+     * @param routeKey  目标 runtime key，消费端据此定位本机对应 registry；为空表示不加区分
+     */
+    public void broadcast(String sessionId, String message, String routeKey) {
         Map<String, String> payload = new LinkedHashMap<>();
         payload.put("serverId", serverId);
         payload.put("sessionId", sessionId == null ? "" : sessionId);
+        payload.put("routeKey", routeKey == null ? "" : routeKey);
         payload.put("message", message);
 
         String json;

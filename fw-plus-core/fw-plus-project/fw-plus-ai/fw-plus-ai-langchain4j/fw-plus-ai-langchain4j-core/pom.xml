@@ -5,9 +5,9 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.xiongx9527.fw.plus</groupId>
-        <artifactId>fw-plus-ai-langchain4j-parent</artifactId>
+        <artifactId>fw-plus-ai-langchain4j</artifactId>
         <version>${revision}</version>
-        <relativePath>../../fw-plus-ai-langchain4j-parent/pom.xml</relativePath>
+        <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>fw-plus-ai-langchain4j-core</artifactId>
     <dependencies>

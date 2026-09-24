@@ -29,6 +29,7 @@ class McpRedisBroadcasterTest {
 		JsonNode json = objectMapper.readTree(payload.getValue());
 		assertThat(json.path("serverId").asText()).isEqualTo("server-1");
 		assertThat(json.path("sessionId").asText()).isEqualTo("session-9");
+		assertThat(json.path("routeKey").asText()).isEmpty();
 		assertThat(json.path("message").asText()).isEqualTo("{\"jsonrpc\":\"2.0\"}");
 	}
 
@@ -42,6 +43,20 @@ class McpRedisBroadcasterTest {
 		JsonNode json = objectMapper.readTree(payload.getValue());
 		assertThat(json.path("sessionId").asText()).isEmpty();
 		assertThat(json.path("message").asText()).isEqualTo("data");
+	}
+
+	@Test
+	void shouldPublishRouteKeyWhenProvided() throws Exception {
+		new McpRedisBroadcaster(redisTemplate, "server-1").broadcast("session-9", "{\"jsonrpc\":\"2.0\"}", "weather");
+
+		ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
+		verify(redisTemplate).convertAndSend(org.mockito.ArgumentMatchers.eq(McpRedisBroadcaster.CHANNEL), payload.capture());
+
+		JsonNode json = objectMapper.readTree(payload.getValue());
+		assertThat(json.path("serverId").asText()).isEqualTo("server-1");
+		assertThat(json.path("sessionId").asText()).isEqualTo("session-9");
+		assertThat(json.path("routeKey").asText()).isEqualTo("weather");
+		assertThat(json.path("message").asText()).isEqualTo("{\"jsonrpc\":\"2.0\"}");
 	}
 
 	@Test
