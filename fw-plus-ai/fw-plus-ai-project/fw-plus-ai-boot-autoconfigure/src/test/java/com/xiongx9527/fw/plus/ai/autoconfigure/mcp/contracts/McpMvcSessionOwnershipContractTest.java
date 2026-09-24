@@ -13,9 +13,11 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import java.io.IOException;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * MVC 栈会话归属契约：未知会话在进入内核前即被拒绝（404），已知会话放行进内核。
@@ -23,13 +25,12 @@ import static org.mockito.Mockito.verify;
 class McpMvcSessionOwnershipContractTest {
 
 	@Test
-	void shouldRejectUnknownSseUuidWithNotFoundBeforeKernel() throws IOException {
+	void shouldRejectUnknownSseUuidBeforeKernel() throws IOException {
 		McpServerRuntime runtime = ContractRuntime.sseRuntime(false);
 		McpSseController controller = new McpSseController(runtime);
 
-		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
-		controller.handleMessage("{}", "unknown-uuid", request, response);
+		controller.handleMessage("{}", "unknown-uuid", new MockHttpServletRequest(), response);
 
 		// 内核不被触碰
 		verify((ServerSseRegistry) runtime.getRegistry(), never()).handle(any(), any());
@@ -40,9 +41,8 @@ class McpMvcSessionOwnershipContractTest {
 		McpServerRuntime runtime = ContractRuntime.sseRuntime(true);
 		McpSseController controller = new McpSseController(runtime);
 
-		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
-		controller.handleMessage("{}", "known-uuid", request, response);
+		controller.handleMessage("{}", "known-uuid", new MockHttpServletRequest(), response);
 
 		verify((ServerSseRegistry) runtime.getRegistry()).handle("known-uuid", "{}");
 	}
@@ -54,55 +54,38 @@ class McpMvcSessionOwnershipContractTest {
 
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.addHeader("Mcp-Session-Id", "unknown-session");
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		controller.post("{}", request, response);
+		controller.post("{}", request, new MockHttpServletResponse());
 
-		verify((ServerStreamableHttpRegistry) runtime.getRegistry(), never()).post(any(), any());
+		verify((ServerStreamableHttpRegistry) runtime.getRegistry(), never()).post(any(), anyMap());
 	}
 
 	@Test
 	void shouldAcceptKnownStreamableSessionAndEnterKernel() throws IOException {
 		McpServerRuntime runtime = ContractRuntime.streamableRuntime(true);
 		McpStreamableHttpController controller = new McpStreamableHttpController(runtime);
+		whenPost(runtime);
 
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.addHeader("Mcp-Session-Id", "known-session");
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		MockHttpResult result = new MockHttpResult();
-		whenPost(runtime, result);
+		controller.post("{}", request, new MockHttpServletResponse());
 
-		controller.post("{}", request, response);
-
-		verify((ServerStreamableHttpRegistry) runtime.getRegistry()).post("{}",
-				org.mockito.ArgumentMatchers.anyMap());
+		verify((ServerStreamableHttpRegistry) runtime.getRegistry()).post("{}", anyMap());
 	}
 
 	@Test
 	void shouldAllowInitialStreamableRequestWithoutSessionHeader() throws IOException {
 		McpServerRuntime runtime = ContractRuntime.streamableRuntime(false);
 		McpStreamableHttpController controller = new McpStreamableHttpController(runtime);
-
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		MockHttpResult result = new MockHttpResult();
-		whenPost(runtime, result);
-
-		controller.post("{}", request, response);
+		whenPost(runtime);
 
 		// 未携带会话头的初始化请求不得被归属校验拒绝，直接进内核
-		verify((ServerStreamableHttpRegistry) runtime.getRegistry()).post("{}",
-				org.mockito.ArgumentMatchers.anyMap());
+		controller.post("{}", new MockHttpServletRequest(), new MockHttpServletResponse());
+
+		verify((ServerStreamableHttpRegistry) runtime.getRegistry()).post("{}", anyMap());
 	}
 
-	private void whenPost(McpServerRuntime runtime, MockHttpResult result) {
-		org.mockito.Mockito.when(((ServerStreamableHttpRegistry) runtime.getRegistry()).post("{}",
-				org.mockito.ArgumentMatchers.anyMap())).thenReturn(result);
-	}
-
-	/** 最小 HttpResult 桩，避免依赖内核 toString/构造细节。 */
-	private static final class MockHttpResult extends HttpResult {
-		MockHttpResult() {
-			super();
-		}
+	private void whenPost(McpServerRuntime runtime) {
+		when(((ServerStreamableHttpRegistry) runtime.getRegistry()).post("{}", anyMap()))
+				.thenReturn(HttpResult.json(200, "{}"));
 	}
 }
