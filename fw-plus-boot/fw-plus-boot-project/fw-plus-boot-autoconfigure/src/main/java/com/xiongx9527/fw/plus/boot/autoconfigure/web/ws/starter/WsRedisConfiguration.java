@@ -9,23 +9,24 @@ import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 /**
- * Redis 跨实例广播自动配置。
+ * Redis 跨实例广播自动配置，由 {@link WsAutoConfiguration} 的 {@code @Import} 收编。
  *
  * <p>容器内存在 {@code StringRedisTemplate} 时启用：WebSocket 处理器换成
  * {@link RedisWebSocketHandler}，并注册 Redis 频道监听容器，使广播跨实例生效。
  * 未引入 Redis 时该配置不生效，退化为单机广播。</p>
  *
+ * <p>{@code fw.plus.ws.enabled} 总开关由 {@link WsAutoConfiguration} 负责：它不通过时本类不会被解析，
+ * 因此这里不再重复声明。</p>
+ *
  * @author zzy
  */
 @Configuration
-@ConditionalOnProperty(prefix = "fw.plus.ws", name = "enabled", havingValue = "true", matchIfMissing = true)
 @ConditionalOnClass(name = {"org.springframework.data.redis.core.StringRedisTemplate"})
 @ConditionalOnBean(type = {"org.springframework.data.redis.core.StringRedisTemplate"})
 @AutoConfigureAfter(name = {"org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration"})

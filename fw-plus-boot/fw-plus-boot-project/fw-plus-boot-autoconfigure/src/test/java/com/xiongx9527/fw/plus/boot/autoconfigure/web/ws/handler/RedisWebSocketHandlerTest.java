@@ -60,7 +60,7 @@ class RedisWebSocketHandlerTest {
         verify(redisTemplate).convertAndSend(anyString(), anyString());
         ArgumentCaptor<String> channelCaptor = ArgumentCaptor.forClass(String.class);
         verify(redisTemplate).convertAndSend(channelCaptor.capture(), anyString());
-        assertThat(channelCaptor.getValue()).isEqualTo("websocket:broadcast");
+        assertThat(channelCaptor.getValue()).isEqualTo("fw-plus:websocket:broadcast");
     }
 
     @Test
@@ -90,7 +90,7 @@ class RedisWebSocketHandlerTest {
     }
 
     private static Message message(String body) {
-        return new DefaultMessage("websocket:broadcast".getBytes(StandardCharsets.UTF_8),
+        return new DefaultMessage("fw-plus:websocket:broadcast".getBytes(StandardCharsets.UTF_8),
                 body.getBytes(StandardCharsets.UTF_8));
     }
 

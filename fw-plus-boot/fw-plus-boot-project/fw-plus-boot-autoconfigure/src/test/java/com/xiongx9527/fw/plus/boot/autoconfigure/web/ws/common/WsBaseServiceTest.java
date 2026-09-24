@@ -30,7 +30,7 @@ class WsBaseServiceTest {
         assertThat(service.getDefaultAppId()).isEqualTo("default");
         assertThat(service.getInitBusinessType()).isEqualTo("init");
         assertThat(service.getCloseBusinessType()).isEqualTo("close");
-        assertThat(service.getBroadcastChannelName()).isEqualTo("websocket:broadcast");
+        assertThat(service.getBroadcastChannelName()).isEqualTo("fw-plus:websocket:broadcast");
         assertThat(service.getMaxClientSessions()).isEqualTo(10000);
         assertThat(service.getSessionCacheExpireMinutes()).isEqualTo(30);
         assertThat(service.getCacheConcurrencyLevel()).isEqualTo(16);

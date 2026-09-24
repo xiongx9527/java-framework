@@ -28,6 +28,7 @@ fw:
         expireHours: 2
       websocket:
         path: /ws/api
+        paths:                     # 追加端点路径，与主路径共用同一套处理器
         trustedDomain: https://example.com    # 留空表示不允许跨域
         subProtocols:                          # 可选，逗号分隔
       binary:
@@ -45,6 +46,7 @@ fw:
 | `token.secret` | 必填 | JWT 密钥 |
 | `token.expireHours` | `2` | Token 有效期（小时） |
 | `websocket.path` | `/ws/api` | 端点路径 |
+| `websocket.paths` | 空 | 追加端点路径，逗号分隔或列表；与主路径去重后逐条注册 |
 | `websocket.trustedDomain` | 空 | 受信任来源，逗号分隔；留空表示不允许跨域 |
 | `websocket.subProtocols` | 空 | 子协议，逗号分隔 |
 | `websocket.supportsPartialMessages` | `false` | 是否支持部分消息 |
@@ -64,7 +66,7 @@ fw:
 | `session.idleScanIntervalSeconds` | `60` | 扫描周期（秒） |
 | `session.closeOnCacheEviction` | `false` | 缓存驱逐时是否主动关闭仍打开的会话 |
 | `scheduler.delayedClosePoolSize` | `2` | 延迟关闭线程池大小 |
-| `redis.channel.broadcast` | `websocket:broadcast` | 跨实例广播频道 |
+| `redis.channel.broadcast` | `fw-plus:websocket:broadcast` | 跨实例广播频道 |
 | `binary.enabled` | `true` | 是否接受二进制帧 |
 | `binary.type` | `binary` | 二进制帧业务类型 |
 | `broadcast.async` | `false` | 本地广播是否异步投递 |
@@ -103,6 +105,34 @@ Token 为 JWT，`subject` 即 appId。缺失参数、clientId 超长、token 校
 应用内引入 Redis 后自动启用跨实例广播：本地会话投递 + Redis 频道发布，接收方按 serverId 排除自身，只做本地投递，不产生回环。
 
 `broadcast.async=true` 时本地投递改为有界线程池异步执行，队列满则丢弃并告警，避免个别慢客户端阻塞广播链路；默认 `false` 保持同步语义。
+
+## 多端点与多基础路径
+
+一份配置可以把同一套 WS 能力（握手鉴权、会话管理、广播）挂到多条端点路径上：
+
+```yaml
+fw:
+  plus:
+    ws:
+      websocket:
+        path: /ws/api
+        paths:
+          - /ws/api2
+          - /ws/api3
+```
+
+基础路径来自容器内的 `WsBasePathProvider` Bean，可声明多个：每个基础路径与每条相对路径都会注册，同一完整路径只注册一次。多个候选按 `@Primary` 优先、其余按 `@Order`/`Ordered` 定序；一个都没有时按无基础路径处理。
+
+webflux 栈的展开结果与 webmvc 完全一致，两端共用同一套拼接规则；`websocket.path` 显式置空属配置错误，两端表现一致，只在基础路径后追加一个连接斜杠。
+
+## 与宿主自注册的端点并存
+
+地基不独占端点注册来源：
+
+- **webmvc**：Spring 的 `DelegatingWebSocketConfiguration` 收集容器内全部 `WebSocketConfigurer`，宿主的注册器与地基注册器并存生效，互不覆盖。注意 webmvc 栈需要宿主在自己的应用类上声明 `@EnableWebSocket`（或 `@EnableWebSocketMessageBroker`），容器内的 `WebSocketConfigurer` 才会被收集；地基不代开，以免与消息代理场景冲突。
+- **webflux**：地基注册一个 order 为 `LOWEST_PRECEDENCE - 100` 的 `SimpleUrlHandlerMapping`，宿主自带的 mapping 与它互不覆盖，两者由 order 决定先后。
+
+单条路径注册失败只记录日志，不影响其余路径。
 
 ## 注意事项
 

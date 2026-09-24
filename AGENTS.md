@@ -72,7 +72,7 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 ├── fw-plus-boot/             # Spring Boot 自动配置层
 │   ├── fw-plus-boot-project/
 │   │   ├── fw-plus-boot/              # 集成自动配置（aggregator）
-│   │   ├── fw-plus-boot-autoconfigure/ # 核心自动配置（spring.factories 注册 18 个顶层 AutoConfiguration，含 JimuJsEnterpriseFilter）
+│   │   ├── fw-plus-boot-autoconfigure/ # 核心自动配置（spring.factories 注册 15 个顶层 AutoConfiguration，含 JimuJsEnterpriseFilter）
 │   │   ├── fw-plus-boot-common/       # Boot 公共类
 │   │   ├── fw-plus-boot-dependencies/ # Boot 层 BOM
 │   │   ├── fw-plus-boot-parent/       # Boot 层父 POM

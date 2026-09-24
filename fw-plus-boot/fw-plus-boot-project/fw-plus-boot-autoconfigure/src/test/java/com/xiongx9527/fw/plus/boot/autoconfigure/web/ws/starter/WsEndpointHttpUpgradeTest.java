@@ -13,6 +13,8 @@ import org.springframework.boot.autoconfigure.web.servlet.ServletWebServerFactor
 import org.springframework.boot.autoconfigure.websocket.servlet.WebSocketServletAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Bean;
+import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
@@ -43,6 +45,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         properties = {
                 "fw.plus.ws.token.secret=" + WsEndpointHttpUpgradeTest.SECRET,
                 "fw.plus.ws.websocket.path=" + WsEndpointHttpUpgradeTest.ENDPOINT_PATH,
+                "fw.plus.ws.websocket.paths=" + WsEndpointHttpUpgradeTest.ADDITIONAL_ENDPOINT_PATH,
                 "fw.plus.ws.websocket.trustedDomain=*"
         })
 class WsEndpointHttpUpgradeTest {
@@ -56,6 +59,16 @@ class WsEndpointHttpUpgradeTest {
      * 刻意取一个非默认值，使"端点确实按配置注册"在真实握手层面也被验证。
      */
     static final String ENDPOINT_PATH = "/ws/e2e-http";
+
+    /**
+     * 追加端点路径：与主路径注册到同一个地基处理器上。
+     */
+    static final String ADDITIONAL_ENDPOINT_PATH = "/ws/e2e-http2";
+
+    /**
+     * 宿主自行注册的端点路径，与地基的端点并存。
+     */
+    private static final String HOST_ENDPOINT_PATH = "/host/echo";
 
     private static final String APP_ID = "app-http";
 
@@ -91,6 +104,19 @@ class WsEndpointHttpUpgradeTest {
     })
     @EnableWebSocket
     static class WsTestApplication {
+        /**
+         * 宿主自带的 {@link WebSocketConfigurer}：证明地基注册器与宿主注册器由 Spring 统一收集，
+         * 两者的端点在真实容器里并存生效，互不覆盖。
+         */
+        @Bean
+        WebSocketConfigurer hostWebSocketConfigurer() {
+            return registry -> registry.addHandler(new TextWebSocketHandler() {
+                @Override
+                protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+                    session.sendMessage(new TextMessage("host-" + message.getPayload()));
+                }
+            }, HOST_ENDPOINT_PATH).setAllowedOrigins("*");
+        }
     }
 
     /**
@@ -174,6 +200,44 @@ class WsEndpointHttpUpgradeTest {
                 .subject(APP_ID)
                 .signWith(keyAndAlgorithm.getSecretKey())
                 .compact();
+    }
+
+    /**
+     * A1/A3：追加端点路径与宿主自行注册的端点，在真实容器里与地基主路径并存，三条都完成 upgrade。
+     */
+    @Test
+    void additionalAndHostRegisteredPathsShouldHandshakeAlongsideFoundationPath() throws Exception {
+        assertThat(handshakeAndRoundTrip(ENDPOINT_PATH, "pong"))
+                .as("地基主路径应完成握手与消息往返").isTrue();
+        assertThat(handshakeAndRoundTrip(ADDITIONAL_ENDPOINT_PATH, "pong"))
+                .as("追加路径应完成握手与消息往返").isTrue();
+        assertThat(handshakeAndRoundTrip(HOST_ENDPOINT_PATH, "host-ping"))
+                .as("宿主自注册路径应完成握手与消息往返").isTrue();
+    }
+
+    private boolean handshakeAndRoundTrip(String path, String expectedPayload) throws Exception {
+        List<String> received = new ArrayList<>();
+
+        StandardWebSocketClient client = new StandardWebSocketClient();
+        WebSocketSession session = client.doHandshake(new TextWebSocketHandler() {
+            @Override
+            protected void handleTextMessage(WebSocketSession session, TextMessage message) {
+                synchronized (received) {
+                    received.add(message.getPayload());
+                    received.notifyAll();
+                }
+            }
+        }, "ws://localhost:" + port + path + "?token=" + issueToken() + "&clientId=client-upgrade")
+                .get(10, TimeUnit.SECONDS);
+        try {
+            if (!session.isOpen()) {
+                return false;
+            }
+            session.sendMessage(new TextMessage("ping"));
+            return expectedPayload.equals(awaitPayload(received, 5000L));
+        } finally {
+            session.close();
+        }
     }
 
     private static String awaitPayload(List<String> received, long timeoutMillis) throws InterruptedException {

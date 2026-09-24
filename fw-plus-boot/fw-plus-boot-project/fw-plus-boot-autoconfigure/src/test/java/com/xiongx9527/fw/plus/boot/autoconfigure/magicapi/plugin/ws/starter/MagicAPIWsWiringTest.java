@@ -40,6 +40,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -108,8 +109,25 @@ class MagicAPIWsWiringTest {
 
             context.getBean(WebSocketConfigurer.class).registerWebSocketHandlers(registry);
 
-            assertThat(registeredPath(registry)).isEqualTo("/magic-api/ws/api");
+            assertThat(registeredPaths(registry)).containsExactly("/magic-api/ws/api");
         });
+    }
+
+    /**
+     * A1 的 magic 侧证据：追加路径与 {@code magic.api.web} 推导出的基础路径共同展开。
+     */
+    @Test
+    void additionalPathsShouldRegisterAlongsideMagicWebBasePath() {
+        properties.setWeb("/magic-api");
+        runner.withPropertyValues("fw.plus.ws.websocket.paths=/ws/api2,/ws/api")
+                .run(context -> {
+                    WebSocketHandlerRegistry registry = mockRegistry();
+
+                    context.getBean(WebSocketConfigurer.class).registerWebSocketHandlers(registry);
+
+                    assertThat(registeredPaths(registry))
+                            .containsExactly("/magic-api/ws/api", "/magic-api/ws/api2");
+                });
     }
 
     @Test
@@ -168,9 +186,9 @@ class MagicAPIWsWiringTest {
         return registry;
     }
 
-    private static String registeredPath(WebSocketHandlerRegistry registry) {
+    private static List<String> registeredPaths(WebSocketHandlerRegistry registry) {
         ArgumentCaptor<String> pathCaptor = ArgumentCaptor.forClass(String.class);
-        verify(registry).addHandler(any(), pathCaptor.capture());
-        return pathCaptor.getValue();
+        verify(registry, atLeastOnce()).addHandler(any(), pathCaptor.capture());
+        return pathCaptor.getAllValues();
     }
 }
