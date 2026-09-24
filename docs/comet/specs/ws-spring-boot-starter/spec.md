@@ -35,7 +35,7 @@ Starter 为 thin starter，仅含 `pom.xml`。实现位于 `fw-plus-boot-autocon
 | `session.idleScanIntervalSeconds` | `60` | 扫描周期 |
 | `session.closeOnCacheEviction` | `false` | 缓存驱逐时是否主动关闭仍 open 的会话 |
 | `scheduler.delayedClosePoolSize` | `2` | 延迟关闭线程池大小 |
-| `redis.channel.broadcast` | `websocket:broadcast` | 广播频道 |
+| `redis.channel.broadcast` | `fw-plus:websocket:broadcast` | 广播频道 |
 | `binary.enabled` | `true` | 是否接受二进制帧 |
 | `binary.type` | `binary` | 二进制帧业务类型 |
 | `broadcast.async` | `false` | 广播是否异步 |
@@ -91,7 +91,7 @@ webflux 栈：注册响应式 `WebSocketHandler` 与 `SimpleUrlHandlerMapping`�
 
 ## 自动装配
 
-`WsAutoConfiguration` 与 `WsRedisConfiguration` 同时登记在 `spring.factories` 与 `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`。Redis 配置在存在 `StringRedisTemplate` 时生效，否则退化为单机广播。
+WS 能力在 `spring.factories` 与 `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports` 中只登记 `WsAutoConfiguration` 一项。Redis 跨实例广播（`WsRedisConfiguration`）与 webflux 端点（`WsWebFluxAutoConfiguration`）由 `WsAutoConfiguration` 的 `@Import` 收编，各自条件与 `fw.plus.ws.enabled` 总开关不变：Redis 配置在存在 `StringRedisTemplate` 时生效，否则退化为单机广播；webflux 配置仅在响应式 Web 应用中生效。
 
 ## Scenario
 
@@ -108,6 +108,6 @@ webflux 栈：注册响应式 `WebSocketHandler` 与 `SimpleUrlHandlerMapping`�
 - **Scenario A11**：webflux 栈注册响应式端点，完成握手鉴权、文本与二进制收发、定向与广播。
 - **Scenario A12**：webflux 栈订阅脚本在独立有界线程池执行，不阻塞 event loop。
 - **Scenario A13**：`getSession()` 返回 `WsSession`，两栈各有适配器，提供 getAttributes/sendText/sendBinary/close/isOpen。
-- **Scenario A14**：`AutoConfiguration.imports` 含 Ws 两项且与 `spring.factories` 不冲突。
+- **Scenario A14**：WS 自动配置只登记 `WsAutoConfiguration` 一项，`spring.factories` 与 `AutoConfiguration.imports` 一致；Redis 与 webflux 装配经 `@Import` 生效，与分别登记时行为一致。
 - **Scenario A15**：死配置已移除，新拼写可用且旧拼写保留 `@Deprecated` 委托，无第三方内部 API 依赖。
 - **Scenario A16**：starter 提供 README，`fw-plus-sample` 新增可编译样例并在 samples pom 注册。

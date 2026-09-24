@@ -29,6 +29,7 @@ class WsConfigBindingTest {
 			assertThat(config.getToken().getSecret()).isEmpty();
 			assertThat(config.getToken().getExpireHours()).isEqualTo(2L);
 			assertThat(config.getWebsocket().getPath()).isEqualTo("/ws/api");
+			assertThat(config.getWebsocket().getPaths()).isEmpty();
 			assertThat(config.getWebsocket().getTrustedDomain()).isEmpty();
 			assertThat(config.getWebsocket().getSubProtocols()).isEmpty();
 			assertThat(config.getWebsocket().isSupportsPartialMessages()).isFalse();
@@ -44,7 +45,7 @@ class WsConfigBindingTest {
 			assertThat(config.getSession().getIdleScanIntervalSeconds()).isEqualTo(60);
 			assertThat(config.getSession().isCloseOnCacheEviction()).isFalse();
 			assertThat(config.getScheduler().getDelayedClosePoolSize()).isEqualTo(2);
-			assertThat(config.getRedis().getChannel().getBroadcast()).isEqualTo("websocket:broadcast");
+			assertThat(config.getRedis().getChannel().getBroadcast()).isEqualTo("fw-plus:websocket:broadcast");
 			assertThat(config.getParam().getToken()).isEqualTo("token");
 			assertThat(config.getParam().getClientId()).isEqualTo("clientId");
 			assertThat(config.getParam().getMaxClientIdLength()).isEqualTo(50);
@@ -79,13 +80,24 @@ class WsConfigBindingTest {
 	}
 
 	@Test
+	void additionalWebsocketPathsShouldBind() {
+		runner.withPropertyValues(
+					"fw.plus.ws.websocket.paths=/ws/api2, /ws/api3").run(context -> {
+			WsConfig config = context.getBean(WsConfig.class);
+			assertThat(config.getWebsocket().getPaths()).containsExactly("/ws/api2", "/ws/api3");
+			assertThat(config.flatten().get("websocket.paths"))
+					.isEqualTo(config.getWebsocket().getPaths());
+		});
+	}
+
+	@Test
 	void flattenShouldExposeEveryContractKey() {
 		runner.run(context -> {
 			Map<String, Object> flat = context.getBean(WsConfig.class).flatten();
 			assertThat(flat).containsKeys(
 					"enabled", "appId",
 					"token.secret", "token.expireHours",
-					"websocket.path", "websocket.trustedDomain", "websocket.subProtocols",
+					"websocket.path", "websocket.paths", "websocket.trustedDomain", "websocket.subProtocols",
 					"websocket.supportsPartialMessages", "websocket.endpoint", "websocket.basePath",
 					"session.cache.maxClients", "session.cache.expireMinutes", "session.cache.concurrencyLevel",
 					"session.delayMillis", "session.maxTextMessageSize", "session.maxBinaryMessageSize",

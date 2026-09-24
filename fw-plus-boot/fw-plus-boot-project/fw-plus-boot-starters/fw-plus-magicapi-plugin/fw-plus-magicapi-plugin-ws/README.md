@@ -13,6 +13,7 @@ fw:
       enabled: true
       websocket:
         path: /ws/api
+        paths:                   # 追加连接路径，与 path 去重后逐条生效
         trustedDomain: https://example.com
       token:
         secret: 请替换为生产环境随机密钥
@@ -24,6 +25,7 @@ fw:
 | --- | --- | --- |
 | `fw.plus.ws.enabled` | `true` | 是否启用 WS 插件 |
 | `fw.plus.ws.websocket.path` | `/ws/api` | WebSocket 连接路径，会叠加 `magic-api.web` 前缀 |
+| `fw.plus.ws.websocket.paths` | 空 | 追加连接路径，逐条叠加 `magic-api.web` 前缀；与主路径重复的项会去重 |
 | `fw.plus.ws.websocket.trustedDomain` | 空 | 允许跨域来源；未配置时不允许跨域，显式 `*` 才允许任意来源 |
 | `fw.plus.ws.websocket.subProtocols` | 空 | 可选 WebSocket 子协议，逗号分隔 |
 | `fw.plus.ws.token.secret` | 无 | JWT 签名密钥，必须显式配置 |
@@ -32,7 +34,7 @@ fw:
 | `fw.plus.ws.param.clientId` | `clientId` | 连接 URL 中客户端标识参数名 |
 | `fw.plus.ws.init.type` | `init` | 建连时执行的业务标识 |
 | `fw.plus.ws.close.type` | `close` | 断连时执行的业务标识 |
-| `fw.plus.ws.redis.channel.broadcast` | `websocket:broadcast` | Redis 集群广播频道 |
+| `fw.plus.ws.redis.channel.broadcast` | `fw-plus:websocket:broadcast` | Redis 集群广播频道 |
 
 > 配置前缀为 `fw.plus.ws`。旧前缀 `magic-api.plugin.ws` 已不再被读取，升级时需要同步修改配置。
 
@@ -228,6 +230,22 @@ return {
 ws://<host>:<port><magic-api.web 前缀>/ws/api?token=<token>&clientId=<clientId>
 ```
 
+多个 `ws-datasource` 或多入口场景下，可在同一份配置上挂多条连接路径，`magic-api.web` 前缀对每条路径同样生效：
+
+```yaml
+fw:
+  plus:
+    ws:
+      websocket:
+        path: /ws/api
+        paths:
+          - /ws/api2
+          - /ws/api3
+  # 连接地址：ws://<host>:<port>/<magic-api.web>/ws/api2?token=<token>&clientId=<clientId>
+```
+
+端点注册来源不限于插件自身：宿主自行注册的 `WebSocketConfigurer`（webmvc 栈需在应用类上声明 `@EnableWebSocket`）或自带的 `SimpleUrlHandlerMapping`（webflux 栈）都与地基端点并存，互不覆盖。magic-api 插件的握手鉴权与订阅派发对所有路径一致生效。
+
 浏览器示例：
 
 ```javascript
@@ -342,7 +360,7 @@ fw:
     ws:
       redis:
         channel:
-          broadcast: websocket:broadcast
+          broadcast: fw-plus:websocket:broadcast
 ```
 
 集群消息会携带当前节点 server id，接收端会跳过来源节点，避免消息回环放大。

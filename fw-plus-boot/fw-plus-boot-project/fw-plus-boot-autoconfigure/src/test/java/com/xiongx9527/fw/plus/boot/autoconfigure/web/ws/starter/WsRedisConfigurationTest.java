@@ -36,13 +36,16 @@ import static org.mockito.Mockito.when;
  * 绑定到 {@code fw.plus.ws.redis.channel.broadcast} 频道的监听容器，使跨实例广播生效；
  * Redis 缺失时退化为单机处理器。测试走完整 Spring 容器装配路径，不依赖真实 Redis 实例。</p>
  *
+ * <p>这里只登记唯一入口 {@link WsAutoConfiguration}，Redis 装配由其在 {@code @Import} 中收编，
+ * 覆盖登记项收敛后的装配路径。</p>
+ *
  * @author zzy
  */
 class WsRedisConfigurationTest {
 
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(RefreshAutoConfiguration.class,
-                    WsAutoConfiguration.class, WsRedisConfiguration.class));
+                    WsAutoConfiguration.class));
 
     /**
      * 组装一个"Redis 可用"的上下文。
@@ -73,7 +76,7 @@ class WsRedisConfigurationTest {
             RedisMessageListenerContainer container =
                     context.getBean(WsRedisMessageListenerContainer.class);
 
-            assertThat(boundTopics(container)).containsExactly("websocket:broadcast");
+            assertThat(boundTopics(container)).containsExactly("fw-plus:websocket:broadcast");
             assertThat(boundListeners(container))
                     .containsExactly(((RedisWebSocketHandler) handler).getRedisMessageListener());
         });

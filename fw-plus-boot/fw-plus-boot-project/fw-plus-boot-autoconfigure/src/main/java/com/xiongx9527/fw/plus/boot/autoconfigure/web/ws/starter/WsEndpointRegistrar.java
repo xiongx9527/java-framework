@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.starter;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.common.WsBaseService;
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.common.WsEndpointPathResolver;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.config.WsConfig;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.handler.AbstractWebSocketHandler;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.handler.WsHandshakeInterceptor;
@@ -17,6 +18,7 @@ import org.springframework.web.socket.server.support.DefaultHandshakeHandler;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -24,7 +26,13 @@ import java.util.Map;
  * 把 WebSocket 处理器注册到端点路径。
  *
  * <p>端点路径 = {@link WsBasePathProvider#getBasePath()} + {@code fw.plus.ws.websocket.path}，
- * 路径拼接与跨域、子协议、握手拦截器的处理规则与拆分前保持一致。</p>
+ * 另外可按 {@code fw.plus.ws.websocket.paths} 在同一个处理器上追加若干路径，
+ * 供多应用、多入口复用一套 WS 地基。容器内存在多个基础路径提供者时，
+ * 每个基础路径与每条相对路径都会注册。路径拼接与跨域、子协议、握手拦截器的处理规则与拆分前保持一致。</p>
+ *
+ * <p>本类是公开类，宿主可以自行实例化并作为自己的 {@link WebSocketConfigurer} Bean 注册；
+ * Spring 的 {@code DelegatingWebSocketConfiguration} 会收集容器内全部 {@link WebSocketConfigurer}，
+ * 宿主的注册器与地基注册器因此并存生效，互不覆盖。</p>
  *
  * @author zzy
  */
@@ -35,17 +43,45 @@ public class WsEndpointRegistrar implements WebSocketConfigurer, WsBaseService {
 
     private final AbstractWebSocketHandler webSocketHandler;
 
-    private final WsBasePathProvider basePathProvider;
+    private final List<WsBasePathProvider> basePathProviders;
 
     private final Map<String, WsHandshakeInterceptor> handshakeInterceptorMap;
 
+    /**
+     * 单个基础路径提供者时的构造入口，等价于把该提供者作为唯一候选。
+     *
+     * @param wsConfig                WebSocket 通用配置
+     * @param webSocketHandler        WebSocket 处理器
+     * @param basePathProvider        基础路径提供者，可为空
+     * @param handshakeInterceptorMap 握手拦截器
+     */
     public WsEndpointRegistrar(WsConfig wsConfig,
                                AbstractWebSocketHandler webSocketHandler,
                                WsBasePathProvider basePathProvider,
                                Map<String, WsHandshakeInterceptor> handshakeInterceptorMap) {
+        this(wsConfig, webSocketHandler,
+                basePathProvider == null ? Collections.<WsBasePathProvider>emptyList()
+                        : Collections.singletonList(basePathProvider),
+                handshakeInterceptorMap);
+    }
+
+    /**
+     * 多个基础路径提供者时的构造入口：候选按容器定序（{@code @Primary} 优先，其余按
+     * {@code @Order}、{@code Ordered}），逐个与全部相对路径展开成端点。
+     *
+     * @param wsConfig                WebSocket 通用配置
+     * @param webSocketHandler        WebSocket 处理器
+     * @param basePathProviders       基础路径提供者候选，可为空
+     * @param handshakeInterceptorMap 握手拦截器
+     */
+    public WsEndpointRegistrar(WsConfig wsConfig,
+                               AbstractWebSocketHandler webSocketHandler,
+                               List<WsBasePathProvider> basePathProviders,
+                               Map<String, WsHandshakeInterceptor> handshakeInterceptorMap) {
         this.wsConfig = wsConfig;
         this.webSocketHandler = webSocketHandler;
-        this.basePathProvider = basePathProvider;
+        this.basePathProviders = basePathProviders == null
+                ? Collections.<WsBasePathProvider>emptyList() : basePathProviders;
         this.handshakeInterceptorMap = handshakeInterceptorMap;
     }
 
@@ -64,19 +100,23 @@ public class WsEndpointRegistrar implements WebSocketConfigurer, WsBaseService {
      */
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        String wsPath = getWebsocketPath();
-        if (StringUtils.isNotBlank(wsPath) && !wsPath.startsWith("/")) {
-            wsPath = "/" + wsPath;
+        if (webSocketHandler == null) {
+            log.warn("WebSocket handler bean is not available.");
+            return;
         }
+        for (String fullPath : resolveFullPaths()) {
+            registerEndpoint(registry, fullPath);
+        }
+    }
 
-        // 构建完整的WebSocket路径，确保路径格式正确
-        String fullPath = buildFullPath(wsPath);
-
+    /**
+     * 注册单个端点：跨域、子协议与握手拦截器对每条路径都同等生效。
+     *
+     * @param registry WebSocket处理器注册器
+     * @param fullPath 完整端点路径
+     */
+    private void registerEndpoint(WebSocketHandlerRegistry registry, String fullPath) {
         try {
-            if (webSocketHandler == null) {
-                log.warn("WebSocket handler bean is not available.");
-                return;
-            }
             WebSocketHandlerRegistration registration = registry.addHandler(webSocketHandler, fullPath);
             registration.setAllowedOrigins(getAllowedOrigins());
             String[] subProtocols = getSubProtocols();
@@ -99,33 +139,41 @@ public class WsEndpointRegistrar implements WebSocketConfigurer, WsBaseService {
     }
 
     /**
-     * 构建完整的路径地址
+     * 待注册的相对路径：主路径取 {@code websocket.path}，追加路径取 {@code websocket.paths}，按顺序去重。
      *
-     * @param wsPath 工作路径，需要拼接到基础路径后面的相对路径
-     * @return 返回拼接后的完整路径字符串
+     * @return 相对路径列表
      */
-    private String buildFullPath(String wsPath) {
-        String webBasePath = basePathProvider != null ? basePathProvider.getBasePath() : null;
-        if (webBasePath == null) {
-            webBasePath = "";
+    private List<String> resolveRelativePaths() {
+        List<String> additionalPaths = wsConfig == null ? null : wsConfig.getWebsocket().getPaths();
+        return WsEndpointPathResolver.resolveRelativePaths(getWebsocketPath(), additionalPaths);
+    }
+
+    /**
+     * 待注册的完整路径：相对路径与全部基础路径候选做笛卡尔积后去重，与 webflux 栈口径一致。
+     *
+     * @return 完整端点路径列表
+     */
+    private List<String> resolveFullPaths() {
+        return WsEndpointPathResolver.resolveFullPaths(resolveRelativePaths(), collectBasePaths());
+    }
+
+    /**
+     * 收集基础路径候选：空值（空串）的提供者视为不提供基础路径，不参与展开。
+     *
+     * @return 基础路径列表，容器内没有提供者时为空列表
+     */
+    private List<String> collectBasePaths() {
+        List<String> basePaths = new ArrayList<>();
+        for (WsBasePathProvider provider : basePathProviders) {
+            if (provider == null) {
+                continue;
+            }
+            String basePath = WsEndpointPathResolver.normalizeBasePath(provider.getBasePath());
+            if (!basePath.isEmpty()) {
+                basePaths.add(basePath);
+            }
         }
-
-        // 标准化基础路径结尾是否带 "/"
-        boolean baseEndsWithSlash = webBasePath.endsWith("/");
-        boolean wsStartsWithSlash = wsPath.startsWith("/");
-
-        StringBuilder sb = new StringBuilder(webBasePath.length() + wsPath.length() + 1);
-        sb.append(webBasePath);
-
-        // 处理路径连接处的斜杠，避免出现双斜杠或缺少斜杠的情况
-        if (!baseEndsWithSlash && !wsStartsWithSlash) {
-            sb.append('/');
-        } else if (baseEndsWithSlash && wsStartsWithSlash) {
-            sb.setLength(sb.length() - 1); // 移除重复斜杠
-        }
-
-        sb.append(wsPath);
-        return sb.toString();
+        return basePaths;
     }
 
     /**

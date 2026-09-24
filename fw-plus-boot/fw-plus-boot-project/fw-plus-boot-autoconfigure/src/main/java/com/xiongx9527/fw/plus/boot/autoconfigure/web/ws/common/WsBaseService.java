@@ -113,10 +113,10 @@ public interface WsBaseService {
     /**
      * 获取广播频道名称。
      *
-     * @return 广播频道名称，缺省 {@code websocket:broadcast}
+     * @return 广播频道名称，缺省 {@code fw-plus:websocket:broadcast}
      */
     default String getBroadcastChannelName() {
-        return getConfigValueAsString("redis.channel.broadcast", "websocket:broadcast");
+        return getConfigValueAsString("redis.channel.broadcast", "fw-plus:websocket:broadcast");
     }
 
     /**

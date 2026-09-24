@@ -51,7 +51,7 @@ class WsRedisBroadcastInProcessEndToEndTest {
     /**
      * 默认广播频道（见 {@code WsBaseService#getBroadcastChannelName}）。
      */
-    private static final String BROADCAST_CHANNEL = "websocket:broadcast";
+    private static final String BROADCAST_CHANNEL = "fw-plus:websocket:broadcast";
 
     /**
      * 每个测试各自拿一个新的假连接工厂：上下文关闭时会关闭订阅连接，复用同一个实例会让后续测试收不到广播。

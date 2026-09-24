@@ -4,7 +4,9 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -75,6 +77,7 @@ public class WsConfig {
 		flat.put("websocket.path", websocket.getPath());
 		flat.put("websocket.trustedDomain", websocket.getTrustedDomain());
 		flat.put("websocket.subProtocols", websocket.getSubProtocols());
+		flat.put("websocket.paths", websocket.getPaths());
 		flat.put("websocket.supportsPartialMessages", websocket.isSupportsPartialMessages());
 		flat.put("websocket.endpoint", websocket.getEndpoint());
 		flat.put("websocket.basePath", websocket.getBasePath());
@@ -140,6 +143,14 @@ public class WsConfig {
 		 * 端点路径。
 		 */
 		private String path = "/ws/api";
+
+		/**
+		 * 追加端点路径。
+		 *
+		 * <p>除 {@link #path} 之外，可在同一个处理器上再挂若干路径，供多应用、多入口复用一套 WS 地基；
+		 * 与 {@link #path} 重复的项会被去重。webmvc 与 webflux 两条栈均按同一份配置注册。</p>
+		 */
+		private List<String> paths = new ArrayList<>();
 
 		/**
 		 * 受信任来源，逗号分隔；空串表示不允许跨域。
@@ -267,7 +278,7 @@ public class WsConfig {
 			/**
 			 * 跨实例广播频道名。
 			 */
-			private String broadcast = "websocket:broadcast";
+			private String broadcast = "fw-plus:websocket:broadcast";
 		}
 	}
 

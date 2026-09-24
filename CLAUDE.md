@@ -67,7 +67,7 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 ├── fw-plus-boot/             # Spring Boot 自动配置层
 │   ├── fw-plus-boot-project/
 │   │   ├── fw-plus-boot/              # 集成自动配置（aggregator）
-│   │   ├── fw-plus-boot-autoconfigure/ # 核心自动配置（spring.factories 注册 18 个顶层 AutoConfiguration，含 JimuJsEnterpriseFilter）
+│   │   ├── fw-plus-boot-autoconfigure/ # 核心自动配置（spring.factories 注册 15 个顶层 AutoConfiguration，含 JimuJsEnterpriseFilter）
 │   │   ├── fw-plus-boot-common/       # Boot 公共类
 │   │   ├── fw-plus-boot-dependencies/ # Boot 层 BOM
 │   │   ├── fw-plus-boot-parent/       # Boot 层父 POM
@@ -481,7 +481,7 @@ Servlet Filter 拦截 JS 响应做字节替换：
 ## 核心架构模式
 
 - **分层设计**：Core → Boot → Cloud / AI，下层不依赖上层
-- **Spring Boot auto-configuration**：通过 `spring.factories` 注册 `@Configuration`，用户通过 `@EnableXxx` 或配置属性控制。Boot 层注册了 18 个顶层 AutoConfiguration 类（Base、Trace、Web、Mate、NoSql、JDBC、MP、Template、UID、Report、Mqtt、ConfigServer/Client/Event/Apollo/Nacos、AdminServer、MagicAPI），AI 层 4 个，Cloud 层 4 个
+- **Spring Boot auto-configuration**：通过 `spring.factories` 注册 `@Configuration`，用户通过 `@EnableXxx` 或配置属性控制。Boot 层注册了 15 个顶层 AutoConfiguration 类（Base、Trace、Web、Mate、NoSql、JDBC、MP、Template、UID、Report、Mqtt、ConfigServer/Client/Event/Apollo/Nacos、AdminServer、MagicAPI、WS），AI 层 4 个，Cloud 层 4 个
 - **Magic-API 插件体系**：每个插件独立 Starter，扩展 magic-api 的能力（数据源、任务、WebSocket、MCP、消息队列等 20+ 种资源类型）
 - **灰度发布**：在 `fw-plus-cloud-autoconfigure` 实现，通过 Ribbon/Feign 拦截器传递灰度标签
 - **MyBatis-Plus 增强**：提供 base mapper/entity、字段加密（`@FieldEncrypt`）、数据变更追踪、数据权限过滤
