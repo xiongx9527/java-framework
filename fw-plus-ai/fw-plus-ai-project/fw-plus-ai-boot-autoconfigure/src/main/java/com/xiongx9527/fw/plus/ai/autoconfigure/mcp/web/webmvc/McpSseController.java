@@ -89,7 +89,9 @@ public class McpSseController extends McpTransportController {
 			return;
 		}
 
-		authenticate(uuid, "http-sse", endpoint(), json, request);
+		if (!isAuthenticated(uuid, "http-sse", endpoint(), json, request, response)) {
+			return;
+		}
 
 		try {
 			sse.handle(uuid, json);

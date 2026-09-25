@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime;
 
+import com.ajaxjs.mcp.server.McpServer;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpAuthService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.cluster.McpRedisBroadcaster;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.cluster.RedisServerSseRegistry;
@@ -220,6 +221,42 @@ class McpRuntimeFactoryTest {
 		List<McpServerRuntime> runtimes = factory.createRuntimes(top, authService, emptyProvider());
 
 		assertThat(runtimes.get(0).getRegistry()).isInstanceOf(DefaultServerSseRegistry.class);
+	}
+
+	@Test
+	void shouldCreateServerThroughProvidedFactory() {
+		List<McpServerRuntime> runtimes = new McpRuntimeFactory((config, featureMgr) -> new StubMcpServer())
+				.createRuntimes(top(), authService, emptyProvider());
+
+		assertThat(runtimes.get(0).getServer()).isInstanceOf(StubMcpServer.class);
+	}
+
+	@Test
+	void shouldCreateDistinctServerInstancePerRuntime() {
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties top = top();
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties named =
+				new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties();
+		named.setKey("report");
+		named.setTransport("http-sse");
+		named.setEndpoint("/mcp-report");
+		top.setServers(java.util.Collections.singletonList(named));
+
+		List<McpServerRuntime> runtimes = new McpRuntimeFactory((config, featureMgr) -> new StubMcpServer())
+				.createRuntimes(top, authService, emptyProvider());
+
+		assertThat(runtimes).hasSize(2);
+		assertThat(runtimes.get(0).getServer()).isNotSameAs(runtimes.get(1).getServer());
+		assertThat(runtimes.get(0).getFeatureMgr()).isNotSameAs(runtimes.get(1).getFeatureMgr());
+	}
+
+	@Test
+	void shouldBindRegistryAsServerTransportSoNotificationsCanBeBroadcast() {
+		List<McpServerRuntime> runtimes = factory.createRuntimes(top(), authService, emptyProvider());
+
+		assertThat(runtimes.get(0).getServer().getTransport()).isSameAs(runtimes.get(0).getRegistry());
+	}
+
+	private static final class StubMcpServer extends McpServer {
 	}
 
 	private com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties top() {

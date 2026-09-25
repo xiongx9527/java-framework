@@ -16,6 +16,9 @@ public class McpPrincipal {
      */
     public static final McpPrincipal ANONYMOUS = new McpPrincipal("anonymous");
 
+    /** 认证关闭时的放行主体。 */
+    public static final McpPrincipal PERMIT_ALL = new McpPrincipal("permit-all");
+
     private final String subject;
 
     private final Set<String> scopes;

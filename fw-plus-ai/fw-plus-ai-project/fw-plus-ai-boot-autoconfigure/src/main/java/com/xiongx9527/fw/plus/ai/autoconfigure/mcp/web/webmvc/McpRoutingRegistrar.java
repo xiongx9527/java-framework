@@ -15,7 +15,10 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * MVC 传输路由注册器。
@@ -41,6 +44,9 @@ public class McpRoutingRegistrar implements SmartInitializingSingleton {
 
 	private final List<McpServerRuntime> runtimes;
 
+	private final Map<McpServerRuntime, List<RequestMappingInfo>> registeredMappings =
+			new ConcurrentHashMap<McpServerRuntime, List<RequestMappingInfo>>();
+
 	public McpRoutingRegistrar(ApplicationContext context, List<McpServerRuntime> runtimes) {
 		this.context = context;
 		this.runtimes = runtimes;
@@ -55,6 +61,38 @@ public class McpRoutingRegistrar implements SmartInitializingSingleton {
 
 		for (McpServerRuntime runtime : runtimes) {
 			registerRuntime(handlerMapping, runtime);
+		}
+	}
+
+	/**
+	 * 运行期新增实例时注册路由，语义与启动期一致。
+	 *
+	 * @param runtime 待注册 runtime
+	 */
+	public void registerRuntime(McpServerRuntime runtime) {
+		RequestMappingHandlerMapping handlerMapping = findHandlerMapping();
+		if (handlerMapping == null) {
+			throw new IllegalStateException("RequestMappingHandlerMapping not available, cannot register MCP routes");
+		}
+		registerRuntime(handlerMapping, runtime);
+	}
+
+	/**
+	 * 运行期移除实例时注销该实例的全部路由。
+	 *
+	 * @param runtime 待移除 runtime
+	 */
+	public void unregisterRuntime(McpServerRuntime runtime) {
+		List<RequestMappingInfo> mappings = registeredMappings.remove(runtime);
+		if (mappings == null) {
+			return;
+		}
+		RequestMappingHandlerMapping handlerMapping = findHandlerMapping();
+		if (handlerMapping == null) {
+			return;
+		}
+		for (RequestMappingInfo mapping : mappings) {
+			handlerMapping.unregisterMapping(mapping);
 		}
 	}
 
@@ -74,6 +112,11 @@ public class McpRoutingRegistrar implements SmartInitializingSingleton {
 	}
 
 	private void registerRuntime(RequestMappingHandlerMapping handlerMapping, McpServerRuntime runtime) {
+		if (registeredMappings.containsKey(runtime)) {
+			return;
+		}
+		List<RequestMappingInfo> mappings = new ArrayList<>();
+		registeredMappings.put(runtime, mappings);
 		String endpoint = runtime.getEndpoint();
 		if (endpoint == null || endpoint.isEmpty()) {
 			throw new IllegalStateException(
@@ -82,28 +125,29 @@ public class McpRoutingRegistrar implements SmartInitializingSingleton {
 
 		if ("streamable-http".equalsIgnoreCase(runtime.getTransport())) {
 			McpStreamableHttpController controller = new McpStreamableHttpController(runtime);
-			register(handlerMapping, controller, "post",
+			register(handlerMapping, mappings, controller, "post",
 					new Class<?>[] { String.class, HttpServletRequest.class, HttpServletResponse.class },
 					endpoint, RequestMethod.POST);
-			register(handlerMapping, controller, "delete",
+			register(handlerMapping, mappings, controller, "delete",
 					new Class<?>[] { HttpServletRequest.class, HttpServletResponse.class },
 					endpoint, RequestMethod.DELETE);
-			register(handlerMapping, controller, "get",
+			register(handlerMapping, mappings, controller, "get",
 					new Class<?>[] { HttpServletRequest.class, HttpServletResponse.class },
 					endpoint, RequestMethod.GET);
 		} else {
 			McpSseController controller = new McpSseController(runtime);
-			register(handlerMapping, controller, "streamSse",
+			register(handlerMapping, mappings, controller, "streamSse",
 					new Class<?>[] { HttpServletRequest.class, HttpServletResponse.class },
 					endpoint + McpSseController.SSE_PATH, RequestMethod.GET, "text/event-stream");
-			register(handlerMapping, controller, "handleMessage",
+			register(handlerMapping, mappings, controller, "handleMessage",
 					new Class<?>[] { String.class, String.class, HttpServletRequest.class, HttpServletResponse.class },
 					endpoint + McpSseController.MESSAGES_PATH, RequestMethod.POST);
 		}
 	}
 
-	private void register(RequestMappingHandlerMapping handlerMapping, Object controller, String methodName,
-			Class<?>[] parameterTypes, String pattern, RequestMethod requestMethod, String... produces) {
+	private void register(RequestMappingHandlerMapping handlerMapping, List<RequestMappingInfo> mappings,
+			Object controller, String methodName, Class<?>[] parameterTypes, String pattern,
+			RequestMethod requestMethod, String... produces) {
 		Method method;
 		try {
 			method = controller.getClass().getMethod(methodName, parameterTypes);
@@ -127,6 +171,8 @@ public class McpRoutingRegistrar implements SmartInitializingSingleton {
 		}
 		builder.options(builderConfiguration);
 
-		handlerMapping.registerMapping(builder.build(), controller, method);
+		RequestMappingInfo mapping = builder.build();
+		mappings.add(mapping);
+		handlerMapping.registerMapping(mapping, controller, method);
 	}
 }

@@ -44,7 +44,9 @@ public class McpStreamableHttpController extends McpTransportController {
 		}
 
 		String payload = body == null ? "" : body;
-		authenticate(session, "streamable-http", endpoint(), payload, request);
+		if (!isAuthenticated(session, "streamable-http", endpoint(), payload, request, response)) {
+			return;
+		}
 		write(transport.post(payload, headers(request)), response);
 	}
 

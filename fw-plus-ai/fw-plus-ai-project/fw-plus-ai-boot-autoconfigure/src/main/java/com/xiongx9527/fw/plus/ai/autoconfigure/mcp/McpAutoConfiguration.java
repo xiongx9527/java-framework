@@ -6,6 +6,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.cluster.McpRedisBroadcaster;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.cluster.McpRedisMessageConsumer;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpRuntimeFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web.webmvc.McpRoutingRegistrar;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web.webflux.McpWebfluxWebBinding;
@@ -53,12 +54,21 @@ public class McpAutoConfiguration {
 	}
 
 	/**
+	 * runtime 构建工厂：插件（如 magic-api MCP 插件）可复用于运行期动态新增 server 实例。
+	 */
+	@Bean
+	public McpRuntimeFactory mcpRuntimeFactory(ObjectProvider<McpServerFactory> serverFactoryProvider) {
+		McpServerFactory serverFactory = serverFactoryProvider.getIfAvailable();
+		return new McpRuntimeFactory(serverFactory);
+	}
+
+	/**
 	 * 构建全部 runtime：default（顶层配置）+ 命名 servers；endpoint 唯一性在此校验。
 	 */
 	@Bean
 	public List<McpServerRuntime> mcpServerRuntimes(McpProperties properties, McpAuthService authService,
-			ObjectProvider<McpRedisBroadcaster> broadcasterProvider) {
-		return new McpRuntimeFactory().createRuntimes(properties, authService, broadcasterProvider);
+			ObjectProvider<McpRedisBroadcaster> broadcasterProvider, McpRuntimeFactory runtimeFactory) {
+		return runtimeFactory.createRuntimes(properties, authService, broadcasterProvider);
 	}
 
 	@Bean

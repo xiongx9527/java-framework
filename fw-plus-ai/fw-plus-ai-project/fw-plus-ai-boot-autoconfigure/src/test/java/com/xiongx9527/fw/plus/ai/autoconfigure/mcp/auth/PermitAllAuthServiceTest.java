@@ -13,15 +13,16 @@ class PermitAllAuthServiceTest {
 	private final PermitAllAuthService service = new PermitAllAuthService();
 
 	@Test
-	void shouldAlwaysAuthenticateToAnonymous() {
+	void shouldAlwaysAuthenticateToPermitAll() {
 		Map<String, String> headers = new HashMap<>();
 		headers.put("Authorization", "Bearer evil-token");
 
 		McpPrincipal principal = service.authenticate(
 				new McpRequest("session-1", "http-sse", "/mcp", "{\"id\":1}", headers));
 
-		assertThat(principal).isSameAs(McpPrincipal.ANONYMOUS);
-		assertThat(principal.getSubject()).isEqualTo("anonymous");
+		assertThat(principal).isSameAs(McpPrincipal.PERMIT_ALL);
+		assertThat(principal).isNotSameAs(McpPrincipal.ANONYMOUS);
+		assertThat(principal.getSubject()).isEqualTo("permit-all");
 		assertThat(principal.getScopes()).isEmpty();
 	}
 
@@ -31,6 +32,6 @@ class PermitAllAuthServiceTest {
 		McpPrincipal principal = service.authenticate(new McpRequest(null, "streamable-http", "/mcp",
 				"", Collections.emptyMap()));
 
-		assertThat(principal.getSubject()).isEqualTo("anonymous");
+		assertThat(principal.getSubject()).isEqualTo("permit-all");
 	}
 }

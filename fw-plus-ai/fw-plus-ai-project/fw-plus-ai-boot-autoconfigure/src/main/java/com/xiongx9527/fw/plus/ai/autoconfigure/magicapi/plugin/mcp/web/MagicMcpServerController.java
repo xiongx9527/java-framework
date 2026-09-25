@@ -1,0 +1,121 @@
+package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.web;
+
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.config.MagicApiMcpProperties;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.model.MagicDynamicMcpServer;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.model.MagicMcpServerInfo;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.service.MagicMcpServerInfoMagicResourceStorage;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.service.MagicMcpServerMagicDynamicRegistry;
+import com.xiongx9527.fw.plus.common.util.SpringUtils;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.ListUtils;
+import org.ssssssss.magicapi.core.config.MagicConfiguration;
+import org.ssssssss.magicapi.core.model.JsonBean;
+import org.ssssssss.magicapi.core.web.MagicController;
+import org.ssssssss.magicapi.core.web.MagicExceptionHandler;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * MCP server 实例控制台接口：查看运行实例、连接校验与删除前校验。
+ */
+@Slf4j
+public class MagicMcpServerController extends MagicController implements MagicExceptionHandler {
+
+	public static final String TRANSPORT_SSE = "http-sse";
+
+	public static final String TRANSPORT_STREAMABLE_HTTP = "streamable-http";
+
+	public MagicMcpServerController(MagicConfiguration configuration) {
+		super(configuration);
+	}
+
+	/**
+	 * 全部运行中的 MCP server 实例。
+	 */
+	@RequestMapping("/mcp/server/list")
+	@ResponseBody
+	public JsonBean<List<Map<String, Object>>> list() {
+		MagicDynamicMcpServer dataSource = SpringUtils.getBean(MagicDynamicMcpServer.class);
+		return new JsonBean<>(dataSource.serverSummaries());
+	}
+
+	/**
+	 * 保存前校验：key、endpoint、transport 合法。
+	 */
+	@RequestMapping("/mcp/server/test")
+	@ResponseBody
+	public JsonBean<Object> test(@RequestBody MagicMcpServerInfo info) {
+		MagicMcpServerInfoMagicResourceStorage storage =
+				SpringUtils.getBean(MagicMcpServerInfoMagicResourceStorage.class);
+		try {
+			storage.validate(info);
+		} catch (IllegalArgumentException e) {
+			return new JsonBean<>(e.getMessage());
+		}
+		return new JsonBean<>("ok");
+	}
+
+	/**
+	 * 删除前校验：实例已停用时才允许删除。
+	 */
+	@RequestMapping("/mcp/server/doDelete")
+	@ResponseBody
+	public JsonBean<Object> doDelete(@RequestBody MagicMcpServerInfo info) {
+		if (info.isEnabled()) {
+			return new JsonBean<>("该 MCP server「" + info.getKey() + "」已启用，请先停用后再删除");
+		}
+		return new JsonBean<>("ok");
+	}
+
+	/**
+	 * 启停 MCP server 实例：停用时销毁实例，启用时按当前资源定义重建。
+	 */
+	@RequestMapping("/mcp/server/changeConnected")
+	@ResponseBody
+	public JsonBean<Object> changeConnected(@RequestBody MagicMcpServerInfo info) {
+		MagicDynamicMcpServer dataSource = SpringUtils.getBean(MagicDynamicMcpServer.class);
+		if (!info.isEnabled()) {
+			dataSource.destroyClientByKey(info.getKey());
+			return new JsonBean<>("ok");
+		}
+		if (!dataSource.createClient(info)) {
+			return new JsonBean<>("MCP server「" + info.getKey() + "」启动失败，请检查配置");
+		}
+		return new JsonBean<>("ok");
+	}
+
+	/**
+	 * 刷新全部实例的工具快照。
+	 */
+	@RequestMapping("/mcp/server/refresh")
+	@ResponseBody
+	public JsonBean<Object> refresh() {
+		SpringUtils.getBean(MagicDynamicMcpServer.class).refreshTools();
+		return new JsonBean<>("ok");
+	}
+
+	/**
+	 * 全部已定义（含未启用）的 MCP server 实例。
+	 */
+	@RequestMapping("/mcp/server/defined")
+	@ResponseBody
+	public JsonBean<Object> defined() {
+		MagicMcpServerMagicDynamicRegistry registry =
+				SpringUtils.getBean(MagicMcpServerMagicDynamicRegistry.class);
+		return new JsonBean<>(registry.mappings());
+	}
+
+	/**
+	 * 默认实例定义：来自插件配置项。
+	 */
+	@RequestMapping("/mcp/server/defaults")
+	@ResponseBody
+	public JsonBean<Object> defaults() {
+		MagicApiMcpProperties properties = SpringUtils.getBean(MagicApiMcpProperties.class);
+		return new JsonBean<>(ListUtils.emptyIfNull(properties.getServers()));
+	}
+}

@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime;
 import com.ajaxjs.mcp.server.McpServer;
 import com.ajaxjs.mcp.server.common.ServerConfig;
 import com.ajaxjs.mcp.server.feature.FeatureMgr;
+import com.ajaxjs.mcp.transport.McpTransportSync;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpAuthService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.cluster.McpRedisBroadcaster;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.cluster.RedisServerSseRegistry;
@@ -15,6 +16,7 @@ import com.xiongx9527.fw.plus.ai.mcp.support.DefaultServerStreamableHttpRegistry
 import org.springframework.beans.factory.ObjectProvider;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +31,19 @@ import java.util.UUID;
  * </p>
  */
 public class McpRuntimeFactory {
+
+    /**
+     * MCP server 实例工厂。默认创建内核 {@link McpServer}；插件可提供子类以接管消息处理。
+     */
+    private final McpServerFactory serverFactory;
+
+    public McpRuntimeFactory() {
+        this(McpServerFactory.DEFAULT);
+    }
+
+    public McpRuntimeFactory(McpServerFactory serverFactory) {
+        this.serverFactory = serverFactory == null ? McpServerFactory.DEFAULT : serverFactory;
+    }
 
     /**
      * 构建全部 runtime。
@@ -62,8 +77,23 @@ public class McpRuntimeFactory {
         return runtimes;
     }
 
-    private McpServerRuntime createRuntime(String key, McpProperties effective, McpAuthService authService,
+    public McpServerRuntime createRuntime(String key, McpProperties effective, McpAuthService authService,
             McpRedisBroadcaster broadcaster) {
+        return createRuntime(key, effective, authService, broadcaster, serverFactory);
+    }
+
+    /**
+     * 构建单个 runtime，允许调用方指定该实例的 server 工厂。
+     *
+     * @param key         实例 key
+     * @param effective   该实例的生效配置
+     * @param authService 认证 SPI
+     * @param broadcaster Redis 广播器，可为 {@code null}
+     * @param factory     server 工厂；为 {@code null} 时回落到默认工厂
+     * @return runtime 实例
+     */
+    public McpServerRuntime createRuntime(String key, McpProperties effective, McpAuthService authService,
+            McpRedisBroadcaster broadcaster, McpServerFactory factory) {
         ServerConfig config = new ServerConfig();
         if (effective.getServer() != null) {
             config.setName(effective.getServer().getName());
@@ -71,13 +101,51 @@ public class McpRuntimeFactory {
         }
 
         FeatureMgr featureMgr = new FeatureMgr();
-        McpServer server = new McpServer();
+        McpServer server = (factory == null ? serverFactory : factory).create(config, featureMgr);
         server.setServerConfig(config);
         server.setFeatureMgr(featureMgr);
 
         BaseServerRegistry registry = registry(server, effective.getTransport(), broadcaster, key);
+        if (registry instanceof McpTransportSync) {
+            server.setTransport((McpTransportSync) registry);
+        }
         return new McpServerRuntime(key, effective, server, featureMgr, registry, authService,
                 splitBasePackages(effective.getBasePackages()));
+    }
+
+    /**
+     * 按顶层配置继承规则构建单个 runtime，并执行 transport/endpoint/key 校验。
+     *
+     * @param top         顶层配置
+     * @param item        实例配置
+     * @param authService 认证 SPI
+     * @param broadcaster Redis 广播器，可为 {@code null}
+     * @return runtime 实例
+     */
+    public McpServerRuntime createRuntime(McpProperties top, McpProperties item, McpAuthService authService,
+            McpRedisBroadcaster broadcaster) {
+        return createRuntime(top, item, authService, broadcaster, null);
+    }
+
+    /**
+     * 按顶层配置继承规则构建单个 runtime，允许指定该实例的 server 工厂。
+     *
+     * @param top         顶层配置
+     * @param item        实例配置
+     * @param authService 认证 SPI
+     * @param broadcaster Redis 广播器，可为 {@code null}
+     * @param factory     server 工厂；为 {@code null} 时回落到默认工厂
+     * @return runtime 实例
+     */
+    public McpServerRuntime createRuntime(McpProperties top, McpProperties item, McpAuthService authService,
+            McpRedisBroadcaster broadcaster, McpServerFactory factory) {
+        String key = item.getKey() == null || item.getKey().trim().isEmpty() ? top.getKey() : item.getKey().trim();
+        McpServerRuntime runtime =
+                createRuntime(key, inherited(top, item), authService, broadcaster, factory);
+        validateTransports(Collections.singletonList(runtime));
+        validateEndpoints(Collections.singletonList(runtime));
+        validateKeys(Collections.singletonList(runtime));
+        return runtime;
     }
 
     private BaseServerRegistry registry(McpServer server, String transport, McpRedisBroadcaster broadcaster, String key) {

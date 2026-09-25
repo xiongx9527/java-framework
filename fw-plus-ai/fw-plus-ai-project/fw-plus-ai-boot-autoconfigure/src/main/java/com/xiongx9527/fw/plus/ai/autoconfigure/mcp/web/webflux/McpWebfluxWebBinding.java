@@ -12,7 +12,6 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerResponse;
-import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -47,22 +46,20 @@ public class McpWebfluxWebBinding {
 	}
 
 	/**
-	 * 每个 runtime 注册一套路由，router function bean 由 WebFlux 自动装配。
+	 * WebFlux 路由注册表：启动期装配全部 runtime，运行期可增删。
+	 */
+	@Bean
+	public McpFluxRouteRegistry mcpFluxRouteRegistry(List<McpServerRuntime> runtimes,
+			ExecutorService mcpThreadPool) {
+		return new McpFluxRouteRegistry(runtimes, mcpThreadPool);
+	}
+
+	/**
+	 * 对外暴露不变的路由委托，router function bean 由 WebFlux 自动装配。
 	 */
 	@Bean
 	@Primary
-	public RouterFunction<ServerResponse> mcpRouterFunction(List<McpServerRuntime> runtimes,
-			ExecutorService mcpThreadPool) {
-		RouterFunction<ServerResponse> router = null;
-		for (McpServerRuntime runtime : runtimes) {
-			McpFluxTransportHandler handler = new McpFluxTransportHandler(runtime,
-					Schedulers.fromExecutorService(mcpThreadPool));
-			RouterFunction<ServerResponse> runtimeRouter = handler.router();
-			router = router == null ? runtimeRouter : router.and(runtimeRouter);
-		}
-
-		// 无 runtime 时返回空路由，交回 WebFlux 默认 404 语义。
-		return router == null ? RouterFunctions.route(org.springframework.web.reactive.function.server
-				.RequestPredicates.all(), request -> reactor.core.publisher.Mono.empty()) : router;
+	public RouterFunction<ServerResponse> mcpRouterFunction(McpFluxRouteRegistry registry) {
+		return registry.router();
 	}
 }

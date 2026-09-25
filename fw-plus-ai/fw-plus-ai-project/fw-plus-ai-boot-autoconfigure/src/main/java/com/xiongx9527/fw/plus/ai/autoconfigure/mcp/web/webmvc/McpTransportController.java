@@ -8,6 +8,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpRequest;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
 import com.xiongx9527.fw.plus.ai.mcp.spi.ServerSseRegistry;
 import com.xiongx9527.fw.plus.ai.mcp.spi.ServerStreamableHttpRegistry;
+import org.springframework.http.MediaType;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -122,5 +123,26 @@ public abstract class McpTransportController {
 			return McpPrincipal.ANONYMOUS;
 		}
 		return authService.authenticate(new McpRequest(sessionId, transport, endpoint, body, headers(request)));
+	}
+
+	/**
+	 * 认证并处理"匿名即拒绝"：未配置认证时为放行主体，配置了但 token 无效时是匿名主体。
+	 *
+	 * @return 通过返回 {@code true}；已写入错误响应时返回 {@code false}
+	 */
+	protected boolean isAuthenticated(String sessionId, String transport, String endpoint, String body,
+			HttpServletRequest request, HttpServletResponse response) {
+		McpPrincipal principal = authenticate(sessionId, transport, endpoint, body, request);
+		if (principal != McpPrincipal.ANONYMOUS) {
+			return true;
+		}
+		try {
+			response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+			response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+			response.getWriter().write("{\"code\":401,\"message\":\"unauthorized\"}");
+		} catch (IOException e) {
+			throw new IllegalStateException("failed to reject unauthorized MCP request", e);
+		}
+		return false;
 	}
 }

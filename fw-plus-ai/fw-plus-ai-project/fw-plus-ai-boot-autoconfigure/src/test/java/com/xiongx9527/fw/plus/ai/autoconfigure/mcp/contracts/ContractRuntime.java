@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.contracts;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.PermitAllAuthService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
 import com.xiongx9527.fw.plus.ai.mcp.spi.ServerSseRegistry;
 import com.xiongx9527.fw.plus.ai.mcp.spi.ServerStreamableHttpRegistry;
@@ -42,6 +43,6 @@ public final class ContractRuntime {
 		properties.setTransport(transport);
 		properties.setEndpoint(endpoint);
 		return new McpServerRuntime("default", properties, mock(com.ajaxjs.mcp.server.McpServer.class), null,
-				registry, null, java.util.Collections.<String>emptyList());
+				registry, new PermitAllAuthService(), java.util.Collections.<String>emptyList());
 	}
 }
