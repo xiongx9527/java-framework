@@ -6,21 +6,17 @@ fw:
     ws:
       enabled: true
       appId: default
-      token:
-        # 至少 32 位；缺失时 WebSocket 握手鉴权直接失败
-        secret: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
-        expireHours: 2
+      instances:
+        # 一个实例 = 一个名字 + 一组端点 + 一个 appId，与默认实例并存且为纯增量
+        - name: report
+          path: /ws/api3
+          appId: report
       websocket:
         path: /ws/api
         paths:
           - /ws/api2
         # 演示用：允许任意来源；生产请改为具体域名
         trustedDomain: '*'
-      tokens:
-        # 一个实例一条路径 + 一套 token：/ws/api2 改用专用密钥，/ws/api 仍用全局密钥
-        - path: /ws/api2
-          secret: aaaabbbbccccddddeeeeffff00001111aaaabbbbccccddddeeeeffff00001111
-          expireHours: 4
       binary:
         enabled: true
         type: binary

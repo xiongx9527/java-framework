@@ -30,11 +30,8 @@
     }
 
     document.getElementById('connect').onclick = async () => {
-        // token 由样例的 /demo/token 接口按 fw.plus.ws.token.secret 签发
-        const tokenResponse = await fetch('/demo/token?subject=default');
-        const { token } = await tokenResponse.json();
         const clientId = document.getElementById('clientId').value;
-        const url = `ws://${location.host}/ws/api?token=${encodeURIComponent(token)}&clientId=${encodeURIComponent(clientId)}`;
+        const url = `ws://${location.host}/ws/api?clientId=${encodeURIComponent(clientId)}`;
         socket = new WebSocket(url);
         socket.binaryType = 'arraybuffer';
         socket.onopen = () => log('[open] ' + url);
