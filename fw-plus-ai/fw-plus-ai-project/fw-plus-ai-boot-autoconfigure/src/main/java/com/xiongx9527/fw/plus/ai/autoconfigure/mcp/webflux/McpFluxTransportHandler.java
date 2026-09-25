@@ -17,6 +17,7 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.UnicastProcessor;
 import reactor.core.scheduler.Scheduler;
 
 import java.io.PrintWriter;
@@ -25,6 +26,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * WebFlux 传输处理器：SSE 与 Streamable HTTP 两套路径布局，语义与 MVC 控制器一致。
@@ -54,7 +57,7 @@ class McpFluxTransportHandler {
 					"MCP runtime '" + runtime.getKey() + "' has an empty endpoint, cannot register routes.");
 		}
 
-		if (STREAMABLE_TRANSPORT.equals(runtime.getTransport())) {
+		if (STREAMABLE_TRANSPORT.equalsIgnoreCase(runtime.getTransport())) {
 			return RouterFunctions.route(org.springframework.web.reactive.function.server.RequestPredicates
 					.POST(endpoint), this::post)
 					.and(RouterFunctions.route(org.springframework.web.reactive.function.server.RequestPredicates
@@ -82,7 +85,8 @@ class McpFluxTransportHandler {
 		AtomicReference<String> writerHolder = new AtomicReference<>();
 		Flux<String> frames = Flux.<String>create(sink -> {
 			writerHolder.set(endpoint() + McpWebfluxWebBinding.MESSAGES_SUFFIX.replace("{uuid}", uuid));
-			sse.openSession(uuid, new PrintWriter(new SinkWriter(sink)), writerHolder.get());
+			sse.openSession(uuid, new PrintWriter(new FrameWriter(sink::next, () -> !sink.isCancelled(), sink::complete)),
+					writerHolder.get());
 			sink.onDispose(() -> sse.removeConnection(uuid));
 		}, FluxSink.OverflowStrategy.BUFFER).subscribeOn(pool);
 
@@ -151,32 +155,46 @@ class McpFluxTransportHandler {
 	}
 
 	private Mono<ServerResponse> get(ServerRequest request) {
-		ServerStreamableHttpRegistry transport = streamableRegistry();
+		final ServerStreamableHttpRegistry transport = streamableRegistry();
 		if (transport == null) {
 			return ServerResponse.notFound().build();
 		}
 
 		String session = request.headers().firstHeader(ServerStreamableHttp.SESSION_ID_HEADER);
-		if (!runtime.hasSession(session)) {
+		if (session == null || !runtime.hasSession(session)) {
 			return ServerResponse.notFound().build();
 		}
 		authenticate(session, request);
 
-		Flux<String> frames = Flux.<String>create(sink -> {
+		// 响应状态必须在事件流之前确定：先与内核同步打开事件流拿到结果，
+		// 非 200（403/400/503 等）直接透出真实状态码，不再伪装成空的 200 SSE（与 MVC 一致）。
+		// UnicastProcessor 在响应提交前即可缓冲内核帧，早到的帧不丢失。
+		return Mono.defer(() -> {
+			final UnicastProcessor<String> eventStream = UnicastProcessor.create();
+			final FrameWriter bridge = new FrameWriter(eventStream::onNext, () -> !eventStream.isDisposed(),
+					eventStream::onComplete);
+			final PrintWriter eventWriter = new PrintWriter(bridge);
 			HttpResult result;
-			synchronized (transport) {
-				result = transport.openEventStream(session, new PrintWriter(new SinkWriter(sink)), headers(request));
+			try {
+				synchronized (transport) {
+					result = transport.openEventStream(session, eventWriter, headers(request));
+				}
+			} catch (RuntimeException failure) {
+				// 会话在归属预检与内核打开之间的窗口过期等异常时，事件流可能已注册；
+				// 必须先解除注册再上抛，否则心跳会持续写入无订阅者的缓冲队列（内存泄漏）。
+				transport.closeEventStream(session, eventWriter);
+				throw failure;
 			}
-			sink.onDispose(() -> transport.closeEventStream(session, new PrintWriter(new SinkWriter(sink))));
 			if (result.getStatus() != HttpStatus.OK.value()) {
-				sink.complete();
+				transport.closeEventStream(session, eventWriter);
+				return httpResultResponse(result);
 			}
-		}, FluxSink.OverflowStrategy.BUFFER).subscribeOn(pool);
-
-		return ServerResponse.ok().contentType(MediaType.TEXT_EVENT_STREAM)
-				.header("Cache-Control", "no-cache")
-				.header("X-Accel-Buffering", "no")
-				.body(frames, String.class);
+			return ServerResponse.ok().contentType(MediaType.TEXT_EVENT_STREAM)
+					.header("Cache-Control", "no-cache")
+					.header("X-Accel-Buffering", "no")
+					.body(eventStream.doFinally(signal -> transport.closeEventStream(session, eventWriter)),
+							String.class);
+		}).subscribeOn(pool);
 	}
 
 	private SyncResult callSseHandle(ServerSseRegistry sse, String uuid, String json) {
@@ -267,41 +285,45 @@ class McpFluxTransportHandler {
 	}
 
 	/**
-	 * Writer 桥：把内核 {@code PrintWriter} 写出的 SSE 帧原文转发到 {@link FluxSink}。
+	 * Writer 桥：把内核 {@code PrintWriter} 写出的 SSE 帧原文转发到下游生产者。
 	 *
-	 * <p>底层 Writer 才是真正转发通道，{@code PrintWriter} 的所有 print/println/write
+	 * <p>FluxSink 与 UnicastProcessor 两种生产者通过统一触点接入，避免桥接逻辑重复。
+	 * 底层 Writer 才是真正转发通道，{@code PrintWriter} 的所有 print/println/write
 	 * 最终都汇到 {@code out.write}，因此分隔符不会丢失。</p>
 	 */
-	private static final class SinkWriter extends Writer {
+	private static final class FrameWriter extends Writer {
 
-		private final FluxSink<String> sink;
+		private final Consumer<String> emitter;
 
-		private SinkWriter(FluxSink<String> sink) {
-			this.sink = sink;
+		private final Supplier<Boolean> active;
+
+		private final Runnable onClose;
+
+		private FrameWriter(Consumer<String> emitter, Supplier<Boolean> active, Runnable onClose) {
+			this.emitter = emitter;
+			this.active = active;
+			this.onClose = onClose;
 		}
 
 		@Override
 		public void write(char[] cbuf, int off, int len) {
-			if (sink.isCancelled()) {
-				return;
+			if (active.get()) {
+				emitter.accept(new String(cbuf, off, len));
 			}
-			sink.next(new String(cbuf, off, len));
 		}
 
 		@Override
 		public void write(String str, int off, int len) {
-			if (sink.isCancelled()) {
-				return;
+			if (active.get()) {
+				emitter.accept(str.substring(off, off + len));
 			}
-			sink.next(str.substring(off, off + len));
 		}
 
 		@Override
 		public void write(int c) {
-			if (sink.isCancelled()) {
-				return;
+			if (active.get()) {
+				emitter.accept(String.valueOf((char) c));
 			}
-			sink.next(String.valueOf((char) c));
 		}
 
 		@Override
@@ -311,7 +333,7 @@ class McpFluxTransportHandler {
 
 		@Override
 		public void close() {
-			sink.complete();
+			onClose.run();
 		}
 	}
 }

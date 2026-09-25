@@ -88,6 +88,36 @@ class McpRuntimeFactoryTest {
 	}
 
 	@Test
+	void shouldRejectServerKeyCollidingWithDefaultKey() {
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties top = top();
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties defaultKey = new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties();
+		defaultKey.setKey("default");
+		defaultKey.setEndpoint("/mcp/custom");
+		top.getServers().add(defaultKey);
+
+		assertThatThrownBy(() -> factory.createRuntimes(top, authService, emptyProvider()))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("server key 'default' is declared more than once");
+	}
+
+	@Test
+	void shouldRejectDuplicateKeyBetweenNamedServers() {
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties top = top();
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties weather = new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties();
+		weather.setKey("weather");
+		weather.setEndpoint("/mcp/weather");
+		top.getServers().add(weather);
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties weather2 = new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties();
+		weather2.setKey("weather");
+		weather2.setEndpoint("/mcp/weather-2");
+		top.getServers().add(weather2);
+
+		assertThatThrownBy(() -> factory.createRuntimes(top, authService, emptyProvider()))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("server key 'weather' is declared more than once");
+	}
+
+	@Test
 	void shouldAllowSameEndpointAcrossDifferentTransports() {
 		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties top = top();
 		top.setTransport("http-sse");
@@ -102,6 +132,33 @@ class McpRuntimeFactoryTest {
 
 		assertThat(runtimes).hasSize(2);
 		assertThat(runtimes.get(1).getEndpoint()).isEqualTo("/mcp");
+	}
+
+	@Test
+	void shouldRejectDuplicateEndpointWhenTransportCaseDiffers() {
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties top = top();
+		top.setTransport("http-sse");
+		top.setEndpoint("/mcp");
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties upper = new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties();
+		upper.setKey("upper");
+		// 大小写不同的同一 transport，且继承顶层 endpoint，构成冲突
+		upper.setTransport("HTTP-SSE");
+		top.getServers().add(upper);
+
+		assertThatThrownBy(() -> factory.createRuntimes(top, authService, emptyProvider()))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("endpoint conflict");
+	}
+
+	@Test
+	void shouldRejectUnsupportedTransport() {
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties top = top();
+		// 拼写错误：必须 fail-fast，而非被静默当作 http-sse 处理
+		top.setTransport("streamabla-http");
+
+		assertThatThrownBy(() -> factory.createRuntimes(top, authService, emptyProvider()))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("unsupported transport");
 	}
 
 	@Test

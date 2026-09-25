@@ -1,0 +1,101 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] -------< com.xiongx9527.fw.plus.ai:fw-plus-ai-mcp-server-sample >-------
+[INFO] Building fw-plus-ai-mcp-server-sample 0.1.1-SNAPSHOT
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- maven-resources-plugin:3.2.0:resources (default-resources) @ fw-plus-ai-mcp-server-sample ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] Copying 1 resource
+[INFO] Copying 0 resource
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:flatten (flatten) @ fw-plus-ai-mcp-server-sample ---
+[INFO] Generating flattened POM of project com.xiongx9527.fw.plus.ai:fw-plus-ai-mcp-server-sample:jar:0.1.1-SNAPSHOT...
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.10.1:compile (default-compile) @ fw-plus-ai-mcp-server-sample ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- maven-resources-plugin:3.2.0:testResources (default-testResources) @ fw-plus-ai-mcp-server-sample ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] skip non existing resourceDirectory /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-sample/fw-plus-ai-samples/fw-plus-ai-mcp-server-sample/src/test/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.10.1:testCompile (default-testCompile) @ fw-plus-ai-mcp-server-sample ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.22.2:test (default-test) @ fw-plus-ai-mcp-server-sample ---
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.xiongx9527.fw.plus.ai.sample.mcp.server.McpServerSampleIT
+08:38:58.508 [main] DEBUG org.springframework.test.context.BootstrapUtils - Instantiating CacheAwareContextLoaderDelegate from class [org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate]
+08:38:58.548 [main] DEBUG org.springframework.test.context.BootstrapUtils - Instantiating BootstrapContext using constructor [public org.springframework.test.context.support.DefaultBootstrapContext(java.lang.Class,org.springframework.test.context.CacheAwareContextLoaderDelegate)]
+08:38:58.674 [main] DEBUG org.springframework.test.context.BootstrapUtils - Instantiating TestContextBootstrapper for test class [com.xiongx9527.fw.plus.ai.sample.mcp.server.McpServerSampleIT] from class [org.springframework.boot.test.context.SpringBootTestContextBootstrapper]
+08:38:58.717 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper - Neither @ContextConfiguration nor @ContextHierarchy found for test class [com.xiongx9527.fw.plus.ai.sample.mcp.server.McpServerSampleIT], using SpringBootContextLoader
+08:38:58.728 [main] DEBUG org.springframework.test.context.support.AbstractContextLoader - Did not detect default resource location for test class [com.xiongx9527.fw.plus.ai.sample.mcp.server.McpServerSampleIT]: class path resource [com/xiongx9527/fw/plus/ai/sample/mcp/server/McpServerSampleIT-context.xml] does not exist
+08:38:58.729 [main] DEBUG org.springframework.test.context.support.AbstractContextLoader - Did not detect default resource location for test class [com.xiongx9527.fw.plus.ai.sample.mcp.server.McpServerSampleIT]: class path resource [com/xiongx9527/fw/plus/ai/sample/mcp/server/McpServerSampleITContext.groovy] does not exist
+08:38:58.730 [main] INFO org.springframework.test.context.support.AbstractContextLoader - Could not detect default resource locations for test class [com.xiongx9527.fw.plus.ai.sample.mcp.server.McpServerSampleIT]: no resource found for suffixes {-context.xml, Context.groovy}.
+08:38:58.933 [main] DEBUG org.springframework.test.context.support.ActiveProfilesUtils - Could not find an 'annotation declaring class' for annotation type [org.springframework.test.context.ActiveProfiles] and class [com.xiongx9527.fw.plus.ai.sample.mcp.server.McpServerSampleIT]
+08:38:59.395 [main] DEBUG org.springframework.boot.test.context.SpringBootTestContextBootstrapper - @TestExecutionListeners is not present for class [com.xiongx9527.fw.plus.ai.sample.mcp.server.McpServerSampleIT]: using defaults.
+08:38:59.396 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper - Loaded default TestExecutionListener class names from location [META-INF/spring.factories]: [org.springframework.boot.test.mock.mockito.MockitoTestExecutionListener, org.springframework.boot.test.mock.mockito.ResetMocksTestExecutionListener, org.springframework.boot.test.autoconfigure.restdocs.RestDocsTestExecutionListener, org.springframework.boot.test.autoconfigure.web.client.MockRestServiceServerResetTestExecutionListener, org.springframework.boot.test.autoconfigure.web.servlet.MockMvcPrintOnlyOnFailureTestExecutionListener, org.springframework.boot.test.autoconfigure.web.servlet.WebDriverTestExecutionListener, org.springframework.boot.test.autoconfigure.webservices.client.MockWebServiceServerTestExecutionListener, org.springframework.test.context.web.ServletTestExecutionListener, org.springframework.test.context.support.DirtiesContextBeforeModesTestExecutionListener, org.springframework.test.context.event.ApplicationEventsTestExecutionListener, org.springframework.test.context.support.DependencyInjectionTestExecutionListener, org.springframework.test.context.support.DirtiesContextTestExecutionListener, org.springframework.test.context.transaction.TransactionalTestExecutionListener, org.springframework.test.context.jdbc.SqlScriptsTestExecutionListener, org.springframework.test.context.event.EventPublishingTestExecutionListener]
+08:38:59.445 [main] DEBUG org.springframework.boot.test.context.SpringBootTestContextBootstrapper - Skipping candidate TestExecutionListener [org.springframework.test.context.transaction.TransactionalTestExecutionListener] due to a missing dependency. Specify custom listener classes or make the default listener classes and their required dependencies available. Offending class: [org/springframework/transaction/interceptor/TransactionAttributeSource]
+08:38:59.447 [main] DEBUG org.springframework.boot.test.context.SpringBootTestContextBootstrapper - Skipping candidate TestExecutionListener [org.springframework.test.context.jdbc.SqlScriptsTestExecutionListener] due to a missing dependency. Specify custom listener classes or make the default listener classes and their required dependencies available. Offending class: [org/springframework/transaction/interceptor/TransactionAttribute]
+08:38:59.448 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper - Using TestExecutionListeners: [org.springframework.test.context.web.ServletTestExecutionListener@76b1e9b8, org.springframework.test.context.support.DirtiesContextBeforeModesTestExecutionListener@27406a17, org.springframework.test.context.event.ApplicationEventsTestExecutionListener@2af004b, org.springframework.boot.test.mock.mockito.MockitoTestExecutionListener@248e319b, org.springframework.boot.test.autoconfigure.SpringBootDependencyInjectionTestExecutionListener@5d0bf09b, org.springframework.test.context.support.DirtiesContextTestExecutionListener@793f29ff, org.springframework.test.context.event.EventPublishingTestExecutionListener@3e8c3cb, org.springframework.boot.test.mock.mockito.ResetMocksTestExecutionListener@563f38c4, org.springframework.boot.test.autoconfigure.restdocs.RestDocsTestExecutionListener@543295b0, org.springframework.boot.test.autoconfigure.web.client.MockRestServiceServerResetTestExecutionListener@54422e18, org.springframework.boot.test.autoconfigure.web.servlet.MockMvcPrintOnlyOnFailureTestExecutionListener@117159c0, org.springframework.boot.test.autoconfigure.web.servlet.WebDriverTestExecutionListener@3e27ba32, org.springframework.boot.test.autoconfigure.webservices.client.MockWebServiceServerTestExecutionListener@7ef82753]
+08:38:59.462 [main] DEBUG org.springframework.test.context.support.AbstractDirtiesContextTestExecutionListener - Before test class: context [DefaultTestContext@4be29ed9 testClass = McpServerSampleIT, testInstance = [null], testMethod = [null], testException = [null], mergedContextConfiguration = [WebMergedContextConfiguration@548d708a testClass = McpServerSampleIT, locations = '{}', classes = '{class com.xiongx9527.fw.plus.ai.sample.mcp.server.McpServerSampleApplication}', contextInitializerClasses = '[]', activeProfiles = '{}', propertySourceLocations = '{}', propertySourceProperties = '{org.springframework.boot.test.context.SpringBootTestContextBootstrapper=true, server.port=0}', contextCustomizers = set[org.springframework.boot.test.context.filter.ExcludeFilterContextCustomizer@35e2d654, org.springframework.boot.test.json.DuplicateJsonObjectContextCustomizerFactory$DuplicateJsonObjectContextCustomizer@7d8995e, org.springframework.boot.test.mock.mockito.MockitoContextCustomizer@0, org.springframework.boot.test.web.client.TestRestTemplateContextCustomizer@6f1de4c7, org.springframework.boot.test.autoconfigure.actuate.metrics.MetricsExportContextCustomizerFactory$DisableMetricExportContextCustomizer@4c583ecf, org.springframework.boot.test.autoconfigure.properties.PropertyMappingContextCustomizer@0, org.springframework.boot.test.autoconfigure.web.servlet.WebDriverContextCustomizerFactory$Customizer@639c2c1d, org.springframework.boot.test.context.SpringBootTestArgs@1, org.springframework.boot.test.context.SpringBootTestWebEnvironment@27efef64], resourceBasePath = 'src/main/webapp', contextLoader = 'org.springframework.boot.test.context.SpringBootContextLoader', parent = [null]], attributes = map['org.springframework.test.context.web.ServletTestExecutionListener.activateListener' -> false]], class annotated with @DirtiesContext [false] with mode [null].
+08:38:59.514 [main] DEBUG org.springframework.test.context.support.DependencyInjectionTestExecutionListener - Performing dependency injection for test context [[DefaultTestContext@4be29ed9 testClass = McpServerSampleIT, testInstance = com.xiongx9527.fw.plus.ai.sample.mcp.server.McpServerSampleIT@5b247367, testMethod = [null], testException = [null], mergedContextConfiguration = [WebMergedContextConfiguration@548d708a testClass = McpServerSampleIT, locations = '{}', classes = '{class com.xiongx9527.fw.plus.ai.sample.mcp.server.McpServerSampleApplication}', contextInitializerClasses = '[]', activeProfiles = '{}', propertySourceLocations = '{}', propertySourceProperties = '{org.springframework.boot.test.context.SpringBootTestContextBootstrapper=true, server.port=0}', contextCustomizers = set[org.springframework.boot.test.context.filter.ExcludeFilterContextCustomizer@35e2d654, org.springframework.boot.test.json.DuplicateJsonObjectContextCustomizerFactory$DuplicateJsonObjectContextCustomizer@7d8995e, org.springframework.boot.test.mock.mockito.MockitoContextCustomizer@0, org.springframework.boot.test.web.client.TestRestTemplateContextCustomizer@6f1de4c7, org.springframework.boot.test.autoconfigure.actuate.metrics.MetricsExportContextCustomizerFactory$DisableMetricExportContextCustomizer@4c583ecf, org.springframework.boot.test.autoconfigure.properties.PropertyMappingContextCustomizer@0, org.springframework.boot.test.autoconfigure.web.servlet.WebDriverContextCustomizerFactory$Customizer@639c2c1d, org.springframework.boot.test.context.SpringBootTestArgs@1, org.springframework.boot.test.context.SpringBootTestWebEnvironment@27efef64], resourceBasePath = 'src/main/webapp', contextLoader = 'org.springframework.boot.test.context.SpringBootContextLoader', parent = [null]], attributes = map['org.springframework.test.context.web.ServletTestExecutionListener.activateListener' -> false, 'org.springframework.test.context.event.ApplicationEventsTestExecutionListener.recordApplicationEvents' -> false]]].
+    _  _____   _____ _        ____  _     _     ____    ____  ____  ____  _____
+   / |/  __/  /    // \  /|  /  __\/ \   / \ /\/ ___\  /  __\/  _ \/  _ \/__ __\
+   | || |  _  |  __\| |  ||  |  \/|| |   | | |||    \  | | //| / \|| / \|  / \
+/\_| || |_//  | |   | |/\||  |  __/| |_/\| \_/|\___ |  | |_\\| \_/|| \_/|  | |
+\____/\____\  \_/   \_/  \|  \_/   \____/\____/\____/  \____/\____/\____/  \_/
+
+SpringBoot Version :  (v2.7.18)
+
+2026-09-25 08:39:01.399  INFO 27482 --- [           main] c.x.f.p.a.s.m.server.McpServerSampleIT   : Starting McpServerSampleIT using Java 1.8.0_432 on MacBook-Pro.local with PID 27482 (started by xiongxiao in /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-sample/fw-plus-ai-samples/fw-plus-ai-mcp-server-sample)
+2026-09-25 08:39:01.402  INFO 27482 --- [           main] c.x.f.p.a.s.m.server.McpServerSampleIT   : No active profile set, falling back to 1 default profile: "default"
+2026-09-25 08:39:13.012  INFO 27482 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 0 (http)
+2026-09-25 08:39:13.061  INFO 27482 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-09-25 08:39:13.062  INFO 27482 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.83]
+2026-09-25 08:39:13.447  INFO 27482 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-09-25 08:39:13.447  INFO 27482 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 11972 ms
+2026-09-25 08:39:19.033  INFO 27482 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint(s) beneath base path '/actuator'
+2026-09-25 08:39:20.004  INFO 27482 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 51394 (http) with context path ''
+2026-09-25 08:39:20.007  INFO 27482 --- [           main] c.x.fw.plus.common.util.SpringUtils      : 🎉 SpringUtils SmartLifecycle started - Application is fully ready!
+2026-09-25 08:39:20.010  INFO 27482 --- [           main] c.x.fw.plus.common.util.SpringUtils      : 📢 ApplicationStartupCompleteEvent published
+2026-09-25 08:39:20.055  INFO 27482 --- [           main] c.x.f.p.a.s.m.server.McpServerSampleIT   : Started McpServerSampleIT in 20.419 seconds (JVM running for 24.233)
+2026-09-25 08:39:20.180  INFO 27482 --- [           main] c.ajaxjs.mcp.server.feature.FeatureMgr   : Added resource: sample://greeting
+2026-09-25 08:39:20.196  INFO 27482 --- [           main] c.ajaxjs.mcp.server.feature.FeatureMgr   : Added tool: order-status
+2026-09-25 08:39:20.200  INFO 27482 --- [           main] c.ajaxjs.mcp.server.feature.FeatureMgr   : Added prompt: weather-report
+2026-09-25 08:39:20.201  INFO 27482 --- [           main] c.ajaxjs.mcp.server.feature.FeatureMgr   : Added tool: sample-echo
+2026-09-25 08:39:20.202  INFO 27482 --- [           main] c.ajaxjs.mcp.server.feature.FeatureMgr   : Added prompt: sample-greeting
+2026-09-25 08:39:20.203  INFO 27482 --- [           main] c.ajaxjs.mcp.server.feature.FeatureMgr   : Added tool: weather-now
+2026-09-25 08:39:20.203  INFO 27482 --- [           main] c.ajaxjs.mcp.server.feature.FeatureMgr   : Added tool: sample-bean-echo
+2026-09-25 08:39:20.204  INFO 27482 --- [           main] com.ajaxjs.mcp.server.McpServer          : MCP Server started, waiting for input...
+2026-09-25 08:39:20.208  INFO 27482 --- [           main] com.ajaxjs.mcp.server.McpServer          : MCP Server started, waiting for input...
+2026-09-25 08:39:20.210  INFO 27482 --- [           main] com.ajaxjs.mcp.server.McpServer          : MCP Server started, waiting for input...
+2026-09-25 08:39:21.706  INFO 27482 --- [o-auto-1-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-09-25 08:39:21.708  INFO 27482 --- [o-auto-1-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-09-25 08:39:21.712  INFO 27482 --- [o-auto-1-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 3 ms
+2026-09-25 08:39:22.598  WARN 27482 --- [o-auto-1-exec-2] c.x.f.p.b.a.w.w.f.WebMvcCommonFilter     : error http response status. path=/mcp, status=202
+2026-09-25 08:39:22.759  WARN 27482 --- [o-auto-1-exec-5] c.x.f.p.b.a.w.w.f.WebMvcCommonFilter     : error http response status. path=/mcp, status=202
+2026-09-25 08:39:22.939  WARN 27482 --- [-auto-1-exec-10] c.x.f.p.b.a.w.w.f.WebMvcCommonFilter     : error http response status. path=/mcp/weather, status=202
+2026-09-25 08:39:22.948  WARN 27482 --- [o-auto-1-exec-1] c.x.f.p.b.a.w.w.f.WebMvcCommonFilter     : error http response status. path=/mcp/order, status=404
+2026-09-25 08:39:23.016  WARN 27482 --- [o-auto-1-exec-3] c.x.f.p.b.a.w.w.f.WebMvcCommonFilter     : error http response status. path=/mcp/weather, status=202
+2026-09-25 08:39:23.065  WARN 27482 --- [o-auto-1-exec-7] c.x.f.p.b.a.w.w.f.WebMvcCommonFilter     : error http response status. path=/mcp/order, status=202
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 24.825 s - in com.xiongx9527.fw.plus.ai.sample.mcp.server.McpServerSampleIT
+2026-09-25 08:39:23.147  INFO 27482 --- [ionShutdownHook] c.x.fw.plus.common.util.SpringUtils      : 🛑 SpringUtils SmartLifecycle stopping with callback
+2026-09-25 08:39:23.147  INFO 27482 --- [ionShutdownHook] c.x.fw.plus.common.util.SpringUtils      : 🛑 SpringUtils SmartLifecycle stopped - Application is shutting down
+2026-09-25 08:39:24.195  INFO 27482 --- [ionShutdownHook] x.f.p.b.a.w.w.h.AbstractWebSocketHandler : All WebSocket resources have been cleaned up
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  44.330 s
+[INFO] Finished at: 2026-09-25T08:39:24+08:00
+[INFO] ------------------------------------------------------------------------

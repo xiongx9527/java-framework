@@ -15,3 +15,13 @@ fw-plus:
         name: fw-plus-ai-mcp-server-sample
         version: 0.1.0
       transport: streamable-http
+      # 顶层配置即 default runtime（key=default），endpoint=/mcp
+      # 下方 servers 追加两个命名 runtime：weather 与 order
+      # 注意：servers[].transport/endpoint 有内置默认值（http-sse / /mcp），不继承顶层，须显式配置
+      servers:
+        - key: weather
+          transport: streamable-http
+          endpoint: /mcp/weather
+        - key: order
+          transport: streamable-http
+          endpoint: /mcp/order

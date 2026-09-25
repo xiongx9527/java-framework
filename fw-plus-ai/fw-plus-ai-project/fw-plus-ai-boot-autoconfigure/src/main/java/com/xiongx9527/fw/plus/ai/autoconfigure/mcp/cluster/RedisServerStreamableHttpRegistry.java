@@ -39,7 +39,7 @@ public class RedisServerStreamableHttpRegistry extends DefaultServerStreamableHt
      */
     @Override
     public void sendMsg(String sessionId, String json) {
-        if (hasSession(sessionId)) {
+        if (hasLocalStream(sessionId)) {
             super.sendMsg(sessionId, json);
             return;
         }
@@ -54,8 +54,13 @@ public class RedisServerStreamableHttpRegistry extends DefaultServerStreamableHt
         broadcastToCluster(null, json);
     }
 
-    @Override
-    public boolean hasSession(String sessionId) {
+    /**
+     * 本机是否持有该会话的 GET 事件流，用于定向投递时判断本地投递还是经 Redis 转发。
+     *
+     * @param sessionId 会话 id
+     * @return 是否持有事件流
+     */
+    private boolean hasLocalStream(String sessionId) {
         return resolveStreams().containsKey(sessionId);
     }
 
@@ -69,7 +74,7 @@ public class RedisServerStreamableHttpRegistry extends DefaultServerStreamableHt
      */
     @Override
     public void sendOther(String serverId, String sessionId, String json) {
-        if (!hasSession(sessionId))
+        if (!hasLocalStream(sessionId))
             return;
 
         // 父类内含来源守卫，来源为本机时不会重复投递。

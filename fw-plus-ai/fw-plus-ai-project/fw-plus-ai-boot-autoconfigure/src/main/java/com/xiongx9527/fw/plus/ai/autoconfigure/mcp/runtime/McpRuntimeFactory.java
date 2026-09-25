@@ -56,7 +56,9 @@ public class McpRuntimeFactory {
             }
         }
 
+        validateTransports(runtimes);
         validateEndpoints(runtimes);
+        validateKeys(runtimes);
         return runtimes;
     }
 
@@ -123,6 +125,25 @@ public class McpRuntimeFactory {
     }
 
     /**
+     * transport 必须为 http-sse 或 streamable-http；其它取值（拼写错误等）启动即失败，
+     * 避免被静默当作另一种传输处理而导致路由/注册表错位。
+     *
+     * @param runtimes 全部 runtime
+     * @throws IllegalArgumentException 出现不支持的 transport 时
+     */
+    private void validateTransports(List<McpServerRuntime> runtimes) {
+        for (McpServerRuntime runtime : runtimes) {
+            String transport = runtime.getTransport();
+            if (transport == null || (!"http-sse".equalsIgnoreCase(transport)
+                    && !"streamable-http".equalsIgnoreCase(transport))) {
+                throw new IllegalArgumentException("MCP server key '" + runtime.getKey()
+                        + "' declares unsupported transport '" + transport
+                        + "'; supported transports are 'http-sse' and 'streamable-http'");
+            }
+        }
+    }
+
+    /**
      * 同一 transport 下 endpoint 必须唯一；不同 transport 允许复用同一 endpoint。
      *
      * @param runtimes 全部 runtime
@@ -131,12 +152,32 @@ public class McpRuntimeFactory {
     private void validateEndpoints(List<McpServerRuntime> runtimes) {
         Map<String, String> seen = new HashMap<>();
         for (McpServerRuntime runtime : runtimes) {
-            String signature = runtime.getTransport() + "|" + runtime.getEndpoint();
+            String transport = runtime.getTransport() == null ? ""
+                    : runtime.getTransport().toLowerCase(java.util.Locale.ROOT);
+            String signature = transport + "|" + runtime.getEndpoint();
             String previousKey = seen.putIfAbsent(signature, runtime.getKey());
             if (previousKey != null) {
                 throw new IllegalArgumentException("MCP endpoint conflict: server key '" + runtime.getKey()
                         + "' declares transport '" + runtime.getTransport() + "' endpoint '" + runtime.getEndpoint()
                         + "', which is already declared by server key '" + previousKey + "'");
+            }
+        }
+    }
+
+    /**
+     * runtime key 必须全局唯一：default 与命名 servers 之间、servers 内部均不得重复，
+     * 否则以 key 为键的能力归属/集群路由会发生静默覆盖。
+     *
+     * @param runtimes 全部 runtime
+     * @throws IllegalArgumentException 出现重复 key 时
+     */
+    private void validateKeys(List<McpServerRuntime> runtimes) {
+        Map<String, String> seen = new HashMap<>();
+        for (McpServerRuntime runtime : runtimes) {
+            String previousPeer = seen.put(runtime.getKey(), runtime.getKey());
+            if (previousPeer != null) {
+                throw new IllegalArgumentException("MCP server key '" + runtime.getKey()
+                        + "' is declared more than once; each runtime key must be unique");
             }
         }
     }

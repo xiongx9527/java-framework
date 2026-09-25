@@ -14,6 +14,7 @@ import java.io.IOException;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -69,7 +70,7 @@ class McpMvcSessionOwnershipContractTest {
 		request.addHeader("Mcp-Session-Id", "known-session");
 		controller.post("{}", request, new MockHttpServletResponse());
 
-		verify((ServerStreamableHttpRegistry) runtime.getRegistry()).post("{}", anyMap());
+		verify((ServerStreamableHttpRegistry) runtime.getRegistry()).post(eq("{}"), anyMap());
 	}
 
 	@Test
@@ -81,11 +82,11 @@ class McpMvcSessionOwnershipContractTest {
 		// 未携带会话头的初始化请求不得被归属校验拒绝，直接进内核
 		controller.post("{}", new MockHttpServletRequest(), new MockHttpServletResponse());
 
-		verify((ServerStreamableHttpRegistry) runtime.getRegistry()).post("{}", anyMap());
+		verify((ServerStreamableHttpRegistry) runtime.getRegistry()).post(eq("{}"), anyMap());
 	}
 
 	private void whenPost(McpServerRuntime runtime) {
-		when(((ServerStreamableHttpRegistry) runtime.getRegistry()).post("{}", anyMap()))
+		when(((ServerStreamableHttpRegistry) runtime.getRegistry()).post(eq("{}"), anyMap()))
 				.thenReturn(HttpResult.json(200, "{}"));
 	}
 }

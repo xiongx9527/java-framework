@@ -3,6 +3,8 @@ comet_change: mcp-server-multi-instance
 change_ref: docs/openspec/changes/mcp-server-multi-instance
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-09-25-mcp-server-multi-instance
+status: final
 ---
 
 # Design

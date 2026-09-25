@@ -14,9 +14,14 @@ import java.util.Map;
 public abstract class ServerStreamableHttpRegistry extends ServerStreamableHttp  implements BaseServerRegistry {
 
     /**
-     * 父类 ServerStreamableHttp#streams 字段，仅在类加载时解析一次。
+     * 父类 ServerStreamableHttp#streams 字段（GET 事件流），仅在类加载时解析一次。
      */
     private static final Field STREAMS_FIELD;
+
+    /**
+     * 父类 ServerStreamableHttp#sessions 字段（全部已初始化 HTTP 会话），仅在类加载时解析一次。
+     */
+    private static final Field SESSIONS_FIELD;
 
     static {
         try {
@@ -25,6 +30,14 @@ public abstract class ServerStreamableHttpRegistry extends ServerStreamableHttp 
             STREAMS_FIELD = field;
         } catch (NoSuchFieldException e) {
             throw new IllegalStateException("ServerStreamableHttp#streams not found", e);
+        }
+
+        try {
+            Field field = ServerStreamableHttp.class.getDeclaredField("sessions");
+            field.setAccessible(true);
+            SESSIONS_FIELD = field;
+        } catch (NoSuchFieldException e) {
+            throw new IllegalStateException("ServerStreamableHttp#sessions not found", e);
         }
     }
 
@@ -60,12 +73,30 @@ public abstract class ServerStreamableHttpRegistry extends ServerStreamableHttp 
 
     /**
      * 判断本注册表是否持有指定会话，用于多实例下的会话归属校验。
+     * <p>
+     * initialize 建立的会话存在于父类 {@code sessions} map；只有客户端额外建立 GET
+     * 事件流（服务器主动推送）时才会出现在 {@code streams} map。归属校验应覆盖两者。
+     * </p>
      *
      * @param sessionId 会话 ID
      * @return 本实例是否持有该会话
      */
     public boolean hasSession(String sessionId) {
-        return resolveStreams().containsKey(sessionId);
+        return resolveStreams().containsKey(sessionId) || resolveSessions().containsKey(sessionId);
+    }
+
+    /**
+     * 反射获取父类实例上的 sessions 对象。
+     *
+     * @return 父类 sessions 字段引用的实例，本身即 ConcurrentHashMap
+     */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> resolveSessions() {
+        try {
+            return MapUtils.emptyIfNull((Map<String, Object>) SESSIONS_FIELD.get(this));
+        } catch (IllegalAccessException e) {
+            throw new IllegalStateException("Unable to access ServerStreamableHttp#sessions", e);
+        }
     }
 
     /**

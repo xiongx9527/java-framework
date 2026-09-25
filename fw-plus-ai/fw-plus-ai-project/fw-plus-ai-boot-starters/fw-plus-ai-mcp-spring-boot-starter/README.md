@@ -46,6 +46,8 @@ public class MyMcpServices {
 
 ### 3. 配置 application.yaml
 
+#### 单实例（key 固定为 `default`）
+
 ```yaml
 fw-plus:
   ai:
@@ -58,9 +60,54 @@ fw-plus:
       base-packages: com.example.mcp,com.example.other  # 逗号分隔，与启动类所在包取并集
 ```
 
-### 4. 启动应用
+#### 多实例（`servers` 追加命名 runtime）
 
-应用启动后，MCP Server 将自动启用并监听 HTTP 端点。
+顶层配置仍作为 `default` runtime（endpoint 默认 `/mcp`），`servers` 列表可追加任意数量的命名 runtime，每个实例拥有独立的 `endpoint` 与能力面：
+
+```yaml
+fw-plus:
+  ai:
+    mcp:
+      server:
+        name: my-mcp-server
+        version: 1.0.0
+      transport: streamable-http
+      servers:
+        - key: weather
+          transport: streamable-http
+          endpoint: /mcp/weather
+        - key: order
+          transport: streamable-http
+          endpoint: /mcp/order
+```
+
+多实例规则：
+
+- 命名项 `transport` 与 `endpoint` 均有内置默认值（`http-sse` / `/mcp`），**不继承**顶层对应字段，需在各 `servers[]` 项内显式配置。
+- 因此开启多实例时必须为每个命名 runtime 显式配置不同的 `endpoint`；同一 `transport` 下各实例 `endpoint` 冲突时启动失败，不同 `transport` 的 runtime 可共用同一 `endpoint`。
+- `server.name`/`server.version` 继承顶层，单实例向多实例迁移无需为每个 runtime 重复配置。
+- 每个 runtime 独立扫描并通过 `@McpServer("key")` 归属能力，未标注的 `@McpService` 归属 `default`。
+
+### 4. 归属能力到指定 runtime
+
+默认情况下 `@McpService` 归入 `default` runtime；通过类级 `@McpServer("key")` 可将该类全部能力归属到命名 runtime：
+
+```java
+@McpService
+@McpServer("weather")
+public class WeatherToolProvider {
+    @Tool(value = "weather-now", description = "查询天气")
+    public String now(@ToolArg("city") String city) {
+        return "sunny in " + city;
+    }
+}
+```
+
+方法级 `@McpServer("key")` 可单独覆盖类级归属。未匹配到任何 runtime 的 key 会抛出启动异常提示未解析的 server key。
+
+### 5. 启动应用
+
+应用启动后，所有已配置的 MCP Server 将自动注册对应端点：HTTP/SSE 为 `{endpoint}/sse` 与 `{endpoint}/message`，Streamable HTTP 为 `{endpoint}`。多实例场景下各端点独立对外提供服务。
 
 ## 配置属性
 
@@ -72,6 +119,13 @@ fw-plus:
 | `fw-plus.ai.mcp.transport` | 传输方式：`http-sse` 或 `streamable-http` | `http-sse` |
 | `fw-plus.ai.mcp.endpoint` | MCP 端点路径。HTTP/SSE 为 `{endpoint}/sse` 与 `{endpoint}/message`，Streamable HTTP 为 `{endpoint}` | `/mcp` |
 | `fw-plus.ai.mcp.base-packages` | 扫描 `@McpService` 的包路径，逗号分隔可配多个；与 `@SpringBootConfiguration` 启动类所在包取并集 | 启动类所在包 |
+| `fw-plus.ai.mcp.servers[].key` | 命名 runtime 的唯一标识，同时作为集群 `routeKey` | 无（必填） |
+| `fw-plus.ai.mcp.servers[].endpoint` | 命名 runtime 端点路径；同 `transport` 下须唯一 | `/mcp`（注意：不继承顶层，多实例必配） |
+| `fw-plus.ai.mcp.servers[].transport` | 命名 runtime 传输方式，同顶层取值 | `http-sse`（注意：不继承顶层） |
+| `fw-plus.ai.mcp.servers[].server.name` | 命名 runtime 的协议名称 | 继承顶层 |
+| `fw-plus.ai.mcp.servers[].server.version` | 命名 runtime 的协议版本 | 继承顶层 |
+| `fw-plus.ai.mcp.servers[].base-packages` | 命名 runtime 的扫描包路径 | 继承顶层 |
+| `fw-plus.ai.mcp.thread-pool-size` | WebFlux 栈同步内核调用专用线程池大小 | `16` |
 
 ## 传输方式
 
@@ -83,11 +137,36 @@ fw-plus:
 
 客户端通过单个 HTTP 端点发送所有 JSON-RPC 消息，通过响应头 `Mcp-Session-Id` 维护会话。
 
+## Web MVC 与 WebFlux 双栈适配
+
+框架按应用类型自动选择传输实现，无需改动业务代码：
+
+- **Servlet 应用（`spring-boot-starter-web`）**：由 `McpRoutingRegistrar` 动态注册 MVC 路由。HTTP/SSE 注册 `GET {endpoint}/sse` 与 `POST {endpoint}/message`；Streamable HTTP 注册 `POST {endpoint}`（含 session 初始化的 `GET {endpoint}`）。
+- **Reactive 应用（`spring-boot-starter-webflux`）**：由 `McpWebfluxWebBinding` 注册函数式路由，行为与 MVC 一致（含会话校验）。
+
+WebFlux 依赖为 optional，使用 WebFlux 栈时需按引入：
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-webflux</artifactId>
+</dependency>
+```
+
+## 会话归属校验
+
+每个 runtime 的会话独立管理，请求携带的会话凭证只在该 runtime 内有效：
+
+- HTTP/SSE 的 `sessionId`（Server-Sent Events URL 参数）与 Streamable HTTP 的 `Mcp-Session-Id` 请求头均按 runtime 校验归属。
+- 使用其他 runtime 的会话凭证访问本端点时直接返回 **404**，不进入能力执行，天然隔离各 runtime 的能力面。
+
+默认使用 `PermitAllAuthService`（不校验身份），会话归属校验始终生效；如需身份校验，可替换 `McpAuthService` 实现。
+
 ## 集群 Redis 广播
 
 引入 `spring-boot-starter-data-redis` 并配置 Redis 连接后，MCP Server 自动切换为集群注册表（`RedisServerSseRegistry` / `RedisServerStreamableHttpRegistry`），通过固定频道 `fw-plus:mcp:broadcast` 在节点间转发消息。
 
-每个节点启动时随机生成 `serverId`，随消息一起发布。消息语义分两类：
+每个节点启动时随机生成 `serverId`，随消息一起发布。多实例场景下，每条消息额外携带 `routeKey`（runtime key），节点仅投递本机持有对应 runtime 会话的消息，多 runtime 之间互不串扰。消息语义分两类：
 
 - 定向消息（`sessionId` 非空）：本机持有该会话则直接投递，否则经 Redis 转交，由持有该会话的节点投递；其它节点收到后仅按本机会话持有情况决定是否投递，不再转回频道。
 - 广播消息（`sessionId` 为空）：先下发本机会话，再发布到频道；其它节点收到后只做本地分发，不回灌频道。
@@ -96,4 +175,7 @@ fw-plus:
 
 ## 参考样例
 
-可参考 `fw-plus-sample/fw-plus-ai-samples/fw-plus-ai-mcp-server-sample`，其展示了 `@McpService`、`@Tool`、`@Resource`、`@Prompt` 的最小示例。
+可参考 `fw-plus-sample/fw-plus-ai-samples/fw-plus-ai-mcp-server-sample`：
+
+- 单实例最小示例：`@McpService`、`@Tool`、`@Resource`、`@Prompt`。
+- 多实例示例：`servers` 配置 `weather`（`/mcp/weather`）与 `order`（`/mcp/order`）两个 runtime，通过 `@McpServer("weather")` / `@McpServer("order")` 归属能力，验证各 runtime 能力面隔离与跨 runtime 会话拒绝。

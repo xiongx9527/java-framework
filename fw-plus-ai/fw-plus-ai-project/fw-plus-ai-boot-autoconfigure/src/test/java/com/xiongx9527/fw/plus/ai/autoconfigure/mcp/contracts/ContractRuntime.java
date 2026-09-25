@@ -11,7 +11,7 @@ import static org.mockito.Mockito.when;
  * 双栈会话归属契约测试的共享构造：把 runtime 绑到 mock 注册表上，
  * 使两栈在完全相同的会话状态（已知/未知）下展示其失效响应。
  */
-final class ContractRuntime {
+public final class ContractRuntime {
 
 	private ContractRuntime() {
 	}
@@ -19,7 +19,7 @@ final class ContractRuntime {
 	/**
 	 * 构建 http-sse transport 的 runtime；会话持有状态由 {@code hasKnownSession} 决定。
 	 */
-	static McpServerRuntime sseRuntime(boolean hasKnownSession) {
+	public static McpServerRuntime sseRuntime(boolean hasKnownSession) {
 		ServerSseRegistry registry = mock(ServerSseRegistry.class);
 		when(registry.isOriginAllowed(null)).thenReturn(true);
 		when(registry.hasSession("known-uuid")).thenReturn(hasKnownSession);
@@ -29,7 +29,7 @@ final class ContractRuntime {
 	/**
 	 * 构建 streamable-http transport 的 runtime；会话持有状态由 {@code hasKnownSession} 决定。
 	 */
-	static McpServerRuntime streamableRuntime(boolean hasKnownSession) {
+	public static McpServerRuntime streamableRuntime(boolean hasKnownSession) {
 		ServerStreamableHttpRegistry registry = mock(ServerStreamableHttpRegistry.class);
 		when(registry.hasSession("known-session")).thenReturn(hasKnownSession);
 		return buildRuntime("streamable-http", "/mcp", registry);

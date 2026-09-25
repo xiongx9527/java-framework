@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
@@ -47,13 +48,28 @@ public class McpRoutingRegistrar implements SmartInitializingSingleton {
 
 	@Override
 	public void afterSingletonsInstantiated() {
-		RequestMappingHandlerMapping handlerMapping = context.getBean(RequestMappingHandlerMapping.class);
+		RequestMappingHandlerMapping handlerMapping = findHandlerMapping();
 		if (handlerMapping == null) {
 			return;
 		}
 
 		for (McpServerRuntime runtime : runtimes) {
 			registerRuntime(handlerMapping, runtime);
+		}
+	}
+
+	/**
+	 * 优先按 Spring MVC 标准 bean 名获取主 handlerMapping，避免与框架（如 knife4j/springdoc）
+	 * 注册的扩展 handlerMapping 类型重合导致按类型注入出现多候选；取不到时静默跳过。
+	 */
+	private RequestMappingHandlerMapping findHandlerMapping() {
+		if (context.containsBean("requestMappingHandlerMapping")) {
+			return context.getBean("requestMappingHandlerMapping", RequestMappingHandlerMapping.class);
+		}
+		try {
+			return context.getBean(RequestMappingHandlerMapping.class);
+		} catch (NoSuchBeanDefinitionException e) {
+			return null;
 		}
 	}
 
@@ -64,7 +80,7 @@ public class McpRoutingRegistrar implements SmartInitializingSingleton {
 					"MCP runtime '" + runtime.getKey() + "' has an empty endpoint, cannot register routes.");
 		}
 
-		if ("streamable-http".equals(runtime.getTransport())) {
+		if ("streamable-http".equalsIgnoreCase(runtime.getTransport())) {
 			McpStreamableHttpController controller = new McpStreamableHttpController(runtime);
 			register(handlerMapping, controller, "post",
 					new Class<?>[] { String.class, HttpServletRequest.class, HttpServletResponse.class },
@@ -96,10 +112,20 @@ public class McpRoutingRegistrar implements SmartInitializingSingleton {
 					+ "#" + methodName, e);
 		}
 
+		RequestMappingInfo.BuilderConfiguration builderConfiguration = new RequestMappingInfo.BuilderConfiguration();
+		builderConfiguration.setUrlPathHelper(handlerMapping.getUrlPathHelper());
+		builderConfiguration.setPathMatcher(handlerMapping.getPathMatcher());
+		builderConfiguration.setTrailingSlashMatch(handlerMapping.useTrailingSlashMatch());
+		// 主 handlerMapping 默认使用 PathPatternParser（Spring Boot 2.6+），其 initLookupPath
+		// 会移除 UrlPathHelper.PATH 属性并改用 PathContainer；若此处构建 ant 条件将导致匹配异常，
+		// 因此将 patternParser 一并传入，让 build 按需生成与 handlerMapping 一致的匹配条件。
+		builderConfiguration.setPatternParser(handlerMapping.getPatternParser());
+
 		RequestMappingInfo.Builder builder = RequestMappingInfo.paths(pattern).methods(requestMethod);
 		for (String producesType : produces) {
 			builder.produces(producesType);
 		}
+		builder.options(builderConfiguration);
 
 		handlerMapping.registerMapping(builder.build(), controller, method);
 	}
