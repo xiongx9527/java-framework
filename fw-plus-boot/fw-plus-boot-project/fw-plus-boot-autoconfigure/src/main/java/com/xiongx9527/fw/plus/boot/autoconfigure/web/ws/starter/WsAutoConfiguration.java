@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.starter;
 
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.common.WsInstanceValidator;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.config.WsConfig;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.handler.AbstractWebSocketHandler;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.handler.SimpleWebSocketHandler;
@@ -81,5 +82,22 @@ public class WsAutoConfiguration {
         wsBasePathProviders.orderedStream().forEach(basePathProviders::add);
         return new WsEndpointRegistrar(wsConfig, webSocketHandler,
                 basePathProviders, wsHandshakeInterceptors);
+    }
+
+    /**
+     * 命名实例配置校验：{@code fw.plus.ws.servers} 的 key 必填且唯一、端点全局唯一，
+     * 任一不满足都启动失败。
+     *
+     * <p>放在装配路径而不是 {@code registerWebSocketHandlers}：宿主未开启
+     * {@code @EnableWebSocket} 时后者不会执行，做不到启动即失败。webflux 栈由
+     * {@code WsWebFluxAutoConfiguration} 按同一方法各自校验一次。</p>
+     *
+     * @param wsConfig WebSocket 通用配置
+     * @return 校验器实例
+     */
+    @Bean
+    public WsInstanceValidator wsInstanceValidator(WsConfig wsConfig) {
+        WsInstanceValidator.validate(wsConfig);
+        return new WsInstanceValidator();
     }
 }

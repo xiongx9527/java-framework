@@ -24,8 +24,8 @@ fw:
     ws:
       enabled: true
       appId: default                         # 默认实例 appId
-      instances:                             # 命名实例，一个实例 = 一个名字 + 一组端点 + 一个 appId
-        - name: report                       # 配置识别用，不参与握手匹配
+      servers:                               # 命名实例，一个实例 = 一个 key + 一组端点 + 一个 appId
+        - key: report                        # 必填非空且全局唯一，不参与握手匹配
           path: /ws/api2                     # 相对路径或含基础路径的完整路径
           paths:                             # 追加端点，与 path 共用同一套处理器
           appId: report                      # 留空则回落全局 appId
@@ -47,7 +47,7 @@ fw:
 | --- | --- | --- |
 | `enabled` | `true` | 总开关 |
 | `appId` | `default` | 默认实例 appId |
-| `instances` | 空 | 命名实例列表，每项含 `name`、`path`、`paths` 与 `appId`；不进 flatten，由 `WsInstanceResolver` 按请求路径解析 |
+| `servers` | 空 | 命名实例列表，每项含 `key`、`path`、`paths` 与 `appId`；`key` 必填唯一、端点不得与默认实例或其它实例重复，否则启动失败；不进 flatten，由 `WsInstanceResolver` 按请求路径解析 |
 | `websocket.path` | `/ws/api` | 端点路径 |
 | `websocket.paths` | 空 | 追加端点路径，逗号分隔或列表；与主路径去重后逐条注册 |
 | `websocket.trustedDomain` | 空 | 受信任来源，逗号分隔；留空表示不允许跨域 |
@@ -138,13 +138,13 @@ fw:
   plus:
     ws:
       appId: default                # 默认实例 appId，端点取 websocket.path / websocket.paths
-      instances:
-        - name: order                # 仅用于配置识别与日志，不参与握手匹配
+      servers:
+        - key: order                 # 必填非空且全局唯一，不参与握手匹配
           path: /ws/order
           paths:
             - /ws/order-backup
           appId: order
-        - name: pay
+        - key: pay
           path: /ws/pay              # 写完整路径也可以，精确匹配优先
           appId: pay
 ```
@@ -159,7 +159,16 @@ fw:
 
 实例端点同样参与注册：注册路径 = 默认实例（`websocket.path` + `websocket.paths`）叠加各命名实例的 `path` 与 `paths`，重复路径只注册一次，规则见上一章。
 
-`instances` 不进入 `WsConfig.flatten()`，点号扁平键保持纯标量契约。
+启动期由 webmvc 与 webflux 两条栈在装配路径上各校验一次，出现以下情形应用启动失败（`IllegalArgumentException`）：
+
+- 实例 `key` 缺失、空串或纯空白；
+- 实例 `key` 在 `servers` 内 trim 后重复；
+- 实例端点（`path` 或 `paths`，规范化后）与默认实例端点或另一实例端点重复；
+- 实例只配 `key`，未配任何端点。
+
+同一实例内部 `path` 与 `paths` 的重复仍按配置顺序去重，不算冲突。
+
+`servers` 不进入 `WsConfig.flatten()`，点号扁平键保持纯标量契约。
 
 ## 与宿主自注册的端点并存
 

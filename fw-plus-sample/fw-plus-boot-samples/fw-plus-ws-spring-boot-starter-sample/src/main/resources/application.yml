@@ -6,9 +6,9 @@ fw:
     ws:
       enabled: true
       appId: default
-      instances:
-        # 一个实例 = 一个名字 + 一组端点 + 一个 appId，与默认实例并存且为纯增量
-        - name: report
+      servers:
+        # 一个实例 = 一个 key + 一组端点 + 一个 appId，与默认实例并存且为纯增量
+        - key: report
           path: /ws/api3
           appId: report
       websocket:

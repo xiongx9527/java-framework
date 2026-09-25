@@ -41,9 +41,9 @@ import static org.assertj.core.api.Assertions.assertThat;
         properties = {
                 "fw.plus.ws.websocket.path=" + WsEndpointHttpUpgradeTest.ENDPOINT_PATH,
                 "fw.plus.ws.websocket.paths=" + WsEndpointHttpUpgradeTest.ADDITIONAL_ENDPOINT_PATH,
-                "fw.plus.ws.instances[0].name=" + WsEndpointHttpUpgradeTest.INSTANCE_NAME,
-                "fw.plus.ws.instances[0].path=" + WsEndpointHttpUpgradeTest.INSTANCE_ENDPOINT_PATH,
-                "fw.plus.ws.instances[0].appId=" + WsEndpointHttpUpgradeTest.INSTANCE_APP_ID,
+                "fw.plus.ws.servers[0].key=" + WsEndpointHttpUpgradeTest.INSTANCE_KEY,
+                "fw.plus.ws.servers[0].path=" + WsEndpointHttpUpgradeTest.INSTANCE_ENDPOINT_PATH,
+                "fw.plus.ws.servers[0].appId=" + WsEndpointHttpUpgradeTest.INSTANCE_APP_ID,
                 "fw.plus.ws.websocket.trustedDomain=*"
         })
 class WsEndpointHttpUpgradeTest {
@@ -61,7 +61,7 @@ class WsEndpointHttpUpgradeTest {
     /**
      * 命名实例的名字：与主路径、追加路径一起在真实容器里完成 upgrade。
      */
-    static final String INSTANCE_NAME = "e2e-instance";
+    static final String INSTANCE_KEY = "e2e-instance";
 
     /**
      * 命名实例的端点路径，验证命名实例的端点在真实握手层面也被注册。

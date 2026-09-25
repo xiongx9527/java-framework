@@ -46,7 +46,7 @@ class WsConfigBindingTest {
 			assertThat(config.getRedis().getChannel().getBroadcast()).isEqualTo("fw-plus:websocket:broadcast");
 			assertThat(config.getParam().getClientId()).isEqualTo("clientId");
 			assertThat(config.getParam().getMaxClientIdLength()).isEqualTo(50);
-			assertThat(config.getInstances()).isEmpty();
+			assertThat(config.getServers()).isEmpty();
 			assertThat(config.getInit().getType()).isEqualTo("init");
 			assertThat(config.getClose().getType()).isEqualTo("close");
 			assertThat(config.getBinary().isEnabled()).isTrue();
@@ -89,25 +89,25 @@ class WsConfigBindingTest {
 	}
 
 	@Test
-	void instancesShouldBind() {
+	void serversShouldBind() {
 		runner.withPropertyValues(
-				"fw.plus.ws.instances[0].name=report",
-				"fw.plus.ws.instances[0].path=/ws/api2",
-				"fw.plus.ws.instances[0].paths=/ws/api3,/ws/api4",
-				"fw.plus.ws.instances[0].appId=report",
-				"fw.plus.ws.instances[1].name=trade",
-				"fw.plus.ws.instances[1].path=/ws/api5").run(context -> {
+				"fw.plus.ws.servers[0].key=report",
+				"fw.plus.ws.servers[0].path=/ws/api2",
+				"fw.plus.ws.servers[0].paths=/ws/api3,/ws/api4",
+				"fw.plus.ws.servers[0].appId=report",
+				"fw.plus.ws.servers[1].key=trade",
+				"fw.plus.ws.servers[1].path=/ws/api5").run(context -> {
 				WsConfig config = context.getBean(WsConfig.class);
-				assertThat(config.getInstances()).hasSize(2);
+				assertThat(config.getServers()).hasSize(2);
 
-				WsConfig.WsInstance first = config.getInstances().get(0);
-				assertThat(first.getName()).isEqualTo("report");
+				WsConfig.WsInstance first = config.getServers().get(0);
+				assertThat(first.getKey()).isEqualTo("report");
 				assertThat(first.getPath()).isEqualTo("/ws/api2");
 				assertThat(first.getPaths()).containsExactly("/ws/api3", "/ws/api4");
 				assertThat(first.getAppId()).isEqualTo("report");
 
-				WsConfig.WsInstance second = config.getInstances().get(1);
-				assertThat(second.getName()).isEqualTo("trade");
+				WsConfig.WsInstance second = config.getServers().get(1);
+				assertThat(second.getKey()).isEqualTo("trade");
 				assertThat(second.getPath()).isEqualTo("/ws/api5");
 				// 未填写 appId 时保持空串，解析侧据此回落到全局 fw.plus.ws.appId
 				assertThat(second.getAppId()).isEmpty();
@@ -115,13 +115,25 @@ class WsConfigBindingTest {
 	}
 
 	@Test
-	void instanceShouldNotEnterFlattenedKeys() {
+	void serversShouldNotEnterFlattenedKeys() {
+		runner.withPropertyValues(
+				"fw.plus.ws.servers[0].key=report",
+				"fw.plus.ws.servers[0].path=/ws/api2",
+				"fw.plus.ws.servers[0].appId=report").run(context -> {
+				Map<String, Object> flat = context.getBean(WsConfig.class).flatten();
+				assertThat(flat).doesNotContainKeys("servers", "servers.key", "servers.appId");
+			});
+	}
+
+	@Test
+	void legacyInstancesKeyShouldNotBind() {
 		runner.withPropertyValues(
 				"fw.plus.ws.instances[0].name=report",
 				"fw.plus.ws.instances[0].path=/ws/api2",
 				"fw.plus.ws.instances[0].appId=report").run(context -> {
-				Map<String, Object> flat = context.getBean(WsConfig.class).flatten();
-				assertThat(flat).doesNotContainKeys("instances", "instances.name", "instances.appId");
+				WsConfig config = context.getBean(WsConfig.class);
+				assertThat(config.getServers()).isEmpty();
+				assertThat(config.flatten()).doesNotContainKeys("instances", "instances.name", "instances.appId");
 			});
 	}
 

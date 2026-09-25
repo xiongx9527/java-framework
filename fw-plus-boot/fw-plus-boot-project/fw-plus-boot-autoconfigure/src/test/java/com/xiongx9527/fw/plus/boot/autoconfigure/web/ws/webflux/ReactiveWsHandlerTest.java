@@ -257,13 +257,13 @@ class ReactiveWsHandlerTest {
 	/**
 	 * 在默认实例之外追加一个命名实例，用于验证握手按端点路径取实例 appId。
 	 */
-	private static WsConfig wsConfigWithInstance(String name, String path, String appId) {
+	private static WsConfig wsConfigWithInstance(String key, String path, String appId) {
 		WsConfig config = wsConfig();
 		WsConfig.WsInstance instance = new WsConfig.WsInstance();
-		instance.setName(name);
+		instance.setKey(key);
 		instance.setPath(path);
 		instance.setAppId(appId);
-		config.getInstances().add(instance);
+		config.getServers().add(instance);
 		return config;
 	}
 

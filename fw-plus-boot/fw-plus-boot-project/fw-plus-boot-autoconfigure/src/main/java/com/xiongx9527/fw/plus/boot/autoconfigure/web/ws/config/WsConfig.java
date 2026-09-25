@@ -38,7 +38,7 @@ public class WsConfig {
 	private Websocket websocket = new Websocket();
 
 	/**
-	 * 命名 WebSocket 实例列表，一个实例 = 一个名字 + 一组端点 + 一个 appId。
+	 * 命名 WebSocket 实例列表，一个实例 = 一个 key + 一组端点 + 一个 appId。
 	 *
 	 * <p>列表在默认实例之外做纯增量：默认实例始终存在，端点取 {@link Websocket#getPath()} 与
 	 * {@link Websocket#getPaths()}，appId 取 {@link #getAppId()}，因此不配该列表时行为与改造前
@@ -51,7 +51,7 @@ public class WsConfig {
 	 * <p>该列表不进入 {@link #flatten()} 的扁平键：读取侧由 {@code WsInstanceResolver}
 	 * 直接按对象解析，扁平键保持纯标量契约。</p>
 	 */
-	private List<WsInstance> instances = new ArrayList<>();
+	private List<WsInstance> servers = new ArrayList<>();
 
 	private Session session = new Session();
 
@@ -127,15 +127,17 @@ public class WsConfig {
 	}
 
 	/**
-	 * 单个命名 WebSocket 实例：一个名字 + 一组端点 + 一个 appId。
+	 * 单个命名 WebSocket 实例：一个 key + 一组端点 + 一个 appId。
 	 */
 	@Data
 	public static class WsInstance {
 
 		/**
-		 * 实例名字，仅用于配置识别与日志，不参与握手匹配。
+		 * 实例标识：必填非空，trim 后在 {@code servers} 内全局唯一，否则启动失败。
+		 *
+		 * <p>仅用于配置识别、日志与端点冲突报错，不参与握手匹配。</p>
 		 */
-		private String name = "";
+		private String key = "";
 
 		/**
 		 * 实例的主端点路径；相对路径（如 {@code /ws/api2}）或含基础路径的完整路径均可。

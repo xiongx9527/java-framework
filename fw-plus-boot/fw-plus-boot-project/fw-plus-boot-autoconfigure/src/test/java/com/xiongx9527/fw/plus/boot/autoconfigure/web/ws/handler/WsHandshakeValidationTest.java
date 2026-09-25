@@ -98,9 +98,9 @@ class WsHandshakeValidationTest {
     @Test
     void instanceEndpointShouldResolveInstanceAppId() {
         runner.withPropertyValues(
-                        "fw.plus.ws.instances[0].name=report",
-                        "fw.plus.ws.instances[0].path=/ws/api2",
-                        "fw.plus.ws.instances[0].appId=report")
+                        "fw.plus.ws.servers[0].key=report",
+                        "fw.plus.ws.servers[0].path=/ws/api2",
+                        "fw.plus.ws.servers[0].appId=report")
                 .run(context -> {
                     AbstractWebSocketHandler handler = context.getBean(AbstractWebSocketHandler.class);
                     TestWebSocketSession session = new TestWebSocketSession("s-instance")
@@ -119,10 +119,10 @@ class WsHandshakeValidationTest {
     @Test
     void additionalInstanceEndpointShouldResolveInstanceAppId() {
         runner.withPropertyValues(
-                        "fw.plus.ws.instances[0].name=ops",
-                        "fw.plus.ws.instances[0].path=/ws/api2",
-                        "fw.plus.ws.instances[0].paths=/ws/api3",
-                        "fw.plus.ws.instances[0].appId=ops")
+                        "fw.plus.ws.servers[0].key=ops",
+                        "fw.plus.ws.servers[0].path=/ws/api2",
+                        "fw.plus.ws.servers[0].paths=/ws/api3",
+                        "fw.plus.ws.servers[0].appId=ops")
                 .run(context -> {
                     AbstractWebSocketHandler handler = context.getBean(AbstractWebSocketHandler.class);
                     TestWebSocketSession session = new TestWebSocketSession("s-additional")
@@ -138,9 +138,9 @@ class WsHandshakeValidationTest {
     @Test
     void unmatchedEndpointShouldFallBackToDefaultAppId() {
         runner.withPropertyValues(
-                        "fw.plus.ws.instances[0].name=report",
-                        "fw.plus.ws.instances[0].path=/ws/api2",
-                        "fw.plus.ws.instances[0].appId=report")
+                        "fw.plus.ws.servers[0].key=report",
+                        "fw.plus.ws.servers[0].path=/ws/api2",
+                        "fw.plus.ws.servers[0].appId=report")
                 .run(context -> {
                     AbstractWebSocketHandler handler = context.getBean(AbstractWebSocketHandler.class);
                     TestWebSocketSession session = new TestWebSocketSession("s-unmatched")
@@ -156,9 +156,9 @@ class WsHandshakeValidationTest {
     void instanceWithoutAppIdShouldFallBackToDefaultAppId() {
         runner.withPropertyValues(
                         "fw.plus.ws.appId=foundation",
-                        "fw.plus.ws.instances[0].name=report",
-                        "fw.plus.ws.instances[0].path=/ws/api2",
-                        "fw.plus.ws.instances[0].appId=")
+                        "fw.plus.ws.servers[0].key=report",
+                        "fw.plus.ws.servers[0].path=/ws/api2",
+                        "fw.plus.ws.servers[0].appId=")
                 .run(context -> {
                     AbstractWebSocketHandler handler = context.getBean(AbstractWebSocketHandler.class);
                     TestWebSocketSession session = new TestWebSocketSession("s-no-app")

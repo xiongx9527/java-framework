@@ -12,7 +12,7 @@ Starter 为 thin starter，仅含 `pom.xml`。实现位于 `fw-plus-boot-autocon
 | --- | --- | --- |
 | `enabled` | `true` | 总开关 |
 | `appId` | `default` | 默认实例 appId |
-| `instances` | 空 | 命名实例列表，每项含 `name`、`path`、`paths` 与 `appId`；不进入 `flatten()`，由 `WsInstanceResolver` 按请求路径解析 |
+| `servers` | 空 | 命名实例列表，每项含 `key`、`path`、`paths` 与 `appId`；不进入 `flatten()`，由 `WsInstanceResolver` 按请求路径解析 |
 | `websocket.path` | `/ws/api` | 主端点路径 |
 | `websocket.paths` | 空 | 追加端点路径，与 `websocket.path` 合并去重后全部注册 |
 | `websocket.trustedDomain` | 空 | 受信任来源，逗号分隔；空表示不允许跨域 |
@@ -90,9 +90,13 @@ webmvc 逐条 `registry.addHandler`，跨域、子协议与握手拦截器对每
 
 多注册来源：webmvc 侧地基注册器不独占 `WebSocketConfigurer`，由 Spring `DelegatingWebSocketConfiguration` 收集容器内全部实例；宿主可自行实例化 `WsEndpointRegistrar`（公开类）或写自己的 `WebSocketConfigurer`，与地基注册器并存生效，也可用同名 Bean `wsEndpointRegistrar` 整体覆盖地基注册。webflux 侧宿主自带 `SimpleUrlHandlerMapping` 时与地基 mapping 由 order 决定先后，互不覆盖。一个应用只会是 servlet 或 reactive 一种栈，不构造双栈共存的上下文。
 
-## 一个实例 = 一个名字 + 一组端点 + 一个 appId
+## 命名实例：一个 key + 一组端点 + 一个 appId
 
-`fw.plus.ws.instances` 是命名实例列表，每个实例 = 一个名字 + 一组端点 + 一个 appId。多个应用共用一套地基时，各实例只认自己路径上的 appId，互不串用；列表在默认实例之外做纯增量，不配时行为与改造前完全一致。
+`fw.plus.ws.servers` 是命名实例列表，每个实例 = 一个 key + 一组端点 + 一个 appId，配置形态与 `fw-plus.ai.mcp.servers[]` 同构。多个应用共用一套地基时，各实例只认自己路径上的 appId，互不串用；列表在默认实例之外做纯增量，不配时行为与改造前完全一致。
+
+命名实例未显式配置 `appId`（留空）时继承顶层 `fw.plus.ws.appId`；显式配置时取实例值。
+
+启动期由 webmvc `WsAutoConfiguration` 与 webflux `WsWebFluxAutoConfiguration` 在装配路径上各调用一次同一校验，因此不依赖宿主 `@EnableWebSocket` 也能启动即失败。出现以下情形抛 `IllegalArgumentException`：实例 `key` 缺失、空串或纯空白；`key` 在 `servers` 内 trim 后重复；实例端点（`path` 或 `paths`，规范化后）与默认实例端点（`websocket.path` + `websocket.paths`）或另一实例端点重复；实例只配 `key` 未配任何端点。错误信息含配置键路径（如 `fw.plus.ws.servers[].key`）与冲突双方标识。同一实例内部 `path` 与 `paths` 的重复仍按配置顺序去重，不算冲突。旧键 `instances` 与实例内 `name` 已移除，YAML 继续书写时按 Spring 绑定默认（`ignoreUnknownFields=true`）静默忽略，不产生实例端点。
 
 解析由 `WsInstanceResolver` 完成，纯静态、无 Spring 依赖，webmvc 握手与 webflux 握手共用同一套规则。按握手请求的完整路径（含基础路径）依次匹配：
 
@@ -102,7 +106,7 @@ webmvc 逐条 `registry.addHandler`，跨域、子协议与握手拦截器对每
 
 实例端点可写相对路径（靠后缀边界命中带基础路径的请求），也可直接写完整路径；精确匹配整轮优先于后缀匹配整轮，因此写在后面的完整路径实例不会被同尾缀的相对路径抢先。命中实例的 appId 由 `AbstractWebSocketHandler` / `ReactiveWsHandler` 写进 `WsSessionInfo` 与 `WsInvocationContext`，并用于 `findEnabledSubscribes(appId, businessType)` 与 Redis 广播的 appId 过滤。
 
-实例端点同样参与注册：相对路径集合 = 默认实例（`websocket.path` + `websocket.paths`）叠加各命名实例的 `path` 与 `paths`，按「默认实例、命名实例」顺序去重，与 `WsBasePathProvider` 叉乘后逐条注册。`instances` 不进入 `WsConfig.flatten()`，扁平键保持纯标量契约。
+实例端点同样参与注册：相对路径集合 = 默认实例（`websocket.path` + `websocket.paths`）叠加各命名实例的 `path` 与 `paths`，按「默认实例、命名实例」顺序去重，与 `WsBasePathProvider` 叉乘后逐条注册。`servers` 不进入 `WsConfig.flatten()`，扁平键保持纯标量契约。
 
 ## SPI
 
@@ -117,7 +121,7 @@ WS 能力在 `spring.factories` 与 `META-INF/spring/org.springframework.boot.au
 
 ## Scenario
 
-Scenario 编号延续历史变更：A1 至 A16 为此前 change 已验收的既有场景，A17 起为本 change 新增。
+Scenario 编号延续历史变更：A1 至 A20 为此前 change 已验收的既有场景（其中受本次改名影响的场景已按新形态重述），A21 起为本 change 新增。
 
 - **Scenario A1**：WsConfig 为类型安全嵌套 POJO，`fw.plus.ws.*` 下 `websocket.path`、`websocket.paths` 与其余既有键均可绑定；`flatten()` 扁平键集合在改造前的基础上仅新增 `websocket.paths`（握手 token 相关键已随鉴权移除，不再产出扁平键）。
 - **Scenario A2**：`WsBaseService` getter 名与返回类型不变，magic-api ws 插件取到相同配置值（历史结论：token 相关 getter 已随握手鉴权移除，magic 插件侧只做了保持编译的最小删除）。
@@ -125,7 +129,7 @@ Scenario 编号延续历史变更：A1 至 A16 为此前 change 已验收的既�
 - **Scenario A4**：关闭走 `DisposableBean`，无 `Runtime.addShutdownHook`，重复创建 handler 不累积钩子。
 - **Scenario A5**：握手后设置文本与二进制帧上限，超限帧被拒绝。
 - **Scenario A6**：会话总数或单 clientId 数超限时新握手被拒并返回 SERVICE_OVERLOAD。
-- **Scenario A7**：未配置 `instances` 时，端点集合、会话 appId 与订阅派发与改造前完全一致，命名实例是纯增量。
+- **Scenario A7**：未配置 `servers` 时，端点集合、会话 appId 与订阅派发与改造前完全一致，命名实例是纯增量。
 - **Scenario A8**：`broadcast.async=false` 默认同步；置 true 后走有界线程池、队列满丢弃并告警、不阻塞监听线程。
 - **Scenario A9**：`binary.enabled=true` 时二进制帧按 `binary.type` 派发且上下文为 BINARY 并带 byte[]；false 时维持 NOT_ACCEPTABLE。
 - **Scenario A10**：webmvc 栈公共方法签名与四类错误报文契约不变，既有 webmvc 测试全通过。
@@ -137,5 +141,10 @@ Scenario 编号延续历史变更：A1 至 A16 为此前 change 已验收的既�
 - **Scenario A16**：starter 提供 README，`fw-plus-sample` 新增可编译样例并在 samples pom 注册。
 - **Scenario A17**：webmvc 栈按 `websocket.paths` 与多个 `WsBasePathProvider` 展开出全部端点，每条路径的跨域、子协议与握手拦截器一致；容器内存在多个 base path provider 不再抛 `NoUniqueBeanDefinitionException`。
 - **Scenario A18**：同一应用内除地基注册器外还有宿主自注册的 configurer（webmvc）或 mapping（webflux）时，双方路径都能完成注册与握手，互不覆盖；两端展开出的完整路径集合一致。
-- **Scenario A19**：一个实例 = 一个名字 + 一组端点 + 一个 appId。同一份配置下 `/ws/order` 与 `/ws/pay` 命中不同实例，`/ws/api` 未命中时回落 `fw.plus.ws.appId`；实例 `appId` 留空同样回落。webmvc 与 webflux 两栈判定一致，两栈解析出的 appId 相同。
-- **Scenario A20**：`instances` 不进入 `WsConfig.flatten()` 的扁平键；实例端点与默认实例端点叠加去重后一并注册，命中实例只影响会话 appId 与该 appId 的派发过滤。
+- **Scenario A19**：一个实例 = 一个 key + 一组端点 + 一个 appId。同一份配置下 `/ws/order` 与 `/ws/pay` 命中不同实例，`/ws/api` 未命中时回落 `fw.plus.ws.appId`；实例 `appId` 留空同样回落顶层 `fw.plus.ws.appId`。webmvc 与 webflux 两栈判定一致，两栈解析出的 appId 相同。
+- **Scenario A20**：`servers` 不进入 `WsConfig.flatten()` 的扁平键；实例端点与默认实例端点叠加去重后一并注册，命中实例只影响会话 appId 与该 appId 的派发过滤。
+- **Scenario A21**：`fw.plus.ws.servers` 可按列表绑定，每项字段为 `key`、`path`、`paths`、`appId`；旧键 `instances` 与实例内 `name` 移除后不再被绑定（Spring 默认忽略未知字段），不产生实例端点，默认实例行为不变。
+- **Scenario A22**：任一实例 `key` 缺失、空串或纯空白时启动失败，错误信息含 `fw.plus.ws.servers[].key`。
+- **Scenario A23**：两个实例 `key` 相同（trim 后）时启动失败，错误信息给出冲突的 key。
+- **Scenario A24**：实例端点与默认实例端点或另一实例端点（规范化后）重复、或实例只配 `key` 未配任何端点时启动失败，错误信息含冲突路径与相关 key；同一实例内部 `path` 与 `paths` 重复仍按配置顺序去重、不失败。
+- **Scenario A25**：starter README 与 `fw-plus-ws-spring-boot-starter-sample` 的 `application.yml` 使用 `servers`/`key` 形态，无旧键残留。
