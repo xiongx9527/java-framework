@@ -16,7 +16,7 @@ import java.util.Map;
  * 包内，任何应用都可以直接配置 {@code fw.plus.ws.*}。</p>
  *
  * <p>属性为类型安全 POJO，字段默认值即框架缺省值。内部读取侧统一按点号扁平键
- * （如 {@code websocket.path}）取值，由 {@link #flatten()} 负责展开。</p>
+ * （如 {@code session.cache.expireMinutes}）取值，由 {@link #flatten()} 负责展开。</p>
  *
  * @author zzy
  */
@@ -35,13 +35,28 @@ public class WsConfig {
 	 */
 	private String appId = "default";
 
+	/**
+	 * 默认实例的主端点路径；相对路径（如 {@code /ws/api}）与含基础路径的完整路径均可。
+	 *
+	 * <p>显式置空串表示「只按基础路径注册」，与命名实例 {@link WsInstance#getPath()} 的语义一致。</p>
+	 */
+	private String path = "/ws/api";
+
+	/**
+	 * 默认实例的追加端点路径。
+	 *
+	 * <p>除 {@link #path} 之外，可在同一个处理器上再挂若干路径，供多应用、多入口复用一套 WS 地基；
+	 * 与 {@link #path} 重复的项会被去重。webmvc 与 webflux 两条栈均按同一份配置注册。</p>
+	 */
+	private List<String> paths = new ArrayList<>();
+
 	private Websocket websocket = new Websocket();
 
 	/**
 	 * 命名 WebSocket 实例列表，一个实例 = 一个 key + 一组端点 + 一个 appId。
 	 *
-	 * <p>列表在默认实例之外做纯增量：默认实例始终存在，端点取 {@link Websocket#getPath()} 与
-	 * {@link Websocket#getPaths()}，appId 取 {@link #getAppId()}，因此不配该列表时行为与改造前
+	 * <p>列表在默认实例之外做纯增量：默认实例始终存在，端点取 {@link #getPath()} 与
+	 * {@link #getPaths()}，appId 取 {@link #getAppId()}，因此不配该列表时行为与改造前
 	 * 完全一致。</p>
 	 *
 	 * <p>握手时按请求路径命中实例，命中后 appId 取 {@link WsInstance#getAppId()}（留空回落
@@ -85,13 +100,11 @@ public class WsConfig {
 		flat.put("enabled", isEnabled());
 		flat.put("appId", appId);
 
-		flat.put("websocket.path", websocket.getPath());
+		flat.put("path", path);
+		flat.put("paths", paths);
 		flat.put("websocket.trustedDomain", websocket.getTrustedDomain());
 		flat.put("websocket.subProtocols", websocket.getSubProtocols());
-		flat.put("websocket.paths", websocket.getPaths());
 		flat.put("websocket.supportsPartialMessages", websocket.isSupportsPartialMessages());
-		flat.put("websocket.endpoint", websocket.getEndpoint());
-		flat.put("websocket.basePath", websocket.getBasePath());
 
 		flat.put("session.cache.maxClients", session.getCache().getMaxClients());
 		flat.put("session.cache.expireMinutes", session.getCache().getExpireMinutes());
@@ -156,23 +169,10 @@ public class WsConfig {
 	}
 
 	/**
-	 * 端点相关配置。
+	 * 握手参数配置。
 	 */
 	@Data
 	public static class Websocket {
-
-		/**
-		 * 端点路径。
-		 */
-		private String path = "/ws/api";
-
-		/**
-		 * 追加端点路径。
-		 *
-		 * <p>除 {@link #path} 之外，可在同一个处理器上再挂若干路径，供多应用、多入口复用一套 WS 地基；
-		 * 与 {@link #path} 重复的项会被去重。webmvc 与 webflux 两条栈均按同一份配置注册。</p>
-		 */
-		private List<String> paths = new ArrayList<>();
 
 		/**
 		 * 受信任来源，逗号分隔；空串表示不允许跨域。
@@ -188,16 +188,6 @@ public class WsConfig {
 		 * 是否支持部分消息。
 		 */
 		private boolean supportsPartialMessages = false;
-
-		/**
-		 * 兼容占位端点，当前不参与注册。
-		 */
-		private String endpoint = "/ws/execute";
-
-		/**
-		 * 兼容占位基础路径，当前不参与注册。
-		 */
-		private String basePath = "";
 	}
 
 	/**

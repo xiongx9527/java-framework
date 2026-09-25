@@ -11,12 +11,10 @@ fw:
   plus:
     ws:
       enabled: true
+      path: /ws/api              # WebSocket 连接路径，会叠加 magic-api.web 前缀
+      paths:                     # 追加连接路径，与 path 去重后逐条生效
       websocket:
-        path: /ws/api
-        paths:                   # 追加连接路径，与 path 去重后逐条生效
         trustedDomain: https://example.com
-      token:
-        secret: 请替换为生产环境随机密钥
 ```
 
 关键配置：
@@ -24,14 +22,12 @@ fw:
 | 配置项 | 默认值 | 说明 |
 | --- | --- | --- |
 | `fw.plus.ws.enabled` | `true` | 是否启用 WS 插件 |
-| `fw.plus.ws.websocket.path` | `/ws/api` | WebSocket 连接路径，会叠加 `magic-api.web` 前缀 |
-| `fw.plus.ws.websocket.paths` | 空 | 追加连接路径，逐条叠加 `magic-api.web` 前缀；与主路径重复的项会去重 |
+| `fw.plus.ws.appId` | `default` | 默认 appId，握手未命中命名实例时回落 |
+| `fw.plus.ws.path` | `/ws/api` | WebSocket 连接路径，会叠加 `magic-api.web` 前缀 |
+| `fw.plus.ws.paths` | 空 | 追加连接路径，逐条叠加 `magic-api.web` 前缀；与主路径重复的项会去重 |
+| `fw.plus.ws.servers` | 空 | 命名实例列表，每项一个 `key` + 一组端点 + 一个 `appId`；`key` 必填唯一、端点不得与默认实例或其它实例重复 |
 | `fw.plus.ws.websocket.trustedDomain` | 空 | 允许跨域来源；未配置时不允许跨域，显式 `*` 才允许任意来源 |
 | `fw.plus.ws.websocket.subProtocols` | 空 | 可选 WebSocket 子协议，逗号分隔 |
-| `fw.plus.ws.token.secret` | 无 | JWT 签名密钥，必须显式配置 |
-| `fw.plus.ws.token.expireHours` | `2` | 连接 token 有效期，单位小时 |
-| `fw.plus.ws.tokens` | 空 | 按端点路径绑定的 token 规则，每项 `path` + `secret` + 可选 `expireHours` |
-| `fw.plus.ws.param.token` | `token` | 连接 URL 中 token 参数名 |
 | `fw.plus.ws.param.clientId` | `clientId` | 连接 URL 中客户端标识参数名 |
 | `fw.plus.ws.init.type` | `init` | 建连时执行的业务标识 |
 | `fw.plus.ws.close.type` | `close` | 断连时执行的业务标识 |
@@ -39,15 +35,12 @@ fw:
 
 > 配置前缀为 `fw.plus.ws`。旧前缀 `magic-api.plugin.ws` 已不再被读取，升级时需要同步修改配置。
 
-> `token.secret` 不再提供内置默认值。生产环境建议使用 32 字节以上随机字符串，并通过配置中心或环境变量注入。
-
 ## 最快接入流程
 
-1. 引入 WS 插件（`fw-plus-magicapi-plugin-ws`），并配置 `fw.plus.ws.token.secret` 和 `fw.plus.ws.websocket.trustedDomain`。
+1. 引入 WS 插件（`fw-plus-magicapi-plugin-ws`），并配置 `fw.plus.ws.websocket.trustedDomain`。
 2. 在 MagicAPI 控制台新增 `ws-datasource`，例如 `key=default`、`secret=123`。
-3. 新增一个 MagicAPI HTTP API，用于给前端签发连接 token。
-4. 前端调用 token API 获取 token，再连接 `/ws/api?token=...&clientId=...`。
-5. 根据需要新增 `ws-subscribe` 脚本处理 `init`、`close` 和业务消息 `type`。
+3. 前端连接 `<magic-api.web 前缀>/ws/api?clientId=<clientId>`，`clientId` 由业务侧分配。
+4. 根据需要新增 `ws-subscribe` 脚本处理 `init`、`close` 和业务消息 `type`。
 
 最小配置示例：
 
@@ -58,17 +51,10 @@ fw:
   plus:
     ws:
       enabled: true
+      path: /ws/api               # WebSocket 连接路径，会叠加 magic-api.web 前缀
       websocket:
-        path: /ws/api
         trustedDomain: http://localhost:5173
-      token:
-        secret: ${WS_TOKEN_SECRET}
-        expireHours: 2
-      tokens:                            # 一个实例一条路径 + 一套 token
-        - path: /ws/api2                 # 数据源绑定的端点路径
-          secret: ${WS_TOKEN_SECRET2}    # 该路径专用的 JWT 密钥
       param:
-        token: token
         clientId: clientId
 ```
 
@@ -98,9 +84,9 @@ fw:
 | 字段 | 必填 | 说明 |
 | --- | --- | --- |
 | `name` | 是 | 数据源显示名称 |
-| `key` | 是 | 应用标识，即脚本和连接 token 中的 `appId` |
-| `secret` | 是 | 生成连接 token 时校验的应用密钥 |
-| `path` | 否 | 绑定的 WS 端点路径，对应 `fw.plus.ws.tokens` 中一条规则的 `path` |
+| `key` | 是 | 应用标识，握手命中的实例 `appId`，即脚本里的 `appId` 与 `ws['key']` 的数据源名 |
+| `secret` | 是 | 数据源密钥，仅作为元信息保留，不参与握手鉴权 |
+| `path` | 否 | 数据源绑定的 WS 端点路径，对应 `fw.plus.ws.servers` 中一个实例的端点 |
 | `description` | 否 | 描述 |
 
 `key` 创建后不允许修改，同一个 `key` 必须唯一。
@@ -177,108 +163,60 @@ return null;
 
 ### 控制台测试说明
 
-- `ws-datasource` 测试会校验必填字段、`other` JSON 格式和 token 生成前置条件。
+- `ws-datasource` 测试会校验必填字段（`key`、`name`、`secret`）与 `other` JSON 格式。
 - `ws-subscribe` 运行按钮使用模拟 WebSocket 上下文执行当前脚本，不会建立真实 WebSocket 连接，也不会注册真实 session。
 - 模拟上下文包含 `appId`、`clientId`、`sessionId`、`type`、`businessType`、`params`。
 - 推荐新脚本使用 `type`，`businessType` 作为兼容别名保留。
 
-## 生成连接 Token
-
-在 MagicAPI 脚本中使用 `ws` 模块生成连接 token：
-
-```javascript
-import ws;
-
-// default 为 ws-datasource.key，123 为该数据源 secret
-return ws['default'].generateToken('123');
-```
-
-生成的 token subject 为 `appId`，服务端连接时会校验 token 并提取 `appId`。
-
-### Token 签发 API 示例
-
-建议由后端根据当前登录用户生成 `clientId`，不要完全信任前端传入的用户标识。下面示例演示最小流程，实际项目中应接入登录态和权限校验。
-
-```javascript
-{
-  "path": "/ws/token",
-  "method": "GET",
-  "description": "签发 WebSocket 连接 token"
-}
-================================
-import ws;
-
-var appId = "default";
-var appSecret = "123";
-var currentClientId = clientId;
-
-if (!currentClientId) {
-  return {
-    code: 400,
-    message: "clientId 不能为空"
-  };
-}
-
-return {
-  appId: appId,
-  clientId: currentClientId,
-  token: ws[appId].generateToken(appSecret)
-};
-```
-
-上例为了演示流程直接读取请求参数 `clientId`。生产环境建议改为从当前登录态获取业务用户 ID，例如 `userId`、`loginId` 或 Sa-Token 当前账号 ID。
+握手不再签发或校验 token：`clientId` 由业务侧分配，应使用已鉴权、不可猜测的用户标识。
 
 ## 客户端对接
 
 连接地址格式：
 
 ```text
-ws://<host>:<port><magic-api.web 前缀>/ws/api?token=<token>&clientId=<clientId>
+ws://<host>:<port><magic-api.web 前缀>/ws/api?clientId=<clientId>
 ```
 
-多个 `ws-datasource` 或多入口场景下，可在同一份配置上挂多条连接路径，`magic-api.web` 前缀对每条路径同样生效：
+多个 `ws-datasource` 或多入口场景下，可在同一份配置上挂多条连接路径，`magic-api.web` 前缀对每条路径同样生效；端点键在顶层，与命名实例同形：
 
 ```yaml
 fw:
   plus:
     ws:
-      websocket:
-        path: /ws/api
-        paths:
-          - /ws/api2
-          - /ws/api3
-  # 连接地址：ws://<host>:<port>/<magic-api.web>/ws/api2?token=<token>&clientId=<clientId>
+      path: /ws/api
+      paths:
+        - /ws/api2
+        - /ws/api3
+    # 连接地址：ws://<host>:<port>/<magic-api.web>/ws/api2?clientId=<clientId>
 ```
 
-多个应用共用一套 MagicAPI 时，按「一个实例一条路径 + 一套 token」拆分：把数据源的 `path` 配到 `fw.plus.ws.tokens` 的一条规则上，`generateToken` 与该路径的握手校验就使用同一套密钥，实例之间互不串用。
+多个应用共用一套 MagicAPI 时，按「一个实例一条路径 + 一个 appId」拆分：把数据源的 `path` 配到 `fw.plus.ws.servers` 的一个实例上，握手命中该端点后 appId 取实例 `appId`，`ws['key']` 与订阅派发都按这个 appId 走，实例之间互不串用。
 
 ```yaml
 fw:
   plus:
     ws:
-      token:
-        secret: ${WS_TOKEN_SECRET}      # 未绑定路径时的全局兜底密钥
-      tokens:
-        - path: /ws/order                # 对应 path 为 /ws/order 的数据源
-          secret: ${WS_TOKEN_SECRET_ORDER}
-        - path: /ws/pay                  # 可单独设置有效期
-          secret: ${WS_TOKEN_SECRET_PAY}
-          expireHours: 4
+      appId: default                      # 未命中任何实例时的兜底 appId
+      servers:
+        - key: order                      # 对应 path 为 /ws/order 的数据源
+          path: /ws/order
+          appId: order
+        - key: pay
+          path: /ws/pay
+          appId: pay
 ```
 
-规则按握手请求的完整路径匹配：精确命中优先，其次按尾段后缀命中；未命中或规则密钥留空时回落全局 `token.secret`。规则未填 `expireHours` 时继承全局 `token.expireHours`。
+实例按握手请求的完整路径匹配：精确命中优先，其次按尾段后缀命中；未命中任何实例或实例 `appId` 留空时，回落全局 `fw.plus.ws.appId`。
 
-端点注册来源不限于插件自身：宿主自行注册的 `WebSocketConfigurer`（webmvc 栈需在应用类上声明 `@EnableWebSocket`）或自带的 `SimpleUrlHandlerMapping`（webflux 栈）都与地基端点并存，互不覆盖。magic-api 插件的握手鉴权与订阅派发对所有路径一致生效。
+端点注册来源不限于插件自身：宿主自行注册的 `WebSocketConfigurer`（webmvc 栈需在应用类上声明 `@EnableWebSocket`）或自带的 `SimpleUrlHandlerMapping`（webflux 栈）都与地基端点并存，互不覆盖。握手参数与订阅派发对所有路径一致生效。
 
 浏览器示例：
 
 ```javascript
 async function createWebSocket() {
   const clientId = 'user-10001';
-  const tokenResp = await fetch(`/magic/web/ws/token?clientId=${encodeURIComponent(clientId)}`);
-  const tokenBody = await tokenResp.json();
-
-  const socket = new WebSocket(`ws://localhost:8080/magic/web/ws/api?token=${encodeURIComponent(tokenBody.token)}&clientId=${encodeURIComponent(tokenBody.clientId)}`);
+  const socket = new WebSocket(`ws://localhost:8080/magic/web/ws/api?clientId=${encodeURIComponent(clientId)}`);
 
   socket.onopen = () => {
     console.log('connected');
@@ -347,7 +285,7 @@ socket.send(JSON.stringify({
 | Close Code | 场景 |
 | --- | --- |
 | `1003` | 不支持的数据类型，例如 Binary 消息 |
-| `1008` | 策略违规，例如缺少 token/clientId、token 无效、appId 不存在 |
+| `1008` | 策略违规，例如缺少 `clientId`、`clientId` 超长、appId 未在业务侧登记 |
 | `1011` | 服务端内部错误 |
 | `1012` | 服务端重启或应用关闭 |
 | `1013` | 服务过载或容量限制 |
@@ -391,16 +329,14 @@ fw:
 
 ## 安全建议
 
-- 必须配置 `fw.plus.ws.token.secret`，不要使用短弱密钥。
 - 生产环境不要配置 `websocket.trustedDomain: '*'`，应配置明确的业务域名。
 - `clientId` 应使用业务侧不可猜测或已鉴权的用户标识，避免被客户端伪造导致消息串扰。
-- 不要在日志中输出完整 token 或数据源 secret。
+- 不要在日志中输出数据源 `secret` 等敏感信息。
 
 ## 排查
 
-- 连接后立即关闭，提示缺少参数：检查 URL 是否包含 `token` 和 `clientId`。
-- 提示 token 验证失败：检查 `token.secret` 是否一致，token 是否过期。
-- 提示 AppId 不存在：确认 token 对应的 `appId` 已创建 `ws-datasource`。
+- 连接后立即关闭，提示缺少参数：检查 URL 是否包含 `clientId`。
+- 提示 AppId 不存在：确认握手命中的端点已配到 `fw.plus.ws.path` / `paths` 或 `servers` 实例上，且该实例 `appId` 已创建 `ws-datasource`。
 - 业务消息无响应：确认客户端 JSON 中存在 `type`，且存在同 `key`、同 `businessId`、`enabled=true` 的 `ws-subscribe`。
 - 跨节点无法推送：确认 Redis、`StringRedisTemplate` 和广播频道配置正常。
 - 浏览器跨域握手失败：确认 `websocket.trustedDomain` 包含当前页面 Origin。

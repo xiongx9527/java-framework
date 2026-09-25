@@ -31,7 +31,7 @@ class WsWebFluxAutoConfigurationTest {
 		new ReactiveWebApplicationContextRunner()
 				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
 				.withPropertyValues(
-						"fw.plus.ws.websocket.path=/ws/reactive")
+						"fw.plus.ws.path=/ws/reactive")
 				.run(context -> {
 					assertThat(context).hasSingleBean(ReactiveWsHandler.class);
 					SimpleUrlHandlerMapping mapping = context.getBean(SimpleUrlHandlerMapping.class);
@@ -46,7 +46,7 @@ class WsWebFluxAutoConfigurationTest {
 				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
 				.withUserConfiguration(BasePathConfiguration.class)
 				.withPropertyValues(
-						"fw.plus.ws.websocket.path=/ws/api")
+						"fw.plus.ws.path=/ws/api")
 				.run(context -> assertThat(context.getBean(SimpleUrlHandlerMapping.class).getUrlMap())
 						.containsKey("/gateway/ws/api"));
 	}
@@ -60,8 +60,8 @@ class WsWebFluxAutoConfigurationTest {
 				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
 				.withUserConfiguration(MultiBasePathConfiguration.class)
 				.withPropertyValues(
-						"fw.plus.ws.websocket.path=/ws/api",
-						"fw.plus.ws.websocket.paths=/ws/api2")
+						"fw.plus.ws.path=/ws/api",
+						"fw.plus.ws.paths=/ws/api2")
 				.run(context -> {
 					SimpleUrlHandlerMapping mapping = context.getBean(SimpleUrlHandlerMapping.class);
 					assertThat(mapping.getUrlMap()).containsKeys(
@@ -79,7 +79,7 @@ class WsWebFluxAutoConfigurationTest {
 				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
 				.withUserConfiguration(BasePathConfiguration.class)
 				.withPropertyValues(
-						"fw.plus.ws.websocket.path=")
+						"fw.plus.ws.path=")
 				.run(context -> assertThat(context.getBean(SimpleUrlHandlerMapping.class).getUrlMap())
 						.containsOnlyKeys("/gateway/"));
 	}
@@ -93,7 +93,7 @@ class WsWebFluxAutoConfigurationTest {
 				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
 				.withUserConfiguration(BasePathConfiguration.class, HostMappingConfiguration.class)
 				.withPropertyValues(
-						"fw.plus.ws.websocket.path=/ws/api")
+						"fw.plus.ws.path=/ws/api")
 				.run(context -> {
 					Map<String, SimpleUrlHandlerMapping> mappings = context.getBeansOfType(SimpleUrlHandlerMapping.class);
 					assertThat(mappings).hasSize(2);

@@ -31,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <p>{@code WsAutoConfigurationTest} 用 mock 注册表断言处理器被挂到配置指定的路径上，
  * 属于装配级证据。本测试补最后一环：起一个真实 Servlet 容器（随机端口），让一个真实
  * WebSocket 客户端发起 HTTP Upgrade，验证握手按 {@code clientId} 参数放行、端点确实挂在
- * {@code fw.plus.ws.websocket.path} 指定的路径上，并在连接上完成一次 ping/pong 往返。</p>
+ * {@code fw.plus.ws.path} 指定的路径上，并在连接上完成一次 ping/pong 往返。</p>
  *
  * @author zzy
  */
@@ -39,8 +39,8 @@ import static org.assertj.core.api.Assertions.assertThat;
         classes = WsEndpointHttpUpgradeTest.WsTestApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
-                "fw.plus.ws.websocket.path=" + WsEndpointHttpUpgradeTest.ENDPOINT_PATH,
-                "fw.plus.ws.websocket.paths=" + WsEndpointHttpUpgradeTest.ADDITIONAL_ENDPOINT_PATH,
+                "fw.plus.ws.path=" + WsEndpointHttpUpgradeTest.ENDPOINT_PATH,
+                "fw.plus.ws.paths=" + WsEndpointHttpUpgradeTest.ADDITIONAL_ENDPOINT_PATH,
                 "fw.plus.ws.servers[0].key=" + WsEndpointHttpUpgradeTest.INSTANCE_KEY,
                 "fw.plus.ws.servers[0].path=" + WsEndpointHttpUpgradeTest.INSTANCE_ENDPOINT_PATH,
                 "fw.plus.ws.servers[0].appId=" + WsEndpointHttpUpgradeTest.INSTANCE_APP_ID,

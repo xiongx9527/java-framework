@@ -89,7 +89,7 @@ public class MagicAPIWsConfiguration implements MagicPluginConfiguration, BaseSe
     /**
      * 创建基础路径提供者，沿用 magic-api 的 web 上下文路径（{@code magic-api.web}）。
      *
-     * <p>端点本身由 WS 地基的注册器按「基础路径 + {@code fw.plus.ws.websocket.path}」拼接，
+     * <p>端点本身由 WS 地基的注册器按「基础路径 + {@code fw.plus.ws.path}」拼接，
      * 与拆分前的路径规则一致。</p>
      *
      * @return 基础路径提供者
