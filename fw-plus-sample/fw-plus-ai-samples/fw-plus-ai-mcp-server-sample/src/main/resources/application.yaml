@@ -17,7 +17,7 @@ fw-plus:
       transport: streamable-http
       # 顶层配置即 default runtime（key=default），endpoint=/mcp
       # 下方 servers 追加两个命名 runtime：weather 与 order
-      # 注意：servers[].transport/endpoint 有内置默认值（http-sse / /mcp），不继承顶层，须显式配置
+      # servers[] 每项只写 key 与 endpoint 即可，transport 未写时继承顶层 streamable-http
       servers:
         - key: weather
           transport: streamable-http

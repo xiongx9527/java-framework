@@ -3,7 +3,9 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * MCP 配置属性。
@@ -37,6 +39,11 @@ public class McpProperties {
      */
     private int threadPoolSize = 16;
 
+    /**
+     * 已显式设置的字段名；用于区分「用户配了这个字段」与「沿用内置默认值」。
+     */
+    private final Set<String> explicitFields = new HashSet<>();
+
     public String getKey() {
         return key;
     }
@@ -67,6 +74,7 @@ public class McpProperties {
 
     public void setTransport(String transport) {
         this.transport = transport;
+        this.explicitFields.add("transport");
     }
 
     public String getBasePackages() {
@@ -75,6 +83,7 @@ public class McpProperties {
 
     public void setBasePackages(String basePackages) {
         this.basePackages = basePackages;
+        this.explicitFields.add("basePackages");
     }
 
     public String getEndpoint() {
@@ -83,6 +92,34 @@ public class McpProperties {
 
     public void setEndpoint(String endpoint) {
         this.endpoint = endpoint;
+        this.explicitFields.add("endpoint");
+    }
+
+    /**
+     * {@code transport} 是否被显式设置过（Spring 绑定或手动赋值）。
+     *
+     * @return 显式设置过返回 {@code true}
+     */
+    public boolean isTransportExplicit() {
+        return explicitFields.contains("transport");
+    }
+
+    /**
+     * {@code endpoint} 是否被显式设置过（Spring 绑定或手动赋值）。
+     *
+     * @return 显式设置过返回 {@code true}
+     */
+    public boolean isEndpointExplicit() {
+        return explicitFields.contains("endpoint");
+    }
+
+    /**
+     * {@code basePackages} 是否被显式设置过（Spring 绑定或手动赋值）。
+     *
+     * @return 显式设置过返回 {@code true}
+     */
+    public boolean isBasePackagesExplicit() {
+        return explicitFields.contains("basePackages");
     }
 
     public List<McpProperties> getServers() {

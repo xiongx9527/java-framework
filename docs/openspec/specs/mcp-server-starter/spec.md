@@ -63,7 +63,7 @@ MCP Server SHALL 自动扫描指定包路径下标记了 `@McpService` 的类，
 
 ### Requirement: 配置属性
 
-MCP Server SHALL 提供 `fw-plus.ai.mcp.*` 前缀的配置属性，支持配置服务器名称、版本、默认传输方式、默认基础包路径，以及 `servers` 列表（每项含 `key`、`endpoint`、`transport`、`base-packages`）。顶层属性作为单实例回落默认值；`servers` 条目中未显式配置的默认值由 runtime 内部默认补全，不继承顶层覆盖。
+MCP Server SHALL 提供 `fw-plus.ai.mcp.*` 前缀的配置属性，支持配置服务器名称、版本、默认传输方式、默认基础包路径，以及 `servers` 列表（每项含 `key`、`endpoint`、`transport`、`base-packages`）。顶层属性作为单实例回落默认值；`servers` 条目中未显式配置的 `transport`、`endpoint`、`server.name`、`server.version`、`base-packages` 继承顶层取值；顶层也未配置时才使用 runtime 内置默认值（`http-sse` / `/mcp`）。
 
 #### Scenario: 自定义服务器信息
 - **WHEN** 用户配置 `fw-plus.ai.mcp.server.name=my-server` 和 `fw-plus.ai.mcp.server.version=1.0.0`

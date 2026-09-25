@@ -81,6 +81,28 @@ public class McpAutoConfigurationBeanSelectionTest {
 	}
 
 	@Test
+	public void shouldInheritTopLevelTransportForNamedRuntimeAndAllowOverride() {
+		contextRunner
+				.withPropertyValues(
+						"fw-plus.ai.mcp.transport=streamable-http",
+						"fw-plus.ai.mcp.servers[0].key=weather",
+						"fw-plus.ai.mcp.servers[0].endpoint=/mcp/weather",
+						"fw-plus.ai.mcp.servers[1].key=order",
+						"fw-plus.ai.mcp.servers[1].endpoint=/mcp/order",
+						"fw-plus.ai.mcp.servers[1].transport=http-sse")
+				.run(context -> {
+					List<McpServerRuntime> runtimes = context.getBean("mcpServerRuntimes", List.class);
+					assertThat(runtimes).hasSize(3);
+					// weather 未配置 transport，继承顶层 streamable-http
+					assertThat(runtimes.get(1).getTransport()).isEqualTo("streamable-http");
+					assertThat(runtimes.get(1).getRegistry()).isInstanceOf(DefaultServerStreamableHttpRegistry.class);
+					// order 显式覆盖为 http-sse
+					assertThat(runtimes.get(2).getTransport()).isEqualTo("http-sse");
+					assertThat(runtimes.get(2).getRegistry()).isInstanceOf(DefaultServerSseRegistry.class);
+				});
+	}
+
+	@Test
 	public void shouldUseRedisRegistryWhenRedisIsAvailable() {
 		contextRunner
 				.withBean(StringRedisTemplate.class, () -> stringRedisTemplate())

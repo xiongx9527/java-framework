@@ -105,9 +105,12 @@ public class McpRuntimeFactory {
         effective.setEnabled(top.isEnabled());
         effective.setKey(item.getKey() == null || item.getKey().trim().isEmpty() ? top.getKey() : item.getKey());
         effective.setServer(inheritedServer(top.getServer(), item.getServer()));
-        effective.setTransport(notBlank(item.getTransport()) ? item.getTransport() : top.getTransport());
-        effective.setEndpoint(notBlank(item.getEndpoint()) ? item.getEndpoint() : top.getEndpoint());
-        effective.setBasePackages(notBlank(item.getBasePackages()) ? item.getBasePackages() : top.getBasePackages());
+        effective.setTransport(configured(item.isTransportExplicit(), item.getTransport())
+                ? item.getTransport() : top.getTransport());
+        effective.setEndpoint(configured(item.isEndpointExplicit(), item.getEndpoint())
+                ? item.getEndpoint() : top.getEndpoint());
+        effective.setBasePackages(configured(item.isBasePackagesExplicit(), item.getBasePackages())
+                ? item.getBasePackages() : top.getBasePackages());
         effective.setThreadPoolSize(item.getThreadPoolSize() > 0 ? item.getThreadPoolSize() : top.getThreadPoolSize());
         return effective;
     }
@@ -198,5 +201,20 @@ public class McpRuntimeFactory {
 
     private boolean notBlank(String value) {
         return value != null && !value.trim().isEmpty();
+    }
+
+    /**
+     * 字段是否由用户显式配置：setter 被调用过（Spring 绑定或手动赋值）且值非空白。
+     * <p>
+     * {@code transport}、{@code endpoint}、{@code basePackages} 带有内置默认值，
+     * 无法靠「值是否为空」判断命名项是否配过，必须结合 setter 调用标记。
+     * </p>
+     *
+     * @param explicit setter 调用标记
+     * @param value    字段值
+     * @return 显式配置了有效值返回 {@code true}
+     */
+    private boolean configured(boolean explicit, String value) {
+        return explicit && notBlank(value);
     }
 }

@@ -83,9 +83,9 @@ fw-plus:
 
 多实例规则：
 
-- 命名项 `transport` 与 `endpoint` 均有内置默认值（`http-sse` / `/mcp`），**不继承**顶层对应字段，需在各 `servers[]` 项内显式配置。
-- 因此开启多实例时必须为每个命名 runtime 显式配置不同的 `endpoint`；同一 `transport` 下各实例 `endpoint` 冲突时启动失败，不同 `transport` 的 runtime 可共用同一 `endpoint`。
-- `server.name`/`server.version` 继承顶层，单实例向多实例迁移无需为每个 runtime 重复配置。
+- 命名项未显式配置的 `transport`、`endpoint`、`server.name`、`server.version`、`base-packages` 均继承顶层取值；顶层也未配置时才取内置默认值（`http-sse` / `/mcp`）。
+- 因此在顶层配好 `transport` 后，`servers[]` 每项通常只需给出 `key` 与自己的 `endpoint`；同一 `transport` 下各实例 `endpoint` 冲突时启动失败，不同 `transport` 的 runtime 可共用同一 `endpoint`。
+- 命名 runtime 必须显式给出 `key`（缺失或空白时启动即失败），其余字段均有继承路径，单实例向多实例迁移无需为每个 runtime 重复配置。
 - 每个 runtime 独立扫描并通过 `@McpServer("key")` 归属能力，未标注的 `@McpService` 归属 `default`。
 
 ### 4. 归属能力到指定 runtime
@@ -120,8 +120,8 @@ public class WeatherToolProvider {
 | `fw-plus.ai.mcp.endpoint` | MCP 端点路径。HTTP/SSE 为 `{endpoint}/sse` 与 `{endpoint}/message`，Streamable HTTP 为 `{endpoint}` | `/mcp` |
 | `fw-plus.ai.mcp.base-packages` | 扫描 `@McpService` 的包路径，逗号分隔可配多个；与 `@SpringBootConfiguration` 启动类所在包取并集 | 启动类所在包 |
 | `fw-plus.ai.mcp.servers[].key` | 命名 runtime 的唯一标识，同时作为集群 `routeKey` | 无（必填） |
-| `fw-plus.ai.mcp.servers[].endpoint` | 命名 runtime 端点路径；同 `transport` 下须唯一 | `/mcp`（注意：不继承顶层，多实例必配） |
-| `fw-plus.ai.mcp.servers[].transport` | 命名 runtime 传输方式，同顶层取值 | `http-sse`（注意：不继承顶层） |
+| `fw-plus.ai.mcp.servers[].endpoint` | 命名 runtime 端点路径；同 `transport` 下须唯一 | 继承顶层，顶层未配置时为 `/mcp` |
+| `fw-plus.ai.mcp.servers[].transport` | 命名 runtime 传输方式，同顶层取值 | 继承顶层，顶层未配置时为 `http-sse` |
 | `fw-plus.ai.mcp.servers[].server.name` | 命名 runtime 的协议名称 | 继承顶层 |
 | `fw-plus.ai.mcp.servers[].server.version` | 命名 runtime 的协议版本 | 继承顶层 |
 | `fw-plus.ai.mcp.servers[].base-packages` | 命名 runtime 的扫描包路径 | 继承顶层 |

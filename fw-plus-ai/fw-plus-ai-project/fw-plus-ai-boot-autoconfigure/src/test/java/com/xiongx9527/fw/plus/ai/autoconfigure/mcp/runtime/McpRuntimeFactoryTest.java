@@ -135,6 +135,46 @@ class McpRuntimeFactoryTest {
 	}
 
 	@Test
+	void shouldInheritTopLevelTransportEndpointAndBasePackagesWhenNamedServerOmitsThem() {
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties top = top();
+		top.setTransport("streamable-http");
+		top.setBasePackages("com.example.shared");
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties order =
+				new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties();
+		order.setKey("order");
+		order.setEndpoint("/mcp/order");
+		top.getServers().add(order);
+
+		List<McpServerRuntime> runtimes = factory.createRuntimes(top, authService, emptyProvider());
+
+		McpServerRuntime orderRuntime = runtimes.get(1);
+		assertThat(orderRuntime.getKey()).isEqualTo("order");
+		assertThat(orderRuntime.getTransport()).isEqualTo("streamable-http");
+		assertThat(orderRuntime.getEndpoint()).isEqualTo("/mcp/order");
+		assertThat(orderRuntime.getBasePackages()).containsExactly("com.example.shared");
+		assertThat(orderRuntime.getProperties().getServer().getName()).isEqualTo(top.getServer().getName());
+		assertThat(orderRuntime.getProperties().getServer().getVersion()).isEqualTo(top.getServer().getVersion());
+	}
+
+	@Test
+	void shouldFallBackToBuiltInTransportAndEndpointWhenTopLevelAndNamedServerOmitThem() {
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties top = new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties();
+		top.setEnabled(true);
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties order =
+				new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties();
+		order.setKey("order");
+		order.setEndpoint("/mcp/order");
+		top.getServers().add(order);
+
+		List<McpServerRuntime> runtimes = factory.createRuntimes(top, authService, emptyProvider());
+
+		assertThat(runtimes.get(0).getTransport()).isEqualTo("http-sse");
+		assertThat(runtimes.get(0).getEndpoint()).isEqualTo("/mcp");
+		assertThat(runtimes.get(1).getTransport()).isEqualTo("http-sse");
+		assertThat(runtimes.get(1).getEndpoint()).isEqualTo("/mcp/order");
+	}
+
+	@Test
 	void shouldRejectDuplicateEndpointWhenTransportCaseDiffers() {
 		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties top = top();
 		top.setTransport("http-sse");
