@@ -82,7 +82,8 @@ public final class WsInstanceValidator {
 	 */
 	private static void validateKey(WsInstance server, String prefix, int index, Map<String, Integer> keys) {
 		if (StringUtils.isBlank(server.getKey())) {
-			throw new IllegalArgumentException(prefix + ".key must not be blank");
+			throw new IllegalArgumentException("fw.plus.ws.servers[].key must not be blank: "
+					+ prefix + ".key");
 		}
 		String key = server.getKey().trim();
 		Integer previousIndex = keys.put(key, index);

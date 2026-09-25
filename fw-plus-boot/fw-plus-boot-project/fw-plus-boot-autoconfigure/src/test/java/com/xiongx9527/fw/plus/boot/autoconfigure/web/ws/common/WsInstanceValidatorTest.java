@@ -45,7 +45,8 @@ class WsInstanceValidatorTest {
         missing.setServers(Arrays.asList(server(null, "/ws/api2")));
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> WsInstanceValidator.validate(missing))
-                .withMessageContaining("fw.plus.ws.servers[0].key must not be blank");
+                .withMessageContaining("fw.plus.ws.servers[].key must not be blank")
+                .withMessageContaining("fw.plus.ws.servers[0].key");
 
         WsConfig blank = new WsConfig();
         blank.setServers(Arrays.asList(server("   ", "/ws/api2")));
