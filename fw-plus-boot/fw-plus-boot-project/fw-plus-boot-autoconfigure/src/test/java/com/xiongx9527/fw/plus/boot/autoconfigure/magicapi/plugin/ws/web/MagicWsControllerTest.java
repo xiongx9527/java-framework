@@ -102,18 +102,10 @@ class MagicWsControllerTest {
 	}
 
 	@Test
-	void datasourceTestShouldReturnOkWhenTokenSecretIsConfigured() {
+	void datasourceTestShouldReturnOkWhenWebSocketHandlerAvailable() {
 		AbstractWebSocketHandler handler = mock(AbstractWebSocketHandler.class);
-		MagicWsController controller = new MagicWsController(new MagicConfiguration(), null, null, null) {
-			@Override
-			public Map<String, Object> getConfig() {
-				Map<String, Object> config = new HashMap<>();
-				config.put("token.secret", "01234567890123456789012345678901");
-				return config;
-			}
-		};
+		MagicWsController controller = controller(null, null, handler);
 
-		controller = controller(null, null, handler);
 		JsonBean<Object> result = controller.test(dataSourceInfo());
 
 		assertThat(result.getCode()).isEqualTo(1);
@@ -131,14 +123,7 @@ class MagicWsControllerTest {
 	private MagicWsController controller(WsSubscribeInfoMagicResourceStorage subscribeStorage,
 	                                    WsDataSourceInfoMagicResourceStorage dataSourceStorage,
 	                                    AbstractWebSocketHandler handler) {
-		return new MagicWsController(new MagicConfiguration(), subscribeStorage, dataSourceStorage, handler) {
-			@Override
-			public Map<String, Object> getConfig() {
-				Map<String, Object> config = new HashMap<>();
-				config.put("token.secret", "01234567890123456789012345678901");
-				return config;
-			}
-		};
+		return new MagicWsController(new MagicConfiguration(), subscribeStorage, dataSourceStorage, handler);
 	}
 
 	private WsSubscribeInfo subscribeInfo(String id, String key, String businessId, String script) {

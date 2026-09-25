@@ -1,10 +1,8 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.handler;
 
-import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.common.WsBaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.starter.WsAutoConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.starter.WsRedisConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.support.TestWebSocketSession;
-import io.jsonwebtoken.Jwts;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -34,11 +32,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author zzy
  */
 class WsRedisBroadcastEndToEndTest {
-
-    /**
-     * 64 字节密钥，足以触发 HS512 分支，与生产环境的算法选择路径一致。
-     */
-    private static final String SECRET = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
     private static final String REDIS_HOST = System.getenv("FW_WS_TEST_REDIS_HOST");
 
@@ -86,7 +79,6 @@ class WsRedisBroadcastEndToEndTest {
         return new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(RefreshAutoConfiguration.class,
                         WsAutoConfiguration.class, WsRedisConfiguration.class))
-                .withPropertyValues("fw.plus.ws.token.secret=" + SECRET)
                 .withBean(RedisConnectionFactory.class, () -> connectionFactory)
                 .withBean(StringRedisTemplate.class, () -> new StringRedisTemplate(connectionFactory));
     }
@@ -180,21 +172,13 @@ class WsRedisBroadcastEndToEndTest {
     private static TestWebSocketSession registerSession(AbstractWebSocketHandler handler, String sessionId)
             throws Exception {
         TestWebSocketSession session = new TestWebSocketSession(sessionId)
-                .handshakeUri("ws://localhost/ws/api?token=" + issueToken(handler) + "&clientId=client-e2e");
+                .handshakeUri("ws://localhost/ws/api?clientId=client-e2e");
 
         handler.afterConnectionEstablished(session);
 
         assertThat(session.closeStatus()).as("握手应被放行").isNull();
         assertThat(session.attributesMap()).containsKey("sessionInfo");
         return session;
-    }
-
-    private static String issueToken(AbstractWebSocketHandler handler) {
-        WsBaseService.SecretKeyAndSignatureAlgorithm keyAndAlgorithm = handler.getSecretKeyAndSignatureAlgorithm();
-        return Jwts.builder()
-                .subject(APP_ID)
-                .signWith(keyAndAlgorithm.getSecretKey())
-                .compact();
     }
 
     /**

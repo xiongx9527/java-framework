@@ -1,11 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.starter;
 
-import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.common.WsBaseService;
-import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.handler.AbstractWebSocketHandler;
-import io.jsonwebtoken.Jwts;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.servlet.DispatcherServletAutoConfiguration;
@@ -34,7 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * <p>{@code WsAutoConfigurationTest} 用 mock 注册表断言处理器被挂到配置指定的路径上，
  * 属于装配级证据。本测试补最后一环：起一个真实 Servlet 容器（随机端口），让一个真实
- * WebSocket 客户端发起 HTTP Upgrade，验证握手按 {@code token.secret} 放行、端点确实挂在
+ * WebSocket 客户端发起 HTTP Upgrade，验证握手按 {@code clientId} 参数放行、端点确实挂在
  * {@code fw.plus.ws.websocket.path} 指定的路径上，并在连接上完成一次 ping/pong 往返。</p>
  *
  * @author zzy
@@ -43,17 +39,14 @@ import static org.assertj.core.api.Assertions.assertThat;
         classes = WsEndpointHttpUpgradeTest.WsTestApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
-                "fw.plus.ws.token.secret=" + WsEndpointHttpUpgradeTest.SECRET,
                 "fw.plus.ws.websocket.path=" + WsEndpointHttpUpgradeTest.ENDPOINT_PATH,
                 "fw.plus.ws.websocket.paths=" + WsEndpointHttpUpgradeTest.ADDITIONAL_ENDPOINT_PATH,
+                "fw.plus.ws.instances[0].name=" + WsEndpointHttpUpgradeTest.INSTANCE_NAME,
+                "fw.plus.ws.instances[0].path=" + WsEndpointHttpUpgradeTest.INSTANCE_ENDPOINT_PATH,
+                "fw.plus.ws.instances[0].appId=" + WsEndpointHttpUpgradeTest.INSTANCE_APP_ID,
                 "fw.plus.ws.websocket.trustedDomain=*"
         })
 class WsEndpointHttpUpgradeTest {
-
-    /**
-     * 64 字节密钥，足以触发 HS512 分支，与生产环境的算法选择路径一致。
-     */
-    static final String SECRET = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
     /**
      * 刻意取一个非默认值，使"端点确实按配置注册"在真实握手层面也被验证。
@@ -66,17 +59,27 @@ class WsEndpointHttpUpgradeTest {
     static final String ADDITIONAL_ENDPOINT_PATH = "/ws/e2e-http2";
 
     /**
+     * 命名实例的名字：与主路径、追加路径一起在真实容器里完成 upgrade。
+     */
+    static final String INSTANCE_NAME = "e2e-instance";
+
+    /**
+     * 命名实例的端点路径，验证命名实例的端点在真实握手层面也被注册。
+     */
+    static final String INSTANCE_ENDPOINT_PATH = "/ws/e2e-instance";
+
+    /**
+     * 命名实例的 appId：未提供业务调度实现时地基不校验它，因此不影响握手结果。
+     */
+    static final String INSTANCE_APP_ID = "app-instance";
+
+    /**
      * 宿主自行注册的端点路径，与地基的端点并存。
      */
     private static final String HOST_ENDPOINT_PATH = "/host/echo";
 
-    private static final String APP_ID = "app-http";
-
     @LocalServerPort
     private int port;
-
-    @Autowired
-    private AbstractWebSocketHandler handler;
 
     /**
      * 只启用 WS 自动配置的最小应用（无 magic-api、无 Redis、无本模块其余自动配置）。
@@ -127,7 +130,7 @@ class WsEndpointHttpUpgradeTest {
      * 若把这笔初始化开销算进握手窗口，用例会随机报
      * {@code The HTTP upgrade to WebSocket failed but partial data may have been received}。
      * 这里先用一次普通 HTTP GET 把容器预热，使后续断言只测量 WebSocket 升级本身；
-     * 不断言该预热请求的状态码，也不改变本用例对握手鉴权与 ping/pong 往返的检查强度。</p>
+     * 不断言该预热请求的状态码，也不改变本用例对握手参数与 ping/pong 往返的检查强度。</p>
      */
     @BeforeEach
     void warmUpServletContainer() {
@@ -160,7 +163,7 @@ class WsEndpointHttpUpgradeTest {
                     received.notifyAll();
                 }
             }
-        }, "ws://localhost:" + port + ENDPOINT_PATH + "?token=" + issueToken() + "&clientId=client-http")
+        }, "ws://localhost:" + port + ENDPOINT_PATH + "?clientId=client-http")
                 .get(10, TimeUnit.SECONDS);
         try {
             assertThat(session.isOpen()).as("HTTP Upgrade 后连接应处于打开状态").isTrue();
@@ -175,31 +178,23 @@ class WsEndpointHttpUpgradeTest {
     }
 
     /**
-     * 未携带 token 的真实握手应被拒绝：证明鉴权是在真实 Upgrade 链路上生效，而非仅存在于单元测试里。
+     * 未携带 clientId 的真实握手应被拒绝：证明参数校验是在真实 Upgrade 链路上生效，而非仅存在于单元测试里。
      */
     @Test
-    void realHttpUpgradeWithoutTokenShouldBeRejected() throws Exception {
+    void realHttpUpgradeWithoutClientIdShouldBeRejected() throws Exception {
         StandardWebSocketClient client = new StandardWebSocketClient();
         WebSocketSession session = client.doHandshake(new TextWebSocketHandler() {
-        }, "ws://localhost:" + port + ENDPOINT_PATH + "?clientId=client-http").get(10, TimeUnit.SECONDS);
+        }, "ws://localhost:" + port + ENDPOINT_PATH).get(10, TimeUnit.SECONDS);
 
         try {
             // 握手本身按 HTTP 协议完成，随后被处理器以策略违规关闭
             awaitClosed(session, 5000L);
-            assertThat(session.isOpen()).as("缺少 token 的连接最终应被关闭").isFalse();
+            assertThat(session.isOpen()).as("缺少 clientId 的连接最终应被关闭").isFalse();
         } finally {
             if (session.isOpen()) {
                 session.close();
             }
         }
-    }
-
-    private String issueToken() {
-        WsBaseService.SecretKeyAndSignatureAlgorithm keyAndAlgorithm = handler.getSecretKeyAndSignatureAlgorithm();
-        return Jwts.builder()
-                .subject(APP_ID)
-                .signWith(keyAndAlgorithm.getSecretKey())
-                .compact();
     }
 
     /**
@@ -211,6 +206,8 @@ class WsEndpointHttpUpgradeTest {
                 .as("地基主路径应完成握手与消息往返").isTrue();
         assertThat(handshakeAndRoundTrip(ADDITIONAL_ENDPOINT_PATH, "pong"))
                 .as("追加路径应完成握手与消息往返").isTrue();
+        assertThat(handshakeAndRoundTrip(INSTANCE_ENDPOINT_PATH, "pong"))
+                .as("命名实例端点应完成握手与消息往返").isTrue();
         assertThat(handshakeAndRoundTrip(HOST_ENDPOINT_PATH, "host-ping"))
                 .as("宿主自注册路径应完成握手与消息往返").isTrue();
     }
@@ -227,7 +224,7 @@ class WsEndpointHttpUpgradeTest {
                     received.notifyAll();
                 }
             }
-        }, "ws://localhost:" + port + path + "?token=" + issueToken() + "&clientId=client-upgrade")
+        }, "ws://localhost:" + port + path + "?clientId=client-upgrade")
                 .get(10, TimeUnit.SECONDS);
         try {
             if (!session.isOpen()) {

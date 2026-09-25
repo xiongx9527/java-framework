@@ -26,14 +26,11 @@ import static org.mockito.Mockito.mock;
  */
 class WsWebFluxAutoConfigurationTest {
 
-	private static final String SECRET = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
-
 	@Test
 	void reactiveApplicationShouldRegisterReactiveHandlerOnConfiguredPath() {
 		new ReactiveWebApplicationContextRunner()
 				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
 				.withPropertyValues(
-						"fw.plus.ws.token.secret=" + SECRET,
 						"fw.plus.ws.websocket.path=/ws/reactive")
 				.run(context -> {
 					assertThat(context).hasSingleBean(ReactiveWsHandler.class);
@@ -49,7 +46,6 @@ class WsWebFluxAutoConfigurationTest {
 				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
 				.withUserConfiguration(BasePathConfiguration.class)
 				.withPropertyValues(
-						"fw.plus.ws.token.secret=" + SECRET,
 						"fw.plus.ws.websocket.path=/ws/api")
 				.run(context -> assertThat(context.getBean(SimpleUrlHandlerMapping.class).getUrlMap())
 						.containsKey("/gateway/ws/api"));
@@ -64,7 +60,6 @@ class WsWebFluxAutoConfigurationTest {
 				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
 				.withUserConfiguration(MultiBasePathConfiguration.class)
 				.withPropertyValues(
-						"fw.plus.ws.token.secret=" + SECRET,
 						"fw.plus.ws.websocket.path=/ws/api",
 						"fw.plus.ws.websocket.paths=/ws/api2")
 				.run(context -> {
@@ -84,7 +79,6 @@ class WsWebFluxAutoConfigurationTest {
 				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
 				.withUserConfiguration(BasePathConfiguration.class)
 				.withPropertyValues(
-						"fw.plus.ws.token.secret=" + SECRET,
 						"fw.plus.ws.websocket.path=")
 				.run(context -> assertThat(context.getBean(SimpleUrlHandlerMapping.class).getUrlMap())
 						.containsOnlyKeys("/gateway/"));
@@ -99,7 +93,6 @@ class WsWebFluxAutoConfigurationTest {
 				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
 				.withUserConfiguration(BasePathConfiguration.class, HostMappingConfiguration.class)
 				.withPropertyValues(
-						"fw.plus.ws.token.secret=" + SECRET,
 						"fw.plus.ws.websocket.path=/ws/api")
 				.run(context -> {
 					Map<String, SimpleUrlHandlerMapping> mappings = context.getBeansOfType(SimpleUrlHandlerMapping.class);
@@ -118,8 +111,7 @@ class WsWebFluxAutoConfigurationTest {
 		new ReactiveWebApplicationContextRunner()
 				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
 				.withPropertyValues(
-						"fw.plus.ws.enabled=false",
-						"fw.plus.ws.token.secret=" + SECRET)
+						"fw.plus.ws.enabled=false")
 				.run(context -> assertThat(context).doesNotHaveBean(ReactiveWsHandler.class));
 	}
 
@@ -127,7 +119,6 @@ class WsWebFluxAutoConfigurationTest {
 	void servletApplicationShouldNotRegisterReactiveHandler() {
 		new WebApplicationContextRunner()
 				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
-				.withPropertyValues("fw.plus.ws.token.secret=" + SECRET)
 				.run(context -> assertThat(context).doesNotHaveBean(ReactiveWsHandler.class));
 	}
 

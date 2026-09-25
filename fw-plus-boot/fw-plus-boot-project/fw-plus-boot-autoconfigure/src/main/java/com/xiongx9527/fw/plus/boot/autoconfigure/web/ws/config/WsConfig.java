@@ -16,7 +16,7 @@ import java.util.Map;
  * 包内，任何应用都可以直接配置 {@code fw.plus.ws.*}。</p>
  *
  * <p>属性为类型安全 POJO，字段默认值即框架缺省值。内部读取侧统一按点号扁平键
- * （如 {@code token.secret}）取值，由 {@link #flatten()} 负责展开。</p>
+ * （如 {@code websocket.path}）取值，由 {@link #flatten()} 负责展开。</p>
  *
  * @author zzy
  */
@@ -31,26 +31,27 @@ public class WsConfig {
 	private boolean enabled = true;
 
 	/**
-	 * 默认应用 ID。
+	 * 默认应用 ID：默认实例与未填写 appId 的命名实例都回落到它。
 	 */
 	private String appId = "default";
-
-	private Token token = new Token();
 
 	private Websocket websocket = new Websocket();
 
 	/**
-	 * 按端点路径绑定的 token 规则列表，实现「一个实例对应一条路径 + 一套 token」。
+	 * 命名 WebSocket 实例列表，一个实例 = 一个名字 + 一组端点 + 一个 appId。
 	 *
-	 * <p>每条规则把端点路径（{@link TokenRule#getPath()}）与独立的 JWT 密钥、有效期绑定；
-	 * 握手鉴权与 magic 侧签发 token 时都按请求路径命中规则，未命中则回落到 {@link Token}
-	 * 的全局配置。规则路径可写相对路径（如 {@code /ws/api2}），也可写含基础路径的完整路径，
-	 * 两者都能命中。</p>
+	 * <p>列表在默认实例之外做纯增量：默认实例始终存在，端点取 {@link Websocket#getPath()} 与
+	 * {@link Websocket#getPaths()}，appId 取 {@link #getAppId()}，因此不配该列表时行为与改造前
+	 * 完全一致。</p>
 	 *
-	 * <p>该列表不进入 {@link #flatten()} 的扁平键：读取侧由
-	 * {@code WsTokenResolver} 直接按对象解析，扁平键保持纯标量契约。</p>
+	 * <p>握手时按请求路径命中实例，命中后 appId 取 {@link WsInstance#getAppId()}（留空回落
+	 * {@link #getAppId()}），未命中任何实例也回落默认实例。实例路径可写相对路径（如
+	 * {@code /ws/api2}），也可写含基础路径的完整路径，两者都能命中。</p>
+	 *
+	 * <p>该列表不进入 {@link #flatten()} 的扁平键：读取侧由 {@code WsInstanceResolver}
+	 * 直接按对象解析，扁平键保持纯标量契约。</p>
 	 */
-	private List<TokenRule> tokens = new ArrayList<>();
+	private List<WsInstance> instances = new ArrayList<>();
 
 	private Session session = new Session();
 
@@ -71,11 +72,11 @@ public class WsConfig {
 	private Webflux webflux = new Webflux();
 
 	/**
-	 * 把嵌套配置展开为点号扁平键，例如 {@code token.secret}、{@code session.cache.expireMinutes}。
+	 * 把嵌套配置展开为点号扁平键，例如 {@code appId}、{@code session.cache.expireMinutes}。
 	 *
-	 * <p>内部统一按点号扁平键读取配置，而 Spring Boot 会把 {@code fw.plus.ws.token.secret}
-	 * 这类嵌套配置绑定成嵌套对象，因此读取前先展开。键名是读取侧的硬契约，这里显式逐项 put，
-	 * 不使用反射或序列化，避免字段名调整时静默丢键。</p>
+	 * <p>内部统一按点号扁平键读取配置，而 Spring Boot 会把
+	 * {@code fw.plus.ws.session.cache.maxClients} 这类嵌套配置绑定成嵌套对象，因此读取前先展开。
+	 * 键名是读取侧的硬契约，这里显式逐项 put，不使用反射或序列化，避免字段名调整时静默丢键。</p>
 	 *
 	 * @return 点号扁平键的配置映射
 	 */
@@ -83,9 +84,6 @@ public class WsConfig {
 		Map<String, Object> flat = new HashMap<>(64);
 		flat.put("enabled", isEnabled());
 		flat.put("appId", appId);
-
-		flat.put("token.secret", token.getSecret());
-		flat.put("token.expireHours", token.getExpireHours());
 
 		flat.put("websocket.path", websocket.getPath());
 		flat.put("websocket.trustedDomain", websocket.getTrustedDomain());
@@ -111,7 +109,6 @@ public class WsConfig {
 
 		flat.put("redis.channel.broadcast", redis.getChannel().getBroadcast());
 
-		flat.put("param.token", param.getToken());
 		flat.put("param.clientId", param.getClientId());
 		flat.put("param.maxClientIdLength", param.getMaxClientIdLength());
 
@@ -130,42 +127,30 @@ public class WsConfig {
 	}
 
 	/**
-	 * Token 相关配置。
+	 * 单个命名 WebSocket 实例：一个名字 + 一组端点 + 一个 appId。
 	 */
 	@Data
-	public static class Token {
+	public static class WsInstance {
 
 		/**
-		 * JWT 密钥，必填；缺失时连接鉴权会失败。
+		 * 实例名字，仅用于配置识别与日志，不参与握手匹配。
 		 */
-		private String secret = "";
+		private String name = "";
 
 		/**
-		 * Token 有效期（小时）。
-		 */
-		private long expireHours = 2L;
-	}
-
-	/**
-	 * 单条按路径绑定的 token 规则。
-	 */
-	@Data
-	public static class TokenRule {
-
-		/**
-		 * 绑定的端点路径；相对路径（如 {@code /ws/api2}）或含基础路径的完整路径均可。
+		 * 实例的主端点路径；相对路径（如 {@code /ws/api2}）或含基础路径的完整路径均可。
 		 */
 		private String path = "";
 
 		/**
-		 * 该路径使用的 JWT 密钥；留空表示回落全局密钥。
+		 * 实例的追加端点路径，与 {@link #getPath()} 挂在同一套处理器上；重复项按配置顺序去重。
 		 */
-		private String secret = "";
+		private List<String> paths = new ArrayList<>();
 
 		/**
-		 * 该路径的 token 有效期（小时）；{@code null} 表示继承 {@link Token#getExpireHours()}。
+		 * 该实例的应用 ID；留空表示回落全局 {@code fw.plus.ws.appId}。
 		 */
-		private Long expireHours;
+		private String appId = "";
 	}
 
 	/**
@@ -322,11 +307,6 @@ public class WsConfig {
 	 */
 	@Data
 	public static class Param {
-
-		/**
-		 * Token 的 query 参数名。
-		 */
-		private String token = "token";
 
 		/**
 		 * 客户端 ID 的 query 参数名。

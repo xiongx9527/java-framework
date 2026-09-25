@@ -2,24 +2,15 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.common;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.config.WsConfig;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
-import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
 
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * WebSocket 配置访问与 JWT 工具。
+ * WebSocket 配置访问工具。
  *
  * <p>配置统一按 {@code fw.plus.ws} 前缀绑定，内部按点号扁平键读取。该接口位于
  * {@code com.xiongx9527.fw.plus.boot.autoconfigure.web.ws} 包内，不引用任何 magic-api 类型。</p>
@@ -27,15 +18,6 @@ import java.util.Map;
  * @author zzy
  */
 public interface WsBaseService {
-
-    /**
-     * 获取 Token 参数名。
-     *
-     * @return Token 参数名，缺省 {@code token}
-     */
-    default String getTokenParamName() {
-        return getParamNameFromConfig("param.token", "token");
-    }
 
     /**
      * 获取客户端 ID 参数名。
@@ -69,8 +51,8 @@ public interface WsBaseService {
     /**
      * 获取配置信息。
      *
-     * <p>配置对象按 {@code fw.plus.ws} 前缀绑定，嵌套写法（{@code fw.plus.ws.token.secret}）在绑定后
-     * 表现为嵌套 Map；这里统一展开为点号扁平键，供按 {@code token.secret} 取值。</p>
+     * <p>配置对象按 {@code fw.plus.ws} 前缀绑定，嵌套写法（{@code fw.plus.ws.session.cache.maxClients}）
+     * 在绑定后表现为嵌套 Map；这里统一展开为点号扁平键，供按 {@code session.cache.maxClients} 取值。</p>
      *
      * @return 配置信息映射（点号扁平键）
      */
@@ -138,22 +120,6 @@ public interface WsBaseService {
     }
 
     /**
-     * 对敏感值做日志脱敏，避免 token、secret 等凭证被完整写入日志。
-     *
-     * @param value 敏感值
-     * @return 脱敏后的值
-     */
-    default String maskSensitiveValue(String value) {
-        if (StringUtils.isBlank(value)) {
-            return value;
-        }
-        if (value.length() <= 8) {
-            return "***";
-        }
-        return value.substring(0, 4) + "****" + value.substring(value.length() - 4);
-    }
-
-    /**
      * 获取 WebSocket 子协议数组。
      *
      * @return 子协议字符串数组，未配置时返回空数组
@@ -173,68 +139,6 @@ public interface WsBaseService {
         return new String[0];
     }
 
-    /**
-     * 获取 Token 过期时间（小时）。
-     *
-     * @return Token 过期时间（小时），缺省 2
-     */
-    default long getTokenExpireHours() {
-        return getConfigValueAsLong("token.expireHours", 2L);
-    }
-
-    /**
-     * 按端点请求路径获取 Token 过期时间（小时）。
-     *
-     * <p>命中 {@code fw.plus.ws.tokens} 中绑定该路径且显式配置了有效期的规则时使用规则值；
-     * 否则回落到全局 {@link #getTokenExpireHours()}。</p>
-     *
-     * @param requestPath 握手请求路径，可为空
-     * @return Token 过期时间（小时）
-     */
-    default long getTokenExpireHours(String requestPath) {
-        Long pathExpireHours = null;
-        if (StringUtils.isNotBlank(requestPath)) {
-            WsConfig wsConfig = getWsConfig();
-            if (wsConfig != null) {
-                pathExpireHours = WsTokenResolver.resolveExpireHours(wsConfig, requestPath);
-            }
-        }
-        return pathExpireHours == null ? getTokenExpireHours() : pathExpireHours;
-    }
-
-    /**
-     * 获取 Token 密钥。
-	 *
-	 * @return Token 密钥
-	 */
-	default String getTokenSecret() {
-		String tokenSecret = getConfigValueAsString("token.secret", "");
-		if (StringUtils.isBlank(tokenSecret)) {
-			throw new IllegalStateException("fw.plus.ws.token.secret must be configured");
-		}
-		return tokenSecret;
-	}
-
-	/**
-	 * 按端点请求路径获取 Token 密钥。
-	 *
-	 * <p>命中 {@code fw.plus.ws.tokens} 中绑定该路径的规则时使用规则密钥；未命中（或规则密钥留空）
-	 * 时回落到全局 {@link #getTokenSecret()}，保持单端点应用的既有必填语义。</p>
-	 *
-	 * @param requestPath 握手请求路径（{@code URI#getPath()}），可为空
-	 * @return 该路径对应的 Token 密钥
-	 */
-	default String getTokenSecret(String requestPath) {
-		String pathSecret = null;
-		if (StringUtils.isNotBlank(requestPath)) {
-			WsConfig wsConfig = getWsConfig();
-			if (wsConfig != null) {
-				pathSecret = WsTokenResolver.resolveSecret(wsConfig, requestPath);
-			}
-		}
-		return StringUtils.isNotBlank(pathSecret) ? pathSecret : getTokenSecret();
-	}
-
 	/**
 	 * 获取 WS 地基配置对象；上下文不可用（如纯单元构造）时返回 {@code null}。
 	 *
@@ -247,120 +151,6 @@ public interface WsBaseService {
 			return null;
 		}
 	}
-
-	/**
-	 * 根据配置获取 Token 密钥和签名算法。
-	 *
-	 * @return 包含密钥和签名算法的对象
-	 */
-	default SecretKeyAndSignatureAlgorithm getSecretKeyAndSignatureAlgorithm() {
-		return getSecretKeyAndSignatureAlgorithm(getTokenSecret());
-	}
-
-	/**
-	 * 按指定密钥获取签名密钥与算法。
-	 *
-	 * <p>密钥长度决定 HS256/384/512 的选择，长度不足时以 SHA-512 摘要补齐；多端点场景下同一进程
-	 * 会并存多套密钥，调用方（如处理器）可按密钥字符串缓存结果。</p>
-	 *
-	 * @param secret JWT 密钥
-	 * @return 包含密钥和签名算法的对象
-	 */
-	default SecretKeyAndSignatureAlgorithm getSecretKeyAndSignatureAlgorithm(String secret) {
-		// 构建JWT token，明确指定UTF-8编码以确保跨平台一致性
-		// 确保使用适合的签名算法和足够长度的密钥
-		byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
-
-        // 定义算法所需的最小密钥长度常量
-        final int HS512_MIN_KEY_LENGTH = 64;  // 512位
-        final int HS384_MIN_KEY_LENGTH = 48;  // 384位
-        final int HS256_MIN_KEY_LENGTH = 32;  // 256位
-
-        // 根据密钥长度选择合适的签名算法
-        // HS512需要至少512位(64字节)密钥
-        // HS384需要至少384位(48字节)密钥
-        // HS256需要至少256位(32字节)密钥
-        SecretKey secretKey;
-        SignatureAlgorithm algorithm;
-
-        SecretKeyAndSignatureAlgorithm secretKeyAndSignatureAlgorithm = new SecretKeyAndSignatureAlgorithm();
-        if (keyBytes.length >= HS512_MIN_KEY_LENGTH) {
-            // 密钥长度足够支持HS512
-            secretKey = Keys.hmacShaKeyFor(keyBytes);
-            algorithm = io.jsonwebtoken.SignatureAlgorithm.HS512;
-        } else if (keyBytes.length >= HS384_MIN_KEY_LENGTH) {
-            // 密钥长度足够支持HS384
-            secretKey = Keys.hmacShaKeyFor(keyBytes);
-            algorithm = io.jsonwebtoken.SignatureAlgorithm.HS384;
-        } else if (keyBytes.length >= HS256_MIN_KEY_LENGTH) {
-            // 密钥长度足够支持HS256
-            secretKey = Keys.hmacShaKeyFor(keyBytes);
-            algorithm = io.jsonwebtoken.SignatureAlgorithm.HS256;
-        } else {
-            // 密钥长度不足，使用标准方法生成安全密钥
-            // 为HS512生成64字节密钥
-            try {
-                MessageDigest digest = MessageDigest.getInstance("SHA-512");
-                byte[] hashedBytes = digest.digest(keyBytes);
-                // 确保我们有64字节用于HS512，使用完整的哈希结果（通常为64字节）
-                secretKey = Keys.hmacShaKeyFor(hashedBytes);
-                algorithm = SignatureAlgorithm.HS512;
-            } catch (NoSuchAlgorithmException e) {
-                throw new RuntimeException("Failed to generate secure key", e);
-            }
-        }
-        secretKeyAndSignatureAlgorithm.secretKey = secretKey;
-        secretKeyAndSignatureAlgorithm.algorithm = algorithm;
-        return secretKeyAndSignatureAlgorithm;
-    }
-
-    /**
-     * 验证 JWT token 的有效性并提取 appId。
-     *
-     * @param token JWT token 字符串
-     * @return token 有效时返回对应的 appId
-     */
-    default String validateAndExtractAppIdFromToken(String token) {
-        return validateAndExtractAppIdFromToken(token, getTokenSecret());
-    }
-
-    /**
-     * 按指定密钥验证 JWT token 的有效性并提取 appId。
-     *
-     * @param token  JWT token 字符串
-     * @param secret 该端点路径绑定的 JWT 密钥
-     * @return token 有效时返回对应的 appId
-     */
-    default String validateAndExtractAppIdFromToken(String token, String secret) {
-        SecretKeyAndSignatureAlgorithm keyAndAlg = getSecretKeyAndSignatureAlgorithm(secret);
-        try {
-            Claims claims = Jwts.parser()
-                    .verifyWith(keyAndAlg.getSecretKey())
-                    .build()
-                    .parseSignedClaims(token)
-                    .getPayload();
-            return claims.getSubject();
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to validate token", e);
-        }
-    }
-
-    /**
-     * 秘钥和签名算法封装类。
-     */
-    @Data
-    class SecretKeyAndSignatureAlgorithm {
-        /**
-         * JWT签名使用的秘钥
-         */
-        private SecretKey secretKey;
-
-        /**
-         * JWT签名算法
-         */
-        private SignatureAlgorithm algorithm;
-    }
-
     /**
      * 获取默认的应用 ID。
      *

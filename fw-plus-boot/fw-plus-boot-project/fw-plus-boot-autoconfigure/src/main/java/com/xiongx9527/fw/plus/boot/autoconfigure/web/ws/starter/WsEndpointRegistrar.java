@@ -139,13 +139,13 @@ public class WsEndpointRegistrar implements WebSocketConfigurer, WsBaseService {
     }
 
     /**
-     * 待注册的相对路径：主路径取 {@code websocket.path}，追加路径取 {@code websocket.paths}，按顺序去重。
+     * 待注册的相对路径：默认实例取 {@code websocket.path} 与 {@code websocket.paths}，
+     * 命名实例再叠加各自的 {@code path} 与 {@code paths}，按顺序去重。
      *
      * @return 相对路径列表
      */
     private List<String> resolveRelativePaths() {
-        List<String> additionalPaths = wsConfig == null ? null : wsConfig.getWebsocket().getPaths();
-        return WsEndpointPathResolver.resolveRelativePaths(getWebsocketPath(), additionalPaths);
+        return WsEndpointPathResolver.resolveRelativePaths(wsConfig);
     }
 
     /**

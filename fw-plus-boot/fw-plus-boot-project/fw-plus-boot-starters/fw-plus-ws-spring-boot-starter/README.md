@@ -1,6 +1,6 @@
 # fw-plus-ws-spring-boot-starter
 
-WebSocket 长连接地基：端点注册、握手鉴权、会话管理、心跳、定向发送与跨实例广播。
+WebSocket 长连接地基：端点注册、会话管理、心跳、定向发送与跨实例广播。
 业务语义（哪些订阅生效、脚本如何执行）由宿主通过 SPI 注入；未注入时退化为纯 WebSocket 通道。
 
 同时支持 **webmvc（Servlet 栈）** 与 **webflux（响应式栈）**，两者共用同一套配置与订阅 SPI，行为一致。
@@ -23,13 +23,12 @@ fw:
   plus:
     ws:
       enabled: true
-      token:
-        secret: 请替换为至少32位的密钥        # 必填，缺失时连接鉴权直接失败
-        expireHours: 2
-      tokens:                                # 一个实例一条路径 + 一套 token
-        - path: /ws/api2                     # 绑定的端点路径
-          secret: 实例2签名密钥               # 该路径专用的 JWT 密钥
-          expireHours: 4                     # 可选，缺省继承 token.expireHours
+      appId: default                         # 默认实例 appId
+      instances:                             # 命名实例，一个实例 = 一个名字 + 一组端点 + 一个 appId
+        - name: report                       # 配置识别用，不参与握手匹配
+          path: /ws/api2                     # 相对路径或含基础路径的完整路径
+          paths:                             # 追加端点，与 path 共用同一套处理器
+          appId: report                      # 留空则回落全局 appId
       websocket:
         path: /ws/api
         paths:                     # 追加端点路径，与主路径共用同一套处理器
@@ -47,18 +46,16 @@ fw:
 | 配置项 | 默认值 | 说明 |
 | --- | --- | --- |
 | `enabled` | `true` | 总开关 |
-| `token.secret` | 必填 | JWT 密钥 |
-| `token.expireHours` | `2` | Token 有效期（小时） |
-| `tokens` | 空 | 按端点路径绑定的 token 规则；每项含 `path`、`secret` 与可选 `expireHours` |
+| `appId` | `default` | 默认实例 appId |
+| `instances` | 空 | 命名实例列表，每项含 `name`、`path`、`paths` 与 `appId`；不进 flatten，由 `WsInstanceResolver` 按请求路径解析 |
 | `websocket.path` | `/ws/api` | 端点路径 |
 | `websocket.paths` | 空 | 追加端点路径，逗号分隔或列表；与主路径去重后逐条注册 |
 | `websocket.trustedDomain` | 空 | 受信任来源，逗号分隔；留空表示不允许跨域 |
 | `websocket.subProtocols` | 空 | 子协议，逗号分隔 |
 | `websocket.supportsPartialMessages` | `false` | 是否支持部分消息 |
-| `param.token` / `param.clientId` | `token` / `clientId` | 握手 query 参数名 |
+| `param.clientId` | `clientId` | 握手 query 参数名 |
 | `param.maxClientIdLength` | `50` | clientId 最大长度 |
 | `init.type` / `close.type` | `init` / `close` | 建连/断连订阅业务类型 |
-| `appId` | `default` | 默认应用 ID |
 | `session.cache.maxClients` | `10000` | 会话缓存最大 clientId 数 |
 | `session.cache.expireMinutes` | `30` | 会话缓存与空闲判定阈值（分钟） |
 | `session.cache.concurrencyLevel` | `16` | 缓存并发级别 |
@@ -81,13 +78,15 @@ fw:
 
 ## 连接
 
-客户端在握手 query 中携带 token 与 clientId：
+客户端在握手 query 中携带 clientId：
 
 ```
-ws://localhost:8080/ws/api?token=<jwt>&clientId=<clientId>
+ws://localhost:8080/ws/api?clientId=<clientId>
 ```
 
-Token 为 JWT，`subject` 即 appId。缺失参数、clientId 超长、token 校验失败时以策略违规关闭；会话数超限时以 `SERVICE_OVERLOAD` 关闭。
+缺失 clientId 参数或 clientId 超长时以策略违规关闭；会话数超限时以 `SERVICE_OVERLOAD` 关闭。
+
+会话归属的 appId 由握手请求路径解析实例得到，未命中任何实例时取 `fw.plus.ws.appId`。
 
 ## 收发消息
 
@@ -113,7 +112,7 @@ Token 为 JWT，`subject` 即 appId。缺失参数、clientId 超长、token 校
 
 ## 多端点与多基础路径
 
-一份配置可以把同一套 WS 能力（握手鉴权、会话管理、广播）挂到多条端点路径上：
+一份配置可以把同一套 WS 能力（会话管理、广播、订阅派发）挂到多条端点路径上：
 
 ```yaml
 fw:
@@ -130,32 +129,37 @@ fw:
 
 webflux 栈的展开结果与 webmvc 完全一致，两端共用同一套拼接规则；`websocket.path` 显式置空属配置错误，两端表现一致，只在基础路径后追加一个连接斜杠。
 
-## 一个实例对应一条路径 + 一个 token
+## 一个实例 = 一个名字 + 一组端点 + 一个 appId
 
-多个应用共用一套地基时，每个实例一条端点路径、一套 token 密钥，互不串用：
+多个应用共用一套地基时，每个实例一条端点路径、一个 appId，互不串用；默认实例之外纯增量：
 
 ```yaml
 fw:
   plus:
     ws:
-      token:
-        secret: 全局兜底密钥
-        expireHours: 2
-      tokens:
-        - path: /ws/order
-          secret: 订单实例专用密钥
-        - path: /ws/pay
-          secret: 支付实例专用密钥
-          expireHours: 4
+      appId: default                # 默认实例 appId，端点取 websocket.path / websocket.paths
+      instances:
+        - name: order                # 仅用于配置识别与日志，不参与握手匹配
+          path: /ws/order
+          paths:
+            - /ws/order-backup
+          appId: order
+        - name: pay
+          path: /ws/pay              # 写完整路径也可以，精确匹配优先
+          appId: pay
 ```
 
 匹配按握手请求的完整路径（含 `WsBasePathProvider` 提供的基础路径）进行，顺序为：
 
-1. 精确命中：规则 `path` 与请求完整路径完全相等；
-2. 后缀命中：请求路径以规则 `path` 结尾且尾段完整（`/my-api` 不会命中规则 `/api`）；
-3. 未命中，或规则 `secret` 留空：回落全局 `fw.plus.ws.token.secret`。
+1. 精确命中：实例任一端点（`path` 或 `paths`）与请求完整路径完全相等；
+2. 后缀命中：请求路径以实例任一端点结尾且尾段完整（`/my-api` 不会命中实例端点 `/api`）；
+3. 未命中，或实例 `appId` 留空：回落全局 `fw.plus.ws.appId`。
 
-规则的 `expireHours` 缺省时继承全局 `token.expireHours`。规则 `path` 也可以直接写完整路径，此时精确匹配优先，不会被同尾缀的短规则抢先。MagicAPI 侧的 `ws-datasource` 填写同一个 `path`，签发与握手就自动使用同一套密钥。
+实例 `path` 也可以直接写含基础路径的完整路径，此时精确匹配优先，不会被同尾缀的相对路径抢先。实例命中的 appId 会带进 `WsSessionInfo`、订阅派发（`findEnabledSubscribes(appId, businessType)`）与 Redis 广播过滤，magic 侧的 `ws['xxx']` 数据源 key 就是这个 appId。
+
+实例端点同样参与注册：注册路径 = 默认实例（`websocket.path` + `websocket.paths`）叠加各命名实例的 `path` 与 `paths`，重复路径只注册一次，规则见上一章。
+
+`instances` 不进入 `WsConfig.flatten()`，点号扁平键保持纯标量契约。
 
 ## 与宿主自注册的端点并存
 
@@ -168,7 +172,7 @@ fw:
 
 ## 注意事项
 
-- `fw.plus.ws.token.secret` 必填；更换后无需重启，密钥缓存按密钥内容索引，配置刷新即生效。
+- 命名实例的 appId 需在业务侧登记（订阅、`ws['xxx']` 数据源），否则会话派发不到对应订阅。
 - 任意入站消息（文本、二进制、Ping、Pong）都会刷新活跃时间，只发业务消息从不发心跳的长连接不会被判超时。
 - 缓存驱逐默认不会主动关闭仍打开的会话；需要回收不发 FIN 就掉线的连接时开启 `session.idleScanEnabled`。
 - 生产环境请把 `websocket.trustedDomain` 配成具体来源，不要留空也不要用 `*`。

@@ -1,5 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.common;
 
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.config.WsConfig;
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.config.WsConfig.WsInstance;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
@@ -49,15 +51,55 @@ public final class WsEndpointPathResolver {
 		} else {
 			unique.add(primary.startsWith("/") ? primary : "/" + primary);
 		}
-		if (additionalPaths != null) {
-			for (String additional : additionalPaths) {
-				String normalized = normalize(additional);
-				if (normalized != null) {
-					unique.add(normalized);
+		appendAdditionalPaths(additionalPaths, unique);
+		return new ArrayList<>(unique);
+	}
+
+	/**
+	 * 解析全部实例的端点相对路径：默认实例始终存在，命名实例在其之上做纯增量。
+	 *
+	 * <p>默认实例取 {@code websocket.path} 与 {@code websocket.paths}；命名实例取各自的
+	 * {@code path} 与 {@code paths}，与默认实例重复的路径只注册一次。因此不配
+	 * {@code fw.plus.ws.instances} 时结果与改造前完全一致。</p>
+	 *
+	 * @param config WS 地基配置，可为 {@code null}
+	 * @return 按「默认实例、命名实例」顺序去重后的相对路径列表，不含基础路径
+	 */
+	public static List<String> resolveRelativePaths(WsConfig config) {
+		if (config == null) {
+			return resolveRelativePaths(null, null);
+		}
+		LinkedHashSet<String> unique = new LinkedHashSet<>();
+		unique.addAll(resolveRelativePaths(config.getWebsocket().getPath(), config.getWebsocket().getPaths()));
+		List<WsInstance> instances = config.getInstances();
+		if (instances != null) {
+			for (WsInstance instance : instances) {
+				if (instance == null) {
+					continue;
 				}
+				String primary = normalize(instance.getPath());
+				if (primary != null) {
+					unique.add(primary);
+				}
+				appendAdditionalPaths(instance.getPaths(), unique);
 			}
 		}
 		return new ArrayList<>(unique);
+	}
+
+	/**
+	 * 把追加路径逐个规范化后并入集合，空白项丢弃。
+	 */
+	private static void appendAdditionalPaths(List<String> additionalPaths, LinkedHashSet<String> unique) {
+		if (additionalPaths == null) {
+			return;
+		}
+		for (String additional : additionalPaths) {
+			String normalized = normalize(additional);
+			if (normalized != null) {
+				unique.add(normalized);
+			}
+		}
 	}
 
 	/**

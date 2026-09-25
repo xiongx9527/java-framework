@@ -26,11 +26,8 @@ class WsConfigBindingTest {
 			WsConfig config = context.getBean(WsConfig.class);
 			assertThat(config.isEnabled()).isTrue();
 			assertThat(config.getAppId()).isEqualTo("default");
-			assertThat(config.getToken().getSecret()).isEmpty();
-			assertThat(config.getToken().getExpireHours()).isEqualTo(2L);
 			assertThat(config.getWebsocket().getPath()).isEqualTo("/ws/api");
 			assertThat(config.getWebsocket().getPaths()).isEmpty();
-			assertThat(config.getTokens()).isEmpty();
 			assertThat(config.getWebsocket().getTrustedDomain()).isEmpty();
 			assertThat(config.getWebsocket().getSubProtocols()).isEmpty();
 			assertThat(config.getWebsocket().isSupportsPartialMessages()).isFalse();
@@ -47,9 +44,9 @@ class WsConfigBindingTest {
 			assertThat(config.getSession().isCloseOnCacheEviction()).isFalse();
 			assertThat(config.getScheduler().getDelayedClosePoolSize()).isEqualTo(2);
 			assertThat(config.getRedis().getChannel().getBroadcast()).isEqualTo("fw-plus:websocket:broadcast");
-			assertThat(config.getParam().getToken()).isEqualTo("token");
 			assertThat(config.getParam().getClientId()).isEqualTo("clientId");
 			assertThat(config.getParam().getMaxClientIdLength()).isEqualTo(50);
+			assertThat(config.getInstances()).isEmpty();
 			assertThat(config.getInit().getType()).isEqualTo("init");
 			assertThat(config.getClose().getType()).isEqualTo("close");
 			assertThat(config.getBinary().isEnabled()).isTrue();
@@ -64,15 +61,15 @@ class WsConfigBindingTest {
 	@Test
 	void nestedPropertiesShouldBind() {
 		runner.withPropertyValues(
-				"fw.plus.ws.token.secret=s3cret",
+				"fw.plus.ws.appId=portal",
 				"fw.plus.ws.websocket.path=/custom/ws",
 				"fw.plus.ws.session.cache.expireMinutes=5",
 				"fw.plus.ws.redis.channel.broadcast=custom:channel",
 				"fw.plus.ws.binary.enabled=false",
 				"fw.plus.ws.broadcast.async=true").run(context -> {
-			WsConfig config = context.getBean(WsConfig.class);
-			assertThat(config.getToken().getSecret()).isEqualTo("s3cret");
-			assertThat(config.getWebsocket().getPath()).isEqualTo("/custom/ws");
+				WsConfig config = context.getBean(WsConfig.class);
+				assertThat(config.getAppId()).isEqualTo("portal");
+				assertThat(config.getWebsocket().getPath()).isEqualTo("/custom/ws");
 			assertThat(config.getSession().getCache().getExpireMinutes()).isEqualTo(5);
 			assertThat(config.getRedis().getChannel().getBroadcast()).isEqualTo("custom:channel");
 			assertThat(config.getBinary().isEnabled()).isFalse();
@@ -92,27 +89,40 @@ class WsConfigBindingTest {
 	}
 
 	@Test
-	void pathBoundTokenRulesShouldBind() {
+	void instancesShouldBind() {
 		runner.withPropertyValues(
-				"fw.plus.ws.tokens[0].path=/ws/api2",
-				"fw.plus.ws.tokens[0].secret=app2-secret",
-				"fw.plus.ws.tokens[0].expireHours=4",
-				"fw.plus.ws.tokens[1].path=/ws/api3",
-				"fw.plus.ws.tokens[1].secret=app3-secret").run(context -> {
-			WsConfig config = context.getBean(WsConfig.class);
-			assertThat(config.getTokens()).hasSize(2);
+				"fw.plus.ws.instances[0].name=report",
+				"fw.plus.ws.instances[0].path=/ws/api2",
+				"fw.plus.ws.instances[0].paths=/ws/api3,/ws/api4",
+				"fw.plus.ws.instances[0].appId=report",
+				"fw.plus.ws.instances[1].name=trade",
+				"fw.plus.ws.instances[1].path=/ws/api5").run(context -> {
+				WsConfig config = context.getBean(WsConfig.class);
+				assertThat(config.getInstances()).hasSize(2);
 
-			WsConfig.TokenRule first = config.getTokens().get(0);
-			assertThat(first.getPath()).isEqualTo("/ws/api2");
-			assertThat(first.getSecret()).isEqualTo("app2-secret");
-			assertThat(first.getExpireHours()).isEqualTo(4L);
+				WsConfig.WsInstance first = config.getInstances().get(0);
+				assertThat(first.getName()).isEqualTo("report");
+				assertThat(first.getPath()).isEqualTo("/ws/api2");
+				assertThat(first.getPaths()).containsExactly("/ws/api3", "/ws/api4");
+				assertThat(first.getAppId()).isEqualTo("report");
 
-			WsConfig.TokenRule second = config.getTokens().get(1);
-			assertThat(second.getPath()).isEqualTo("/ws/api3");
-			assertThat(second.getSecret()).isEqualTo("app3-secret");
-			// 未显式配置有效期时保持 null，读取侧据此继承全局 token.expireHours
-			assertThat(second.getExpireHours()).isNull();
-		});
+				WsConfig.WsInstance second = config.getInstances().get(1);
+				assertThat(second.getName()).isEqualTo("trade");
+				assertThat(second.getPath()).isEqualTo("/ws/api5");
+				// 未填写 appId 时保持空串，解析侧据此回落到全局 fw.plus.ws.appId
+				assertThat(second.getAppId()).isEmpty();
+			});
+	}
+
+	@Test
+	void instanceShouldNotEnterFlattenedKeys() {
+		runner.withPropertyValues(
+				"fw.plus.ws.instances[0].name=report",
+				"fw.plus.ws.instances[0].path=/ws/api2",
+				"fw.plus.ws.instances[0].appId=report").run(context -> {
+				Map<String, Object> flat = context.getBean(WsConfig.class).flatten();
+				assertThat(flat).doesNotContainKeys("instances", "instances.name", "instances.appId");
+			});
 	}
 
 	@Test
@@ -121,7 +131,6 @@ class WsConfigBindingTest {
 			Map<String, Object> flat = context.getBean(WsConfig.class).flatten();
 			assertThat(flat).containsKeys(
 					"enabled", "appId",
-					"token.secret", "token.expireHours",
 					"websocket.path", "websocket.paths", "websocket.trustedDomain", "websocket.subProtocols",
 					"websocket.supportsPartialMessages", "websocket.endpoint", "websocket.basePath",
 					"session.cache.maxClients", "session.cache.expireMinutes", "session.cache.concurrencyLevel",
@@ -130,7 +139,7 @@ class WsConfigBindingTest {
 					"session.idleScanEnabled", "session.idleScanIntervalSeconds", "session.closeOnCacheEviction",
 					"scheduler.delayedClosePoolSize",
 					"redis.channel.broadcast",
-					"param.token", "param.clientId", "param.maxClientIdLength",
+					"param.clientId", "param.maxClientIdLength",
 					"init.type", "close.type",
 					"binary.enabled", "binary.type",
 					"broadcast.async",
@@ -142,12 +151,12 @@ class WsConfigBindingTest {
 	@Test
 	void flattenedValuesShouldReachReaders() {
 		runner.withPropertyValues(
-				"fw.plus.ws.token.expireHours=12",
+				"fw.plus.ws.session.delayMillis=2000",
 				"fw.plus.ws.session.cache.expireMinutes=5",
 				"fw.plus.ws.session.maxSessionsPerClient=7").run(context -> {
-			Map<String, Object> flat = context.getBean(WsConfig.class).flatten();
-			assertThat(flat.get("token.expireHours")).isEqualTo(12L);
-			assertThat(flat.get("session.cache.expireMinutes")).isEqualTo(5);
+				Map<String, Object> flat = context.getBean(WsConfig.class).flatten();
+				assertThat(flat.get("session.delayMillis")).isEqualTo(2000);
+				assertThat(flat.get("session.cache.expireMinutes")).isEqualTo(5);
 			assertThat(flat.get("session.maxSessionsPerClient")).isEqualTo(7);
 		});
 	}

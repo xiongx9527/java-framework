@@ -1,11 +1,9 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.webflux;
 
-import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.common.WsBaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.config.WsConfig;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.spi.WsBusinessDispatcher;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.spi.WsInvocationContext;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.spi.WsSubscribeScript;
-import io.jsonwebtoken.Jwts;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -38,23 +36,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * 响应式栈处理器行为验收（Scenario A11/A12/A13）：
- * 握手鉴权、文本与二进制派发、定向发送与广播，以及脚本不占用 Reactor event loop。
+ * 握手参数与实例 appId 解析、文本与二进制派发、定向发送与广播，以及脚本不占用 Reactor event loop。
  *
  * @author zzy
  */
 class ReactiveWsHandlerTest {
 
-	private static final String SECRET = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
-
-	private static final String APP2_SECRET =
-			"aaaabbbbccccddddeeeeffff00001111aaaabbbbccccddddeeeeffff00001111";
-
 	private static final DefaultDataBufferFactory FACTORY = new DefaultDataBufferFactory();
 
 	@Test
-	void handshakeWithoutTokenShouldBeRejectedWithPolicyViolation() {
+	void handshakeWithoutClientIdShouldBeRejectedWithPolicyViolation() {
 		ReactiveWsHandler handler = new ReactiveWsHandler(wsConfig());
-		TestReactiveSession session = new TestReactiveSession("s1", uri("", "c1"), Flux.empty());
+		TestReactiveSession session = new TestReactiveSession("s1",
+				URI.create("ws://localhost:8080/ws/api"), Flux.empty());
 
 		handler.handle(session).block(Duration.ofSeconds(5));
 
@@ -63,63 +57,71 @@ class ReactiveWsHandlerTest {
 		assertThat(session.sentText).isEmpty();
 	}
 
+	/**
+	 * 一个实例 = 一个名字 + 一组端点 + 一个 appId：请求命中实例端点时，派发上下文带上实例 appId。
+	 */
 	@Test
-	void handshakeWithForeignSecretShouldBeRejected() {
-		ReactiveWsHandler handler = new ReactiveWsHandler(wsConfig());
-		String foreignToken = token("app-a", "9999999999999999999999999999999999999999999999999999999999999999");
-		TestReactiveSession session =
-				new TestReactiveSession("s2", uri(foreignToken, "c1"), Flux.empty());
-
-		handler.handle(session).block(Duration.ofSeconds(5));
-
-		assertThat(session.closedStatus.get()).isNotNull();
-		assertThat(session.closedStatus.get().getCode()).isEqualTo(1008);
-	}
-
-	@Test
-	void boundEndpointShouldAcceptTokenSignedByBoundSecret() {
-		WsConfig config = wsConfig();
-		addTokenRule(config, "/ws/api2", APP2_SECRET, 4L);
+	void instanceEndpointShouldResolveInstanceAppId() {
+		WsConfig config = wsConfigWithInstance("report", "/ws/api2", "report");
 		ReactiveWsHandler handler = new ReactiveWsHandler(config);
-		// 规则写相对路径，请求带基础路径前缀，按后缀边界命中
+		RecordingDispatcher dispatcher = new RecordingDispatcher("echo");
+		handler.setBusinessDispatcher(dispatcher);
+
+		// 实例写相对路径，请求带基础路径前缀，按后缀边界命中
 		TestReactiveSession session = new TestReactiveSession("s-b1",
-				uri(token("app-2", APP2_SECRET), "c1", "/magic-api/web/ws/api2"), Flux.empty());
+				uri("c1", "/magic-api/web/ws/api2"), Flux.just(text("{\"type\":\"echo\"}")));
 
 		handler.handle(session).block(Duration.ofSeconds(5));
 
 		assertThat(session.closedStatus.get()).isNull();
+		assertThat(dispatcher.calls).hasSize(1);
+		assertThat(dispatcher.calls.get(0).getAppId()).isEqualTo("report");
 	}
 
 	@Test
-	void boundEndpointShouldRejectTokenSignedByGlobalSecret() {
-		WsConfig config = wsConfig();
-		addTokenRule(config, "/ws/api2", APP2_SECRET, null);
+	void unmatchedEndpointShouldFallBackToDefaultAppId() {
+		WsConfig config = wsConfigWithInstance("report", "/ws/api2", "report");
 		ReactiveWsHandler handler = new ReactiveWsHandler(config);
-		TestReactiveSession session = new TestReactiveSession("s-b2",
-				uri(token("app-2", SECRET), "c1", "/ws/api2"), Flux.empty());
+		RecordingDispatcher dispatcher = new RecordingDispatcher("echo");
+		handler.setBusinessDispatcher(dispatcher);
+
+		TestReactiveSession session = new TestReactiveSession("s-b3", uri("c1"),
+				Flux.just(text("{\"type\":\"echo\"}")));
+
+		handler.handle(session).block(Duration.ofSeconds(5));
+
+		assertThat(dispatcher.calls).hasSize(1);
+		assertThat(dispatcher.calls.get(0).getAppId()).isEqualTo("default");
+	}
+
+	/**
+	 * appId 的归属由业务侧登记：existsApp 返回 false 时实例 appId 对应的连接被拒绝，
+	 * 证明握手确实使用了实例解析出的 appId。
+	 */
+	@Test
+	void instanceAppIdShouldBeRejectedWhenAppNotExist() {
+		WsConfig config = wsConfigWithInstance("report", "/ws/api2", "report");
+		ReactiveWsHandler handler = new ReactiveWsHandler(config);
+		handler.setBusinessDispatcher(new RecordingDispatcher() {
+			@Override
+			public boolean existsApp(String appId) {
+				return !"report".equals(appId);
+			}
+		});
+
+		TestReactiveSession session = new TestReactiveSession("s-b4",
+				uri("c1", "/ws/api2"), Flux.empty());
 
 		handler.handle(session).block(Duration.ofSeconds(5));
 
 		assertThat(session.closedStatus.get()).isNotNull();
 		assertThat(session.closedStatus.get().getCode()).isEqualTo(1008);
-	}
-
-	@Test
-	void unboundEndpointShouldFallBackToGlobalSecret() {
-		WsConfig config = wsConfig();
-		addTokenRule(config, "/ws/api2", APP2_SECRET, null);
-		ReactiveWsHandler handler = new ReactiveWsHandler(config);
-		TestReactiveSession session = new TestReactiveSession("s-b3", uri(token("app-a"), "c1"), Flux.empty());
-
-		handler.handle(session).block(Duration.ofSeconds(5));
-
-		assertThat(session.closedStatus.get()).isNull();
 	}
 
 	@Test
 	void textPingShouldBeAnsweredWithPong() {
 		ReactiveWsHandler handler = new ReactiveWsHandler(wsConfig());
-		TestReactiveSession session = new TestReactiveSession("s3", uri(token("app-a"), "c1"),
+		TestReactiveSession session = new TestReactiveSession("s3", uri("c1"),
 				Flux.just(text("ping")));
 
 		handler.handle(session).block(Duration.ofSeconds(5));
@@ -134,7 +136,7 @@ class ReactiveWsHandlerTest {
 		RecordingDispatcher dispatcher = new RecordingDispatcher("binary");
 		handler.setBusinessDispatcher(dispatcher);
 
-		TestReactiveSession session = new TestReactiveSession("s4", uri(token("app-a"), "c1"),
+		TestReactiveSession session = new TestReactiveSession("s4", uri("c1"),
 				Flux.just(new WebSocketMessage(WebSocketMessage.Type.BINARY,
 						FACTORY.wrap(new byte[]{1, 2, 3}))));
 
@@ -159,7 +161,7 @@ class ReactiveWsHandlerTest {
 		RecordingDispatcher dispatcher = new RecordingDispatcher("binary");
 		handler.setBusinessDispatcher(dispatcher);
 
-		TestReactiveSession session = new TestReactiveSession("s5", uri(token("app-a"), "c1"),
+		TestReactiveSession session = new TestReactiveSession("s5", uri("c1"),
 				Flux.just(new WebSocketMessage(WebSocketMessage.Type.BINARY,
 						FACTORY.wrap(new byte[]{9}))));
 
@@ -176,7 +178,7 @@ class ReactiveWsHandlerTest {
 		RecordingDispatcher dispatcher = new RecordingDispatcher("echo");
 		handler.setBusinessDispatcher(dispatcher);
 
-		TestReactiveSession session = new TestReactiveSession("s6", uri(token("app-a"), "c1"),
+		TestReactiveSession session = new TestReactiveSession("s6", uri("c1"),
 				Flux.just(text("{\"type\":\"echo\"}")));
 
 		handler.handle(session).block(Duration.ofSeconds(5));
@@ -189,13 +191,13 @@ class ReactiveWsHandlerTest {
 	@Test
 	void broadcastShouldReachRegisteredLocalSessions() {
 		ReactiveWsHandler handler = new ReactiveWsHandler(wsConfig());
-		TestReactiveSession session = new TestReactiveSession("s7", uri(token("app-a"), "c1"), Flux.never());
+		TestReactiveSession session = new TestReactiveSession("s7", uri("c1"), Flux.never());
 
 		// handle 在返回前同步完成鉴权与登记；这里不订阅入站流，使会话保留在注册表中
 		handler.handle(session);
 
-		handler.broadcastToApp("app-a", "hello-app");
-		handler.broadcastToClient("app-a", "c1", "hello-client");
+		handler.broadcastToApp("default", "hello-app");
+		handler.broadcastToClient("default", "c1", "hello-client");
 
 		assertThat(session.sentText).containsExactly("hello-app", "hello-client");
 	}
@@ -203,7 +205,7 @@ class ReactiveWsHandlerTest {
 	@Test
 	void broadcastShouldSkipOtherApps() {
 		ReactiveWsHandler handler = new ReactiveWsHandler(wsConfig());
-		TestReactiveSession session = new TestReactiveSession("s8", uri(token("app-a"), "c1"), Flux.never());
+		TestReactiveSession session = new TestReactiveSession("s8", uri("c1"), Flux.never());
 		handler.handle(session);
 
 		handler.broadcastToClient("other-app", "c1", "should-not-arrive");
@@ -218,11 +220,11 @@ class ReactiveWsHandlerTest {
 		config.getSession().setMaxTotalSessions(1);
 		ReactiveWsHandler handler = new ReactiveWsHandler(config);
 
-		TestReactiveSession first = new TestReactiveSession("t1", uri(token("app-a"), "c1"), Flux.never());
+		TestReactiveSession first = new TestReactiveSession("t1", uri("c1"), Flux.never());
 		handler.handle(first);
 		assertThat(first.closedStatus.get()).isNull();
 
-		TestReactiveSession second = new TestReactiveSession("t2", uri(token("app-a"), "c2"), Flux.never());
+		TestReactiveSession second = new TestReactiveSession("t2", uri("c2"), Flux.never());
 		handler.handle(second);
 
 		assertThat(second.closedStatus.get()).isNotNull();
@@ -235,11 +237,11 @@ class ReactiveWsHandlerTest {
 		config.getSession().setMaxSessionsPerClient(1);
 		ReactiveWsHandler handler = new ReactiveWsHandler(config);
 
-		TestReactiveSession first = new TestReactiveSession("l1", uri(token("app-a"), "c1"), Flux.never());
+		TestReactiveSession first = new TestReactiveSession("l1", uri("c1"), Flux.never());
 		handler.handle(first);
 		assertThat(first.closedStatus.get()).isNull();
 
-		TestReactiveSession second = new TestReactiveSession("l2", uri(token("app-a"), "c1"), Flux.never());
+		TestReactiveSession second = new TestReactiveSession("l2", uri("c1"), Flux.never());
 		handler.handle(second);
 
 		assertThat(second.closedStatus.get()).isNotNull();
@@ -248,51 +250,29 @@ class ReactiveWsHandlerTest {
 
 	private static WsConfig wsConfig() {
 		WsConfig config = new WsConfig();
-		config.getToken().setSecret(SECRET);
 		config.getWebsocket().setPath("/ws/api");
 		return config;
 	}
 
-	private static URI uri(String token, String clientId) {
-		String query = token.isEmpty()
-				? "?clientId=" + clientId
-				: "?token=" + token + "&clientId=" + clientId;
-		return URI.create("ws://localhost:8080/ws/api" + query);
-	}
-
-	private static URI uri(String token, String clientId, String path) {
-		String query = token.isEmpty()
-				? "?clientId=" + clientId
-				: "?token=" + token + "&clientId=" + clientId;
-		return URI.create("ws://localhost:8080" + path + query);
-	}
-
-	private static void addTokenRule(WsConfig config, String path, String secret, Long expireHours) {
-		WsConfig.TokenRule rule = new WsConfig.TokenRule();
-		rule.setPath(path);
-		rule.setSecret(secret);
-		rule.setExpireHours(expireHours);
-		config.getTokens().add(rule);
-	}
-
-	private static String token(String appId) {
-		return token(appId, SECRET);
-	}
-
-	private static String token(String appId, String secret) {
+	/**
+	 * 在默认实例之外追加一个命名实例，用于验证握手按端点路径取实例 appId。
+	 */
+	private static WsConfig wsConfigWithInstance(String name, String path, String appId) {
 		WsConfig config = wsConfig();
-		config.getToken().setSecret(secret);
-		WsBaseService service = new WsBaseService() {
-			@Override
-			public Map<String, Object> getConfig() {
-				return config.flatten();
-			}
-		};
-		WsBaseService.SecretKeyAndSignatureAlgorithm key = service.getSecretKeyAndSignatureAlgorithm();
-		return Jwts.builder()
-				.subject(appId)
-				.signWith(key.getSecretKey())
-				.compact();
+		WsConfig.WsInstance instance = new WsConfig.WsInstance();
+		instance.setName(name);
+		instance.setPath(path);
+		instance.setAppId(appId);
+		config.getInstances().add(instance);
+		return config;
+	}
+
+	private static URI uri(String clientId) {
+		return URI.create("ws://localhost:8080/ws/api?clientId=" + clientId);
+	}
+
+	private static URI uri(String clientId, String path) {
+		return URI.create("ws://localhost:8080" + path + "?clientId=" + clientId);
 	}
 
 	private static WebSocketMessage text(String payload) {
@@ -310,7 +290,7 @@ class ReactiveWsHandlerTest {
 	/**
 	 * 记录调用上下文与执行线程的订阅调度桩件。
 	 */
-	private static final class RecordingDispatcher implements WsBusinessDispatcher {
+	private static class RecordingDispatcher implements WsBusinessDispatcher {
 
 		private final Set<String> enabledTypes;
 

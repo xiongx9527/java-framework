@@ -19,7 +19,7 @@ import java.util.Map;
 /**
  * 测试用 WebSocket 会话桩：记录发送的文本消息与关闭状态，并可自定义握手 URI。
  *
- * <p>握手鉴权与 Redis 广播的验收测试需要真实走一遍 {@code afterConnectionEstablished}，
+ * <p>握手参数校验与 Redis 广播的验收测试需要真实走一遍 {@code afterConnectionEstablished}，
  * 因此这里提供一个可跨包复用的最小实现。</p>
  *
  * @author zzy
@@ -43,7 +43,7 @@ public class TestWebSocketSession implements WebSocketSession {
     }
 
     /**
-     * 设置握手 URI（可携带 token / clientId 查询参数）。
+     * 设置握手 URI（可携带 clientId 等查询参数）。
      *
      * @param uri 握手 URI
      * @return 当前会话，便于链式调用

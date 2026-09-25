@@ -4,7 +4,7 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.alibaba.fastjson2.JSONValidator;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.common.WsBaseService;
-import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.common.WsTokenResolver;
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.common.WsInstanceResolver;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.config.WsConfig;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.session.WsSessionInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.session.WsSessionRegistry;
@@ -32,7 +32,7 @@ import java.util.Map;
 /**
  * WebFlux 栈的 WebSocket 处理器。
  *
- * <p>与 Servlet 栈的 {@code AbstractWebSocketHandler} 提供相同的能力：握手鉴权、会话登记、
+ * <p>与 Servlet 栈的 {@code AbstractWebSocketHandler} 提供相同的能力：握手参数校验、会话登记、
  * 文本与二进制消息派发、定向发送与广播，并复用同一套 {@code fw.plus.ws.*} 配置与
  * {@link WsBusinessDispatcher} 订阅 SPI。</p>
  *
@@ -64,18 +64,6 @@ public class ReactiveWsHandler implements org.springframework.web.reactive.socke
 			@Override
 			public Map<String, Object> getConfig() {
 				return wsConfig == null ? WsBaseService.super.getConfig() : wsConfig.flatten();
-			}
-
-			@Override
-			public String getTokenSecret(String requestPath) {
-				String pathSecret = wsConfig == null ? null : WsTokenResolver.resolveSecret(wsConfig, requestPath);
-				return StringUtils.isBlank(pathSecret) ? getTokenSecret() : pathSecret;
-			}
-
-			@Override
-			public long getTokenExpireHours(String requestPath) {
-				Long pathExpireHours = wsConfig == null ? null : WsTokenResolver.resolveExpireHours(wsConfig, requestPath);
-				return pathExpireHours == null ? getTokenExpireHours() : pathExpireHours;
 			}
 		};
 		this.registry = new WsSessionRegistry(config.getMaxClientSessions(), config.getSessionCacheExpireMinutes(),
@@ -265,25 +253,18 @@ public class ReactiveWsHandler implements org.springframework.web.reactive.socke
 	private AuthResult authenticate(URI uri) {
 		String query = uri == null ? null : uri.getQuery();
 		Map<String, String> params = parseQueryParams(query);
-		String token = params.get(config.getTokenParamName());
 		String clientId = params.get(config.getClientIdParamName());
-		if (StringUtils.isBlank(token) || StringUtils.isBlank(clientId)) {
-			log.error("Missing required parameters - Token present: {}, Client ID present: {}",
-					StringUtils.isNotBlank(token), StringUtils.isNotBlank(clientId));
+		if (StringUtils.isBlank(clientId)) {
+			log.error("Missing required parameter: {}", config.getClientIdParamName());
 			return AuthResult.reject(org.springframework.web.socket.CloseStatus.POLICY_VIOLATION, "缺少必要参数");
 		}
 		if (clientId.length() > config.getMaxClientIdLength()) {
 			return AuthResult.reject(org.springframework.web.socket.CloseStatus.POLICY_VIOLATION, "客户端ID过长");
 		}
-		String appId;
-		try {
-			appId = config.validateAndExtractAppIdFromToken(token, config.getTokenSecret(uri == null ? null : uri.getPath()));
-		} catch (Exception e) {
-			log.error("Failed to validate token: {}", config.maskSensitiveValue(token), e);
-			return AuthResult.reject(org.springframework.web.socket.CloseStatus.POLICY_VIOLATION, "token验证失败");
-		}
+		// 按端点路径解析实例 appId：未命中实例或实例未配置 appId 时回落到默认 appId
+		String appId = WsInstanceResolver.resolveAppId(wsConfig, uri == null ? null : uri.getPath());
 		if (StringUtils.isBlank(appId)) {
-			return AuthResult.reject(org.springframework.web.socket.CloseStatus.POLICY_VIOLATION, "无效的token");
+			appId = config.getDefaultAppId();
 		}
 		if (businessDispatcher != null && !businessDispatcher.existsApp(appId)) {
 			return AuthResult.reject(org.springframework.web.socket.CloseStatus.POLICY_VIOLATION, "AppId不存在");

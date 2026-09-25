@@ -75,7 +75,7 @@ public class WsWebFluxAutoConfiguration {
 	}
 
 	/**
-	 * 按与 webmvc 栈相同的规则展开端点：全部基础路径提供者 ×（{@code websocket.path} + {@code websocket.paths}）。
+	 * 按与 webmvc 栈相同的规则展开端点：全部基础路径提供者 ×（默认实例端点 + 命名实例端点）。
 	 *
 	 * @param wsConfig          WebSocket 通用配置
 	 * @param basePathProviders 基础路径提供者候选
@@ -89,8 +89,7 @@ public class WsWebFluxAutoConfiguration {
 				basePaths.add(basePath);
 			}
 		});
-		List<String> relativePaths = WsEndpointPathResolver.resolveRelativePaths(
-				wsConfig.getWebsocket().getPath(), wsConfig.getWebsocket().getPaths());
+		List<String> relativePaths = WsEndpointPathResolver.resolveRelativePaths(wsConfig);
 		return WsEndpointPathResolver.resolveFullPaths(relativePaths, basePaths);
 	}
 }

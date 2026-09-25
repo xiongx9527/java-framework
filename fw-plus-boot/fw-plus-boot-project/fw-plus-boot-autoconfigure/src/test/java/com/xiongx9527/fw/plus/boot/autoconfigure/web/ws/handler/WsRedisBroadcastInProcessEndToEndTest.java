@@ -1,12 +1,10 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.handler;
 
-import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.common.WsBaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.redis.WsRedisMessageListenerContainer;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.starter.WsAutoConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.starter.WsRedisConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.support.InProcessRedisConnectionFactory;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.support.TestWebSocketSession;
-import io.jsonwebtoken.Jwts;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -34,11 +32,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class WsRedisBroadcastInProcessEndToEndTest {
 
-    /**
-     * 64 字节密钥，足以触发 HS512 分支，与 {@code WsRedisBroadcastEndToEndTest} 保持一致。
-     */
-    private static final String SECRET = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
-
     private static final String APP_ID = "app-e2e";
 
     /**
@@ -62,7 +55,7 @@ class WsRedisBroadcastInProcessEndToEndTest {
         return new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(RefreshAutoConfiguration.class,
                         WsAutoConfiguration.class, WsRedisConfiguration.class))
-                .withPropertyValues("fw.plus.ws.token.secret=" + SECRET)
+                .withPropertyValues("fw.plus.ws.appId=" + APP_ID)
                 .withBean(RedisConnectionFactory.class, () -> connectionFactory)
                 .withBean(StringRedisTemplate.class, () -> new StringRedisTemplate(connectionFactory));
     }
@@ -187,21 +180,13 @@ class WsRedisBroadcastInProcessEndToEndTest {
     private static TestWebSocketSession registerSession(AbstractWebSocketHandler handler, String sessionId)
             throws Exception {
         TestWebSocketSession session = new TestWebSocketSession(sessionId)
-                .handshakeUri("ws://localhost/ws/api?token=" + issueToken(handler) + "&clientId=client-e2e");
+                .handshakeUri("ws://localhost/ws/api?clientId=client-e2e");
 
         handler.afterConnectionEstablished(session);
 
         assertThat(session.closeStatus()).as("握手应被放行").isNull();
         assertThat(session.attributesMap()).containsKey("sessionInfo");
         return session;
-    }
-
-    private static String issueToken(AbstractWebSocketHandler handler) {
-        WsBaseService.SecretKeyAndSignatureAlgorithm keyAndAlgorithm = handler.getSecretKeyAndSignatureAlgorithm();
-        return Jwts.builder()
-                .subject(APP_ID)
-                .signWith(keyAndAlgorithm.getSecretKey())
-                .compact();
     }
 
     /**

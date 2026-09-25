@@ -10,7 +10,7 @@ import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.broadcast.WsBroadcastExecutor;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.common.WsBaseService;
-import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.common.WsTokenResolver;
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.common.WsInstanceResolver;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.config.WsConfig;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.spi.WsBusinessDispatcher;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.spi.WsInvocationContext;
@@ -54,7 +54,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * 与业务无关的 WebSocket 处理器地基。
  *
- * <p>负责连接建立与鉴权（token/clientId 校验、appId 提取）、会话注册与心跳、
+ * <p>负责连接建立（按端点路径解析实例与 appId、clientId 校验）、会话注册与心跳、
  * 文本消息解析分发、定向发送与广播、资源回收。业务语义（哪些订阅生效、脚本如何执行）
  * 通过 {@link WsBusinessDispatcher} 注入；未注入实现时退化为纯 WebSocket 通道。</p>
  *
@@ -72,11 +72,6 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
      * 共享的延迟关闭调度器，避免每次 delayedClose 创建新线程池导致线程泄漏
      */
     private final ScheduledExecutorService scheduledExecutor;
-
-    /**
-     * 按密钥内容缓存的JWT签名密钥与算法，避免每次验证/生成token时重复计算MessageDigest。
-     */
-    private final Map<String, SecretKeyAndSignatureAlgorithm> secretKeyCache = new ConcurrentHashMap<>();
 
     /**
      * 异步广播投递线程池，按需创建。
@@ -223,55 +218,6 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
         } catch (Exception e) {
             log.error("Error during cleanup of all resources", e);
         }
-    }
-
-    /**
-     * 返回密钥对应的签名密钥与算法，按密钥内容缓存以避免重复计算摘要。
-     *
-     * <p>缓存以密钥字符串为键：配置刷新（{@code @RefreshScope}）更换
-     * {@code fw.plus.ws.token.secret} 后会自然命中新条目，无需重启进程。</p>
-     */
-    @Override
-    public SecretKeyAndSignatureAlgorithm getSecretKeyAndSignatureAlgorithm() {
-        return getSecretKeyAndSignatureAlgorithm(getTokenSecret());
-    }
-
-    /**
-     * 按指定密钥获取签名密钥与算法，多端点场景下同一进程并存多套密钥，仍按密钥字符串去重计算。
-     */
-    @Override
-    public SecretKeyAndSignatureAlgorithm getSecretKeyAndSignatureAlgorithm(String secret) {
-        SecretKeyAndSignatureAlgorithm cached = secretKeyCache.get(secret);
-        if (cached == null) {
-            synchronized (secretKeyCache) {
-                cached = secretKeyCache.get(secret);
-                if (cached == null) {
-                    cached = WsBaseService.super.getSecretKeyAndSignatureAlgorithm(secret);
-                    secretKeyCache.put(secret, cached);
-                }
-            }
-        }
-        return cached;
-    }
-
-    /**
-     * 按请求路径解析 token 密钥：命中 {@code fw.plus.ws.tokens} 规则用规则密钥，否则回落全局。
-     *
-     * <p>直接使用构造注入的 {@link WsConfig}，避免每次握手走容器查找。</p>
-     */
-    @Override
-    public String getTokenSecret(String requestPath) {
-        String pathSecret = wsConfig == null ? null : WsTokenResolver.resolveSecret(wsConfig, requestPath);
-        return StringUtils.isNotBlank(pathSecret) ? pathSecret : getTokenSecret();
-    }
-
-    /**
-     * 按请求路径解析 token 有效期，未显式配置的路径继承全局值。
-     */
-    @Override
-    public long getTokenExpireHours(String requestPath) {
-        Long pathExpireHours = wsConfig == null ? null : WsTokenResolver.resolveExpireHours(wsConfig, requestPath);
-        return pathExpireHours == null ? getTokenExpireHours() : pathExpireHours;
     }
 
     /**
@@ -450,15 +396,13 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
             // 获取Session ID
             log.info("WebSocket connection established - Session ID: {}, Client IP: {}", sessionId, clientIp);
 
-            // 从查询参数中获取token和clientId
+            // 从查询参数中获取clientId
             Map<String, String> queryParams = parseQueryParams(query);
-            String token = queryParams.get(getTokenParamName());
             String clientId = queryParams.get(getClientIdParamName());
 
             // 校验必要参数
-            if (StringUtils.isBlank(token) || StringUtils.isBlank(clientId)) {
-                log.error("Missing required parameters - Token present: {}, Client ID present: {}",
-                        StringUtils.isNotBlank(token), StringUtils.isNotBlank(clientId));
+            if (StringUtils.isBlank(clientId)) {
+                log.error("Missing required parameter: {}", getClientIdParamName());
                 closeSession(session, "缺少必要参数", CloseStatus.POLICY_VIOLATION);
                 return;
             }
@@ -471,19 +415,10 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
                 return;
             }
 
-            // 验证token并提取appId
-            String appId;
-            try {
-                appId = validateAndExtractAppIdFromToken(token, getTokenSecret(requestPath));
-                if (StringUtils.isBlank(appId)) {
-                    log.error("Invalid token: {}", maskSensitiveValue(token));
-                    closeSession(session, "无效的token", CloseStatus.POLICY_VIOLATION);
-                    return;
-                }
-            } catch (Exception e) {
-                log.error("Failed to validate token: {}", maskSensitiveValue(token), e);
-                closeSession(session, "token验证失败", CloseStatus.POLICY_VIOLATION);
-                return;
+            // 按端点路径解析实例 appId：未命中实例或实例未配置 appId 时回落到默认 appId
+            String appId = WsInstanceResolver.resolveAppId(wsConfig, requestPath);
+            if (StringUtils.isBlank(appId)) {
+                appId = getDefaultAppId();
             }
 
             // 判断appid 是否存在（未提供业务调度实现时不做校验，保持纯 WebSocket 通道可用）
