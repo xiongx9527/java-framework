@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.webflux;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web.webflux;
 
 import com.ajaxjs.mcp.server.ServerStreamableHttp;
 import com.ajaxjs.mcp.server.error.JsonRpcErrorException;

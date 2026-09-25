@@ -2,8 +2,8 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.contracts;
 
 import com.ajaxjs.mcp.server.model.HttpResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web.McpSseController;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web.McpStreamableHttpController;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web.webmvc.McpSseController;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web.webmvc.McpStreamableHttpController;
 import com.xiongx9527.fw.plus.ai.mcp.spi.ServerSseRegistry;
 import com.xiongx9527.fw.plus.ai.mcp.spi.ServerStreamableHttpRegistry;
 import org.junit.jupiter.api.Test;

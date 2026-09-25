@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web.webmvc;
 
 import com.ajaxjs.mcp.server.ServerStreamableHttp;
 import com.ajaxjs.mcp.server.model.HttpResult;

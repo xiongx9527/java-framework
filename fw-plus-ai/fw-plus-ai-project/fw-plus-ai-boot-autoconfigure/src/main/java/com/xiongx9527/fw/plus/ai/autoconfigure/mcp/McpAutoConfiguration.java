@@ -7,8 +7,8 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.cluster.McpRedisMessageConsum
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpRuntimeFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web.McpRoutingRegistrar;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.webflux.McpWebfluxWebBinding;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web.webmvc.McpRoutingRegistrar;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web.webflux.McpWebfluxWebBinding;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;

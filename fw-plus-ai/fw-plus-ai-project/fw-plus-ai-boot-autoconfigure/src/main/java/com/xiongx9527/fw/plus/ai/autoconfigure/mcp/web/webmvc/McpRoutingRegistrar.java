@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web.webmvc;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;

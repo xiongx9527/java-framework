@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.webflux;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web.webflux;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
