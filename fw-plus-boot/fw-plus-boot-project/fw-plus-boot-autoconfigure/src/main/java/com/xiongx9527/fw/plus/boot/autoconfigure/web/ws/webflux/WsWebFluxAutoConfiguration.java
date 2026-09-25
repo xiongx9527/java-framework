@@ -1,7 +1,8 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.webflux;
 
-import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.config.WsConfig;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.common.WsEndpointPathResolver;
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.common.WsInstanceValidator;
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.config.WsConfig;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.spi.WsBasePathProvider;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -91,5 +92,18 @@ public class WsWebFluxAutoConfiguration {
 		});
 		List<String> relativePaths = WsEndpointPathResolver.resolveRelativePaths(wsConfig);
 		return WsEndpointPathResolver.resolveFullPaths(relativePaths, basePaths);
+	}
+
+	/**
+	 * 命名实例配置校验：与 webmvc 栈 {@code WsAutoConfiguration} 共用同一份规则，
+	 * {@code fw.plus.ws.servers} 的 key 必填且唯一、端点全局唯一，任一不满足都启动失败。
+	 *
+	 * @param wsConfig WebSocket 通用配置
+	 * @return 校验器实例
+	 */
+	@Bean
+	public WsInstanceValidator wsReactiveInstanceValidator(WsConfig wsConfig) {
+		WsInstanceValidator.validate(wsConfig);
+		return new WsInstanceValidator();
 	}
 }

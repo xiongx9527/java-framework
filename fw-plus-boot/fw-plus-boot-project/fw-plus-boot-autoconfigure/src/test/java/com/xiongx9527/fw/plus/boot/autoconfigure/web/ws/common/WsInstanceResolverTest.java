@@ -11,7 +11,7 @@ import java.util.Collections;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * 按端点路径解析命名实例：「一个实例 = 一个名字 + 一组端点 + 一个 appId」的匹配语义。
+ * 按端点路径解析命名实例：「一个实例 = 一个 key + 一组端点 + 一个 appId」的匹配语义。
  */
 class WsInstanceResolverTest {
 
@@ -20,7 +20,7 @@ class WsInstanceResolverTest {
         WsConfig config = config(instance("report", "/ws/api2", "app2"));
 
         assertThat(WsInstanceResolver.resolveAppId(config, "/ws/api2")).isEqualTo("app2");
-        assertThat(WsInstanceResolver.resolve(config, "/ws/api2").getName()).isEqualTo("report");
+        assertThat(WsInstanceResolver.resolve(config, "/ws/api2").getKey()).isEqualTo("report");
     }
 
     @Test
@@ -111,19 +111,19 @@ class WsInstanceResolverTest {
         assertThat(WsInstanceResolver.resolveAppId(config, "/bff/ws/api")).isEqualTo("app-first");
     }
 
-    private static WsConfig config(WsInstance... instances) {
+    private static WsConfig config(WsInstance... servers) {
         WsConfig config = new WsConfig();
-        if (instances != null && instances.length > 0) {
-            config.setInstances(Arrays.asList(instances));
+        if (servers != null && servers.length > 0) {
+            config.setServers(Arrays.asList(servers));
         } else {
-            config.setInstances(Collections.<WsInstance>emptyList());
+            config.setServers(Collections.<WsInstance>emptyList());
         }
         return config;
     }
 
-    private static WsInstance instance(String name, String path, String appId, String... additionalPaths) {
+    private static WsInstance instance(String key, String path, String appId, String... additionalPaths) {
         WsInstance instance = new WsInstance();
-        instance.setName(name);
+        instance.setKey(key);
         instance.setPath(path);
         instance.setAppId(appId);
         instance.setPaths(new ArrayList<>(Arrays.asList(additionalPaths)));

@@ -60,7 +60,7 @@ public final class WsEndpointPathResolver {
 	 *
 	 * <p>默认实例取 {@code websocket.path} 与 {@code websocket.paths}；命名实例取各自的
 	 * {@code path} 与 {@code paths}，与默认实例重复的路径只注册一次。因此不配
-	 * {@code fw.plus.ws.instances} 时结果与改造前完全一致。</p>
+	 * {@code fw.plus.ws.servers} 时结果与改造前完全一致。</p>
 	 *
 	 * @param config WS 地基配置，可为 {@code null}
 	 * @return 按「默认实例、命名实例」顺序去重后的相对路径列表，不含基础路径
@@ -71,17 +71,17 @@ public final class WsEndpointPathResolver {
 		}
 		LinkedHashSet<String> unique = new LinkedHashSet<>();
 		unique.addAll(resolveRelativePaths(config.getWebsocket().getPath(), config.getWebsocket().getPaths()));
-		List<WsInstance> instances = config.getInstances();
-		if (instances != null) {
-			for (WsInstance instance : instances) {
-				if (instance == null) {
+		List<WsInstance> servers = config.getServers();
+		if (servers != null) {
+			for (WsInstance server : servers) {
+				if (server == null) {
 					continue;
 				}
-				String primary = normalize(instance.getPath());
+				String primary = normalize(server.getPath());
 				if (primary != null) {
 					unique.add(primary);
 				}
-				appendAdditionalPaths(instance.getPaths(), unique);
+				appendAdditionalPaths(server.getPaths(), unique);
 			}
 		}
 		return new ArrayList<>(unique);

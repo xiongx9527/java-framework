@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 按端点请求路径解析 WebSocket 实例，实现「一个实例 = 一个名字 + 一组端点 + 一个 appId」。
+ * 按端点请求路径解析 WebSocket 实例，实现「一个实例 = 一个 key + 一组端点 + 一个 appId」。
  *
  * <p>匹配语义与 {@link WsEndpointPathResolver} 一致地保持纯静态、无 Spring 依赖，webmvc 与
  * webflux 两条栈共用同一套规则：</p>
@@ -36,22 +36,22 @@ public final class WsInstanceResolver {
 	 * @return 命中的实例；未命中时返回 {@code null}
 	 */
 	public static WsInstance resolve(WsConfig config, String requestPath) {
-		if (config == null || config.getInstances() == null || StringUtils.isBlank(requestPath)) {
+		if (config == null || config.getServers() == null || StringUtils.isBlank(requestPath)) {
 			return null;
 		}
 		String path = normalizeRequestPath(requestPath);
 		if (path == null) {
 			return null;
 		}
-		List<WsInstance> instances = config.getInstances();
-		for (WsInstance instance : instances) {
-			if (matchesExactly(instance, path)) {
-				return instance;
+		List<WsInstance> servers = config.getServers();
+		for (WsInstance server : servers) {
+			if (matchesExactly(server, path)) {
+				return server;
 			}
 		}
-		for (WsInstance instance : instances) {
-			if (matchesBySuffix(instance, path)) {
-				return instance;
+		for (WsInstance server : servers) {
+			if (matchesBySuffix(server, path)) {
+				return server;
 			}
 		}
 		return null;

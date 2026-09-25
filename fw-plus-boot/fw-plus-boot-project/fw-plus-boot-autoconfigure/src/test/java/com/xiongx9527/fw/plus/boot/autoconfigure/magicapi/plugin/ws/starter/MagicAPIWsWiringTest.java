@@ -120,10 +120,10 @@ class MagicAPIWsWiringTest {
 	void instanceEndpointShouldRegisterAlongsideDefaultPath() {
 		properties.setWeb("/magic-api");
 		runner.withPropertyValues(
-						"fw.plus.ws.instances[0].name=report",
-						"fw.plus.ws.instances[0].path=/ws/api2",
-						"fw.plus.ws.instances[0].paths=/ws/api3",
-						"fw.plus.ws.instances[0].appId=report")
+						"fw.plus.ws.servers[0].key=report",
+						"fw.plus.ws.servers[0].path=/ws/api2",
+						"fw.plus.ws.servers[0].paths=/ws/api3",
+						"fw.plus.ws.servers[0].appId=report")
 				.run(context -> {
 					WebSocketHandlerRegistry registry = mockRegistry();
 
