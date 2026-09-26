@@ -166,6 +166,8 @@ class MagicApiMcpToolRegistrarTest {
         other.setName("other");
         other.setPath("/public/other");
         when(magicResourceService.<MagicEntity>files("function")).thenReturn(Collections.singletonList(other));
+        // 快照缓存：资源变更后必须显式失效，否则读到旧快照（生产路径由变更事件触发）
+        registrar.invalidateSource();
         registrar.register(featureMgr, server);
 
         assertThat(featureMgr.getToolStore()).containsOnlyKeys("other");

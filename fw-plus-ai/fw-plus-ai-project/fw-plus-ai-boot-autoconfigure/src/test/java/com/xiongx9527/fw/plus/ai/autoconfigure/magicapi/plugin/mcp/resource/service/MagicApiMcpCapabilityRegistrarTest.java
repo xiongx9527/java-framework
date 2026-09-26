@@ -238,7 +238,9 @@ class MagicApiMcpCapabilityRegistrarTest {
 
         registrar.refresh();
 
-        assertThat(featureMgr.getCompletionStore()).containsKey("resource:readme:path");
+        // 模板名与 uriTemplate 两种 ref 形态都应命中
+        assertThat(featureMgr.getCompletionStore()).containsKeys("resource:readme:path",
+                "resource:mcp://docs/{path}:path");
     }
 
     @Test

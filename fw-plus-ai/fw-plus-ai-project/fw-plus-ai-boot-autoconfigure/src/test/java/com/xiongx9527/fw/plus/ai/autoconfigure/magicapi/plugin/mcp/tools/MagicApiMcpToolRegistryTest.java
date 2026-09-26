@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -401,5 +402,32 @@ class MagicApiMcpToolRegistryTest {
         info.setMethod("GET");
         info.setAttribute("exposeMcp", true);
         return info;
+    }
+
+    @Test
+    void shouldReuseSnapshotUntilInvalidated() {
+        MagicApiMcpToolRegistry registry = registry();
+        List<MagicApiMcpTool> first = registry.snapshot();
+        List<MagicApiMcpTool> second = registry.snapshot();
+
+        assertThat(second).isSameAs(first);
+        verify(magicResourceService, times(1)).<MagicEntity>files("function");
+    }
+
+    @Test
+    void shouldRebuildSnapshotAfterInvalidation() {
+        MagicApiMcpToolRegistry registry = registry();
+        registry.snapshot();
+        registry.invalidateSnapshot();
+
+        List<MagicApiMcpTool> rebuilt = registry.snapshot();
+
+        verify(magicResourceService, times(2)).<MagicEntity>files("function");
+        // 重建后写回缓存，随后的读取复用同一份
+        assertThat(registry.snapshot()).isSameAs(rebuilt);
+    }
+
+    private MagicApiMcpToolRegistry registry() {
+        return new MagicApiMcpToolRegistry(magicResourceService, new MagicApiMcpProperties());
     }
 }

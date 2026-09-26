@@ -57,6 +57,7 @@ public class MagicApiMcpToolChangeListener {
 	 */
 	public void refresh() {
 		AtomicBoolean changed = new AtomicBoolean(false);
+		registrar.invalidateSource();
 		List<MagicApiMcpToolRegistrar.RuntimeTarget> targets = new ArrayList<>();
 		for (McpServerRuntime runtime : runtimes) {
 			targets.add(new MagicApiMcpToolRegistrar.RuntimeTarget(runtime.getFeatureMgr(), runtime.getServer()));

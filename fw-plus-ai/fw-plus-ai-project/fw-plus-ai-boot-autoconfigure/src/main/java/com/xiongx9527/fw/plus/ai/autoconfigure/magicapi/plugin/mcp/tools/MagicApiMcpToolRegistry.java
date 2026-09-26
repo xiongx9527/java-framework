@@ -50,6 +50,12 @@ public class MagicApiMcpToolRegistry {
 	private volatile List<MagicApiMcpCapabilityProvider> providers =
 			Collections.<MagicApiMcpCapabilityProvider>emptyList();
 
+	/**
+	 * 工具快照缓存：只在收到 Magic-API 资源变更事件后才失效，避免每次 refresh/每次新增实例
+	 * 都全量重扫。故意不用 TTL——那会让「刚保存的内容在 N 秒内读不到」。
+	 */
+	private volatile List<MagicApiMcpTool> snapshotCache;
+
 	public MagicApiMcpToolRegistry(MagicResourceService magicResourceService, MagicApiMcpProperties properties) {
 		this(magicResourceService, properties, properties == null ? null : properties.getTools());
 	}
@@ -80,11 +86,28 @@ public class MagicApiMcpToolRegistry {
 	 * 读取 Magic-API api/function 元数据并应用过滤，产出当前已过滤工具快照。
 	 */
 	/**
-	 * 当前已过滤工具快照。多次调用会重复扫描，批量刷新请用注册器的批注册入口复用一次扫描结果。
+	 * 当前已过滤工具快照：缓存有效直接返回，否则重建。
 	 *
 	 * @return 工具快照
 	 */
 	public List<MagicApiMcpTool> snapshot() {
+		List<MagicApiMcpTool> cached = snapshotCache;
+		if (cached != null) {
+			return cached;
+		}
+		List<MagicApiMcpTool> result = buildSnapshot();
+		snapshotCache = result;
+		return result;
+	}
+
+	/**
+	 * Magic-API 资源变更后调用：使快照失效，下次读取重建。
+	 */
+	public void invalidateSnapshot() {
+		snapshotCache = null;
+	}
+
+	private List<MagicApiMcpTool> buildSnapshot() {
 		List<MagicApiMcpTool> result = new ArrayList<>();
 		Set<String> seen = new LinkedHashSet<>();
 		MagicApiMcpProperties.Scope functions = tools.getFunctions();

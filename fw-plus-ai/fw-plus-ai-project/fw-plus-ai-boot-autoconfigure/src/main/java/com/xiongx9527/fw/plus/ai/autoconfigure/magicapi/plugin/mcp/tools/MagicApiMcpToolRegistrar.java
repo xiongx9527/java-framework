@@ -49,6 +49,13 @@ public class MagicApiMcpToolRegistrar {
 	}
 
 	/**
+	 * 使底层快照缓存失效，供资源变更事件调用。
+	 */
+	public void invalidateSource() {
+		registry.invalidateSnapshot();
+	}
+
+	/**
 	 * 为新增的 server 实例派生独立注册器：共享工具快照来源，但保持各自的增量状态，
 	 * 避免实例间 {@code registered} 集合互相干扰导致工具被误删或漏发通知。
 	 *

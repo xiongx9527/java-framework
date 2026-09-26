@@ -278,9 +278,15 @@ public class MagicApiMcpCapabilityRegistrar implements SmartInitializingSingleto
 				continue;
 			}
 			String templateName = info.getName() == null ? info.getTemplate() : info.getName();
+			String template = info.getTemplate().trim();
 			for (Map.Entry<String, List<String>> entry : info.getCompletions().entrySet()) {
-				desired.put("resource:" + templateName + ":" + entry.getKey(),
-						storeCompletion(new MagicCompletionInvoker(entry.getValue())));
+				ServerStoreCompletion completion = storeCompletion(new MagicCompletionInvoker(entry.getValue()));
+				desired.put("resource:" + templateName + ":" + entry.getKey(), completion);
+				// 内核用 resourceTemplateName(uri) 反查模板名拼 key，而客户端 ref 传的可能是
+				// 模板名也可能是 uriTemplate 本身；两种 key 都注册，任一形态都能命中。
+				if (!template.equals(templateName)) {
+					desired.put("resource:" + template + ":" + entry.getKey(), completion);
+				}
 			}
 		}
 
