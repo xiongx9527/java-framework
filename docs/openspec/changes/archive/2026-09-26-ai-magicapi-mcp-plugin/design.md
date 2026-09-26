@@ -3,7 +3,8 @@ comet_change: ai-magicapi-mcp-plugin
 change_ref: docs/openspec/changes/ai-magicapi-mcp-plugin
 role: technical-design
 canonical_spec: openspec
-status: draft
+archived-with: 2026-09-26-ai-magicapi-mcp-plugin
+status: final
 ---
 
 # Design

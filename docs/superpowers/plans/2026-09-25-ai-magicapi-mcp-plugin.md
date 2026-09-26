@@ -2,6 +2,7 @@
 change: ai-magicapi-mcp-plugin
 design-doc: docs/openspec/changes/ai-magicapi-mcp-plugin/design.md
 base-ref: 97c085066d40c6a62e30cfbae730f82d482e57de
+archived-with: 2026-09-26-ai-magicapi-mcp-plugin
 ---
 
 # 实施计划：ai-magicapi-mcp-plugin
@@ -116,6 +117,7 @@ base-ref: 97c085066d40c6a62e30cfbae730f82d482e57de
 ### 3.4 增量 diff 刷新
 
 <!-- comet-task-ref:94ebe6b1-2203-4e80-9b6a-f994d724332e -->
+<!-- comet-task-ref:4d1c8a23-9f6e-4f77-b0b6-2ab4e1d63c51 -->
 
 - 监听 Magic-API 能力变更事件（复用既有 MagicNotifyService/存储监听），串行单线程 executor diff 同步 FeatureMgr，同步后 `publishToolsChanged`；无重复注册。
 - TDD：模拟变更事件断言 store 增量同步、无重复，通知在 sync 后触发。
