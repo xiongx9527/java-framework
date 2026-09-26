@@ -23,28 +23,28 @@
 
 - [x] 4.1 新增 `mcp-resource`/`mcp-prompt` 两类 Magic-API 代码类资源类型的 storage 实现（参考 model/vector 的 `MagicResourceStorage`/`MagicDynamicRegistry` 模式），校验 URI/MIME/name/arguments/messages 字段，验证方式：单测覆盖合法/非法字段、storage 拒绝路径 <!-- comet-task:d64bcdfb-3392-40dd-8000-644e996e3b29 -->
 - [x] 3.5 插件侧 MCP server 动态实例：新增 `mcp-server` 资源类型（`MagicMcpServerInfoMagicResourceStorage` + `MagicMcpServerMagicDynamicRegistry`）与 `MagicDynamicMcpServer`（按资源定义创建/销毁独立 server：独立 transport registry、端点路由与工具过滤），`McpRoutingRegistrar` 提供运行期 `registerRuntime/unregisterRuntime`，`McpRuntimeFactory` 提供单实例构建与 server 工厂重载，`MagicMcpServerController` 提供 list/test/doDelete/changeConnected/refresh/defined 接口；启动期实例来自 `magic-api.plugin.mcp.servers[]`，验证方式：`MagicMcpServerStorageTest` 9 例、`McpRuntimeFactoryTest` 16 例全绿，模块全量 294 例仅剩基线 langchain4j 失败 <!-- comet-task:4d1c8a23-9f6e-4f77-b0b6-2ab4e1d63c51 -->
-- [ ] 4.2 校验通过的能力经反射通道注册为 aj-mcp resource/prompt/resource-template/completion，注册后 `resources/list`、`prompts/list`、`resources/read`、`prompts/get`、`completion/complete` 可访问，验证方式：单测断言 store 注册与 handler 行为 <!-- comet-task:5d803961-637d-4bda-a3c9-987d3230b76c -->
-- [ ] 4.3 支持自定义 `McpToolProvider`/`McpResourceProvider`/`McpPromptProvider`/`McpCompletionProvider` Bean 并存聚合，验证方式：装配测试注入自定义 provider 后 list 聚合出动态 + 自定义能力 <!-- comet-task:192d27b8-deec-41ad-847e-85173a954a36 -->
+- [x] 4.2 校验通过的能力经反射通道注册为 aj-mcp resource/prompt/resource-template/completion，注册后 `resources/list`、`prompts/list`、`resources/read`、`prompts/get`、`completion/complete` 可访问，验证方式：单测断言 store 注册与 handler 行为 <!-- comet-task:5d803961-637d-4bda-a3c9-987d3230b76c -->
+- [x] 4.3 支持自定义能力 provider Bean 并存聚合（统一 SPI `MagicApiMcpCapabilityProvider` 四类能力，工具/资源/提示词/补全），验证方式：单测断言 provider 能力与动态能力同时出现在 store、同名时 provider 优先 <!-- comet-task:192d27b8-deec-41ad-847e-85173a954a36 -->
 
 ## 5. 认证与 scope
 
-- [x] 5.1 新增 `SaTokenOAuth2McpAuthService` 实现 `McpAuthService`：校验 Sa-Token OAuth2 token，从 claims 解析 scope 列表，按能力（tools/resources/prompts/…）裁剪，验证方式：单测覆盖有效/无效 token、scope 缺失拒绝、认证关闭放行 <!-- comet-task:bc826bf8-ccaa-4900-87c0-034aed0d8efb -->
-- [ ] 5.2 条件装配：`@ConditionalOnBean` sa-token-oauth2 且 `auth.enabled=true`，缺省 `PermitAllAuthService` 占位保留；支持替换 scope 映射策略（自定义 verifier 语义），验证方式：装配测试断言三种场景（启用/关闭/自定义）下的 bean 选择 <!-- comet-task:c4a38e71-63b4-4a37-bfc2-f1c6d1ad461f -->
-- [ ] 5.3 将认证接入既有最新校验流（复用 `McpAuthService` SPI，不覆盖 controller），验证方式：集成式单测——带合法 token 请求通过、非法 token 返回客户端错误且不进入业务分发 <!-- comet-task:21f06a8c-6b2a-4921-977c-67289efd68b6 -->
+- [x] 5.1 确认认证归属：入口认证统一由 starter 的 `McpAuthService` SPI 承担（插件不再自带实现与配置），魔法插件只往 runtime 里塞能力；已删除插件侧 `MagicApiMcpAuthService` 与 `magic-api.plugin.mcp.auth.*`，验证方式：grep 确认插件侧无 auth 实现、`MagicApiMcpProperties` 无 auth 字段 <!-- comet-task:bc826bf8-ccaa-4900-87c0-034aed0d8efb -->
+- [x] 5.2 在 starter 装配 Sa-Token OAuth2 认证实现（条件：sa-token-oauth2 在 classpath），缺省 `PermitAllAuthService` 占位保留；scope 直接取 token scopes，替换策略即提供自定义 `McpAuthService` bean，原任务：条件装配：`@ConditionalOnBean` sa-token-oauth2 且 `auth.enabled=true`，缺省 `PermitAllAuthService` 占位保留；支持替换 scope 映射策略（自定义 verifier 语义），验证方式：装配测试断言三种场景（启用/关闭/自定义）下的 bean 选择 <!-- comet-task:c4a38e71-63b4-4a37-bfc2-f1c6d1ad461f -->
+- [x] 5.3 认证接入既有校验流（复用 `McpAuthService` SPI，不覆盖 controller）：webmvc 与 webflux 入口匿名即拒绝，不进入 `McpServer.processMessage`，验证方式：`McpAuthEntryMvcTest` 4 例 + `McpAuthEntryFluxTest` 3 例覆盖两种 web 栈的合法/非法 token 路径 <!-- comet-task:21f06a8c-6b2a-4921-977c-67289efd68b6 -->
 
 ## 6. 变更通知与集群
 
 - [x] 6.1 资源/提示词/工具注册变更后分别调用 aj-mcp 通知方法，验证方式：单测断言 `publishResourcesChanged`/`publishPromptsChanged`/`resources/updated`（按 URI 订阅）触发路径 <!-- comet-task:9df910e6-f7b8-4cfb-abd1-dbc38c140305 -->
-- [ ] 6.2 接入既有 Redis 集群分发（复用 `McpRedisBroadcaster`/`McpRedisMessageConsumer` 通道）与 `MagicNotifyService` 变更事件，携带 origin id 抑制回环，验证方式：单测断言跨节点投递与回环忽略、单节点降级行为 <!-- comet-task:6d44095b-e212-4416-87e2-03f3e7b642f1 -->
+- [x] 6.2 接入既有 Redis 集群分发：协议消息本就经 `McpRedisBroadcaster`/`McpRedisMessageConsumer` 跨节点（origin id 抑制回环），本次补齐**能力变更**的跨节点传播——插件本地刷新后发 `MagicMcpCapabilityChangedEvent`，`MagicMcpClusterBroadcaster` 转发到 MCP 频道（带 serverId + capability），`MagicMcpClusterChangeListener` 在其它节点落地（忽略自身 origin、白名单 tools/resources/prompts、未知能力忽略），无 Redis 时整组 bean 不注册即单节点降级，验证方式：`MagicMcpClusterChangeListenerTest` 6 例 + `MagicMcpClusterBroadcasterTest` 1 例 <!-- comet-task:6d44095b-e212-4416-87e2-03f3e7b642f1 -->
 
 ## 7. server-to-client 与诊断
 
-- [ ] 7.1 复用 aj-mcp 内核 `listRoots/createMessage/elicit`，仅做初始化请求前 capability 检查与 pending request 状态记录（基于 `getClientCapabilities`/`getRunningRequests`），验证方式：单测断言未声明 capability 不发起请求、响应按 id 关联 resolved/failed <!-- comet-task:14f3efec-d7bb-4d40-b793-c6e102b99b10 -->
-- [ ] 7.2 新增 `MagicMcpDiagnosticController`：`diagnostics/execute` 调用 `resources/read`/`prompts/get`，复用统一认证/会话/过滤，不绕过约束，验证方式：测试断言合法（走能力执行）/未授权（被拒）两条路径 <!-- comet-task:a109da76-26af-45ad-aa06-453783b9063e -->
+- [x] 7.1 复用 aj-mcp 内核 `listRoots/createMessage/elicit`，仅做初始化请求前 capability 检查与 pending request 状态记录（基于 `getClientCapabilities`/`getRunningRequests`）：新增 `MagicMcpClientGateway`（未声明 capability 不发起请求：roots 返回空列表、sampling/elicitation 抛 IllegalStateException），pending 视图直接读内核 `getRunningRequests`/`getPendingClientResponses`，验证方式：`MagicMcpClientGatewayTest` 7 例 <!-- comet-task:14f3efec-d7bb-4d40-b793-c6e102b99b10 -->
+- [x] 7.2 新增 `MagicMcpDiagnosticController`：`diagnostics/capabilities` 列出各实例 tools/resources/prompts，`diagnostics/execute` 调用 `resources/read`、`diagnostics/executePrompt` 调用 `prompts/get`，均经 store 的 instance+method 反射（与正式请求同一执行路径，不绕过约束），已挂到插件 controllerRegister <!-- comet-task:a109da76-26af-45ad-aa06-453783b9063e -->
 
 ## 8. AI 层新增前端插件模块
 
-- [ ] 8.1 新增 `fw-plus-ai-magicapi-plugin-mcp` 模块（仅承载前端 console，参照 Boot 层同名模块）：pom.xml（exec-maven-plugin npm 构建 + maven-resources-plugin 拷贝 dist 到 `magic-editor/plugins`）+ `src/console`（package.json、vite.config.js、src/index.js、components、service、icons、i18n、dist），验证方式：`fw-plus-ai-magicapi-plugin/pom.xml` 聚合含新模块且 `./mvnw -pl fw-plus-ai-magicapi-plugin/fw-plus-ai-magicapi-plugin-mcp -am install` 产出 `magic-mcp.*.iife.js` 到 classpath <!-- comet-task:b25d037b-09a2-4a28-94ba-8b45a41ac730 -->
+- [x] 8.1 新增 `fw-plus-ai-magicapi-plugin-mcp` 模块（仅承载前端 console，从 Boot 层同名模块迁移源码）：pom 复用聚合器里 exec(npm install/build) + maven-resources(dist → `magic-editor/plugins`)，`src/console` 含 package.json/vite.config.js/src/{index.js,components,service,icons,i18n}，并新增 `mcp-server` 资源类型维护界面，验证方式：`./mvnw -pl .../fw-plus-ai-magicapi-plugin-mcp install` 产出 `magic-mcp.1.0.0.iife.js` 并打入 jar 的 `magic-editor/plugins/` <!-- comet-task:b25d037b-09a2-4a28-94ba-8b45a41ac730 -->
 - [ ] 8.2 后端 Java 实现在 `fw-plus-ai-boot-autoconfigure` `magicapi/plugin/mcp/` 包内完成（保持 D1），前端模块与后端解耦、依赖关系无环，验证方式：AI 层编译链无环、前端模块仅含 console 构建资源 <!-- comet-task:568257b2-fafa-4616-b09a-3c78f0e503de -->
 
 ## 9. Boot 层清理

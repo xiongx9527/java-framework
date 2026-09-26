@@ -21,11 +21,6 @@ class MagicApiMcpPropertiesTest {
         MagicApiMcpProperties properties = new MagicApiMcpProperties();
 
         assertTrue(properties.isEnabled());
-        assertTrue(properties.getAuth().isEnabled());
-        assertEquals("fw-plus-mcp", properties.getAuth().getResource());
-        assertEquals("mcp:tools", properties.getAuth().getToolsScope());
-        assertEquals("mcp:resources", properties.getAuth().getResourcesScope());
-        assertEquals("mcp:prompts", properties.getAuth().getPromptsScope());
 
         assertTrue(properties.getTools().getFunctions().isEnabled());
         assertTrue(properties.getTools().getFunctions().getIncludeGroups().isEmpty());
@@ -43,7 +38,6 @@ class MagicApiMcpPropertiesTest {
         source.put("magic-api.plugin.mcp.tools.functions.include-groups[0]", "/system/**");
         source.put("magic-api.plugin.mcp.tools.api.require-opt-in", "true");
         source.put("magic-api.plugin.mcp.tools.api.opt-in-option-name", "exposeToMcp");
-        source.put("magic-api.plugin.mcp.auth.enabled", "false");
         source.put("magic-api.plugin.mcp.auth.resource", "custom-resource");
         source.put("magic-api.plugin.mcp.servers[0].key", "report");
         source.put("magic-api.plugin.mcp.servers[0].endpoint", "/mcp/report");
@@ -58,8 +52,6 @@ class MagicApiMcpPropertiesTest {
         assertEquals(Arrays.asList("/system/**"), properties.getTools().getFunctions().getIncludeGroups());
         assertTrue(properties.getTools().getApi().isRequireOptIn());
         assertEquals("exposeToMcp", properties.getTools().getApi().getOptInOptionName());
-        assertFalse(properties.getAuth().isEnabled());
-        assertEquals("custom-resource", properties.getAuth().getResource());
 
         assertEquals(1, properties.getServers().size());
         MagicApiMcpProperties.Server server = properties.getServers().get(0);

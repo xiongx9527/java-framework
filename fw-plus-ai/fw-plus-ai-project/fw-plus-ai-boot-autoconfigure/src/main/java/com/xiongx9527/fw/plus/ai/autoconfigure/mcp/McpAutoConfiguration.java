@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.mcp;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpAuthService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.SaTokenOAuth2McpAuthService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.PermitAllAuthService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.cluster.McpRedisBroadcaster;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.cluster.McpRedisMessageConsumer;
@@ -19,6 +20,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.util.ClassUtils;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -45,11 +47,25 @@ import java.util.List;
 public class McpAutoConfiguration {
 
 	/**
-	 * 认证 SPI 默认实现：恒放行占位，用户提供 {@link McpAuthService} bean 时让位。
+	 * sa-token-oauth2 是否在 classpath 上：未引入时 {@link SaTokenOAuth2McpAuthService} 不会被实例化。
+	 */
+	private static final boolean SA_TOKEN_OAUTH2_PRESENT = ClassUtils.isPresent(
+			"cn.dev33.satoken.oauth2.template.SaOAuth2Util", McpAutoConfiguration.class.getClassLoader());
+
+
+	/**
+	 * 认证 SPI：三种形态择一，用户提供自定义 {@link McpAuthService} bean 时本方法整体让位。
+	 * <ol>
+	 *     <li>classpath 有 sa-token-oauth2 → {@link SaTokenOAuth2McpAuthService}</li>
+	 *     <li>否则 → {@link PermitAllAuthService} 放行占位</li>
+	 * </ol>
 	 */
 	@Bean
 	@ConditionalOnMissingBean(McpAuthService.class)
 	public McpAuthService mcpAuthService() {
+		if (SA_TOKEN_OAUTH2_PRESENT) {
+			return new SaTokenOAuth2McpAuthService();
+		}
 		return new PermitAllAuthService();
 	}
 

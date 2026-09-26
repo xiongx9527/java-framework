@@ -5,13 +5,20 @@ import com.ajaxjs.mcp.protocol.prompt.PromptItem;
 import com.ajaxjs.mcp.protocol.common.ContentText;
 import com.ajaxjs.mcp.protocol.prompt.PromptMessage;
 import com.ajaxjs.mcp.protocol.prompt.Role;
+import com.ajaxjs.mcp.protocol.utils.completion.CompleteResult;
+import com.ajaxjs.mcp.protocol.utils.completion.CompletionResult;
+import com.ajaxjs.mcp.protocol.utils.completion.CompleteResultDetail;
 import com.ajaxjs.mcp.protocol.resource.ResourceItem;
+import com.ajaxjs.mcp.protocol.resource.ResourceTemplate;
 import com.ajaxjs.mcp.server.feature.FeatureMgr;
 import com.ajaxjs.mcp.server.feature.model.ServerStorePrompt;
+import com.ajaxjs.mcp.server.feature.model.ServerStoreCompletion;
 import com.ajaxjs.mcp.server.feature.model.ServerStoreResource;
+import com.ajaxjs.mcp.server.feature.model.ServerStoreResourceTemplate;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.resource.model.MagicMcpPromptInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.resource.model.MagicMcpPromptMessage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.resource.model.MagicMcpResourceInfo;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.spi.MagicApiMcpCapabilityProvider;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.ssssssss.magicapi.utils.JsonUtils;
 
@@ -19,6 +26,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.regex.Pattern;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -38,12 +46,22 @@ public class MagicApiMcpCapabilityRegistrar implements SmartInitializingSingleto
 
 	private final CapabilitySource source;
 
+	private final List<MagicApiMcpCapabilityProvider> providers;
+
 	private final Map<FeatureMgr, Set<String>> registeredResources = new LinkedHashMap<>();
 
 	private final Map<FeatureMgr, Set<String>> registeredPrompts = new LinkedHashMap<>();
 
-	public MagicApiMcpCapabilityRegistrar(CapabilitySource source) {
+	private final Map<FeatureMgr, Set<String>> registeredTemplates = new LinkedHashMap<>();
+
+	private final Map<FeatureMgr, Set<String>> registeredCompletions = new LinkedHashMap<>();
+
+	public MagicApiMcpCapabilityRegistrar(CapabilitySource source,
+			List<MagicApiMcpCapabilityProvider> providers) {
 		this.source = Objects.requireNonNull(source, "source");
+		this.providers = providers == null
+				? Collections.<MagicApiMcpCapabilityProvider>emptyList()
+				: new ArrayList<>(providers);
 	}
 
 	@Override
@@ -68,6 +86,8 @@ public class MagicApiMcpCapabilityRegistrar implements SmartInitializingSingleto
 	public void registerInstance(FeatureMgr featureMgr) {
 		syncResources(featureMgr);
 		syncPrompts(featureMgr);
+		syncResourceTemplates(featureMgr);
+		syncCompletions(featureMgr);
 	}
 
 	/**
@@ -78,6 +98,8 @@ public class MagicApiMcpCapabilityRegistrar implements SmartInitializingSingleto
 	public void unregisterInstance(FeatureMgr featureMgr) {
 		featureMgr.getResourceStore().clear();
 		featureMgr.getPromptStore().clear();
+		featureMgr.getResourceTemplateStore().clear();
+		featureMgr.getCompletionStore().clear();
 		registeredResources.remove(featureMgr);
 		registeredPrompts.remove(featureMgr);
 	}
@@ -91,11 +113,17 @@ public class MagicApiMcpCapabilityRegistrar implements SmartInitializingSingleto
 		}
 
 		Map<String, ServerStoreResource> desired = new LinkedHashMap<>();
+		for (MagicApiMcpCapabilityProvider provider : providers) {
+			for (MagicMcpResourceInfo info : provider.mcpResources()) {
+				desired.put(info.getUri(), storeResource(info));
+			}
+		}
 		for (MagicMcpResourceInfo info : source.resources()) {
 			if (!info.isEnabled() || info.getUri() == null || info.getUri().trim().isEmpty()) {
 				continue;
 			}
-			desired.put(info.getUri(), storeResource(info));
+			// provider 优先：同名 uri 已被 provider 占用时保留 provider 的定义
+			desired.putIfAbsent(info.getUri(), storeResource(info));
 		}
 
 		for (String uri : registered) {
@@ -122,11 +150,16 @@ public class MagicApiMcpCapabilityRegistrar implements SmartInitializingSingleto
 		}
 
 		Map<String, ServerStorePrompt> desired = new LinkedHashMap<>();
+		for (MagicApiMcpCapabilityProvider provider : providers) {
+			for (MagicMcpPromptInfo info : provider.mcpPrompts()) {
+				desired.put(info.getName(), storePrompt(info));
+			}
+		}
 		for (MagicMcpPromptInfo info : source.prompts()) {
 			if (!info.isEnabled() || info.getName() == null || info.getName().trim().isEmpty()) {
 				continue;
 			}
-			desired.put(info.getName(), storePrompt(info));
+			desired.putIfAbsent(info.getName(), storePrompt(info));
 		}
 
 		for (String name : registered) {
@@ -183,6 +216,153 @@ public class MagicApiMcpCapabilityRegistrar implements SmartInitializingSingleto
 		return store;
 	}
 
+	/**
+	 * 同步资源模板：{@code MagicMcpResourceInfo.template} 非空时注册为 resource template，
+	 * {@code resources/read} 命中模板即可按变量读取。
+	 */
+	private void syncResourceTemplates(FeatureMgr featureMgr) {
+		Map<String, ServerStoreResourceTemplate> store = featureMgr.getResourceTemplateStore();
+		Set<String> registered = registeredTemplates.get(featureMgr);
+		if (registered == null) {
+			registered = new LinkedHashSet<>();
+			registeredTemplates.put(featureMgr, registered);
+		}
+
+		Map<String, ServerStoreResourceTemplate> desired = new LinkedHashMap<>();
+		for (MagicMcpResourceInfo info : source.resources()) {
+			if (!info.isEnabled() || info.getTemplate() == null || info.getTemplate().trim().isEmpty()) {
+				continue;
+			}
+			desired.put(info.getTemplate().trim(), storeTemplate(info));
+		}
+
+		for (String key : registered) {
+			if (!desired.containsKey(key)) {
+				store.remove(key);
+			}
+		}
+		store.putAll(desired);
+		registered.clear();
+		registered.addAll(desired.keySet());
+	}
+
+	/**
+	 * 同步补全候选：提示词参数为 {@code prompt:{name}:{arg}}，资源模板变量为
+	 * {@code resource:{templateName}:{var}}（模板名即内核反查的依据）。
+	 */
+	private void syncCompletions(FeatureMgr featureMgr) {
+		Map<String, ServerStoreCompletion> store = featureMgr.getCompletionStore();
+		Set<String> registered = registeredCompletions.get(featureMgr);
+		if (registered == null) {
+			registered = new LinkedHashSet<>();
+			registeredCompletions.put(featureMgr, registered);
+		}
+
+		Map<String, ServerStoreCompletion> desired = new LinkedHashMap<>();
+		for (MagicApiMcpCapabilityProvider provider : providers) {
+			for (MagicApiMcpCapabilityProvider.CompletionEntry entry : provider.mcpCompletions()) {
+				desired.put(entry.storeKey(), storeCompletion(new MagicCompletionInvoker(entry.getValues())));
+			}
+		}
+		for (MagicMcpPromptInfo info : source.prompts()) {
+			if (!info.isEnabled() || info.getName() == null || info.getCompletions() == null) {
+				continue;
+			}
+			for (Map.Entry<String, List<String>> entry : info.getCompletions().entrySet()) {
+				desired.put("prompt:" + info.getName() + ":" + entry.getKey(),
+						storeCompletion(new MagicCompletionInvoker(entry.getValue())));
+			}
+		}
+		for (MagicMcpResourceInfo info : source.resources()) {
+			if (!info.isEnabled() || info.getTemplate() == null || info.getCompletions() == null) {
+				continue;
+			}
+			String templateName = info.getName() == null ? info.getTemplate() : info.getName();
+			for (Map.Entry<String, List<String>> entry : info.getCompletions().entrySet()) {
+				desired.put("resource:" + templateName + ":" + entry.getKey(),
+						storeCompletion(new MagicCompletionInvoker(entry.getValue())));
+			}
+		}
+
+		for (String key : registered) {
+			if (!desired.containsKey(key)) {
+				store.remove(key);
+			}
+		}
+		store.putAll(desired);
+		registered.clear();
+		registered.addAll(desired.keySet());
+	}
+
+	private ServerStoreResourceTemplate storeTemplate(MagicMcpResourceInfo info) {
+		String template = info.getTemplate().trim();
+		List<String> variables = templateVariables(template);
+
+		ResourceTemplate item = new ResourceTemplate();
+		item.setUriTemplate(template);
+		item.setName(info.getName() == null ? template : info.getName());
+		item.setMimeType(info.getMimeType());
+		item.setDescription(info.getDescription());
+
+		MagicTemplateInvoker invoker = new MagicTemplateInvoker(info.getContent());
+		ServerStoreResourceTemplate store = new ServerStoreResourceTemplate();
+		store.setResourceTemplate(item);
+		store.setUriPattern(Pattern.compile(toUriPattern(template, variables.size())));
+		store.setTemplateVariableNames(variables);
+		store.setParameterNames(variables);
+		store.setInstance(invoker);
+		store.setMethod(MagicTemplateInvoker.resolveMethod(variables.size()));
+		return store;
+	}
+
+	private ServerStoreCompletion storeCompletion(MagicCompletionInvoker invoker) {
+		ServerStoreCompletion store = new ServerStoreCompletion();
+		store.setInstance(invoker);
+		store.setMethod(MagicCompletionInvoker.COMPLETE_METHOD);
+		return store;
+	}
+
+	/**
+	 * 提取模板变量名（{@code {var}} 形态），保持出现顺序。
+	 */
+	static List<String> templateVariables(String template) {
+		List<String> variables = new ArrayList<>();
+		java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("\\{([^{}]+)\\}").matcher(template);
+		while (matcher.find()) {
+			String name = matcher.group(1);
+			if (!name.contains("+") && !variables.contains(name)) {
+				variables.add(name);
+			}
+		}
+		return variables;
+	}
+
+	/**
+	 * 把 URI 模板编译为整串匹配的正则：变量段匹配到下一个 {@code /} 或结尾。
+	 */
+	static String toUriPattern(String template, int variableCount) {
+		StringBuilder pattern = new StringBuilder();
+		int index = 0;
+		while (index < template.length()) {
+			char c = template.charAt(index);
+			if (c == '{') {
+				int end = template.indexOf('}', index);
+				if (end < 0) {
+					pattern.append(Pattern.quote(String.valueOf(c)));
+					index++;
+					continue;
+				}
+				String variable = template.substring(index + 1, end);
+				pattern.append(variable.contains("+") ? "(.+)" : "([^/]+)");
+				index = end + 1;
+			} else {
+				pattern.append(Pattern.quote(String.valueOf(c)));
+				index++;
+			}
+		}
+		return "^" + pattern + "$";
+	}
+
 	private boolean sameResource(ServerStoreResource left, ServerStoreResource right) {
 		if (!Objects.equals(JsonUtils.toJsonString(left.getResource()), JsonUtils.toJsonString(right.getResource()))) {
 			return false;
@@ -204,6 +384,106 @@ public class MagicApiMcpCapabilityRegistrar implements SmartInitializingSingleto
 
 	private boolean samePrompt(PromptItem left, PromptItem right) {
 		return Objects.equals(JsonUtils.toJsonString(left), JsonUtils.toJsonString(right));
+	}
+
+	/**
+	 * 资源模板内容提供者：内核按模板变量个数反射调用对应参数数量的 {@code read(argN)}。
+	 */
+	static final class MagicTemplateInvoker {
+
+		private final String content;
+
+		MagicTemplateInvoker(String content) {
+			this.content = content == null ? "" : content;
+		}
+
+		public String read() {
+			return content;
+		}
+
+		public String read(Object arg1) {
+			return content;
+		}
+
+		public String read(Object arg1, Object arg2) {
+			return content;
+		}
+
+		public String read(Object arg1, Object arg2, Object arg3) {
+			return content;
+		}
+
+		public String read(Object arg1, Object arg2, Object arg3, Object arg4) {
+			return content;
+		}
+
+		public String read(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
+			return content;
+		}
+
+		public String read(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5, Object arg6) {
+			return content;
+		}
+
+		public String read(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5, Object arg6,
+				Object arg7) {
+			return content;
+		}
+
+		public String read(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5, Object arg6,
+				Object arg7, Object arg8) {
+			return content;
+		}
+
+		static Method resolveMethod(int variableCount) {
+			Class<?>[] types = new Class[variableCount];
+			java.util.Arrays.fill(types, Object.class);
+			try {
+				return variableCount == 0 ? MagicTemplateInvoker.class.getMethod("read")
+						: MagicTemplateInvoker.class.getMethod("read", types);
+			} catch (NoSuchMethodException e) {
+				throw new IllegalStateException("template read method not found for " + variableCount + " variables",
+						e);
+			}
+		}
+	}
+
+	/**
+	 * 补全候选提供者：内核传入当前输入值，返回以它为前缀的候选。
+	 */
+	static final class MagicCompletionInvoker {
+
+		private static final Method COMPLETE_METHOD = resolve();
+
+		private final List<String> candidates;
+
+		MagicCompletionInvoker(List<String> candidates) {
+			this.candidates = candidates == null ? Collections.<String>emptyList() : candidates;
+		}
+
+		public CompleteResult complete(String value) {
+			String prefix = value == null ? "" : value;
+			List<String> matched = new ArrayList<>();
+			for (String candidate : candidates) {
+				if (candidate != null && candidate.startsWith(prefix)) {
+					matched.add(candidate);
+				}
+			}
+			CompletionResult completion = new CompletionResult(matched, matched.size(), Boolean.FALSE);
+
+			CompleteResultDetail detail = new CompleteResultDetail(completion);
+			CompleteResult result = new CompleteResult();
+			result.setResult(detail);
+			return result;
+		}
+
+		private static Method resolve() {
+			try {
+				return MagicCompletionInvoker.class.getMethod("complete", String.class);
+			} catch (NoSuchMethodException e) {
+				throw new IllegalStateException("completion method not found", e);
+			}
+		}
 	}
 
 	/**

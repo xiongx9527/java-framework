@@ -15,10 +15,12 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.resource.serv
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.resource.service.MagicMcpPromptMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.resource.service.MagicApiMcpCapabilityRegistrar;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.resource.service.MagicMcpCapabilitySource;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.spi.MagicApiMcpCapabilityProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.resource.service.MagicMcpResourceInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.resource.service.MagicMcpResourceMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.service.MagicMcpServerInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.service.MagicMcpServerMagicDynamicRegistry;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.web.MagicMcpDiagnosticController;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.web.MagicMcpServerController;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.tools.MagicApiMcpScriptInvoker;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.tools.MagicApiMcpToolChangeListener;
@@ -36,11 +38,14 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 
 import java.util.List;
 
 @Configuration
+@Import(MagicMcpClusterConfiguration.class)
 @ConditionalOnClass({McpServer.class, McpServerRuntime.class})
 @ConditionalOnBean(MagicResourceService.class)
 @ConditionalOnProperty(prefix = "magic-api.plugin.mcp", name = "enabled", havingValue = "true", matchIfMissing = true)
@@ -60,25 +65,24 @@ public class MagicAPIMcpConfiguration implements MagicPluginConfiguration {
 
     @Override
     public MagicControllerRegister controllerRegister() {
-        return (mapping, configuration) -> mapping.registerController(new MagicMcpServerController(configuration));
+        return (mapping, configuration) -> mapping
+                .registerController(new MagicMcpServerController(configuration))
+                .registerController(new MagicMcpDiagnosticController(configuration));
     }
 
-    /**
-     * 插件认证：按 {@code magic-api.plugin.mcp.auth.*} 校验 Bearer token；关闭时让位给 starter 的放行实现。
-     */
-    @Bean
-    @ConditionalOnMissingBean(McpAuthService.class)
-    @ConditionalOnProperty(prefix = "magic-api.plugin.mcp.auth", name = "enabled", havingValue = "true")
-    public McpAuthService magicApiMcpAuthService() {
-        return new MagicApiMcpAuthService(properties.getAuth());
-    }
 
     /**
      * 工具注册表：以 Magic-API 资源为数据源，实时快照。
      */
     @Bean
-    public MagicApiMcpToolRegistry magicApiMcpToolRegistry(MagicResourceService magicResourceService) {
-        return new MagicApiMcpToolRegistry(magicResourceService, properties);
+    public MagicApiMcpToolRegistry magicApiMcpToolRegistry(MagicResourceService magicResourceService,
+            ObjectProvider<List<MagicApiMcpCapabilityProvider>> capabilityProviderProvider) {
+        MagicApiMcpToolRegistry registry = new MagicApiMcpToolRegistry(magicResourceService, properties);
+        List<MagicApiMcpCapabilityProvider> providers = capabilityProviderProvider.getIfAvailable();
+        if (providers != null) {
+            registry.setCapabilityProviders(providers);
+        }
+        return registry;
     }
 
     /**
@@ -173,9 +177,10 @@ public class MagicAPIMcpConfiguration implements MagicPluginConfiguration {
             ObjectProvider<List<McpServerRuntime>> runtimesProvider,
             ObjectProvider<MagicDynamicMcpServer> dataSourceProvider,
             ObjectProvider<MagicMcpResourceMagicDynamicRegistry> resourceRegistryProvider,
-            ObjectProvider<MagicMcpPromptMagicDynamicRegistry> promptRegistryProvider) {
+            ObjectProvider<MagicMcpPromptMagicDynamicRegistry> promptRegistryProvider,
+            ObjectProvider<List<MagicApiMcpCapabilityProvider>> capabilityProviderProvider) {
         return new MagicApiMcpCapabilityRegistrar(new MagicMcpCapabilitySource(runtimesProvider, dataSourceProvider,
-                resourceRegistryProvider, promptRegistryProvider));
+                resourceRegistryProvider, promptRegistryProvider), capabilityProviderProvider.getIfAvailable());
     }
 
     /**
@@ -183,8 +188,12 @@ public class MagicAPIMcpConfiguration implements MagicPluginConfiguration {
      */
     @Bean
     public MagicMcpNotifier magicMcpNotifier(ObjectProvider<List<McpServerRuntime>> runtimesProvider,
-            ObjectProvider<MagicDynamicMcpServer> dataSourceProvider) {
-        return new MagicMcpNotifier(runtimesProvider.getIfAvailable(), dataSourceProvider.getIfAvailable());
+            ObjectProvider<MagicDynamicMcpServer> dataSourceProvider,
+            ObjectProvider<MagicApiMcpToolRegistrar> toolRegistrarProvider,
+            ObjectProvider<MagicApiMcpCapabilityRegistrar> capabilityRegistrarProvider,
+            ApplicationEventPublisher eventPublisher) {
+        return new MagicMcpNotifier(runtimesProvider.getIfAvailable(), dataSourceProvider.getIfAvailable(),
+                toolRegistrarProvider, capabilityRegistrarProvider, eventPublisher);
     }
 
     /**

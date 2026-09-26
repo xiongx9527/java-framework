@@ -16,114 +16,9 @@ public class MagicApiMcpProperties {
 
     private boolean enabled = true;
 
-    private Auth auth = new Auth();
-
     private Tools tools = new Tools();
 
     private List<Server> servers = new ArrayList<>();
-
-    public static class Auth {
-
-        private boolean enabled = true;
-
-        private String resource = "fw-plus-mcp";
-
-        private String authorizationServer;
-
-        private String toolsScope = "mcp:tools";
-
-        private String resourcesScope = "mcp:resources";
-
-        private String promptsScope = "mcp:prompts";
-
-        private String loggingScope = "mcp:logging";
-
-        private String rootsScope = "mcp:roots";
-
-        private String samplingScope = "mcp:sampling";
-
-        private String elicitationScope = "mcp:elicitation";
-
-        public boolean isEnabled() {
-            return enabled;
-        }
-
-        public void setEnabled(boolean enabled) {
-            this.enabled = enabled;
-        }
-
-        public String getResource() {
-            return resource;
-        }
-
-        public void setResource(String resource) {
-            this.resource = resource;
-        }
-
-        public String getAuthorizationServer() {
-            return authorizationServer;
-        }
-
-        public void setAuthorizationServer(String authorizationServer) {
-            this.authorizationServer = authorizationServer;
-        }
-
-        public String getToolsScope() {
-            return toolsScope;
-        }
-
-        public void setToolsScope(String toolsScope) {
-            this.toolsScope = toolsScope;
-        }
-
-        public String getResourcesScope() {
-            return resourcesScope;
-        }
-
-        public void setResourcesScope(String resourcesScope) {
-            this.resourcesScope = resourcesScope;
-        }
-
-        public String getPromptsScope() {
-            return promptsScope;
-        }
-
-        public void setPromptsScope(String promptsScope) {
-            this.promptsScope = promptsScope;
-        }
-
-        public String getLoggingScope() {
-            return loggingScope;
-        }
-
-        public void setLoggingScope(String loggingScope) {
-            this.loggingScope = loggingScope;
-        }
-
-        public String getRootsScope() {
-            return rootsScope;
-        }
-
-        public void setRootsScope(String rootsScope) {
-            this.rootsScope = rootsScope;
-        }
-
-        public String getSamplingScope() {
-            return samplingScope;
-        }
-
-        public void setSamplingScope(String samplingScope) {
-            this.samplingScope = samplingScope;
-        }
-
-        public String getElicitationScope() {
-            return elicitationScope;
-        }
-
-        public void setElicitationScope(String elicitationScope) {
-            this.elicitationScope = elicitationScope;
-        }
-    }
 
     public static class Tools {
 
@@ -292,13 +187,6 @@ public class MagicApiMcpProperties {
         this.enabled = enabled;
     }
 
-    public Auth getAuth() {
-        return auth;
-    }
-
-    public void setAuth(Auth auth) {
-        this.auth = auth;
-    }
 
     public Tools getTools() {
         return tools;

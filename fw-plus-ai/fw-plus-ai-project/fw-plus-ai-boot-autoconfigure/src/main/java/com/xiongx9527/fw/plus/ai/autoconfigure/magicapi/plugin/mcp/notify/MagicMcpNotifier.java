@@ -3,6 +3,11 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.notify;
 import com.ajaxjs.mcp.server.McpServer;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.model.MagicDynamicMcpServer;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.resource.service.MagicApiMcpCapabilityRegistrar;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.tools.MagicApiMcpToolRegistrar;
+
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -22,9 +27,25 @@ public class MagicMcpNotifier {
 
 	private final MagicDynamicMcpServer dynamicServer;
 
-	public MagicMcpNotifier(List<McpServerRuntime> runtimes, MagicDynamicMcpServer dynamicServer) {
+	private final ObjectProvider<MagicApiMcpToolRegistrar> toolRegistrarProvider;
+
+	private final ObjectProvider<MagicApiMcpCapabilityRegistrar> capabilityRegistrarProvider;
+
+	private final ApplicationEventPublisher eventPublisher;
+
+	/**
+	 * 两个 registrar 用 {@link ObjectProvider} 惰性取：动态注册表依赖本类，而本类的刷新又需要
+	 * registrar，构造期直接依赖会成环。
+	 */
+	public MagicMcpNotifier(List<McpServerRuntime> runtimes, MagicDynamicMcpServer dynamicServer,
+			ObjectProvider<MagicApiMcpToolRegistrar> toolRegistrarProvider,
+			ObjectProvider<MagicApiMcpCapabilityRegistrar> capabilityRegistrarProvider,
+			ApplicationEventPublisher eventPublisher) {
 		this.runtimes = runtimes == null ? Collections.emptyList() : new ArrayList<>(runtimes);
 		this.dynamicServer = dynamicServer;
+		this.toolRegistrarProvider = toolRegistrarProvider;
+		this.capabilityRegistrarProvider = capabilityRegistrarProvider;
+		this.eventPublisher = eventPublisher;
 	}
 
 	/**
@@ -33,6 +54,43 @@ public class MagicMcpNotifier {
 	public void publishToolsChanged() {
 		for (McpServer server : servers()) {
 			server.publishToolsChanged();
+		}
+		emit("tools");
+	}
+
+	/**
+	 * 集群消息驱动：先按最新快照刷新各实例，再广播 list_changed。
+	 */
+	public void refreshTools() {
+		MagicApiMcpToolRegistrar registrar = toolRegistrarProvider == null
+				? null : toolRegistrarProvider.getIfAvailable();
+		if (registrar != null) {
+			registrar.registerAll(runtimeTargets(), new java.util.concurrent.atomic.AtomicBoolean());
+		}
+		publishToolsChanged();
+	}
+
+	/**
+	 * 集群消息驱动：刷新 resources 能力并广播。
+	 */
+	public void refreshResources() {
+		refreshCapabilities();
+		publishResourcesChanged();
+	}
+
+	/**
+	 * 集群消息驱动：刷新 prompts 能力并广播。
+	 */
+	public void refreshPrompts() {
+		refreshCapabilities();
+		publishPromptsChanged();
+	}
+
+	private void refreshCapabilities() {
+		MagicApiMcpCapabilityRegistrar registrar = capabilityRegistrarProvider == null
+				? null : capabilityRegistrarProvider.getIfAvailable();
+		if (registrar != null) {
+			registrar.refresh();
 		}
 	}
 
@@ -43,6 +101,7 @@ public class MagicMcpNotifier {
 		for (McpServer server : servers()) {
 			server.publishResourcesChanged();
 		}
+		emit("resources");
 	}
 
 	/**
@@ -52,6 +111,7 @@ public class MagicMcpNotifier {
 		for (McpServer server : servers()) {
 			server.publishPromptsChanged();
 		}
+		emit("prompts");
 	}
 
 	/**
@@ -69,16 +129,47 @@ public class MagicMcpNotifier {
 	}
 
 	/**
-	 * 刷新工具列表：供控制台手工触发，等价于对全部实例重放一次工具 diff。
+	 * 全部实例（starter runtime + 插件动态实例）：供诊断接口等需要统一视图的调用方使用。
+	 *
+	 * @return 实例列表
 	 */
-	public void refreshTools() {
+	public List<McpServerRuntime> all() {
+		List<McpServerRuntime> all = new ArrayList<>(runtimes);
+		if (dynamicServer != null) {
+			all.addAll(dynamicServer.serverNodes());
+		}
+		return all;
+	}
+
+	/**
+	 * 全部实例的能力目标，供工具批量注册复用一次快照扫描。
+	 */
+	private List<MagicApiMcpToolRegistrar.RuntimeTarget> runtimeTargets() {
+		List<MagicApiMcpToolRegistrar.RuntimeTarget> targets = new ArrayList<>();
 		for (McpServerRuntime runtime : runtimes) {
-			if (runtime.getServer() != null) {
-				runtime.getServer().publishToolsChanged();
+			if (runtime.getFeatureMgr() != null) {
+				targets.add(new MagicApiMcpToolRegistrar.RuntimeTarget(runtime.getFeatureMgr(),
+						runtime.getServer()));
 			}
 		}
 		if (dynamicServer != null) {
-			dynamicServer.refreshTools();
+			for (McpServerRuntime runtime : dynamicServer.serverNodes()) {
+				if (runtime.getFeatureMgr() != null) {
+					targets.add(new MagicApiMcpToolRegistrar.RuntimeTarget(runtime.getFeatureMgr(),
+							runtime.getServer()));
+				}
+			}
+		}
+		return targets;
+	}
+
+	/**
+	 * 发布能力变更事件：集群广播端（有 Redis 时才注册）据此转发到其它节点；
+	 * 单节点无订阅者，天然降级为仅本地生效。
+	 */
+	private void emit(String capability) {
+		if (eventPublisher != null) {
+			eventPublisher.publishEvent(new MagicMcpCapabilityChangedEvent(capability));
 		}
 	}
 

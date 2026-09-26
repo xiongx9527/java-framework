@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.tools;
 
 import com.alibaba.fastjson2.JSON;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.config.MagicApiMcpProperties;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.spi.MagicApiMcpCapabilityProvider;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.AntPathMatcher;
 import org.ssssssss.magicapi.core.model.ApiInfo;
@@ -12,10 +13,12 @@ import org.ssssssss.magicapi.core.service.MagicResourceService;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Magic-API → MCP 工具快照注册表。
@@ -44,6 +47,9 @@ public class MagicApiMcpToolRegistry {
 
 	private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
+	private volatile List<MagicApiMcpCapabilityProvider> providers =
+			Collections.<MagicApiMcpCapabilityProvider>emptyList();
+
 	public MagicApiMcpToolRegistry(MagicResourceService magicResourceService, MagicApiMcpProperties properties) {
 		this(magicResourceService, properties, properties == null ? null : properties.getTools());
 	}
@@ -61,6 +67,16 @@ public class MagicApiMcpToolRegistry {
 	}
 
 	/**
+	 * 注入自定义能力提供者；其工具与资源定义派生的工具合并进快照（同名时 provider 优先）。
+	 *
+	 * @param providers 提供者集合
+	 */
+	public void setCapabilityProviders(List<MagicApiMcpCapabilityProvider> providers) {
+		this.providers = providers == null
+				? Collections.<MagicApiMcpCapabilityProvider>emptyList() : new ArrayList<>(providers);
+	}
+
+	/**
 	 * 读取 Magic-API api/function 元数据并应用过滤，产出当前已过滤工具快照。
 	 */
 	/**
@@ -70,6 +86,7 @@ public class MagicApiMcpToolRegistry {
 	 */
 	public List<MagicApiMcpTool> snapshot() {
 		List<MagicApiMcpTool> result = new ArrayList<>();
+		Set<String> seen = new LinkedHashSet<>();
 		MagicApiMcpProperties.Scope functions = tools.getFunctions();
 		if (isScopeEnabled(functions)) {
 			for (MagicEntity entity : magicResourceService.<MagicEntity>files(FUNCTION_TYPE)) {
@@ -81,8 +98,15 @@ public class MagicApiMcpToolRegistry {
 		MagicApiMcpProperties.Api api = tools.getApi();
 		if (isScopeEnabled(api)) {
 			for (ApiInfo info : magicResourceService.<ApiInfo>files(API_TYPE)) {
-				if (matchesApi(api, info)) {
+				if (matchesApi(api, info) && seen.add(info.getName())) {
 					result.add(toApiTool(api, info));
+				}
+			}
+		}
+		for (MagicApiMcpCapabilityProvider provider : providers) {
+			for (MagicApiMcpTool tool : provider.mcpTools()) {
+				if (tool != null && tool.getName() != null && seen.add(tool.getName())) {
+					result.add(tool);
 				}
 			}
 		}

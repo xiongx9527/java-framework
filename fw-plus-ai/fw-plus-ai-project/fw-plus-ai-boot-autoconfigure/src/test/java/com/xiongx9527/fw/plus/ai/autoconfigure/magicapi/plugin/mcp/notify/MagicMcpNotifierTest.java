@@ -26,7 +26,10 @@ class MagicMcpNotifierTest {
 
         McpServerRuntime runtime = mock(McpServerRuntime.class);
         when(runtime.getServer()).thenReturn(server);
-        notifier = new MagicMcpNotifier(Collections.singletonList(runtime), null);
+        notifier = new MagicMcpNotifier(Collections.singletonList(runtime), null,
+				org.mockito.Mockito.mock(org.springframework.beans.factory.ObjectProvider.class),
+				org.mockito.Mockito.mock(org.springframework.beans.factory.ObjectProvider.class),
+				mock(org.springframework.context.ApplicationEventPublisher.class));
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.mcp;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpAuthService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.PermitAllAuthService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.SaTokenOAuth2McpAuthService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.cluster.McpRedisBroadcaster;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.cluster.McpRedisMessageConsumer;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.cluster.RedisServerSseRegistry;
@@ -45,7 +46,8 @@ public class McpAutoConfigurationBeanSelectionTest {
 			assertThat(runtimes).hasSize(1);
 			assertThat(runtimes.get(0).getKey()).isEqualTo("default");
 			assertThat(runtimes.get(0).getRegistry()).isInstanceOf(DefaultServerSseRegistry.class);
-			assertThat(context.getBean(McpAuthService.class)).isInstanceOf(PermitAllAuthService.class);
+			// 测试 classpath 含 optional 的 sa-token-oauth2，故默认落到 Sa-Token 版（三态首选）
+			assertThat(context.getBean(McpAuthService.class)).isInstanceOf(SaTokenOAuth2McpAuthService.class);
 		});
 	}
 
@@ -186,6 +188,16 @@ public class McpAutoConfigurationBeanSelectionTest {
 				.run(context -> {
 					assertThat(context.getBean(McpAuthService.class)).isInstanceOf(PermitAllAuthService.class);
 				});
+	}
+
+	@Test
+	public void shouldUseSaTokenAuthWhenSaTokenOAuth2OnClasspath() {
+		contextRunner.run(context -> {
+			McpAuthService authService = context.getBean(McpAuthService.class);
+			assertThat(authService).isInstanceOf(SaTokenOAuth2McpAuthService.class);
+			// 单一 bean：不能同时存在 Sa-Token 版与放行版
+			assertThat(context.getBeanNamesForType(McpAuthService.class)).hasSize(1);
+		});
 	}
 
 	private StringRedisTemplate stringRedisTemplate() {

@@ -21,28 +21,45 @@ public final class ContractRuntime {
 	 * 构建 http-sse transport 的 runtime；会话持有状态由 {@code hasKnownSession} 决定。
 	 */
 	public static McpServerRuntime sseRuntime(boolean hasKnownSession) {
+		return sseRuntime(hasKnownSession, new PermitAllAuthService());
+	}
+
+	/**
+	 * 指定认证服务的 http-sse runtime。
+	 */
+	public static McpServerRuntime sseRuntime(boolean hasKnownSession,
+			com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpAuthService authService) {
 		ServerSseRegistry registry = mock(ServerSseRegistry.class);
 		when(registry.isOriginAllowed(null)).thenReturn(true);
 		when(registry.hasSession("known-uuid")).thenReturn(hasKnownSession);
-		return buildRuntime("http-sse", "/mcp", registry);
+		return buildRuntime("http-sse", "/mcp", registry, authService);
 	}
 
 	/**
 	 * 构建 streamable-http transport 的 runtime；会话持有状态由 {@code hasKnownSession} 决定。
 	 */
 	public static McpServerRuntime streamableRuntime(boolean hasKnownSession) {
+		return streamableRuntime(hasKnownSession, new PermitAllAuthService());
+	}
+
+	/**
+	 * 指定认证服务的 streamable-http runtime。
+	 */
+	public static McpServerRuntime streamableRuntime(boolean hasKnownSession,
+			com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpAuthService authService) {
 		ServerStreamableHttpRegistry registry = mock(ServerStreamableHttpRegistry.class);
 		when(registry.hasSession("known-session")).thenReturn(hasKnownSession);
-		return buildRuntime("streamable-http", "/mcp", registry);
+		return buildRuntime("streamable-http", "/mcp", registry, authService);
 	}
 
 	private static McpServerRuntime buildRuntime(String transport, String endpoint,
-			com.xiongx9527.fw.plus.ai.mcp.spi.BaseServerRegistry registry) {
+			com.xiongx9527.fw.plus.ai.mcp.spi.BaseServerRegistry registry,
+			com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpAuthService authService) {
 		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties properties =
 				new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties();
 		properties.setTransport(transport);
 		properties.setEndpoint(endpoint);
 		return new McpServerRuntime("default", properties, mock(com.ajaxjs.mcp.server.McpServer.class), null,
-				registry, new PermitAllAuthService(), java.util.Collections.<String>emptyList());
+				registry, authService, java.util.Collections.<String>emptyList());
 	}
 }

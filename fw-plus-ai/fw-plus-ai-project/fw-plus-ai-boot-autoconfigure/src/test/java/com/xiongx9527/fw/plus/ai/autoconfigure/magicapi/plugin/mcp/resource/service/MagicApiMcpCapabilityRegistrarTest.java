@@ -5,6 +5,7 @@ import com.ajaxjs.mcp.server.feature.FeatureMgr;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.resource.model.MagicMcpPromptInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.resource.model.MagicMcpPromptMessage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.resource.model.MagicMcpResourceInfo;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.spi.MagicApiMcpCapabilityProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -161,6 +162,11 @@ class MagicApiMcpCapabilityRegistrarTest {
     }
 
     private MagicApiMcpCapabilityRegistrar registrar() {
+        return registrar(Collections.<MagicApiMcpCapabilityProvider>emptyList());
+    }
+
+    private MagicApiMcpCapabilityRegistrar registrar(
+            final java.util.List<MagicApiMcpCapabilityProvider> capabilityProviders) {
         return new MagicApiMcpCapabilityRegistrar(new MagicApiMcpCapabilityRegistrar.CapabilitySource() {
             @Override
             public List<FeatureMgr> featureMgrs() {
@@ -176,6 +182,132 @@ class MagicApiMcpCapabilityRegistrarTest {
             public List<MagicMcpPromptInfo> prompts() {
                 return prompts;
             }
-        });
+        }, capabilityProviders);
+    }
+
+    @Test
+    void shouldRegisterResourceTemplateAndMatchUri() throws Exception {
+        MagicMcpResourceInfo info = resource("mcp://readme", "readme", "正文");
+        info.setTemplate("mcp://docs/{path}");
+        resources.add(info);
+
+        registrar.refresh();
+
+        assertThat(featureMgr.getResourceTemplateStore()).containsKey("mcp://docs/{path}");
+        java.util.regex.Pattern pattern = featureMgr.getResourceTemplateStore()
+                .get("mcp://docs/{path}").getUriPattern();
+        assertThat(pattern.matcher("mcp://docs/readme").matches()).isTrue();
+        assertThat(pattern.matcher("mcp://docs/a/b").matches()).isFalse();
+        assertThat(featureMgr.getResourceTemplateStore().get("mcp://docs/{path}").getTemplateVariableNames())
+                .containsExactly("path");
+    }
+
+    @Test
+    void shouldRemoveResourceTemplateWhenTemplateCleared() {
+        MagicMcpResourceInfo info = resource("mcp://readme", "readme", "正文");
+        info.setTemplate("mcp://docs/{path}");
+        resources.add(info);
+        registrar.refresh();
+
+        info.setTemplate(null);
+        registrar.refresh();
+
+        assertThat(featureMgr.getResourceTemplateStore()).isEmpty();
+    }
+
+    @Test
+    void shouldRegisterCompletionsForPromptArguments() throws Exception {
+        prompts.add(prompt("summarize", "text"));
+        prompts.get(0).getCompletions().put("text", Arrays.asList("alpha", "beta"));
+
+        registrar.refresh();
+
+        assertThat(featureMgr.getCompletionStore()).containsKey("prompt:summarize:text");
+        Object invoker = featureMgr.getCompletionStore().get("prompt:summarize:text").getInstance();
+        Object result = featureMgr.getCompletionStore().get("prompt:summarize:text").getMethod()
+                .invoke(invoker, "al");
+        assertThat(result.toString()).contains("alpha").doesNotContain("beta");
+    }
+
+    @Test
+    void shouldRegisterCompletionsForResourceTemplateVariables() {
+        MagicMcpResourceInfo info = resource("mcp://readme", "readme", "正文");
+        info.setTemplate("mcp://docs/{path}");
+        info.getCompletions().put("path", Arrays.asList("readme", "guide"));
+        resources.add(info);
+
+        registrar.refresh();
+
+        assertThat(featureMgr.getCompletionStore()).containsKey("resource:readme:path");
+    }
+
+    @Test
+    void shouldCompileTemplatePatternForMultipleVariables() {
+        MagicMcpResourceInfo info = resource("mcp://readme", "readme", "正文");
+        info.setTemplate("mcp://{group}/{name}");
+        resources.add(info);
+
+        registrar.refresh();
+
+        java.util.regex.Pattern pattern = featureMgr.getResourceTemplateStore()
+                .get("mcp://{group}/{name}").getUriPattern();
+        assertThat(pattern.matcher("mcp://docs/readme").matches()).isTrue();
+    }
+
+    @Test
+    void shouldMergeProviderCapabilitiesWithDynamicOnes() {
+        resources.add(resource("mcp://from-storage", "storage", "正文"));
+        prompts.add(prompt("fromStorage", "text"));
+
+        MagicApiMcpCapabilityProvider provider = new MagicApiMcpCapabilityProvider() {
+            @Override
+            public List<MagicMcpResourceInfo> mcpResources() {
+                MagicMcpResourceInfo info = new MagicMcpResourceInfo();
+                info.setUri("mcp://from-provider");
+                info.setName("provider");
+                info.setContent("来自 provider");
+                return Collections.singletonList(info);
+            }
+
+            @Override
+            public List<MagicMcpPromptInfo> mcpPrompts() {
+                MagicMcpPromptInfo info = new MagicMcpPromptInfo();
+                info.setId("prompt-provider");
+                info.setName("fromProvider");
+                return Collections.singletonList(info);
+            }
+
+            @Override
+            public List<MagicApiMcpCapabilityProvider.CompletionEntry> mcpCompletions() {
+                return Collections.singletonList(
+                        new MagicApiMcpCapabilityProvider.CompletionEntry("prompt", "fromProvider", "text",
+                                Arrays.asList("x", "y")));
+            }
+        };
+
+        MagicApiMcpCapabilityRegistrar withProvider = registrar(Collections.singletonList(provider));
+        withProvider.refresh();
+
+        assertThat(featureMgr.getResourceStore()).containsKeys("mcp://from-storage", "mcp://from-provider");
+        assertThat(featureMgr.getPromptStore()).containsKeys("fromStorage", "fromProvider");
+        assertThat(featureMgr.getCompletionStore()).containsKey("prompt:fromProvider:text");
+    }
+
+    @Test
+    void shouldLetProviderWinOnSameKey() throws Exception {
+        resources.add(resource("mcp://shared", "storage", "storage 版"));
+        MagicApiMcpCapabilityProvider provider = new MagicApiMcpCapabilityProvider() {
+            @Override
+            public List<MagicMcpResourceInfo> mcpResources() {
+                return Collections.singletonList(resource("mcp://shared", "provider", "provider 版"));
+            }
+        };
+
+        registrar(Collections.singletonList(provider)).refresh();
+
+        Object invoker = featureMgr.getResourceStore().get("mcp://shared").getInstance();
+        String content = (String) featureMgr.getResourceStore().get("mcp://shared").getMethod()
+                .invoke(invoker);
+        assertThat(content).isEqualTo("provider 版");
     }
 }

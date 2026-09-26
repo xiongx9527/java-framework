@@ -4,6 +4,7 @@ import com.ajaxjs.mcp.server.ServerStreamableHttp;
 import com.ajaxjs.mcp.server.error.JsonRpcErrorException;
 import com.ajaxjs.mcp.server.model.HttpResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpAuthService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpPrincipal;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpRequest;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
 import com.xiongx9527.fw.plus.ai.mcp.spi.ServerSseRegistry;
@@ -80,6 +81,9 @@ class McpFluxTransportHandler {
 		if (!sse.isOriginAllowed(request.headers().firstHeader("Origin"))) {
 			return ServerResponse.status(HttpStatus.FORBIDDEN).build();
 		}
+		if (!isAuthorized(null, request)) {
+			return ServerResponse.status(HttpStatus.UNAUTHORIZED).build();
+		}
 
 		String uuid = UUID.randomUUID().toString();
 		AtomicReference<String> writerHolder = new AtomicReference<>();
@@ -107,7 +111,9 @@ class McpFluxTransportHandler {
 		if (!runtime.hasSession(uuid)) {
 			return ServerResponse.notFound().build();
 		}
-		authenticate(uuid, request);
+		if (!isAuthorized(uuid, request)) {
+			return ServerResponse.status(HttpStatus.UNAUTHORIZED).build();
+		}
 
 		return request.bodyToMono(String.class).defaultIfEmpty("")
 				.flatMap(json -> Mono.fromCallable(() -> callSseHandle(sse, uuid, json)).subscribeOn(pool)
@@ -125,7 +131,9 @@ class McpFluxTransportHandler {
 		if (session != null && !runtime.hasSession(session)) {
 			return ServerResponse.notFound().build();
 		}
-		authenticate(session, request);
+		if (!isAuthorized(session, request)) {
+			return ServerResponse.status(HttpStatus.UNAUTHORIZED).build();
+		}
 
 		return request.bodyToMono(String.class).defaultIfEmpty("")
 				.flatMap(body -> handlePost(transport, body, request));
@@ -148,7 +156,9 @@ class McpFluxTransportHandler {
 		if (session != null && !runtime.hasSession(session)) {
 			return ServerResponse.notFound().build();
 		}
-		authenticate(session, request);
+		if (!isAuthorized(session, request)) {
+			return ServerResponse.status(HttpStatus.UNAUTHORIZED).build();
+		}
 
 		java.util.concurrent.Callable<HttpResult> callable = () -> transport.delete(session, headers(request));
 		return Mono.fromCallable(callable).subscribeOn(pool).flatMap(result -> httpResultResponse(result));
@@ -164,7 +174,9 @@ class McpFluxTransportHandler {
 		if (session == null || !runtime.hasSession(session)) {
 			return ServerResponse.notFound().build();
 		}
-		authenticate(session, request);
+		if (!isAuthorized(session, request)) {
+			return ServerResponse.status(HttpStatus.UNAUTHORIZED).build();
+		}
 
 		// 响应状态必须在事件流之前确定：先与内核同步打开事件流拿到结果，
 		// 非 200（403/400/503 等）直接透出真实状态码，不再伪装成空的 200 SSE（与 MVC 一致）。
@@ -234,14 +246,20 @@ class McpFluxTransportHandler {
 		return values;
 	}
 
-	private void authenticate(String sessionId, ServerRequest request) {
+	/**
+	 * 认证并处理"匿名即拒绝"：未配置认证服务或认证关闭时为放行主体，
+	 * 开了认证但 token 无效时是匿名主体。
+	 *
+	 * @return 通过返回 {@code true}
+	 */
+	private boolean isAuthorized(String sessionId, ServerRequest request) {
 		McpAuthService authService = runtime.getAuthService();
 		if (authService == null) {
-			return;
+			return true;
 		}
-		// 认证 SPI 占位调用点：默认放行，后续认证 change 只替换实现。
-		authService.authenticate(new McpRequest(sessionId, runtime.getTransport(), endpoint(), null,
-				headers(request)));
+		McpPrincipal principal = authService.authenticate(new McpRequest(sessionId, runtime.getTransport(),
+				endpoint(), null, headers(request)));
+		return principal != McpPrincipal.ANONYMOUS;
 	}
 
 	private ServerSseRegistry sseRegistry() {

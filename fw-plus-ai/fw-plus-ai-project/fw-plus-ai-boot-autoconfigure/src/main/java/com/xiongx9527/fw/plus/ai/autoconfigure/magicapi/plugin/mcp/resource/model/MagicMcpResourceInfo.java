@@ -22,6 +22,17 @@ public class MagicMcpResourceInfo extends MagicEntity {
      */
     private String content;
 
+    /**
+     * RFC 6570 资源模板（如 {@code file:///{path}}）：非空时额外注册为 MCP resource template，
+     * {@code resources/read} 可按模板匹配读取并支持路径变量。
+     */
+    private String template;
+
+    /**
+     * 补全候选：key 为参数名（模板变量或提示词参数），value 为候选值。
+     */
+    private java.util.Map<String, java.util.List<String>> completions = new java.util.LinkedHashMap<>();
+
     private boolean enabled = true;
 
     private Map<String, Object> metadata = new LinkedHashMap<String, Object>();
