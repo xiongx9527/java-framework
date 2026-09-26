@@ -13,7 +13,6 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.influx.starter.
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.starter.MagicAPIKafkaConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.starter.MagicAPIJavaEntityConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mongo.starter.MagicAPIMongoConfiguration;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.starter.MagicAPIMcpConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.server.starter.MagicAPIMqttConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.starter.MagicAPIMqttClientConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.starter.MagicAPIPulsarConfiguration;
@@ -57,7 +56,6 @@ import org.springframework.context.annotation.Import;
          MagicAPIInfluxConfiguration.class,
          MagicAPIAdminServerConfiguration.class,
          MagicAPISaTokenConfiguration.class,
-         MagicAPIMcpConfiguration.class,
 
 })
 public class MagicApiPluginAutoConfiguration {

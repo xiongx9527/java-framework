@@ -45,17 +45,17 @@
 ## 8. AI 层新增前端插件模块
 
 - [x] 8.1 新增 `fw-plus-ai-magicapi-plugin-mcp` 模块（仅承载前端 console，从 Boot 层同名模块迁移源码）：pom 复用聚合器里 exec(npm install/build) + maven-resources(dist → `magic-editor/plugins`)，`src/console` 含 package.json/vite.config.js/src/{index.js,components,service,icons,i18n}，并新增 `mcp-server` 资源类型维护界面，验证方式：`./mvnw -pl .../fw-plus-ai-magicapi-plugin-mcp install` 产出 `magic-mcp.1.0.0.iife.js` 并打入 jar 的 `magic-editor/plugins/` <!-- comet-task:b25d037b-09a2-4a28-94ba-8b45a41ac730 -->
-- [ ] 8.2 后端 Java 实现在 `fw-plus-ai-boot-autoconfigure` `magicapi/plugin/mcp/` 包内完成（保持 D1），前端模块与后端解耦、依赖关系无环，验证方式：AI 层编译链无环、前端模块仅含 console 构建资源 <!-- comet-task:568257b2-fafa-4616-b09a-3c78f0e503de -->
+- [x] 8.2 后端 Java 实现全部位于 `fw-plus-ai-boot-autoconfigure` 的 `magicapi/plugin/mcp/` 包（config/model/notify/resource/spi/starter/tools/web/client/service），`fw-plus-ai-magicapi-plugin-mcp` 仅含 console 资源（0 个 java 文件）且只依赖 autoconfigure，无环 <!-- comet-task:568257b2-fafa-4616-b09a-3c78f0e503de -->
 
 ## 9. Boot 层清理
 
-- [ ] 9.1 删除 `fw-plus-boot-autoconfigure` 的 `magicapi/plugin/mcp/`（75 Java）与 `src/test/.../mcp/`（25 测试），验证方式：目录移除且无编译引用 <!-- comet-task:80c54f04-a921-4db0-a5e7-c6dcd219ecd6 -->
-- [ ] 9.2 更新 Boot `MagicApiPluginAutoConfiguration`：移除 mcp import（第 16 行）与注册（第 60 行），验证方式：编译通过 <!-- comet-task:1b901b46-be55-4464-8289-e564e740054f -->
-- [ ] 9.3 删除 Boot 层 `fw-plus-magicapi-plugin-mcp` 模块及 `fw-plus-magicapi-plugin/pom.xml` 聚合条目（console 前端已由 AI 层新模块 8.1 承接），验证方式：pom 聚合列表无该模块、模块目录删除 <!-- comet-task:a34aeb4d-e707-49a9-a633-4157578c7051 -->
-- [ ] 9.4 将 README 可迁移的说明性内容并入 AI 层 mcp 插件文档，验证方式：AI 插件侧文档覆盖工具过滤/资源类型/认证/通知/集群/诊断各节 <!-- comet-task:9169b7b1-e782-43e2-8620-22748896e225 -->
+- [x] 9.1 删除 `fw-plus-boot-autoconfigure` 的 `magicapi/plugin/mcp/`（75 Java）与 `src/test/.../mcp/`（25 测试），并清理 `MagicAPIWebFluxControllerRegistrar` 的 mcp 分支与 5 个 import、`MagicApiPluginAutoConfiguration` 的 mcp import/注册，验证方式：Boot 层编译通过、全仓 grep 无 `autoconfigure.magicapi.plugin.mcp` 引用 <!-- comet-task:80c54f04-a921-4db0-a5e7-c6dcd219ecd6 -->
+- [x] 9.2 更新 Boot `MagicApiPluginAutoConfiguration`：移除 mcp import 与注册（第 16/60 行），同步删除 `MagicAPIWebFluxControllerTest.registersMcpControllerRoutesInReactiveHandlerMapping`，验证方式：Boot 层编译通过 <!-- comet-task:1b901b46-be55-4464-8289-e564e740054f -->
+- [x] 9.3 删除 Boot 层 `fw-plus-magicapi-plugin-mcp` 模块及 `fw-plus-magicapi-plugin/pom.xml` 聚合条目（console 前端已由 AI 层新模块 8.1 承接），验证方式：pom 聚合列表无该模块、模块目录删除、Boot 全量测试 617 例通过 <!-- comet-task:a34aeb4d-e707-49a9-9a633-4157578c7051 -->
+- [x] 9.4 将 README 可迁移的说明性内容并入 AI 层 mcp 插件文档，验证方式：AI 插件侧文档覆盖工具过滤/资源类型/认证/通知/集群/诊断各节 <!-- comet-task:9169b7b1-e782-43e2-8620-22748896e225 -->
 
 ## 10. 回归与联调
 
-- [ ] 10.1 `fw-plus-boot` 全量编译 + 既有测试通过（验证删除无残留），验证方式：`./fw-plus-core/mvnw -f fw-plus-boot/pom.xml clean install -DskipTests` 及 autoconfigure 测试 <!-- comet-task:ead0cbff-b527-4329-9c47-b5f339ee2500 -->
-- [ ] 10.2 `fw-plus-ai` 编译 + 新增 mcp 插件测试全绿，验证方式：`./fw-plus-core/mvnw -f fw-plus-ai/pom.xml test`（或对应 scope） <!-- comet-task:b6db74ed-589b-4e2f-aaa1-6b84167813a6 -->
-- [ ] 10.3 样例聚合入口 validate 通过、无 `MagicApiPluginAutoConfiguration`/插件类解析错误，验证方式：`./fw-plus-core/mvnw -f fw-plus-sample/pom.xml validate` <!-- comet-task:a85e5598-d4ad-480f-b9c9-5e33e511be06 -->
+- [x] 10.1 `fw-plus-boot` 全量编译 + 既有测试通过：autoconfigure 编译通过、全量 617 例通过（随删除的 mcp 路由用例移除） <!-- comet-task:ead0cbff-b527-4329-9c47-b5f339ee2500 -->
+- [x] 10.2 `fw-plus-ai` 编译 + 新增 mcp 插件测试全绿：`fw-plus-ai-boot-autoconfigure` 360 例全绿 <!-- comet-task:b6db74ed-589b-4e2f-aaa1-6b84167813a6 -->
+- [x] 10.3 样例聚合入口 validate 通过：`./fw-plus-core/mvnw -f fw-plus-sample/pom.xml validate` 退出码 0，无 `MagicApiPluginAutoConfiguration`/插件类解析错误<!-- comet-task:a85e5598-d4ad-480f-b9c9-5e33e511be06 -->

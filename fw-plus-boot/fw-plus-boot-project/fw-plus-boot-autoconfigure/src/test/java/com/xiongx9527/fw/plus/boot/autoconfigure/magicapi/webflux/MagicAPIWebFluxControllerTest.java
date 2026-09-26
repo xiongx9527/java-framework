@@ -8,7 +8,6 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.options.Mag
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.service.ManagedMagicDynamicDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.debezium.starter.MagicAPIDebeziumConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.druid.starter.MagicAPIDruidConfiguration;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.starter.MagicAPIMcpConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurationImportFilter;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -166,24 +165,6 @@ class MagicAPIWebFluxControllerTest {
                                     org.springframework.web.reactive.result.method.annotation.RequestMappingHandlerMapping.class);
                     assertThat(mapping.getHandlerMethods().keySet())
                             .anyMatch(info -> hasPath(info, "/magic-api/web/debezium/datasource/connector-options"));
-                });
-    }
-
-    @Test
-    void registersMcpControllerRoutesInReactiveHandlerMapping() {
-        new ReactiveWebApplicationContextRunner()
-                .withConfiguration(AutoConfigurations.of(
-                        org.springframework.boot.autoconfigure.web.reactive.WebFluxAutoConfiguration.class,
-                        MagicAPIWebFluxAutoConfiguration.class,
-                        MagicAPIMcpConfiguration.class))
-                .withPropertyValues("magic-api.resource.location=target/magic-api-webflux-mcp-routes-test")
-                .run(context -> {
-                    org.springframework.web.reactive.result.method.annotation.RequestMappingHandlerMapping mapping =
-                            context.getBean("requestMappingHandlerMapping",
-                                    org.springframework.web.reactive.result.method.annotation.RequestMappingHandlerMapping.class);
-                    assertThat(mapping.getHandlerMethods().keySet())
-                            .anyMatch(info -> hasPath(info, "/mcp"))
-                            .anyMatch(info -> hasPath(info, "/mcp/diagnostics/execute"));
                 });
     }
 
