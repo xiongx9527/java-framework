@@ -8,12 +8,13 @@
 
 ## 装配与开关
 
-- **servlet 支线**：`MagicSwaggerConfiguration` 经 `MagicAPIWebMvcAutoConfiguration` → `MagicApiPluginAutoConfiguration` 的 @Import 链加载，条件为 servlet 应用（现状不变）。
+- **servlet 支线**：`MagicSwaggerConfiguration` 经 `MagicAPIWebMvcAutoConfiguration` → `MagicApiPluginAutoConfiguration` 的 @Import 链加载，条件为 servlet 应用。
 - **webflux 支线**：同一能力在 `AutoConfiguration.imports` 中登记独立条目，条件为 reactive 应用；两条支线条件互斥，单应用只实例化一条。
 - **插件清单**：webflux 支线的 `MagicPluginConfiguration`（`plugin()` 方法产出的插件描述）由 Spring 收集进 `MagicAPIWebFluxControllerRegistrar` 的 `ObjectProvider<List<MagicPluginConfiguration>>`，`registerPlugin("swagger")` 据此注册 swagger 的 HTTP 出入口。
 - **开关**：`magic-api.plugin.swagger.enabled`（默认 `true`）两条支线一致；关闭时两条支线均不注册任何端点与页签。
 - **依赖对称**：servlet 支线依赖 `knife4j-openapi3-spring-boot-starter`；webflux 支线依赖 `knife4j-openapi3-webflux-spring-boot-starter`；两者版本一致（4.5.0），由 BOM 统一管理。
-- **核心共享**：`SwaggerProvider` 不依赖 servlet 专属 registry 类型，经 fw 侧 registry 视图接口获取当前注册的 magic-api 接口映射；servlet 与 webflux 两条支线复用同一实现。
+- **核心共享**：`SwaggerProvider` 不依赖 servlet 专属 registry 类型，经 fw 侧 registry 视图接口（`MagicApiRegistryView`）获取当前注册的 magic-api 接口映射；servlet 与 webflux 两条支线复用同一 `SwaggerEndpointSupport` / `SwaggerProvider` 实现。
+- **UI 配置确定性**：两条支线的 knife4j UI 配置 bean（`magicSwaggerUiConfigProperties` / `magicSwaggerUiConfigParameters`）的创建不依赖 bean 注册顺序或其他类型 bean 的在场情况（不得使用与入参类型矛盾的条件注解）。
 
 ## 文档切面
 
@@ -48,6 +49,11 @@ Scenario: webflux 下 knife4j 文档 UI 可访问
 Given reactive 应用启动就绪
 When 请求 knife4j 文档 UI 入口（`/doc.html`）
 Then 返回 200，页面可加载并可查看上述文档端点的内容
+
+Scenario: knife4j UI 分组确定性注入
+Given 应用启动就绪（任一宿主栈）
+When 读取 knife4j UI 配置参数（`SwaggerUiConfigParameters.getConfigParameters()`）
+Then 其中 urls 含以 `magic-api.swagger.name` 命名的分组且指向 `magic-api.swagger.location`；该结果不依赖 bean 注册顺序，也不依赖其他类型 bean 是否在场（两条支线行为一致）
 
 Scenario: 控制台页签在 servlet 下不变
 Given servlet 应用启动就绪
