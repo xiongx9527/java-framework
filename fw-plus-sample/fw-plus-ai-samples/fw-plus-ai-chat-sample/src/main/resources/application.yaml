@@ -6,23 +6,26 @@ spring:
     name: fw-plus-ai-chat-sample
   autoconfigure:
     # 样例只验证 LangChain4j 对话能力，需排除经 fw-plus-ai-boot-starter 传递引入、但样例用不到的自动配置：
-    # 1) Magic-API：插件装配依赖使用方按需引入的 magic-api core
+    # 1) Magic-API：插件装配依赖使用方按需引入的 magic-api core（AI 层 Base 与 Boot 层 config 插件门面）
     # 2) MCP：其路由注册器要求容器内唯一 RequestMappingHandlerMapping，而 actuator 会提供第二个，与本样例无关
     exclude:
+      # AI 层 Magic-API 装配与 MCP 装配与对话样例无关
       - com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration
       - com.xiongx9527.fw.plus.ai.autoconfigure.mcp.McpAutoConfiguration
+      # Boot 层 config 插件门面要求 magic-api core（样例不引入）
+      - com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.config.starter.MagicApiConfPluginAutoConfiguration
 
 langchain4j:
   ollama:
     # 由 dev.langchain4j.ollama.spring.AutoConfig 提供 OllamaChatModel Bean
     chat-model:
       base-url: http://localhost:11434
-      model-name: qwen2.5:7b
+      model-name: gemma4:31b-cloud
       temperature: 0.3
     # 提供 OllamaStreamingChatModel Bean，供 SSE 流式使用
     streaming-chat-model:
       base-url: http://localhost:11434
-      model-name: qwen2.5:7b
+      model-name: gemma4:31b-cloud
       temperature: 0.3
 
 fw:

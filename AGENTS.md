@@ -136,8 +136,6 @@ fw-plus/                      # 根目录（聚合项目，根 pom.xml 聚合下
 │   │   ├── fw-plus-ai-boot-parent/        # AI 层父 POM
 │   │   └── fw-plus-ai-boot-starters/      # AI Starter
 │   │       ├── fw-plus-ai-boot-starter/                           # 通用 AI Starter（aggregator）
-│   │       ├── fw-plus-ai-langchain4j-spring-boot-starter/        # LangChain4j 集成
-│   │       ├── fw-plus-ai-langchain4j-open-ai-spring-boot-starter/ # LangChain4j OpenAI
 │   │       └── fw-plus-ai-magicapi-plugin/                        # Magic-API AI 插件（4 个）
 │   │           ├── fw-plus-ai-magicapi-plugin-langchain4j/ # LangChain4j 插件
 │   │           ├── fw-plus-ai-magicapi-plugin-milvus/      # Milvus 向量数据库
@@ -280,8 +278,7 @@ fw-plus/                      # 根目录（聚合项目，根 pom.xml 聚合下
 ## 重要提醒
 
 - **Maven 构建**：根目录是聚合工程（`pom.xml` + `mvnw`，模块为 `fw-plus-core`/`fw-plus-boot`/`fw-plus-cloud`/`fw-plus-ai`/`fw-plus-sample`），可用 `./mvnw compile` / `./mvnw test` 一把跑全仓；四个库层各自也带有 `mvnw`，用于按层增量构建（如 `cd fw-plus-core && ./mvnw clean install -DskipTests`）。按 Core → Boot → Cloud / AI 顺序准备本地 Maven 依赖后，使用 `./fw-plus-core/mvnw -f fw-plus-sample/pom.xml validate` 作为样例统一入口。fw-plus-core 是底层依赖，各层级均有独立的父 POM。发版按版本号统一发，不单独发某个模块。
-  - **注意（shade 与离线）**：`fw-plus-ai-langchain4j-core` 用 maven-shade-plugin 把 `langchain4j-core` 打进自己的 jar，shade 只在 `package` 阶段发生；离线环境下若 shade 插件依赖未缓存，`install` 会失败，此时依赖 `langchain4j-core` 类的模块测试需以「该模块单独 `-pl` 构建」或「已安装 jar」为前提，根 reactor 的 `test` 阶段可能因只有 `target/classes` 而报 `NoClassDefFoundError`。
-  - **根目录 `./mvnw -o compile` 要求所有模块声明齐全**：`fw-plus-ai-langchain4j-*` 各模块需显式声明 `lombok`(provided) 与 `langchain4j-core`（`fw-plus-ai-langchain4j-core` 对 core  Jar 是 optional，不传递）。
+  - **根目录 `./mvnw -o compile` 要求所有模块声明齐全**：`fw-plus-ai-langchain4j-*` 各模块需显式声明 `lombok`(provided) 与 `langchain4j-core`（上游 `langchain4j-core` 是 optional，不传递）。
 - **Magic-API 版本**：使用自行维护的 2.2.2 版本，`org.ssssssss` 组的依赖通过 `<repositories>` 指向内部 Nexus 仓库（jugui-snapshot / jugui-release），请勿修改这些依赖的版本号。
 - **JDK 1.8 约束**：fw-plus-core 严格约束为 Java 1.8（compiler source/target = 1.8），不要引入 Java 9+ 的 API（如 `List.of()`、`Map.copyOf()`、`Optional.orElseThrow()` 等）。
 - **源文件编码**：所有 Java 源文件、资源文件统一使用 UTF-8 编码。

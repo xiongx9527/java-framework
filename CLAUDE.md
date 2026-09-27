@@ -131,8 +131,6 @@ fw-plus/                      # 根目录（聚合项目，根 pom.xml 聚合下
 │   │   ├── fw-plus-ai-boot-parent/        # AI 层父 POM
 │   │   └── fw-plus-ai-boot-starters/      # AI Starter
 │   │       ├── fw-plus-ai-boot-starter/                           # 通用 AI Starter（aggregator）
-│   │       ├── fw-plus-ai-langchain4j-spring-boot-starter/        # LangChain4j 集成
-│   │       ├── fw-plus-ai-langchain4j-open-ai-spring-boot-starter/ # LangChain4j OpenAI
 │   │       └── fw-plus-ai-magicapi-plugin/                        # Magic-API AI 插件（4 个）
 │   │           ├── fw-plus-ai-magicapi-plugin-langchain4j/ # LangChain4j 插件
 │   │           ├── fw-plus-ai-magicapi-plugin-milvus/      # Milvus 向量数据库

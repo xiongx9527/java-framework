@@ -14,7 +14,6 @@
     <version>${revision}</version>
     <packaging>pom</packaging>
     <modules>
-        <module>fw-plus-ai-langchain4j-core</module>
         <module>fw-plus-ai-langchain4j-openai</module>
         <module>fw-plus-ai-langchain4j-anthropic</module>
         <module>fw-plus-ai-langchain4j-ollama</module>

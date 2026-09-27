@@ -67,14 +67,14 @@ public class ChatController {
 		// 0L 表示不设超时，由模型生成速度决定
 		SseEmitter emitter = new SseEmitter(0L);
 		assistant.stream(message)
-				.onPartialResponse(token -> {
+				.onNext(token -> {
 					try {
 						emitter.send(SseEmitter.event().name("token").data(token));
 					} catch (Exception e) {
 						emitter.completeWithError(e);
 					}
 				})
-				.onCompleteResponse(response -> {
+				.onComplete(response -> {
 					try {
 						emitter.send(SseEmitter.event().name("done").data("[DONE]"));
 						emitter.complete();

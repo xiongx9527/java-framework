@@ -81,13 +81,13 @@ class ChatControllerTest {
 
 	/**
 	 * 可编程的 TokenStream 替身：在 start() 时依次触发已注册的回调。
-	 * 抽象方法必须全部实现：onPartialResponse / onRetrieved / onToolExecuted /
-	 * onCompleteResponse / onError / ignoreErrors，其余为 default。
+	 * 抽象方法必须全部实现：onRetrieved /
+	 * onNext / onComplete / onError / ignoreErrors，其余为 default。
 	 */
 	private static class FakeTokenStream implements dev.langchain4j.service.TokenStream {
 
 		private Consumer<String> partialHandler;
-		private Consumer<dev.langchain4j.model.chat.response.ChatResponse> completeHandler;
+		private Consumer<dev.langchain4j.model.output.Response<dev.langchain4j.data.message.AiMessage>> completeHandler;
 		private boolean completed = false;
 
 		FakeTokenStream complete() {
@@ -96,7 +96,7 @@ class ChatControllerTest {
 		}
 
 		@Override
-		public dev.langchain4j.service.TokenStream onPartialResponse(Consumer<String> handler) {
+		public dev.langchain4j.service.TokenStream onNext(Consumer<String> handler) {
 			partialHandler = handler;
 			return this;
 		}
@@ -107,15 +107,10 @@ class ChatControllerTest {
 			return this;
 		}
 
-		@Override
-		public dev.langchain4j.service.TokenStream onToolExecuted(
-				Consumer<dev.langchain4j.service.tool.ToolExecution> handler) {
-			return this;
-		}
 
 		@Override
-		public dev.langchain4j.service.TokenStream onCompleteResponse(
-				Consumer<dev.langchain4j.model.chat.response.ChatResponse> handler) {
+		public dev.langchain4j.service.TokenStream onComplete(
+				Consumer<dev.langchain4j.model.output.Response<dev.langchain4j.data.message.AiMessage>> handler) {
 			completeHandler = handler;
 			return this;
 		}

@@ -165,7 +165,7 @@ AI 层将模型、向量存储与具体框架实现解耦。应用可先依赖�
 | Magic-API | `fw-plus-magicapi-spring-cloud-starter` |
 | 运维 | `fw-plus-admin-server-spring-cloud-starter` |
 | 注册中心 | `fw-plus-eureka-server-spring-cloud-starter` |
-| Cloud 插件 | `fw-plus-magicapi-plugin-eureka` |
+| Cloud 插件 | `fw-plus-cloud-magicapi-plugin-eureka` |
 
 ### AI Starter 与插件
 
