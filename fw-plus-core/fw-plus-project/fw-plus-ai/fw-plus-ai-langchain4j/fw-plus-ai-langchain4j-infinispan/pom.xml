@@ -67,7 +67,11 @@
             <version>${revision}</version>
             <type>pom</type>
         </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-core</artifactId>
+        </dependency>
 
-</dependencies>
+    </dependencies>
 
 </project>

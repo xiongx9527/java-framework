@@ -67,9 +67,7 @@ class MagicApiAllPluginsClasspathTest {
 			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-mybatisplus",
 			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-mybatisflex",
 			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-spring-bean",
-			"com.xiongx9527.fw.plus.ai:fw-plus-ai-magicapi-plugin-model",
 			"com.xiongx9527.fw.plus.ai:fw-plus-ai-magicapi-plugin-mcp",
-			"com.xiongx9527.fw.plus.ai:fw-plus-ai-magicapi-plugin-vector"
 	);
 
 	@Test

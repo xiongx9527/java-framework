@@ -4,8 +4,7 @@
 
 fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是兼顾功能和 Java 8 兼容性的较高可用版本；但本目录下部分扩展模块的 `0.35` 版本源码已经使用了 Java 8 不支持的类或方法。
 
-为保持项目整体 Java 8 兼容性，本目录中的 provider 模块采用与 LangChain4j 原模块相同的包名和类名重写关键类，用本工程内的源码覆盖 `0.35` 中不兼容 Java 8 的实现。模型与向量能力统一由 `fw-plus-ai-langchain4j-adapter` 接入中立 SPI。
-
+为保持项目整体 Java 8 兼容性，本目录中的 provider 模块采用与 LangChain4j 原模块相同的包名和类名重写关键类，用本工程内的源码覆盖 `0.35` 中不兼容 Java 8 的实现。
 下表中的 `0.35` provider覆盖模块只面向Java 8编译或运行环境；Java 17及以上环境应优先使用对应LangChain4j `0.35`原始artifact。
 
 ## 当前已覆盖的类包
@@ -37,7 +36,6 @@ fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是�
 
 | 覆盖模块 | Java 8 覆盖依赖 | Java 17 及以上原始依赖 |
 | --- | --- | --- |
-`fw-plus-ai-langchain4j-adapter` 是本工程自有的模型与向量适配扩展，不属于上游 LangChain4j 类覆盖范围。
 
 ## 覆盖方式
 
@@ -68,8 +66,7 @@ fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是�
 `modelType` 保留 `AUDIO`、`VIDEO`、`PDF` 三类 fw-plus 扩展类型，便于 Magic
 资源和业务适配器统一登记；但 LangChain4j `0.35.0` 和当前 `1.x` 文档没有
 独立的 `AudioModel`、`VideoModel` 或 `PdfModel` 统一接口，默认自动配置不会
-为这三类创建内置 provider adapter。需要使用时通过自定义
-`LangChain4jModelProviderAdapter` 接入厂商 SDK 或业务封装。
+为这三类创建内置 provider。需要使用时在业务层自行封装厂商 SDK。
 
 ## 验证建议
 

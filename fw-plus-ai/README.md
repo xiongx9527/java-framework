@@ -1,45 +1,28 @@
 # fw-plus-ai
 
-## Neutral adapter breaking migration
+## Current capabilities
 
-This release line removes the former LangChain4j model/store artifacts and their old configuration prefixes. The Java 8 `fw-plus-ai-model` and `fw-plus-ai-store-embedding` APIs remain framework-neutral. LangChain4j is installed explicitly through the core adapter:
+This release line keeps only the LangChain4j Java 8 compatibility overlays and the Boot auto-configuration:
 
-```xml
-<dependency>
-    <groupId>com.xiongx9527.fw.plus</groupId>
-    <artifactId>fw-plus-ai-langchain4j-adapter</artifactId>
-    <version>${fw-plus-ai.version}</version>
-</dependency>
-```
+- `fw-plus-ai-langchain4j`, `fw-plus-ai-langchain4j-*`: Java 8 compatible provider overlays for LangChain4j `0.35.0`, preserving the upstream `dev.langchain4j.*` package and class names.
+- `fw-plus-ai-boot-autoconfigure`: classpath-conditional provider auto-configurations (master switch `fw.plus.ai.langchain4j.enabled`), plus MCP server, MCP clustering and the Magic-API MCP plugin.
+- `fw-plus-ai-magicapi-plugin-mcp`: Magic-API MCP plugin.
+- Aggregators: `fw-plus-ai-boot-starter`, `fw-plus-ai-mcp-spring-boot-starter`.
 
-Replace both former core artifacts, `fw-plus-ai-langchain4j-model` and `fw-plus-ai-langchain4j-store-embeding`, with `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter`. There is no separate LangChain4j Boot starter; Boot auto-configuration is provided by `fw-plus-ai-boot-autoconfigure` when the core adapter is present. Do not mix the new adapter artifact with either removed artifact.
+Refer to the `LangChain4j*AutoConfiguration` sources in `fw-plus-ai-boot-autoconfigure` for each provider's conditions and properties.
 
-Use `fw-plus.ai.model` and `fw-plus.ai.embedding-store`; the removed `fw-plus.ai.langchain4j.*` bindings are not supported. An omitted `framework` is valid only when exactly one installed adapter supports the provider/type. With more than one candidate, set `framework: langchain4j` explicitly.
+## Removed
 
-```yaml
-fw-plus:
-  ai:
-    model:
-      models:
-        knowledge-chat:
-          framework: langchain4j
-          provider: openai
-          type: CHAT
-          properties:
-            model-name: gpt-4o-mini
-    embedding-store:
-      stores:
-        knowledge:
-          framework: langchain4j
-          provider: qdrant
-          type: VECTOR
-          properties:
-            host: localhost
-            port: 6334
-```
+The following artifacts and their capabilities were removed from this repository. No POM aliases, old configuration prefixes, or compatibility fallbacks remain:
 
-Magic-API keys such as `model['knowledge-chat']` and `vector['knowledge']` stay stable, but scripts expose only neutral facades and never native LangChain4j objects.
+| Removed artifact | Former purpose |
+| --- | --- |
+| `fw-plus-ai-model` | Framework-neutral model API (`AiModel` / `AiChatModel` / `AiEmbeddingModel`, ...) |
+| `fw-plus-ai-store-embedding` | Framework-neutral embedding store API (`AiEmbeddingStore`, ...) |
+| `fw-plus-ai-langchain4j-adapter` | LangChain4j adapter layer for the neutral SPI |
+| `fw-plus-ai-model-spring-boot-starter`, `fw-plus-ai-store-embedding-spring-boot-starter` | Boot starters for the neutral APIs |
+| `fw-plus-ai-magicapi-plugin-model`, `fw-plus-ai-magicapi-plugin-vector` | Magic-API model / vector datasource plugins |
 
-Spring AI, Spring AI Alibaba, and AgentScope 2 adapters are future Java 17 / Spring Boot 3 work, not artifacts implemented by this release.
+The neutral configuration prefixes `fw-plus.ai.model` / `fw-plus.ai.embedding-store`, the `autoconfigure.model`, `autoconfigure.store.embedding`, `autoconfigure.langchain4j.adapter`, `autoconfigure.magicapi.plugin.model` and `autoconfigure.magicapi.plugin.vector` packages, and their auto-configurations were removed as well. To use LangChain4j directly, add the provider SDK you need and depend on `fw-plus-ai-boot-autoconfigure` for assembly.
 
-See the Chinese [migration guide](../docs/ai-framework-migration/overview.md) for complete mappings, diagnostics, rollback limits, and the Java 17 roadmap.
+Spring AI, Spring AI Alibaba, and AgentScope 2 adapters are future Java 17 / Spring Boot 3 work, not artifacts of this release line.

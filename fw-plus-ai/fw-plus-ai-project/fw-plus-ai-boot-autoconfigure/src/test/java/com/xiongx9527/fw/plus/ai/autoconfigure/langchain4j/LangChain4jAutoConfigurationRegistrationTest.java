@@ -1,6 +1,5 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter.LangChain4jAdapterAutoConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -11,14 +10,10 @@ import org.w3c.dom.NodeList;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.File;
-import java.io.InputStream;
-import java.io.ByteArrayOutputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -27,24 +22,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class LangChain4jAutoConfigurationRegistrationTest {
-
-	private static final String MODEL_AUTO_CONFIGURATION =
-			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter.LangChain4jAdapterAutoConfiguration";
-
-	private static final String[] REQUIRED_STARTER_DEPENDENCIES = new String[] {
-			"fw-plus-ai-model-spring-boot-starter",
-			"fw-plus-ai-store-embedding-spring-boot-starter",
-			"fw-plus-ai-langchain4j-adapter",
-			"fw-plus-ai-boot-autoconfigure"
-	};
-
-	private static final String[] PROVIDER_SDK_ARTIFACTS = new String[] {
-			"langchain4j-open-ai",
-			"langchain4j-ollama",
-			"langchain4j-dashscope",
-			"langchain4j-anthropic",
-			"langchain4j-azure-open-ai"
-	};
 
 	private static final String[] EXPECTED_IMPORTS = new String[] {
 			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jCoreAutoConfiguration",
@@ -201,7 +178,7 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 				Class.forName(className);
 				throw new AssertionError("Legacy store auto-configuration should be absent: " + className);
 			} catch (ClassNotFoundException expected) {
-				// Expected: all stores are created through the neutral adapter chain.
+				// Expected: all legacy store auto-configurations have been removed.
 			}
 		}
 	}
@@ -221,52 +198,6 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 			}
 		}
 		assertTrue("Azure content retriever bean should remain available", retrieverBean);
-	}
-
-	@Test
-	public void shouldRegisterAdapterAutoConfigurationInSpringFactories() throws Exception {
-		String factoriesContent = read("META-INF/spring.factories");
-		String importsContent = read("META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports");
-		Properties factories = new Properties();
-		factories.load(new java.io.StringReader(factoriesContent));
-
-		String autoConfigurations = factories.getProperty("org.springframework.boot.autoconfigure.EnableAutoConfiguration");
-		assertNotNull("EnableAutoConfiguration entries should be present", autoConfigurations);
-		assertTrue("LangChain4jAdapterAutoConfiguration should be registered",
-				Arrays.asList(autoConfigurations.replace("\\n", "").split("\\s*,\\s*")).contains(MODEL_AUTO_CONFIGURATION));
-		assertEquals("LangChain4jAdapterAutoConfiguration should occur once in spring.factories", 1,
-				occurrences(factoriesContent, MODEL_AUTO_CONFIGURATION));
-		assertEquals("LangChain4jAdapterAutoConfiguration should occur once in AutoConfiguration.imports", 1,
-				occurrences(importsContent, MODEL_AUTO_CONFIGURATION));
-		assertTrue("Adapter root should not import legacy provider autoconfiguration eagerly",
-				!importClassNames(LangChain4jAdapterAutoConfiguration.class)
-						.contains(LangChain4jAutoConfiguration.class.getName()));
-	}
-
-	private String read(String location) throws Exception {
-		InputStream inputStream = getClass().getClassLoader().getResourceAsStream(location);
-		assertNotNull(location + " should be present", inputStream);
-		try {
-			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-			byte[] buffer = new byte[1024];
-			int length;
-			while ((length = inputStream.read(buffer)) >= 0) {
-				outputStream.write(buffer, 0, length);
-			}
-			return new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
-		} finally {
-			inputStream.close();
-		}
-	}
-
-	private int occurrences(String content, String value) {
-		int count = 0;
-		int index = 0;
-		while ((index = content.indexOf(value, index)) >= 0) {
-			count++;
-			index += value.length();
-		}
-		return count;
 	}
 
 	@Test
@@ -294,31 +225,6 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 		}
 	}
 
-	@Test
-	public void shouldKeepCoreAdapterProviderSdkDependenciesOptIn() throws Exception {
-		File adapterPom = findAdapterPom();
-		assertTrue("Adapter POM should exist: " + adapterPom.getAbsolutePath(), adapterPom.isFile());
-
-		Set<String> artifactIds = dependencyArtifactIds(adapterPom);
-		assertTrue("Core adapter should depend on fw-plus-ai-model", artifactIds.contains("fw-plus-ai-model"));
-		assertTrue("Core adapter should depend on fw-plus-ai-store-embedding", artifactIds.contains("fw-plus-ai-store-embedding"));
-		assertTrue("Core adapter should depend on fw-plus-ai-langchain4j-core",
-				artifactIds.contains("fw-plus-ai-langchain4j-core"));
-		assertFalse("Core adapter must not depend on the official langchain4j-core owner",
-				artifactIds.contains("langchain4j-core"));
-		assertFalse("Core adapter must not depend on a removed Spring Boot starter", artifactIds.contains("fw-plus-ai-langchain4j-adapter-spring-boot-starter"));
-		for (String requiredDependency : REQUIRED_STARTER_DEPENDENCIES) {
-			if (!"fw-plus-ai-langchain4j-adapter".equals(requiredDependency)) {
-				assertFalse("Core adapter must not aggregate Boot starter " + requiredDependency,
-						artifactIds.contains(requiredDependency));
-			}
-		}
-		for (String providerSdkArtifact : PROVIDER_SDK_ARTIFACTS) {
-			assertTrue("Core adapter must not directly depend on " + providerSdkArtifact,
-					!artifactIds.contains(providerSdkArtifact));
-		}
-	}
-
 	private Set<String> importClassNames(Class<?> type) {
 		Import importAnnotation = type.getAnnotation(Import.class);
 		assertNotNull(importAnnotation);
@@ -336,11 +242,6 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 			classNames.add(type.getName());
 		}
 		return classNames;
-	}
-
-	private File findAdapterPom() {
-		return findProjectFile("fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/"
-				+ "fw-plus-ai-langchain4j-adapter/pom.xml");
 	}
 
 	private File findProjectFile(String relativePath) {
@@ -371,35 +272,5 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 			scopes.put(artifactIds.item(0).getTextContent().trim(), scope);
 		}
 		return scopes;
-	}
-
-	private Set<String> dependencyArtifactIds(File pom) throws Exception {
-		return compileScopeDependencies(pom).keySet();
-	}
-
-	/**
-	 * 只取编译期生效的依赖（compile/provided/runtime）：架构契约约束的是"生产 classpath 不走
-	 * 官方 langchain4j-core"，test scope 用于在 reactor 内提供被 shade 的类，不违反该约束。
-	 */
-	private Map<String, String> compileScopeDependencies(File pom) throws Exception {
-		Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(pom);
-		NodeList dependencies = document.getElementsByTagName("dependency");
-		Map<String, String> artifactIds = new LinkedHashMap<String, String>();
-		for (int index = 0; index < dependencies.getLength(); index++) {
-			Element dependency = (Element) dependencies.item(index);
-			String scope = "compile";
-			NodeList scopeElements = dependency.getElementsByTagName("scope");
-			if (scopeElements.getLength() > 0) {
-				scope = scopeElements.item(0).getTextContent().trim();
-			}
-			if ("test".equals(scope) || "import".equals(scope)) {
-				continue;
-			}
-			NodeList artifactIdElements = dependency.getElementsByTagName("artifactId");
-			if (artifactIdElements.getLength() > 0) {
-				artifactIds.put(artifactIdElements.item(0).getTextContent().trim(), scope);
-			}
-		}
-		return artifactIds;
 	}
 }

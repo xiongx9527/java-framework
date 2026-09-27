@@ -12,8 +12,6 @@ import org.springframework.context.annotation.Import;
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @Configuration
 @AutoConfigureAfter(name = {
-        "com.xiongx9527.fw.plus.ai.autoconfigure.model.AiModelAutoConfiguration",
-        "com.xiongx9527.fw.plus.ai.autoconfigure.store.embedding.AiEmbeddingStoreAutoConfiguration",
         // 插件配置带 @ConditionalOnBean(MagicResourceService.class)，必须在 magic-api starter
         // 之后评估，否则该 bean 尚未注册，插件不生效。
         "org.ssssssss.magicapi.spring.boot.starter.MagicAPIAutoConfiguration"

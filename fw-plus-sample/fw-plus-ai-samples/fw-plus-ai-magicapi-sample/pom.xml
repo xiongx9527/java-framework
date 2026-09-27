@@ -31,16 +31,6 @@
         </dependency>
 
         <dependency>
-            <groupId>com.xiongx9527.fw.plus.ai</groupId>
-            <artifactId>fw-plus-ai-magicapi-plugin-vector</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus.ai</groupId>
-            <artifactId>fw-plus-ai-magicapi-plugin-model</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>org.nebula-contrib</groupId>
             <artifactId>nebula-jdbc</artifactId>
             <version>3.3.0</version>
