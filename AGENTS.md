@@ -29,7 +29,7 @@ fw-plus 是 9527 的 Java 开发框架，基于 Spring Boot 2.7.18，提供 Spri
 所有源码位于 `src/main/java`，资源位于 `src/main/resources`，源码编码统一为 UTF-8。
 
 ```
-fw-plus/                      # 根目录（聚合项目，无统一父 POM）
+fw-plus/                      # 根目录（聚合项目，根 pom.xml 聚合下列 5 个库层，根目录也有 mvnw）
 ├── fw-plus-core/             # 核心库层（Java 1.8, Spring Boot 2.7.18）
 │   ├── fw-plus-project/
 │   │   ├── fw-plus-parent/       # Core 层父 POM
@@ -278,7 +278,9 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 
 ## 重要提醒
 
-- **Maven 构建**：`fw-plus-core`、`fw-plus-boot`、`fw-plus-cloud`、`fw-plus-ai` 四个库层各自带有 `mvnw`（Maven Wrapper）；`fw-plus-sample` 样例聚合目录不带 Wrapper。按 Core → Boot → Cloud / AI 顺序准备本地 Maven 依赖后，使用 `./fw-plus-core/mvnw -f fw-plus-sample/pom.xml validate` 作为样例统一入口。fw-plus-core 是底层依赖，各层级均有独立的父 POM。发版按版本号统一发，不单独发某个模块。
+- **Maven 构建**：根目录是聚合工程（`pom.xml` + `mvnw`，模块为 `fw-plus-core`/`fw-plus-boot`/`fw-plus-cloud`/`fw-plus-ai`/`fw-plus-sample`），可用 `./mvnw compile` / `./mvnw test` 一把跑全仓；四个库层各自也带有 `mvnw`，用于按层增量构建（如 `cd fw-plus-core && ./mvnw clean install -DskipTests`）。按 Core → Boot → Cloud / AI 顺序准备本地 Maven 依赖后，使用 `./fw-plus-core/mvnw -f fw-plus-sample/pom.xml validate` 作为样例统一入口。fw-plus-core 是底层依赖，各层级均有独立的父 POM。发版按版本号统一发，不单独发某个模块。
+  - **注意（shade 与离线）**：`fw-plus-ai-langchain4j-core` 用 maven-shade-plugin 把 `langchain4j-core` 打进自己的 jar，shade 只在 `package` 阶段发生；离线环境下若 shade 插件依赖未缓存，`install` 会失败，此时依赖 `langchain4j-core` 类的模块测试需以「该模块单独 `-pl` 构建」或「已安装 jar」为前提，根 reactor 的 `test` 阶段可能因只有 `target/classes` 而报 `NoClassDefFoundError`。
+  - **根目录 `./mvnw -o compile` 要求所有模块声明齐全**：`fw-plus-ai-langchain4j-*` 各模块需显式声明 `lombok`(provided) 与 `langchain4j-core`（`fw-plus-ai-langchain4j-core` 对 core  Jar 是 optional，不传递）；但 `fw-plus-ai-langchain4j-adapter` 受架构契约约束**禁止**依赖官方 `langchain4j-core`，只能走 shaded 版。
 - **Magic-API 版本**：使用自行维护的 2.2.2 版本，`org.ssssssss` 组的依赖通过 `<repositories>` 指向内部 Nexus 仓库（jugui-snapshot / jugui-release），请勿修改这些依赖的版本号。
 - **JDK 1.8 约束**：fw-plus-core 严格约束为 Java 1.8（compiler source/target = 1.8），不要引入 Java 9+ 的 API（如 `List.of()`、`Map.copyOf()`、`Optional.orElseThrow()` 等）。
 - **源文件编码**：所有 Java 源文件、资源文件统一使用 UTF-8 编码。
@@ -289,11 +291,10 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 ## 构建、测试与开发命令
 
 ```bash
-# 全量编译（跳过测试）— 需在各模块目录下执行，根目录无统一 POM
-# 推荐使用各模块内置的 Maven Wrapper (mvnw)
-cd fw-plus-core && ./mvnw clean install -DskipTests
+# 全量编译（跳过测试）— 根目录聚合 5 个库层，可一把跑
+./mvnw clean install -DskipTests
 
-# 编译指定模块
+# 按层增量构建（仅该层及其依赖）
 cd fw-plus-core && ./mvnw clean install -pl fw-plus-project/fw-plus-common -DskipTests
 
 # 运行测试（Cobertura 覆盖率报告在 target/site/cobertura/）

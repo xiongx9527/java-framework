@@ -122,3 +122,28 @@ Servlet 与 WebFlux 入口在认证失败（匿名主体）时直接返回 401�
 ## 环境变量与端口
 
 插件自身不监听端口；端点由 `mcp-server` 实例的 `endpoint` 决定（`http-sse` 为 `{endpoint}/sse` + `{endpoint}/messages/{uuid}`，`streamable-http` 为 `{endpoint}`）。
+
+## 从 Boot 层旧实现迁移
+
+本插件取代了 `com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-mcp`（Boot 层同名模块，含其自研 transport / SSE / 诊断 / Sa-Token 认证，已删除）。迁移要点：
+
+| 旧（Boot 层） | 新（AI 层） |
+| --- | --- |
+| `fw-plus-magicapi-plugin-mcp` | `fw-plus-ai-magicapi-plugin-mcp`（console 前端） |
+| `…boot.autoconfigure.magicapi.plugin.mcp.*` | `…ai.autoconfigure.magicapi.plugin.mcp.*` + `…ai.autoconfigure.mcp.*` |
+| `McpAccessTokenVerifier` / `SaTokenMcpAuthService` | starter 的 `McpAuthService` SPI；classpath 有 `sa-token-oauth2` 时自动用 `SaTokenOAuth2McpAuthService`，或提供自定义 bean |
+| `McpToolsHandler` / `McpResourcesHandler` 等 | 经内核 `FeatureMgr` 的 store 注册 + `MagicApiMcpServerRegistry` 改写响应 |
+
+配置键变化（旧键已无消费者）：
+
+- `magic-api.plugin.mcp.transport` / `session-timeout` / `sse-stream` / `max-request-bytes` / `max-response-chars` / `trusted-origins` / `protocol.*` / `headers.*` → 改用 `fw-plus.ai.mcp.*`（mcp starter）
+- `magic-api.plugin.mcp.auth.*`（原 Boot 层插件自带）→ 不再需要；scope 取 token scopes，能力 scope 名沿用 `mcp:tools`/`mcp:resources`/`mcp:prompts` 等约定
+- 保留：`enabled`、`tools.*`、`servers[]`
+
+## 已知限制
+
+1. **快照缓存**：`MagicApiMcpToolRegistry` 的工具快照只在收到 Magic-API 资源变更事件后失效。自定义 `MagicApiMcpCapabilityProvider` 若内部状态运行期变化，需自行触发重建（例如注入该 registry 调 `invalidateSnapshot()`）。
+2. **completion 的 resource 侧**：内核按模板名反查拼 key，控制台维护 `template` 时建议让 `name` 与 `template` 保持易对应的关系；两种 ref 形态（模板名 / uriTemplate）均已注册。
+3. **WebFlux 动态路由**：验证到装配级（`ApplicationContextRunner` + 路由探测），未覆盖真实 Netty 端到端。
+4. **认证缺省语义**：未引入 `sa-token-oauth2` 且未提供自定义 `McpAuthService` 时为放行占位，生产环境必须二选一。
+5. **console dist 不入库**：`src/console/dist/` 被 `.gitignore` 排除，jar 中的 `magic-mcp.*.iife.js` 由 `npm run build` 在 `prepare-package` 阶段生成（与 vector/model 插件一致）。
