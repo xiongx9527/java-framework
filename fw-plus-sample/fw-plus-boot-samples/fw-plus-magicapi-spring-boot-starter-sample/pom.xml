@@ -208,8 +208,9 @@
         </dependency>
 
         <dependency>
-            <groupId>com.xiongx9527.fw.plus.boot</groupId>
-            <artifactId>fw-plus-magicapi-plugin-mcp</artifactId>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-mcp</artifactId>
+            <version>${revision}</version>
         </dependency>
 
         <dependency>

@@ -30,7 +30,6 @@ class MagicApiAllPluginsClasspathTest {
 			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-freemarker",
 			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-influx",
 			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-kafka",
-			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-mcp",
 			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-mongo",
 			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-mqtt-server",
 			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-mqtt-client",
@@ -46,6 +45,7 @@ class MagicApiAllPluginsClasspathTest {
 			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-word",
 			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-ws",
 			"com.xiongx9527.fw.plus.ai:fw-plus-ai-magicapi-plugin-model",
+			"com.xiongx9527.fw.plus.ai:fw-plus-ai-magicapi-plugin-mcp",
 			"com.xiongx9527.fw.plus.ai:fw-plus-ai-magicapi-plugin-vector"
 	);
 
@@ -74,8 +74,8 @@ class MagicApiAllPluginsClasspathTest {
 		Set<String> aiModules = readModules(root.resolve(
 				"fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/pom.xml"));
 
-		assertEquals(25, bootModules.size());
-		assertEquals(2, aiModules.size());
+		assertEquals(24, bootModules.size());
+		assertEquals(3, aiModules.size());
 		assertEquals(expectedArtifacts("com.xiongx9527.fw.plus.boot"), bootModules);
 		assertEquals(expectedArtifacts("com.xiongx9527.fw.plus.ai"), aiModules);
 	}

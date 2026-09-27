@@ -184,7 +184,6 @@ class MagicApiAllPluginsApplicationContextTest {
 		configurations.put("fw-plus-magicapi-plugin-freemarker", "freemarker");
 		configurations.put("fw-plus-magicapi-plugin-influx", "influx");
 		configurations.put("fw-plus-magicapi-plugin-kafka", "kafka");
-		configurations.put("fw-plus-magicapi-plugin-mcp", "mcp");
 		configurations.put("fw-plus-magicapi-plugin-mongo", "mongo");
 		configurations.put("fw-plus-magicapi-plugin-mqtt-server", "mqtt");
 		configurations.put("fw-plus-magicapi-plugin-mqtt-client", "mqttclient");
