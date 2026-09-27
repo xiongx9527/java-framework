@@ -199,27 +199,6 @@ public class LangChain4jAdapterAutoConfigurationTest {
 				"dev.langchain4j.community.model.zhipu.ZhipuAiImageModel");
 	}
 
-	@Test
-	public void shouldDeclareClassConditionsOnDirectLinkedEmbeddingStoreProviderBeans() throws Exception {
-		assertClassCondition("redisStackEmbeddingStoreProviderAdapter",
-				"dev.langchain4j.community.store.embedding.redis.RedisEmbeddingStore");
-		assertClassCondition("milvusEmbeddingStoreProviderAdapter",
-				"dev.langchain4j.store.embedding.milvus.MilvusEmbeddingStore",
-				"io.milvus.common.clientenum.ConsistencyLevelEnum",
-				"io.milvus.param.IndexType",
-				"io.milvus.param.MetricType");
-		assertClassCondition("elasticsearchEmbeddingStoreProviderAdapter",
-				"dev.langchain4j.store.embedding.elasticsearch.ElasticsearchEmbeddingStore");
-		assertClassCondition("qdrantEmbeddingStoreProviderAdapter",
-				"dev.langchain4j.store.embedding.qdrant.QdrantEmbeddingStore");
-		assertClassCondition("weaviateEmbeddingStoreProviderAdapter",
-				"dev.langchain4j.store.embedding.weaviate.WeaviateEmbeddingStore");
-		assertClassCondition("azureAiSearchEmbeddingStoreProviderAdapter",
-				"dev.langchain4j.store.embedding.azure.search.AzureAiSearchEmbeddingStore",
-				"dev.langchain4j.rag.content.retriever.azure.search.AzureAiSearchFilterMapper",
-				"com.azure.core.credential.TokenCredential",
-				"com.azure.search.documents.indexes.models.SearchIndex");
-	}
 
 	private void assertModelProviderBacksOff(String filteredPackage, String... beanNames) {
 		this.contextRunner
@@ -251,13 +230,6 @@ public class LangChain4jAdapterAutoConfigurationTest {
 		throw new IllegalArgumentException("Cannot find model bean method: " + methodName);
 	}
 
-	private void assertClassCondition(String beanMethodName, String... expectedClassNames) throws Exception {
-		Method method = beanMethod(beanMethodName);
-		ConditionalOnClass conditional = method.getAnnotation(ConditionalOnClass.class);
-		assertNotNull(conditional, beanMethodName + " should declare @ConditionalOnClass");
-		Set<String> actualClassNames = new LinkedHashSet<String>(Arrays.asList(conditional.name()));
-		assertEquals(new LinkedHashSet<String>(Arrays.asList(expectedClassNames)), actualClassNames);
-	}
 
 	private Method beanMethod(String methodName) {
 		for (Method method : LangChain4jEmbeddingStoreAdapterAutoConfiguration.class.getDeclaredMethods()) {

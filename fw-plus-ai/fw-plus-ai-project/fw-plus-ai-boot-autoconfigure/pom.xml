@@ -152,6 +152,7 @@
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-spring-boot-starter</artifactId>
+            <version>${langchain4j-community.version}</version>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
@@ -300,6 +301,16 @@
             <artifactId>langchain4j-community-zhipu-ai</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-qdrant</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-community-redis</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>dev.langchain4j</groupId>

@@ -286,7 +286,7 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 				"langchain4j-elasticsearch",
 				"langchain4j-milvus",
 				"langchain4j-qdrant",
-				"langchain4j-redis",
+				"langchain4j-community-redis",
 				"langchain4j-weaviate",
 				"milvus-sdk-java"
 		}) {
