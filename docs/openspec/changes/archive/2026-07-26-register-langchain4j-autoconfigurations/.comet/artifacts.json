@@ -1,7 +1,0 @@
-{
-  "openspec_proposal": "openspec/changes/register-langchain4j-autoconfigurations/proposal.md",
-  "openspec_design": "openspec/changes/register-langchain4j-autoconfigurations/design.md",
-  "openspec_tasks": "openspec/changes/register-langchain4j-autoconfigurations/tasks.md",
-  "openspec_delta_spec": "openspec/changes/register-langchain4j-autoconfigurations/specs/langchain4j-starter-modules/spec.md",
-  "archive_directory": "openspec/changes/archive/2026-07-26-register-langchain4j-autoconfigurations"
-}

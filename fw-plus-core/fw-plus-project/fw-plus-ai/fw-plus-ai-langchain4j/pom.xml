@@ -5,9 +5,13 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.xiongx9527.fw.plus</groupId>
-        <artifactId>fw-plus-ai</artifactId>
+        <artifactId>fw-plus-parent</artifactId>
         <version>${revision}</version>
+        <relativePath>../../fw-plus-parent</relativePath>
     </parent>
+    <groupId>com.xiongx9527.fw.plus</groupId>
+    <artifactId>fw-plus-ai-langchain4j</artifactId>
+    <version>${revision}</version>
     <packaging>pom</packaging>
     <modules>
         <module>fw-plus-ai-langchain4j-core</module>
@@ -30,10 +34,7 @@
         <module>fw-plus-ai-langchain4j-neo4j</module>
         <module>fw-plus-ai-langchain4j-reactor</module>
     </modules>
-    <artifactId>fw-plus-ai-langchain4j</artifactId>
-
     <properties>
         <main.basedir>${basedir}/../../..</main.basedir>
     </properties>
-
 </project>

@@ -24,36 +24,30 @@
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-ai-model</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.xiongx9527.fw.plus</groupId>
-                    <artifactId>fw-plus-common</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-ai-askdata</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-ai-store-embedding</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.xiongx9527.fw.plus</groupId>
-                    <artifactId>fw-plus-common</artifactId>
-                </exclusion>
-            </exclusions>
+            <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-core</artifactId>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j-core</artifactId>
+            <version>${revision}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-    </dependencies>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j</artifactId>
+            <version>${revision}</version>
+        </dependency>
+
+</dependencies>
 
 </project>

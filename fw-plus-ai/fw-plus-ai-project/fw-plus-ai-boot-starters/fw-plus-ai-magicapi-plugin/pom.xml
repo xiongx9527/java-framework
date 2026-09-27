@@ -12,7 +12,7 @@
     <modules>
         <module>fw-plus-ai-magicapi-plugin-vector</module>
         <module>fw-plus-ai-magicapi-plugin-model</module>
-        <module>fw-plus-ai-magicapi-plugin-tinyflow</module>
+        <module>fw-plus-ai-magicapi-plugin-mcp</module>
     </modules>
     <artifactId>fw-plus-ai-magicapi-plugin</artifactId>
 

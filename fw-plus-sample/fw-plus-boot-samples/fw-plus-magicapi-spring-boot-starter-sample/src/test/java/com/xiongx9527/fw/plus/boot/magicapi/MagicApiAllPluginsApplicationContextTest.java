@@ -186,8 +186,8 @@ class MagicApiAllPluginsApplicationContextTest {
 		configurations.put("fw-plus-magicapi-plugin-kafka", "kafka");
 		configurations.put("fw-plus-magicapi-plugin-mcp", "mcp");
 		configurations.put("fw-plus-magicapi-plugin-mongo", "mongo");
-		configurations.put("fw-plus-magicapi-plugin-mqtt", "mqtt");
-		configurations.put("fw-plus-magicapi-plugin-mqttclient", "mqttclient");
+		configurations.put("fw-plus-magicapi-plugin-mqtt-server", "mqtt");
+		configurations.put("fw-plus-magicapi-plugin-mqtt-client", "mqttclient");
 		configurations.put("fw-plus-magicapi-plugin-pulsar", "pulsar");
 		configurations.put("fw-plus-magicapi-plugin-rabbitmq", "rabbitmq");
 		configurations.put("fw-plus-magicapi-plugin-redis", "redis");

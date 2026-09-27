@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>fw-plus WebSocket 样例</title>
+    <style>
+        body { font-family: -apple-system, "PingFang SC", sans-serif; margin: 24px; line-height: 1.6; }
+        button { margin-right: 8px; }
+        #log { margin-top: 12px; padding: 12px; background: #111; color: #0f0; height: 320px; overflow: auto;
+               font-family: Menlo, Consolas, monospace; font-size: 12px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+<h3>fw-plus-ws-spring-boot-starter 样例</h3>
+<div>
+    <label>clientId：<input id="clientId" value="demo-client"></label>
+    <button id="connect">连接</button>
+    <button id="sendText">发送文本 echo</button>
+    <button id="sendBinary">发送二进制 echo</button>
+    <button id="disconnect">断开</button>
+</div>
+<div id="log"></div>
+<script>
+    let socket = null;
+
+    function log(message) {
+        const box = document.getElementById('log');
+        box.textContent += message + '\n';
+        box.scrollTop = box.scrollHeight;
+    }
+
+    document.getElementById('connect').onclick = async () => {
+        const clientId = document.getElementById('clientId').value;
+        const url = `ws://${location.host}/ws/api?clientId=${encodeURIComponent(clientId)}`;
+        socket = new WebSocket(url);
+        socket.binaryType = 'arraybuffer';
+        socket.onopen = () => log('[open] ' + url);
+        socket.onmessage = event => log('[recv] ' + (typeof event.data === 'string'
+                ? event.data
+                : new TextDecoder().decode(event.data)));
+        socket.onclose = event => log(`[close] code=${event.code} reason=${event.reason}`);
+        socket.onerror = () => log('[error]');
+    };
+
+    document.getElementById('sendText').onclick = () => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ type: 'echo', id: 1, hello: 'world' }));
+        }
+    };
+
+    document.getElementById('sendBinary').onclick = () => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(new Uint8Array([1, 2, 3, 4]));
+        }
+    };
+
+    document.getElementById('disconnect').onclick = () => {
+        if (socket) {
+            socket.close();
+        }
+    };
+
+    log('先点“连接”，再发送文本/二进制帧，服务端会把内容原样回发。');
+</script>
+</body>
+</html>

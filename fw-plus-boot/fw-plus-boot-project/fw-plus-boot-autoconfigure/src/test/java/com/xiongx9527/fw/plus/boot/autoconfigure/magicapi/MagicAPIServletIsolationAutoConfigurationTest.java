@@ -53,7 +53,8 @@ class MagicAPIServletIsolationAutoConfigurationTest {
                     "magic-api.plugin.s3.enabled=false",
                     "magic-api.plugin.task.enabled=false",
                     "magic-api.plugin.dtp.enabled=false",
-                    "magic-api.plugin.ws.enabled=false",
+                    // WS 配置前缀已由 magic-api.plugin.ws 迁移为 fw.plus.ws
+                    "fw.plus.ws.enabled=false",
                     "magic-api.plugin.mqtt.enabled=false",
                     "magic-api.plugin.mqttclient.enabled=false",
                     "magic-api.plugin.druid.enabled=false",

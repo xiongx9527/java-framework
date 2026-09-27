@@ -1,0 +1,7 @@
+schema: comet.native.delta.v1
+capability: ws-spring-boot-starter
+base_hash: 2b5416e65f8d71356757365bde5d5f37ec841502e153ea961988f93d5eda7ab2
+base_version: 2
+legacy_hash: 703c5232456da3caafca4e8fa2587d54ecab0cb4e98327d3d74325e807c3b65b
+base_requirements: {}
+operations: []

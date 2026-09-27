@@ -397,6 +397,22 @@ public class WebFluxRequestContextHolder {
         }
 
         @Override
+        public void sendError(int sc, String msg) throws IOException {
+            if (this.exchange != null) {
+                this.exchange.getResponse().setStatusCode(HttpStatus.valueOf(sc));
+                //this.exchange.getResponse().setBody(Mono.just(this.exchange.getResponse().bufferFactory().wrap(msg.getBytes())));
+            }
+        }
+
+        @Override
+        public void sendError(int sc) throws IOException {
+            if (this.exchange != null) {
+                this.exchange.getResponse().setStatusCode(HttpStatus.valueOf(sc));
+            }
+        }
+
+
+        @Override
         public void setHeader(String name, String value) {
             if (this.exchange != null) {
                 this.exchange.getResponse().getHeaders().set(name, value);

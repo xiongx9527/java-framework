@@ -57,10 +57,9 @@ fw-plus:
 
 选择规则对模型和向量 store 一致：显式 `framework` 只匹配同名 adapter；省略时仅一个支持该 provider/type 的 adapter 才能自动选择；零个或多个候选都失败。诊断包含 key、framework、provider、type 与候选 framework，不得包含 apiKey、token、secret 或完整连接串。
 
-## Magic-API 与 AskData
+## Magic-API
 
 `model['knowledge-chat']`、`vector['knowledge']` 和默认 key 的语义保持稳定。资源定义也可给出 `framework`，并遵循同一选择规则；脚本只得到中立 facade，不能取得 `LangChain4jModel` 或 `EmbeddingStore<TextSegment>`。SDK 专有调用应留在 Java adapter/业务层。
 
-AskData 保留且本次不修改其源码。只有在 adapter、Boot 与 Magic-API 迁移完成并获得再次确认后，才迁移其旧 artifact 依赖并执行回归；当前不能将 AskData 视为已切换至其他 framework。
 
 完整迁移、回滚限制、诊断与 Java 17 / Boot 3 蓝图见 [迁移总览](../docs/ai-framework-migration/overview.md)。

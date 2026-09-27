@@ -6,6 +6,7 @@
     <groupId>com.xiongx9527.fw.plus.cloud</groupId>
     <artifactId>fw-plus-cloud-build</artifactId>
     <version>0.1.1-SNAPSHOT</version>
+    <relativePath>../../fw-plus-cloud/pom.xml</relativePath>
   </parent>
   <groupId>com.xiongx9527.fw.plus.cloud</groupId>
   <artifactId>fw-plus-cloud-samples</artifactId>
@@ -24,11 +25,11 @@
     <module>nacos-gateway-sample</module>
   </modules>
   <properties>
-    <main.basedir>${basedir}/../..</main.basedir>
     <maven.test.skip>true</maven.test.skip>
     <maven.install.skip>true</maven.install.skip>
-    <maven.deploy.skip>true</maven.deploy.skip>
     <maven.javadoc.skip>true</maven.javadoc.skip>
+    <main.basedir>${basedir}/../..</main.basedir>
+    <maven.deploy.skip>true</maven.deploy.skip>
   </properties>
   <dependencyManagement>
     <dependencies>

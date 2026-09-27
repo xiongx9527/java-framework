@@ -51,15 +51,12 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jOpenAiAutoConfiguration",
 			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jAnthropicAutoConfiguration",
 			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jOllamaAutoConfiguration",
-			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jAzureAiSearchAutoConfiguration",
+			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jAzureAiSearchContentRetrieverAutoConfiguration",
 			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jAzureOpenAiAutoConfiguration",
 			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jVoyageAiAutoConfiguration",
 			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jGitHubModelsAutoConfiguration",
 			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jVertexAiGeminiAutoConfiguration",
-			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jElasticsearchEmbeddingStoreAutoConfiguration",
-			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jRedisEmbeddingStoreAutoConfiguration",
 			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jQianfanAutoConfiguration",
-			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jMilvusEmbeddingStoreAutoConfiguration",
 			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jDashScopeAutoConfiguration"
 	};
 
@@ -94,10 +91,9 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 						"dev.langchain4j.model.ollama.OllamaEmbeddingModel"
 				});
 		EXPECTED_CLASS_CONDITIONS.put(
-				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jAzureAiSearchAutoConfiguration",
+				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jAzureAiSearchContentRetrieverAutoConfiguration",
 				new String[] {
-						"dev.langchain4j.rag.content.retriever.azure.search.AzureAiSearchContentRetriever",
-						"dev.langchain4j.store.embedding.azure.search.AzureAiSearchEmbeddingStore"
+						"dev.langchain4j.rag.content.retriever.azure.search.AzureAiSearchContentRetriever"
 				});
 		EXPECTED_CLASS_CONDITIONS.put(
 				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jAzureOpenAiAutoConfiguration",
@@ -126,26 +122,11 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 						"dev.langchain4j.model.vertexai.VertexAiGeminiStreamingChatModel"
 				});
 		EXPECTED_CLASS_CONDITIONS.put(
-				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jElasticsearchEmbeddingStoreAutoConfiguration",
-				new String[] {
-						"dev.langchain4j.store.embedding.elasticsearch.ElasticsearchEmbeddingStore"
-				});
-		EXPECTED_CLASS_CONDITIONS.put(
-				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jRedisEmbeddingStoreAutoConfiguration",
-				new String[] {
-						"dev.langchain4j.store.embedding.redis.RedisEmbeddingStore"
-				});
-		EXPECTED_CLASS_CONDITIONS.put(
 				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jQianfanAutoConfiguration",
 				new String[] {
 						"dev.langchain4j.model.qianfan.QianfanChatModel",
 						"dev.langchain4j.model.qianfan.QianfanStreamingChatModel",
 						"dev.langchain4j.model.qianfan.QianfanEmbeddingModel"
-				});
-		EXPECTED_CLASS_CONDITIONS.put(
-				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jMilvusEmbeddingStoreAutoConfiguration",
-				new String[] {
-						"dev.langchain4j.store.embedding.milvus.MilvusEmbeddingStore"
 				});
 		EXPECTED_CLASS_CONDITIONS.put(
 				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jDashScopeAutoConfiguration",
@@ -209,6 +190,40 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 	}
 
 	@Test
+	public void shouldRemoveLegacyEmbeddingStoreAutoConfigurationBypasses() {
+		for (String className : new String[] {
+				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jAzureAiSearchAutoConfiguration",
+				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jElasticsearchEmbeddingStoreAutoConfiguration",
+				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jRedisEmbeddingStoreAutoConfiguration",
+				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jMilvusEmbeddingStoreAutoConfiguration"
+		}) {
+			try {
+				Class.forName(className);
+				throw new AssertionError("Legacy store auto-configuration should be absent: " + className);
+			} catch (ClassNotFoundException expected) {
+				// Expected: all stores are created through the neutral adapter chain.
+			}
+		}
+	}
+
+	@Test
+	public void shouldKeepAzureRetrieverWithoutCreatingANativeStoreBean() throws Exception {
+		Class<?> autoConfig = Class.forName("dev.langchain4j.azure.aisearch.spring.AutoConfig");
+		boolean retrieverBean = false;
+		for (java.lang.reflect.Method method : autoConfig.getDeclaredMethods()) {
+			if (method.getAnnotation(org.springframework.context.annotation.Bean.class) == null) {
+				continue;
+			}
+			assertFalse("Azure auto-configuration must not create a native embedding store",
+					method.getReturnType().getName().contains("AzureAiSearchEmbeddingStore"));
+			if (method.getReturnType().getName().contains("AzureAiSearchContentRetriever")) {
+				retrieverBean = true;
+			}
+		}
+		assertTrue("Azure content retriever bean should remain available", retrieverBean);
+	}
+
+	@Test
 	public void shouldRegisterAdapterAutoConfigurationInSpringFactories() throws Exception {
 		String factoriesContent = read("META-INF/spring.factories");
 		String importsContent = read("META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports");
@@ -255,6 +270,31 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 	}
 
 	@Test
+	public void shouldKeepEmbeddingStoreProviderSdksOutOfTheAutoConfigureCompileClasspath() throws Exception {
+		File pom = findProjectFile("fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml");
+		Map<String, String> scopes = dependencyScopes(pom);
+
+		for (String wrapper : new String[] {
+				"fw-plus-ai-langchain4j-elasticsearch",
+				"fw-plus-ai-langchain4j-redis",
+				"fw-plus-ai-langchain4j-milvus"
+		}) {
+			assertFalse("Removed store bypass wrapper should not remain: " + wrapper,
+					scopes.containsKey(wrapper));
+		}
+		for (String providerSdk : new String[] {
+				"langchain4j-elasticsearch",
+				"langchain4j-milvus",
+				"langchain4j-qdrant",
+				"langchain4j-redis",
+				"langchain4j-weaviate",
+				"milvus-sdk-java"
+		}) {
+			assertEquals(providerSdk + " should be test-only", "test", scopes.get(providerSdk));
+		}
+	}
+
+	@Test
 	public void shouldKeepCoreAdapterProviderSdkDependenciesOptIn() throws Exception {
 		File adapterPom = findAdapterPom();
 		assertTrue("Adapter POM should exist: " + adapterPom.getAbsolutePath(), adapterPom.isFile());
@@ -262,7 +302,10 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 		Set<String> artifactIds = dependencyArtifactIds(adapterPom);
 		assertTrue("Core adapter should depend on fw-plus-ai-model", artifactIds.contains("fw-plus-ai-model"));
 		assertTrue("Core adapter should depend on fw-plus-ai-store-embedding", artifactIds.contains("fw-plus-ai-store-embedding"));
-		assertTrue("Core adapter should depend on langchain4j-core", artifactIds.contains("langchain4j-core"));
+		assertTrue("Core adapter should depend on fw-plus-ai-langchain4j-core",
+				artifactIds.contains("fw-plus-ai-langchain4j-core"));
+		assertFalse("Core adapter must not depend on the official langchain4j-core owner",
+				artifactIds.contains("langchain4j-core"));
 		assertFalse("Core adapter must not depend on a removed Spring Boot starter", artifactIds.contains("fw-plus-ai-langchain4j-adapter-spring-boot-starter"));
 		for (String requiredDependency : REQUIRED_STARTER_DEPENDENCIES) {
 			if (!"fw-plus-ai-langchain4j-adapter".equals(requiredDependency)) {
@@ -296,17 +339,38 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 	}
 
 	private File findAdapterPom() {
+		return findProjectFile("fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/"
+				+ "fw-plus-ai-langchain4j-adapter/pom.xml");
+	}
+
+	private File findProjectFile(String relativePath) {
 		File currentDirectory = new File(System.getProperty("user.dir"));
 		while (currentDirectory != null) {
-			File adapterPom = new File(currentDirectory,
-					"fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/"
-							+ "fw-plus-ai-langchain4j-adapter/pom.xml");
-			if (adapterPom.isFile()) {
-				return adapterPom;
+			File file = new File(currentDirectory, relativePath);
+			if (file.isFile()) {
+				return file;
 			}
 			currentDirectory = currentDirectory.getParentFile();
 		}
-		return new File("fw-plus-ai-langchain4j-adapter/pom.xml");
+		return new File(relativePath);
+	}
+
+	private Map<String, String> dependencyScopes(File pom) throws Exception {
+		Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(pom);
+		NodeList dependencies = document.getElementsByTagName("dependency");
+		Map<String, String> scopes = new LinkedHashMap<String, String>();
+		for (int index = 0; index < dependencies.getLength(); index++) {
+			Element dependency = (Element) dependencies.item(index);
+			NodeList artifactIds = dependency.getElementsByTagName("artifactId");
+			if (artifactIds.getLength() == 0) {
+				continue;
+			}
+			NodeList scopeElements = dependency.getElementsByTagName("scope");
+			String scope = scopeElements.getLength() == 0
+					? "compile" : scopeElements.item(0).getTextContent().trim();
+			scopes.put(artifactIds.item(0).getTextContent().trim(), scope);
+		}
+		return scopes;
 	}
 
 	private Set<String> dependencyArtifactIds(File pom) throws Exception {

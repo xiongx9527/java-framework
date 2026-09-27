@@ -6,7 +6,7 @@ fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是�
 
 为保持项目整体 Java 8 兼容性，本目录中的 provider 模块采用与 LangChain4j 原模块相同的包名和类名重写关键类，用本工程内的源码覆盖 `0.35` 中不兼容 Java 8 的实现。模型与向量能力统一由 `fw-plus-ai-langchain4j-adapter` 接入中立 SPI。
 
-这些覆盖模块只面向 Java 8 编译或运行环境。Java 17 及以上环境应优先使用 LangChain4j `0.35` 原始 artifact，不需要使用本目录的 Java 8 覆盖模块。
+下表中的 `0.35` provider覆盖模块只面向Java 8编译或运行环境；Java 17及以上环境应优先使用对应LangChain4j `0.35`原始artifact。
 
 ## 当前已覆盖的类包
 
@@ -17,7 +17,8 @@ fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是�
 | `fw-plus-ai-langchain4j-anthropic` | `langchain4j-anthropic-spring-boot-starter` | `dev.langchain4j.anthropic.spring` | `AutoConfig`, `ChatModelProperties`, `Properties` |
 | `fw-plus-ai-langchain4j-azure-ai-search` | `langchain4j-azure-ai-search-spring-boot-starter` | `dev.langchain4j.azure.aisearch.spring` | `AutoConfig`, `Properties` |
 | `fw-plus-ai-langchain4j-azure-open-ai` | `langchain4j-azure-open-ai-spring-boot-starter` | `dev.langchain4j.azure.openai.spring` | `AutoConfig`, `ChatModelProperties`, `EmbeddingModelProperties`, `ImageModelProperties`, `Properties` |
-| `fw-plus-ai-langchain4j-core` | `langchain4j-spring-boot-starter` | `dev.langchain4j.spring`, `dev.langchain4j.service.spring`, `dev.langchain4j.rag.spring` | `LangChain4jAutoConfig`, `AiService`, `AiServiceFactory`, `AiServiceScannerProcessor`, `AiServiceWiringMode`, `AiServicesAutoConfig`, `ClassPathAiServiceScanner`, `RagAutoConfig`, `RagProperties`, `RetrievalProperties` |
+| `fw-plus-ai-langchain4j-core` | `langchain4j-core` | `dev.langchain4j.*` Core owner兼容包 | Model、Tool、Invocation、Guardrail、Observability、JSON与并发兼容API |
+| `fw-plus-ai-langchain4j-spring-boot-starter` | `langchain4j-spring-boot-starter` | `dev.langchain4j.spring`, `dev.langchain4j.service.spring`, `dev.langchain4j.rag.spring` | `LangChain4jAutoConfig`, `AiService`, `AiServiceFactory`, `AiServiceScannerProcessor`, `AiServiceWiringMode`, `AiServicesAutoConfig`, `ClassPathAiServiceScanner`, `RagAutoConfig`, `RagProperties`, `RetrievalProperties` |
 | `fw-plus-ai-langchain4j-dashscope` | `langchain4j-dashscope-spring-boot-starter` | `dev.langchain4j.dashscope.spring` | `AutoConfig`, `ChatModelProperties`, `EmbeddingModelProperties`, `LanguageModelProperties`, `Properties`, `TokenizerProperties` |
 | `fw-plus-ai-langchain4j-elasticsearch` | `langchain4j-elasticsearch-spring-boot-starter` | `dev.langchain4j.store.embedding.elasticsearch.spring` | `ElasticsearchClientHelper`, `ElasticsearchEmbeddingStoreAutoConfiguration`, `ElasticsearchEmbeddingStoreProperties` |
 | `fw-plus-ai-langchain4j-github-models` | `langchain4j-github-models-spring-boot-starter` | `dev.langchain4j.model.githubmodels.spring` | `AutoConfig`, `ChatModelProperties`, `EmbeddingModelProperties`, `Properties` |
@@ -29,10 +30,6 @@ fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是�
 | `fw-plus-ai-langchain4j-redis` | `langchain4j-redis-spring-boot-starter` | `dev.langchain4j.store.embedding.redis.spring` | `RedisEmbeddingStoreAutoConfiguration`, `RedisEmbeddingStoreProperties` |
 | `fw-plus-ai-langchain4j-vertex-ai-gemini` | `langchain4j-vertex-ai-gemini` | `dev.langchain4j.vertexai.spring` | `AutoConfig`, `ChatModelProperties`, `Properties` |
 | `fw-plus-ai-langchain4j-voyage-ai` | `langchain4j-voyage-ai-spring-boot-starter` | `dev.langchain4j.voyageai.spring` | `AutoConfig`, `EmbeddingModelProperties`, `Properties`, `ScoringModelProperties` |
-
-## 待新增覆盖的类包
-
-当前已确认的 LangChain4j `0.35` 非 Java 8 字节码 artifact 均已在本目录落地覆盖模块，暂无待新增项。
 
 ## Java 8 / Java 17 依赖版本对照
 
@@ -79,11 +76,11 @@ fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是�
 修改本目录的兼容覆盖类后，至少验证：
 
 ```bash
-cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
-./mvnw clean install -pl fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j -DskipTests
+cd fw-plus-core
+./mvnw -f fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/pom.xml clean install
 
-cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-ai
-./mvnw test -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure
+cd ../fw-plus-ai
+./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure -am test
 ```
 
-当前工作区的 Maven Wrapper 若不可用，可按项目实际环境使用 Java 8 的 Maven 命令替代，但最终应确认 Java 8 下编译通过。
+命令必须使用JDK 8。当前worktree的Maven Wrapper运行文件若缺失，可用Maven 3.6.3执行等价命令，但不能跳过unit、Failsafe IT、owner成品或生产classpath门禁。

@@ -9,15 +9,17 @@
         <version>${revision}</version>
     </parent>
     <artifactId>fw-plus-ai-mcp</artifactId>
-    <properties>
-        <main.basedir>${basedir}/../../..</main.basedir>
-    </properties>
-
+    <name>fw-plus-ai-mcp</name>
+    <description>MCP (Model Context Protocol) Core Implementation</description>
     <dependencies>
         <dependency>
+            <groupId>com.ajaxjs</groupId>
+            <artifactId>aj-mcp-server</artifactId>
+            <version>1.6</version>
+        </dependency>
+        <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-ai-base</artifactId>
+            <artifactId>fw-plus-common</artifactId>
         </dependency>
     </dependencies>
-
 </project>

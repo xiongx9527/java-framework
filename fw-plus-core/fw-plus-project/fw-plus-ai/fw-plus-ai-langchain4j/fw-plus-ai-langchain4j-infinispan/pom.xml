@@ -7,6 +7,7 @@
         <groupId>com.xiongx9527.fw.plus</groupId>
         <artifactId>fw-plus-ai-langchain4j</artifactId>
         <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>fw-plus-ai-langchain4j-infinispan</artifactId>
@@ -30,8 +31,9 @@
 
     <dependencies>
         <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-core</artifactId>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j-core</artifactId>
+            <version>${revision}</version>
         </dependency>
 
         <dependency>
@@ -58,6 +60,13 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
-    </dependencies>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j</artifactId>
+            <version>${revision}</version>
+        </dependency>
+
+</dependencies>
 
 </project>

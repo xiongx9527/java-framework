@@ -1,6 +1,6 @@
 # fw-plus-ai-magicapi-plugin-vector
 
-Magic-API 的 LangChain4j 向量存储插件，用于把 Spring Boot 中的 `EmbeddingStoreRegistry` 和 Magic 动态向量资源统一暴露给 MagicScript。业务脚本可以通过 `vector` 模块获取默认或指定 key 的 `EmbeddingStore<TextSegment>`。
+Magic-API 的中立向量存储插件，用于把 Spring Boot 中的 `AiEmbeddingStoreRegistry` 和 Magic 动态向量资源统一暴露给 MagicScript。业务脚本可以通过 `vector` 模块获取默认或指定 key 的 `AiEmbeddingStore` facade。
 
 本模块目录主要负责 starter 依赖和控制台前端资源打包，后端自动配置实现位于 `fw-plus-ai-boot-autoconfigure`。
 
@@ -26,8 +26,8 @@ Magic-API 的 LangChain4j 向量存储插件，用于把 Spring Boot 中的 `Emb
 后端配置类为 `MagicAPIVectorConfiguration`，满足以下条件时生效：
 
 - 当前应用是 Magic-API 所在的 Servlet Web 应用，并启用了 AI Magic-API 基础自动配置。
-- classpath 中存在 `EmbeddingStoreRegistry`。
-- Spring 容器中已经有 `EmbeddingStoreRegistry` Bean。
+- classpath 中存在 `AiEmbeddingStoreRegistry`。
+- Spring 容器中已经有 `AiEmbeddingStoreRegistry` Bean。
 - `magic-api.plugin.vector.enabled=true` 或未配置该开关。
 
 关闭插件：
@@ -53,28 +53,36 @@ magic-api:
 ```yaml
 fw-plus:
   ai:
-    langchain4j:
-      embedding-store:
-        enabled: true
-        default-store: memory
-        stores:
-          memory:
-            provider: in-memory
-          knowledge:
-            provider: milvus
+    embedding-store:
+      enabled: true
+      default-store: memory
+      stores:
+        memory:
+          framework: langchain4j
+          provider: in-memory
+          type: VECTOR
+          enabled: true
+        knowledge:
+          framework: langchain4j
+          provider: milvus
+          type: VECTOR
+          enabled: true
+          properties:
             dimension: 768
-            properties:
-              uri: http://127.0.0.1:19530
-              collectionName: knowledge
-              apiKey: ${MILVUS_API_KEY:}
-          faq:
-            provider: qdrant
+            uri: http://127.0.0.1:19530
+            collectionName: knowledge
+            apiKey: ${MILVUS_API_KEY:}
+        faq:
+          framework: langchain4j
+          provider: qdrant
+          type: VECTOR
+          enabled: true
+          properties:
             dimension: 768
-            properties:
-              host: 127.0.0.1
-              port: 6334
-              collectionName: faq
-              useTls: false
+            host: 127.0.0.1
+            port: 6334
+            collectionName: faq
+            useTls: false
 ```
 
 `default-store` 指向 registry key。Magic 脚本中不指定 key 时，会使用 registry 的默认向量存储。
@@ -145,17 +153,17 @@ var knowledgeStore = vector['knowledge'].getEmbeddingStore();
 `getEmbeddingStore()` 不再返回 LangChain4j `EmbeddingStore<TextSegment>`，因此旧脚本不能再直接调用
 `add`、`search`、`delete` 等原生方法。这是有意的破坏性变更，用于保证后续 framework 切换时
 `vector['key']` 的类型边界稳定。需要 LangChain4j 原生写入或检索能力时，应在 Java 应用层通过
-`EmbeddingStoreRegistry`/LangChain4j adapter 调用，不能从 Magic-API facade 取得原生对象。未来 Spring AI、
+`AiEmbeddingStoreRegistry` 和 `AiEmbeddingStore` 调用，不能从 Magic-API facade 取得原生对象。未来 Spring AI、
 Spring AI Alibaba 或 AgentScope 2 adapter 接入后，`vector['key']` 仍保持不变，`framework` 标识实际实现。
 如需紧急回滚旧 MagicScript，请回退到本改造前的插件版本和旧 `EmbeddingStore` 契约。
 
-动态资源与 Spring Boot registry 共存。按 key 获取时会先查 Magic 运行态 `vector-datasource`，再回退到 Spring Boot 的 `EmbeddingStoreRegistry`。默认 store 来自 registry 的 `default-store`。
+动态资源与 Spring Boot registry 共存。按 key 获取时会先查 Magic 运行态 `vector-datasource`，再回退到 Spring Boot 的 `AiEmbeddingStoreRegistry`。默认 store 来自 registry 的 `default-store`。
 
 ## 控制器接口
 
 | 接口 | 方法 | 说明 |
 | --- | --- | --- |
-| `/vector/datasource/test` | POST | 接收 `EmbeddingStoreDefinition` JSON，校验 `key` 和 `provider` 后调用 `EmbeddingStoreFactory.create(...)` 验证能否创建。 |
+| `/vector/datasource/test` | POST | 接收向量数据源定义 JSON，转换为 `AiEmbeddingStoreDefinition` 后调用 `AiEmbeddingStoreFactory.create(...)` 验证能否创建。 |
 
 测试接口成功返回 Magic-API 标准响应中的 `ok`；失败返回 code `-1` 和具体错误消息。
 

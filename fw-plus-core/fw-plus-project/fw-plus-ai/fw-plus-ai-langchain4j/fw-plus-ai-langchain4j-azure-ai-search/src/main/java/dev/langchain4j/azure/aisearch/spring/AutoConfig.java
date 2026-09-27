@@ -3,7 +3,6 @@ package dev.langchain4j.azure.aisearch.spring;
 import com.azure.search.documents.indexes.models.SearchIndex;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.rag.content.retriever.azure.search.AzureAiSearchContentRetriever;
-import dev.langchain4j.store.embedding.azure.search.AzureAiSearchEmbeddingStore;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -29,19 +28,6 @@ public class AutoConfig {
                 .maxResults(nestedProperties.getMaxResults())
                 .minScore(nestedProperties.getMinScore() == null ? 0.0 : nestedProperties.getMinScore())
                 .queryType(nestedProperties.getQueryType())
-                .build();
-    }
-
-    @Bean
-    @ConditionalOnProperty(PREFIX + ".embedding-store.api-key")
-    public AzureAiSearchEmbeddingStore azureAiSearchEmbeddingStore(Properties properties, @Nullable EmbeddingModel embeddingModel, @Nullable SearchIndex index) {
-        Properties.NestedProperties nestedProperties = properties.getEmbeddingStore();
-        return AzureAiSearchEmbeddingStore.builder()
-                .endpoint(nestedProperties.getEndpoint())
-                .apiKey(nestedProperties.getApiKey())
-                .createOrUpdateIndex(nestedProperties.getCreateOrUpdateIndex())
-                .dimensions(nestedProperties.getDimensions())
-                .index(index)
                 .build();
     }
 }

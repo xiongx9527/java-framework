@@ -1,3 +1,0 @@
-- [x] 1. 建立 Boot 25 个插件、AI 2 个插件、宿主入口和现有测试覆盖矩阵，记录 sample 聚合验证与首次启动 RED 证据。（证据：清单测试 2/2 通过，Boot=25、AI=2、runtime 27 无缺失；首次启动 RED 见 `logDir_IS_UNDEFINED/report-api-all-plugins.log`。）
-- [x] 2. 补齐 sample 整体测试 classpath 和可控启动配置；对发现的每个源码缺陷先补最小回归测试，再逐项修复并转绿。（证据：MQTT 循环、MyBatis-Flex 零主库、Mongo 无默认 Template 与 DB Browser 条件契约均有 RED/GREEN；Apollo 双链隔离；真实 sample classpath 2/2、上下文/插件契约/HTTP 4/4，共 6/6；独立进程 health/editor HTTP 200，负向扫描 clean。）
-- [x] 3. 按 Core -> Boot -> Cloud/AI -> sample 完成分层构建，运行相关测试，并实际启动 sample 检查健康、Magic-API 宿主及全部插件装配结果。（证据：Boot 19、AI 11、sample 6 项定向测试；Core 57、Boot 48、Cloud 13、AI 15、Sample 14 reactor 全部成功；独立 sample 端口 39089、19 秒就绪，health/editor HTTP 200，负向扫描无命中，TERM 3 秒退出且未用 KILL，端口释放，安全空目录树清理通过。）
