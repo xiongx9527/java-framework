@@ -78,6 +78,7 @@ Starter 为 thin starter，仅含 `pom.xml`。实现位于 `fw-plus-boot-autocon
 `WsSession` 是与传输无关的会话抽象，提供 `getId()`、`isOpen()`、`getAttributes()`、`sendText(String)`、`sendBinary(byte[])`、`close(CloseStatus)`。webmvc 适配器包装 `org.springframework.web.socket.WebSocketSession`，webflux 适配器包装 `org.springframework.web.reactive.socket.WebSocketSession`。
 
 webmvc 栈：`WsEndpointRegistrar implements WebSocketConfigurer`，在 `@ConditionalOnWebApplication(type=SERVLET)` 下生效。
+
 webflux 栈：注册响应式 `WebSocketHandler` 与 `SimpleUrlHandlerMapping`，在 `@ConditionalOnWebApplication(type=REACTIVE)` 下生效。订阅脚本提交到独立有界线程池，不阻塞 Reactor event loop。
 
 ## 多端点与多注册来源
@@ -121,7 +122,7 @@ WS 能力在 `spring.factories` 与 `META-INF/spring/org.springframework.boot.au
 
 ## Scenario
 
-Scenario 编号延续历史变更：A1 至 A25 为此前 change 已验收的既有场景（其中受端点键提升影响的场景已按新形态重述，行为口径不变），A26 起为本次端点键提升 change 新增。
+Scenario 编号延续历史变更：A1 至 A25 为此前 change 已验收的既有场景（其中受端点键提升影响的场景已按新形态重述，行为口径不变），A26 起为端点键提升 change 新增，A33 起为本次 code-review 修复 change 新增。
 
 - **Scenario A1**：WsConfig 为类型安全嵌套 POJO，`fw.plus.ws.*` 下 `path`、`paths` 与其余既有键均可绑定；`flatten()` 扁平键集合为 `path`、`paths` 两个端点键 + `websocket.trustedDomain`、`websocket.subProtocols`、`websocket.supportsPartialMessages` 三个握手键（端点键提升后 `websocket.` 下的四个旧键不再产出扁平键，握手 token 相关键已随鉴权移除）。
 - **Scenario A2**：`WsBaseService` getter 名与返回类型不变，magic-api ws 插件取到相同配置值（历史结论：token 相关 getter 已随握手鉴权移除，magic 插件侧只做了保持编译的最小删除）。
@@ -155,3 +156,6 @@ Scenario 编号延续历史变更：A1 至 A25 为此前 change 已验收的既�
 - **Scenario A30**：读取侧 `WsEndpointPathResolver`、`WsInstanceValidator`、`WsBaseService` 统一读顶层键，端点冲突报文为 `fw.plus.ws.path` / `fw.plus.ws.paths`；magic-api ws 插件取到的端点与握手配置值不变。
 - **Scenario A31**：starter README、magicapi-plugin-ws README、样例 `application.yml` 与样例 README 一律写成顶层 `path`/`paths` + `websocket:` 只留握手参数，并标注旧键已移除及迁移写法；全仓（历史归档与测试中的负向用例除外）无旧键字样。
 - **Scenario A32**：magic 侧文档不再描述连接 token 的签发与校验（握手只带 `clientId`），`ws-datasource` 的 `secret` 与 `path` 字段说明改为「仅作数据源元信息保留，不参与握手鉴权」，实例口径由「一条路径 + 一套 token」改为「一个 `servers` 实例 + 一个 appId」。
+- **Scenario A33**：`fw-plus-boot-dependencies` 的 dependencyManagement 不包含已删除的 `com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-mcp`；`fw-plus-boot` 层 validate/编译不再尝试解析该构件，全仓 grep `fw-plus-magicapi-plugin-mcp` 仅剩 AI 层 `fw-plus-ai-magicapi-plugin-mcp` 与 docs 归档。
+- **Scenario A34**：AGENTS.md 模块树列出 `fw-plus-ai-mcp-server-sample` 与 `fw-plus-ai-chat-sample`；AGENTS.md 与 CLAUDE.md 对构建入口（根 pom + mvnw 聚合，或分层 mvnw）的描述一致，且与仓库实际结构、可执行命令相符。
+- **Scenario A35**：`fw-plus-boot-autoconfigure` 的 mcp 新包主源与 `web.ws.common.WsBaseService` 的缩进风格与同包/同文件主导风格一致（mcp 包主源 Tab，`WsBaseService` 为空格）。
