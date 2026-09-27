@@ -103,8 +103,6 @@ public class NeutralAiAutoConfigurationBoundaryTest {
 	private boolean isIgnored(File file) {
 		String path = file.getPath().replace(File.separatorChar, '/');
 		return file.isDirectory() && ("target".equals(file.getName())
-				|| path.contains("/autoconfigure/askdata/")
-				|| path.endsWith("/autoconfigure/askdata")
 				|| path.contains("/autoconfigure/langchain4j/")
 				|| path.endsWith("/autoconfigure/langchain4j"))
 				|| path.endsWith("/autoconfigure/tinyengine/provider/LangChain4jTinyEngineAiProvider.java");

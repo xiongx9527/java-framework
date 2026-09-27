@@ -57,7 +57,7 @@ fw-plus:
 
 选择规则对模型和向量 store 一致：显式 `framework` 只匹配同名 adapter；省略时仅一个支持该 provider/type 的 adapter 才能自动选择；零个或多个候选都失败。诊断包含 key、framework、provider、type 与候选 framework，不得包含 apiKey、token、secret 或完整连接串。
 
-## Magic-API 与 AskData
+## Magic-API
 
 `model['knowledge-chat']`、`vector['knowledge']` 和默认 key 的语义保持稳定。资源定义也可给出 `framework`，并遵循同一选择规则；脚本只得到中立 facade，不能取得 `LangChain4jModel` 或 `EmbeddingStore<TextSegment>`。SDK 专有调用应留在 Java adapter/业务层。
 

@@ -1,5 +1,7 @@
 package com.xiongx9527.fw.plus.common.web;
 
+import java.io.IOException;
+
 /**
  * Web响应接口，定义了处理HTTP响应的相关方法
  */
@@ -64,7 +66,22 @@ public interface WebResponse {
      * @return 处理后的对象
      * @throws Throwable 写入过程中可能抛出的异常
      */
-    Object writeWith(String result) throws Throwable;
+    Object writeWith(String result) throws IOException;
+
+    /**
+     * 发送错误响应
+     *
+     * @param sc HTTP状态码
+     * @param msg 错误信息
+     */
+    void sendError(int sc, String msg) throws IOException;
+
+    /**
+     * 发送错误响应
+     *
+     * @param sc HTTP状态码
+     */
+    void sendError(int sc) throws IOException;
 
 }
 

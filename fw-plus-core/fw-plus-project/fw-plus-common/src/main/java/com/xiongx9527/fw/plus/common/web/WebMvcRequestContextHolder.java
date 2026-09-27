@@ -292,6 +292,20 @@ public class WebMvcRequestContextHolder {
             }
             return false;
         }
+
+        @Override
+        public void sendError(int sc, String msg) throws IOException {
+            if (null!=this.response) {
+                this.response.sendError(sc, msg);
+            }
+        }
+
+        @Override
+        public void sendError(int sc) throws IOException {
+            if (null!=this.response) {
+                this.response.sendError(sc, "");
+            }
+        }
     }
 
 

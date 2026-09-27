@@ -42,21 +42,13 @@ public class NeutralStarterDependencyTest {
 	}
 
 	@Test
-	public void shouldRemoveRedundantTinyEngineAndLangChain4jStarterModules() throws Exception {
+	public void shouldRemoveRedundantLangChain4jStarterModule() throws Exception {
 		Set<String> bomArtifacts = dependencies(findProjectFile("fw-plus-ai-project/fw-plus-ai-boot-dependencies/pom.xml"), true);
 		assertFalse("AI Boot BOM must not manage the removed LangChain4j adapter starter",
 				bomArtifacts.contains("fw-plus-ai-langchain4j-adapter-spring-boot-starter"));
-		assertFalse("AI Boot BOM must not manage the removed Tiny Engine AI starter",
-				bomArtifacts.contains("fw-plus-ai-tiny-engine-spring-boot-starter"));
-		assertFalse("AI Boot BOM must not manage the removed Tiny Engine LangChain4j plugin",
-				bomArtifacts.contains("fw-plus-ai-tiny-engine-plugin-langchain4j"));
 		Set<String> starterModules = modules(findProjectFile(STARTERS_PATH + "pom.xml"));
 		assertFalse("AI starters aggregator must not include the removed LangChain4j adapter starter",
 				starterModules.contains("fw-plus-ai-langchain4j-adapter-spring-boot-starter"));
-		assertFalse("AI starters aggregator must not include the removed Tiny Engine AI starter",
-				starterModules.contains("fw-plus-ai-tiny-engine-spring-boot-starter"));
-		assertFalse("AI starters aggregator must not include the removed Tiny Engine LangChain4j plugin",
-				starterModules.contains("fw-plus-ai-tiny-engine-plugin-langchain4j"));
 	}
 
 	@Test

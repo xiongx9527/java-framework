@@ -1,7 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter;
 
-import com.xiongx9527.fw.plus.ai.langchain4j.adapter.EmbeddingStoreProviderAdapter;
-import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModelProviderAdapter;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.model.LangChain4jModelProviderAdapter;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.store.LangChain4jEmbeddingStoreProviderAdapter;
 import com.xiongx9527.fw.plus.ai.model.AiModelAdapter;
 import com.xiongx9527.fw.plus.ai.model.AiModelFactory;
 import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
@@ -11,20 +11,19 @@ import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.support.SpringFactoriesLoader;
 
-import java.lang.reflect.Method;
-import java.util.Arrays;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreDefinition;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreType;
+
 import java.util.LinkedHashSet;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class LangChain4jAdapterAutoConfigurationTest {
@@ -69,7 +68,8 @@ public class LangChain4jAdapterAutoConfigurationTest {
 			assertTrue(context.containsBean("openAiChatModelProviderAdapter"));
 			assertTrue(context.containsBean("inMemoryEmbeddingStoreProviderAdapter"));
 			assertFalse(context.getBeansOfType(LangChain4jModelProviderAdapter.class).isEmpty());
-			assertFalse(context.getBeansOfType(EmbeddingStoreProviderAdapter.class).isEmpty());
+			assertEquals(23, context.getBeansOfType(
+					LangChain4jEmbeddingStoreProviderAdapter.class).size());
 		});
 	}
 
@@ -108,16 +108,23 @@ public class LangChain4jAdapterAutoConfigurationTest {
 						"io.weaviate"))
 				.run(context -> {
 					assertTrue(context.getStartupFailure() == null);
-					assertFalse(context.containsBean("redisStackEmbeddingStoreProviderAdapter"));
-					assertFalse(context.containsBean("milvusEmbeddingStoreProviderAdapter"));
-					assertFalse(context.containsBean("elasticsearchEmbeddingStoreProviderAdapter"));
-					assertFalse(context.containsBean("qdrantEmbeddingStoreProviderAdapter"));
-					assertFalse(context.containsBean("weaviateEmbeddingStoreProviderAdapter"));
-					assertFalse(context.containsBean("azureAiSearchEmbeddingStoreProviderAdapter"));
+					assertTrue(context.containsBean("redisStackEmbeddingStoreProviderAdapter"));
+					assertTrue(context.containsBean("milvusEmbeddingStoreProviderAdapter"));
+					assertTrue(context.containsBean("elasticsearchEmbeddingStoreProviderAdapter"));
+					assertTrue(context.containsBean("qdrantEmbeddingStoreProviderAdapter"));
+					assertTrue(context.containsBean("weaviateEmbeddingStoreProviderAdapter"));
+					assertTrue(context.containsBean("azureAiSearchEmbeddingStoreProviderAdapter"));
+					assertFalse(provider(context, "redisStackEmbeddingStoreProviderAdapter")
+							.supports(definition("redis")));
+					assertFalse(provider(context, "milvusEmbeddingStoreProviderAdapter")
+							.supports(definition("milvus")));
 					assertTrue(context.containsBean("inMemoryEmbeddingStoreProviderAdapter"));
+					assertEquals(23, context.getBeansOfType(
+							LangChain4jEmbeddingStoreProviderAdapter.class).size());
 					assertEquals(1, context.getBeansOfType(AiEmbeddingStoreAdapter.class).size());
 				});
 	}
+
 
 	@Test
 	public void shouldStartWhenOptionalCommunityModelProvidersAreMissing() {
@@ -253,5 +260,19 @@ public class LangChain4jAdapterAutoConfigurationTest {
 			}
 		}
 		throw new IllegalArgumentException("Cannot find bean method: " + methodName);
+
+	private LangChain4jEmbeddingStoreProviderAdapter provider(
+			org.springframework.context.ApplicationContext context, String name) {
+		return context.getBean(name, LangChain4jEmbeddingStoreProviderAdapter.class);
+	}
+
+	private AiEmbeddingStoreDefinition definition(String provider) {
+		AiEmbeddingStoreDefinition definition = new AiEmbeddingStoreDefinition();
+		definition.setKey("knowledge");
+		definition.setFramework("langchain4j");
+		definition.setProvider(provider);
+		definition.setType(AiEmbeddingStoreType.VECTOR);
+		definition.setEnabled(true);
+		return definition;
 	}
 }

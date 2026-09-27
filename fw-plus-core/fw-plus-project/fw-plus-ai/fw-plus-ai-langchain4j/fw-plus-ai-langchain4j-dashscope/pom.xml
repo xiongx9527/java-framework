@@ -7,6 +7,7 @@
         <groupId>com.xiongx9527.fw.plus</groupId>
         <artifactId>fw-plus-ai-langchain4j</artifactId>
         <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>fw-plus-ai-langchain4j-dashscope</artifactId>
@@ -16,6 +17,12 @@
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-autoconfigure</artifactId>
@@ -32,6 +39,22 @@
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-community-dashscope</artifactId>
         </dependency>
-    </dependencies>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j-core</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-core</artifactId>
+            <version>${langchain4j.version}</version>
+        </dependency>
+</dependencies>
 
 </project>

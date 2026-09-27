@@ -67,7 +67,7 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 ├── fw-plus-boot/             # Spring Boot 自动配置层
 │   ├── fw-plus-boot-project/
 │   │   ├── fw-plus-boot/              # 集成自动配置（aggregator）
-│   │   ├── fw-plus-boot-autoconfigure/ # 核心自动配置（spring.factories 注册 18 个顶层 AutoConfiguration，含 JimuJsEnterpriseFilter）
+│   │   ├── fw-plus-boot-autoconfigure/ # 核心自动配置（spring.factories 注册 15 个顶层 AutoConfiguration，含 JimuJsEnterpriseFilter）
 │   │   ├── fw-plus-boot-common/       # Boot 公共类
 │   │   ├── fw-plus-boot-dependencies/ # Boot 层 BOM
 │   │   ├── fw-plus-boot-parent/       # Boot 层父 POM
@@ -89,8 +89,8 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 │   │       │   ├── fw-plus-magicapi-plugin-kafka/         # Kafka 消息队列
 │   │       │   ├── fw-plus-magicapi-plugin-mcp/           # MCP 协议支持
 │   │       │   ├── fw-plus-magicapi-plugin-mongo/         # MongoDB
-│   │       │   ├── fw-plus-magicapi-plugin-mqtt/          # MQTT 协议支持
-│   │       │   ├── fw-plus-magicapi-plugin-mqttclient/    # MQTT 客户端
+│   │       │   ├── fw-plus-magicapi-plugin-mqtt-server/          # MQTT 协议支持
+│   │       │   ├── fw-plus-magicapi-plugin-mqtt-client/    # MQTT 客户端
 │   │       │   ├── fw-plus-magicapi-plugin-pulsar/        # Pulsar 消息队列
 │   │       │   ├── fw-plus-magicapi-plugin-rabbitmq/      # RabbitMQ 消息队列
 │   │       │   ├── fw-plus-magicapi-plugin-redis/         # Redis 缓存
@@ -483,7 +483,7 @@ Servlet Filter 拦截 JS 响应做字节替换：
 ## 核心架构模式
 
 - **分层设计**：Core → Boot → Cloud / AI，下层不依赖上层
-- **Spring Boot auto-configuration**：通过 `spring.factories` 注册 `@Configuration`，用户通过 `@EnableXxx` 或配置属性控制。Boot 层注册了 18 个顶层 AutoConfiguration 类（Base、Trace、Web、Mate、NoSql、JDBC、MP、Template、UID、Report、Mqtt、ConfigServer/Client/Event/Apollo/Nacos、AdminServer、MagicAPI），AI 层 4 个，Cloud 层 4 个
+- **Spring Boot auto-configuration**：通过 `spring.factories` 注册 `@Configuration`，用户通过 `@EnableXxx` 或配置属性控制。Boot 层注册了 15 个顶层 AutoConfiguration 类（Base、Trace、Web、Mate、NoSql、JDBC、MP、Template、UID、Report、Mqtt、ConfigServer/Client/Event/Apollo/Nacos、AdminServer、MagicAPI、WS），AI 层 4 个，Cloud 层 4 个
 - **Magic-API 插件体系**：每个插件独立 Starter，扩展 magic-api 的能力（数据源、任务、WebSocket、MCP、消息队列等 20+ 种资源类型）
 - **灰度发布**：在 `fw-plus-cloud-autoconfigure` 实现，通过 Ribbon/Feign 拦截器传递灰度标签
 - **MyBatis-Plus 增强**：提供 base mapper/entity、字段加密（`@FieldEncrypt`）、数据变更追踪、数据权限过滤
@@ -551,10 +551,13 @@ protected boolean register(MappingNode<T> mappingNode) {
 在这个仓库中，开始处理需要改动或调查的任务前，如果可能存在活跃 Comet workflow，把当前用户请求传入只读探针：`comet resume-probe . --stdin --json`。
 
 - 如果用户通过宿主明确调用任意 Comet Skill（例如 `@comet`、`/comet`、`@comet-native` 或 `/comet-hotfix`），显式调用优先于本恢复协议；不要运行 resume probe，直接进入被调用的 Skill。
+- 如果用户通过宿主明确调用的是非 Comet 的 Skill 或斜杠命令，任务意图已由该调用明确：不要运行 resume probe，直接执行该 Skill。
+- 如果你正在 Comet 流程内（包括正在等待用户回复你在流程中提出的问题），不要运行 resume probe；把这类回复（例如方案/选项选择）当作当前 change 的继续，直接按用户的选择推进。
 - 只信任返回的 `workflow`、`skill` 和 `entrySource`；它们只由项目配置或无配置兼容回退决定。不得扫描或切换另一套 workflow。
 - 如果 probe 返回 `auto_resume`，简短说明选中的 active change，并进入 `nextCommand` 指向的永久入口。不要把状态命令当作恢复入口直接推进。
 - 如果 probe 返回 `ask_user`，只问一个简短问题并等待用户回复。
 - 如果当前请求未明确调用 Comet Skill，且 probe 返回 `out_of_scope` 或 `none`，不要进入 Comet workflow。
+- `out_of_scope` 或 `none` 只表示不要因为这个新请求进入 Comet workflow；它绝不表示要暂停或退出一个已在进行的 Comet 流程。
 - 如果配置或状态无效且没有 `nextCommand`，停止并报告原因；不要猜测另一个 workflow。
 - 不能只因为存在 active change 就把无关任务挂到该 change。Native 的未提交改动由 Native 入口检查，不由探针自动归因。
 </comet-ambient-resume>

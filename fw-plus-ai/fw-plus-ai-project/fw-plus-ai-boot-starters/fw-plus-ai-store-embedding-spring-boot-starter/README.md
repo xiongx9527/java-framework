@@ -59,6 +59,23 @@ fw-plus:
 
 Magic-API 的 `vector[...]` 保持按业务 key 访问，但返回中立 facade，不保证能拿到任何 framework 原生对象。
 
+## Java 类型迁移
+
+LangChain4j Store 仅保留中立链，旧 public 类型不提供兼容壳：
+
+| 已删除类型 | 替代类型 |
+| --- | --- |
+| `EmbeddingStoreDefinition` | `AiEmbeddingStoreDefinition` |
+| `EmbeddingStoreProperties` | `AiEmbeddingStoreProperties` |
+| `EmbeddingStoreFactory` | `AiEmbeddingStoreFactory` |
+| `EmbeddingStoreRegistry` | `AiEmbeddingStoreRegistry` |
+| `DefaultEmbeddingStoreRegistry` | `DefaultAiEmbeddingStoreRegistry` |
+| `EmbeddingStoreException` | `AiEmbeddingStoreException` |
+| `DefaultEmbeddingStoreFactory` | `DefaultLangChain4jEmbeddingStoreAdapter`（由自动配置创建） |
+| `EmbeddingStoreProviderAdapter` | `LangChain4jEmbeddingStoreProviderAdapter` |
+
+业务代码应依赖中立 Store Interface；只有实现自定义 LangChain4j provider 创建逻辑时才实现新的 Provider Adapter Interface。
+
 ## Spring AI 首版边界
 
 `fw-plus-ai-spring-adapter` 当前只实现同步 CHAT/EMBEDDING，**不注册** `AiEmbeddingStoreAdapter`。Spring AI 标准 `VectorStore` 接受文本查询并可能自行嵌入，而中立查询携带预计算向量；不得丢弃、字符串化或重新计算调用方向量来伪装兼容。

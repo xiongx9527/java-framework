@@ -1,0 +1,206 @@
+[ERROR] COMPILATION ERROR : 
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/ChatModelProperties.java:[3,14] 程序包lombok不存在
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/ChatModelProperties.java:[4,14] 程序包lombok不存在
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/ChatModelProperties.java:[9,2] 找不到符号
+  符号: 类 Getter
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/ChatModelProperties.java:[10,2] 找不到符号
+  符号: 类 Setter
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/Properties.java:[3,14] 程序包lombok不存在
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/Properties.java:[4,14] 程序包lombok不存在
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/Properties.java:[8,2] 找不到符号
+  符号: 类 Getter
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/Properties.java:[9,2] 找不到符号
+  符号: 类 Setter
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[19,61] 找不到符号
+  符号:   方法 getChatModel()
+  位置: 类型为dev.langchain4j.anthropic.spring.Properties的变量 properties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[33,50] 找不到符号
+  符号:   方法 getLogResponses()
+  位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[32,49] 找不到符号
+  符号:   方法 getLogRequests()
+  位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[31,48] 找不到符号
+  符号:   方法 getMaxRetries()
+  位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[30,45] 找不到符号
+  符号:   方法 getTimeout()
+  位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[29,51] 找不到符号
+  符号:   方法 getStopSequences()
+  位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[28,47] 找不到符号
+  符号:   方法 getMaxTokens()
+  位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[27,42] 找不到符号
+  符号:   方法 getTopK()
+  位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[26,42] 找不到符号
+  符号:   方法 getTopP()
+  位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[25,49] 找不到符号
+  符号:   方法 getTemperature()
+  位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[24,47] 找不到符号
+  符号:   方法 getModelName()
+  位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[23,45] 找不到符号
+  符号:   方法 getVersion()
+  位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[22,44] 找不到符号
+  符号:   方法 getApiKey()
+  位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[21,45] 找不到符号
+  符号:   方法 getBaseUrl()
+  位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[20,34] 无法访问dev.langchain4j.model.chat.ChatLanguageModel
+  找不到dev.langchain4j.model.chat.ChatLanguageModel的类文件
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[40,61] 找不到符号
+  符号:   方法 getStreamingChatModel()
+  位置: 类型为dev.langchain4j.anthropic.spring.Properties的变量 properties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[53,50] 找不到符号
+  符号:   方法 getLogResponses()
+  位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[52,49] 找不到符号
+  符号:   方法 getLogRequests()
+  位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[51,45] 找不到符号
+  符号:   方法 getTimeout()
+  位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[50,51] 找不到符号
+  符号:   方法 getStopSequences()
+  位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[49,47] 找不到符号
+  符号:   方法 getMaxTokens()
+  位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[48,42] 找不到符号
+  符号:   方法 getTopK()
+  位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[47,42] 找不到符号
+  符号:   方法 getTopP()
+  位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[46,49] 找不到符号
+  符号:   方法 getTemperature()
+  位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[45,47] 找不到符号
+  符号:   方法 getModelName()
+  位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[44,45] 找不到符号
+  符号:   方法 getVersion()
+  位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[43,44] 找不到符号
+  符号:   方法 getApiKey()
+  位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[42,45] 找不到符号
+  符号:   方法 getBaseUrl()
+  位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[41,43] 无法访问dev.langchain4j.model.chat.StreamingChatLanguageModel
+  找不到dev.langchain4j.model.chat.StreamingChatLanguageModel的类文件
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.10.1:compile (default-compile) on project fw-plus-ai-langchain4j-anthropic: Compilation failure: Compilation failure: 
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/ChatModelProperties.java:[3,14] 程序包lombok不存在
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/ChatModelProperties.java:[4,14] 程序包lombok不存在
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/ChatModelProperties.java:[9,2] 找不到符号
+[ERROR]   符号: 类 Getter
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/ChatModelProperties.java:[10,2] 找不到符号
+[ERROR]   符号: 类 Setter
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/Properties.java:[3,14] 程序包lombok不存在
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/Properties.java:[4,14] 程序包lombok不存在
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/Properties.java:[8,2] 找不到符号
+[ERROR]   符号: 类 Getter
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/Properties.java:[9,2] 找不到符号
+[ERROR]   符号: 类 Setter
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[19,61] 找不到符号
+[ERROR]   符号:   方法 getChatModel()
+[ERROR]   位置: 类型为dev.langchain4j.anthropic.spring.Properties的变量 properties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[33,50] 找不到符号
+[ERROR]   符号:   方法 getLogResponses()
+[ERROR]   位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[32,49] 找不到符号
+[ERROR]   符号:   方法 getLogRequests()
+[ERROR]   位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[31,48] 找不到符号
+[ERROR]   符号:   方法 getMaxRetries()
+[ERROR]   位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[30,45] 找不到符号
+[ERROR]   符号:   方法 getTimeout()
+[ERROR]   位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[29,51] 找不到符号
+[ERROR]   符号:   方法 getStopSequences()
+[ERROR]   位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[28,47] 找不到符号
+[ERROR]   符号:   方法 getMaxTokens()
+[ERROR]   位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[27,42] 找不到符号
+[ERROR]   符号:   方法 getTopK()
+[ERROR]   位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[26,42] 找不到符号
+[ERROR]   符号:   方法 getTopP()
+[ERROR]   位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[25,49] 找不到符号
+[ERROR]   符号:   方法 getTemperature()
+[ERROR]   位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[24,47] 找不到符号
+[ERROR]   符号:   方法 getModelName()
+[ERROR]   位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[23,45] 找不到符号
+[ERROR]   符号:   方法 getVersion()
+[ERROR]   位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[22,44] 找不到符号
+[ERROR]   符号:   方法 getApiKey()
+[ERROR]   位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[21,45] 找不到符号
+[ERROR]   符号:   方法 getBaseUrl()
+[ERROR]   位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[20,34] 无法访问dev.langchain4j.model.chat.ChatLanguageModel
+[ERROR]   找不到dev.langchain4j.model.chat.ChatLanguageModel的类文件
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[40,61] 找不到符号
+[ERROR]   符号:   方法 getStreamingChatModel()
+[ERROR]   位置: 类型为dev.langchain4j.anthropic.spring.Properties的变量 properties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[53,50] 找不到符号
+[ERROR]   符号:   方法 getLogResponses()
+[ERROR]   位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[52,49] 找不到符号
+[ERROR]   符号:   方法 getLogRequests()
+[ERROR]   位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[51,45] 找不到符号
+[ERROR]   符号:   方法 getTimeout()
+[ERROR]   位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[50,51] 找不到符号
+[ERROR]   符号:   方法 getStopSequences()
+[ERROR]   位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[49,47] 找不到符号
+[ERROR]   符号:   方法 getMaxTokens()
+[ERROR]   位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[48,42] 找不到符号
+[ERROR]   符号:   方法 getTopK()
+[ERROR]   位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[47,42] 找不到符号
+[ERROR]   符号:   方法 getTopP()
+[ERROR]   位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[46,49] 找不到符号
+[ERROR]   符号:   方法 getTemperature()
+[ERROR]   位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[45,47] 找不到符号
+[ERROR]   符号:   方法 getModelName()
+[ERROR]   位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[44,45] 找不到符号
+[ERROR]   符号:   方法 getVersion()
+[ERROR]   位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[43,44] 找不到符号
+[ERROR]   符号:   方法 getApiKey()
+[ERROR]   位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[42,45] 找不到符号
+[ERROR]   符号:   方法 getBaseUrl()
+[ERROR]   位置: 类型为dev.langchain4j.anthropic.spring.ChatModelProperties的变量 chatModelProperties
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-anthropic/src/main/java/dev/langchain4j/anthropic/spring/AutoConfig.java:[41,43] 无法访问dev.langchain4j.model.chat.StreamingChatLanguageModel
+[ERROR]   找不到dev.langchain4j.model.chat.StreamingChatLanguageModel的类文件
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+[ERROR] 
+[ERROR] After correcting the problems, you can resume the build with the command
+[ERROR]   mvn <args> -rf :fw-plus-ai-langchain4j-anthropic

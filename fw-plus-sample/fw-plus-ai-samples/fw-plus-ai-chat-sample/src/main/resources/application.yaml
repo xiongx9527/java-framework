@@ -1,0 +1,42 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: fw-plus-ai-chat-sample
+  autoconfigure:
+    # 样例只验证 LangChain4j 对话能力，需排除经 fw-plus-ai-boot-starter 传递引入、但样例用不到的自动配置：
+    # 1) Magic-API：插件装配依赖使用方按需引入的 magic-api core
+    # 2) MCP：其路由注册器要求容器内唯一 RequestMappingHandlerMapping，而 actuator 会提供第二个，与本样例无关
+    exclude:
+      - com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration
+      - com.xiongx9527.fw.plus.ai.autoconfigure.mcp.McpAutoConfiguration
+
+langchain4j:
+  ollama:
+    # 由 dev.langchain4j.ollama.spring.AutoConfig 提供 OllamaChatModel Bean
+    chat-model:
+      base-url: http://localhost:11434
+      model-name: qwen2.5:7b
+      temperature: 0.3
+    # 提供 OllamaStreamingChatModel Bean，供 SSE 流式使用
+    streaming-chat-model:
+      base-url: http://localhost:11434
+      model-name: qwen2.5:7b
+      temperature: 0.3
+
+fw:
+  plus:
+    sample:
+      chat:
+        knowledge-base:
+          # 留空 = 不启用知识库，样例退化为纯对话（保证开箱可跑）
+          # 填写形如 http://localhost:8081 后，将启用自定义 ContentRetriever 调用远程知识库接口
+          base-url:
+          # 检索路径，默认 /api/search
+          search-path: /api/search
+          # 每次检索返回的最大条目数
+          top-k: 3
+          # 连接/读取超时（毫秒）
+          connect-timeout-millis: 2000
+          read-timeout-millis: 5000

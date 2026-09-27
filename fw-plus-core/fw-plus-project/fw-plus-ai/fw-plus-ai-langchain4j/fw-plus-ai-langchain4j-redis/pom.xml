@@ -7,6 +7,7 @@
         <groupId>com.xiongx9527.fw.plus</groupId>
         <artifactId>fw-plus-ai-langchain4j</artifactId>
         <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>fw-plus-ai-langchain4j-redis</artifactId>
@@ -16,6 +17,12 @@
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-autoconfigure</artifactId>

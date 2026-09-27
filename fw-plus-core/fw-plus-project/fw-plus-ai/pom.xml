@@ -13,12 +13,10 @@
     <modules>
         <module>fw-plus-ai-base</module>
         <module>fw-plus-ai-mcp</module>
-        <module>fw-plus-ai-askdata</module>
         <module>fw-plus-ai-model</module>
         <module>fw-plus-ai-store-embedding</module>
         <module>fw-plus-ai-langchain4j</module>
         <module>fw-plus-ai-spring</module>
-        <module>fw-plus-ai-tinyflow</module>
     </modules>
     <artifactId>fw-plus-ai</artifactId>
     <properties>

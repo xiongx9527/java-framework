@@ -1,0 +1,399 @@
+schema: comet.native.v4
+name: ws-spring-boot-starter-hardening
+language: zh-CN
+phase: archive
+status: done
+state_version: 15
+brief: brief.md
+shape_confirmation_hash: b41b39ba797d4297b34fc3d50fbf1ca4cc755bd0e4dd24fd65882adab991ace1
+spec_changes:
+  - capability: ws-spring-boot-starter
+    operation: create
+    source: specs/ws-spring-boot-starter/spec.md
+workspace:
+  isolation: worktree
+  change_branch: comet/ws-spring-boot-starter-hardening
+  target_branch: dev
+  finish: merge
+loop:
+  stage: done
+  goal_cycle: 1
+  iteration: 2
+  attempt: 1
+  retry_epoch: 0
+  failed_iteration_count: 1
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: null
+acceptance:
+  - id: A1
+    source: brief.md
+    text: "**A1｜Scenario**：WsConfig POJO 绑定 —— `WsConfig` 为类型安全嵌套
+      POJO，`fw.plus.ws.*` 下既有 21
+      个键（token.secret、websocket.path、session.cache.expireMinutes…）与新增键均可绑定；`fla\
+      tten()` 产出的点号扁平键集合与改造前逐键一致。"
+    result: passed
+    reason:
+      text: WsConfig 为类型安全嵌套 POJO（web/ws/config/WsConfig.java:24），flatten()
+        输出旧读取契约的全部扁平键（同文件 :67），WsConfigBindingTest
+        覆盖默认值、嵌套绑定与扁平键（src/test/.../web/ws/config/WsConfigBindingTest.java:24,:82）。
+      truncated: false
+  - id: A2
+    source: brief.md
+    text: "**A2｜Scenario**：插件侧零改动 —— `WsBaseService` 现有全部语义 getter
+      方法名与返回类型不变；magic-api ws 插件的
+      `BaseService`/`MagicAPIWsConfiguration`/`WsModule`/`MagicWsController`/`B\
+      aseDynamicWebSocketHandler` 能取到与改造前相同的配置值。"
+    result: passed
+    reason:
+      text: WsBaseService 语义 getter
+        名与返回类型未变（web/ws/common/WsBaseService.java:181,:203,:303,:312），magic-api
+        ws 插件经 MagicAPIWsConfiguration/MagicWsController/WsModule
+        仍取到相同配置值（magicapi/plugin/ws/starter/MagicAPIWsConfiguration.java:141、magicapi/plugin/ws/web/MagicWsController.java:92、magicapi/plugin/ws/module/WsModule.java:89），相关测试在
+        703 条全量测试中通过。
+      truncated: false
+  - id: A3
+    source: brief.md
+    text: "**A3｜Scenario**：长连接不被误杀 —— 只发送业务文本消息（从不发 ping）的会话，超过
+      `session.cache.expireMinutes` 后仍为有效状态，服务端不主动关闭、不返回 SERVICE_OVERLOAD。"
+    result: passed
+    reason:
+      text: 入站消息刷新 lastActiveTime
+        与缓存计时（handler/AbstractWebSocketHandler.java:516），isSessionValid
+        以活跃时间判定（同文件 :986,:999），驱逐回调默认不关闭会话；回归测试
+        AbstractWebSocketHandlerTest.java:344。
+      truncated: false
+  - id: A4
+    source: brief.md
+    text: "**A4｜Scenario**：生命周期清理 —— 应用关闭通过 Spring `DisposableBean` 清理会话；同一 JVM
+      内重复创建 handler 不累积 JVM shutdown hook，代码中无 `Runtime.addShutdownHook`。"
+    result: passed
+    reason:
+      text: AbstractWebSocketHandler 实现 DisposableBean，destroy() 走
+        cleanupAllResources（handler/AbstractWebSocketHandler.java:188,:195）；全
+        fw-plus-boot 无 Runtime.addShutdownHook，重复创建 handler 不累积钩子。
+      truncated: false
+  - id: A5
+    source: brief.md
+    text: "**A5｜Scenario**：帧大小限制 —— 握手成功后会话设置了文本与二进制消息大小上限（默认 65536），超限帧被拒绝。"
+    result: passed
+    reason:
+      text: 握手成功后设置文本与二进制帧上限，默认
+        65536（handler/AbstractWebSocketHandler.java:403、config/WsConfig.java:184），AbstractWebSocketHandlerTest.java:239
+        断言上限设置；超限帧由 Spring 传输层拒绝。
+      truncated: false
+  - id: A6
+    source: brief.md
+    text: "**A6｜Scenario**：连接数上限 —— 会话总数达 `session.maxTotalSessions` 或单 clientId 达
+      `session.maxSessionsPerClient` 时，新握手被拒绝并返回 SERVICE_OVERLOAD。"
+    result: passed
+    reason:
+      text: 握手阶段校验总数与单 clientId 上限，超限返回
+        CloseStatus.SERVICE_OVERLOAD（handler/AbstractWebSocketHandler.java:468,:475），webflux
+        侧同样实现（webflux/ReactiveWsHandler.java:95）；测试
+        AbstractWebSocketHandlerTest.java:268,:288。
+      truncated: false
+  - id: A7
+    source: brief.md
+    text: "**A7｜Scenario**：密钥热更新 —— `fw.plus.ws.token.secret` 变更后 JWT
+      校验立即使用新密钥，无需重启应用。"
+    result: passed
+    reason:
+      text: 密钥缓存以密钥字符串为键，secret 变更后即时生效；WsConfig
+        带刷新能力（config/WsConfig.java:22、web/ws/common/WsBaseService.java:203）；secretRotationShouldTakeEffectWithoutRestart
+        通过（AbstractWebSocketHandlerTest.java:324）。
+      truncated: false
+  - id: A8
+    source: brief.md
+    text: "**A8｜Scenario**：广播异步开关 —— `fw.plus.ws.broadcast.async` 默认
+      false，行为与改造前一致（同步）；置 true 时 Redis 触发的本地广播提交到有界线程池，队列满时丢弃并告警，不阻塞监听线程。"
+    result: passed
+    reason:
+      text: broadcast.async 默认 false，本地广播保持同步（config/WsConfig.java:346）；置 true 时提交到有界
+        WsBroadcastExecutor，队列满丢弃并告警（broadcast/WsBroadcastExecutor.java:23、handler/AbstractWebSocketHandler.java:1028）；测试
+        AbstractWebSocketHandlerTest.java:373,:387。
+      truncated: false
+  - id: A9
+    source: brief.md
+    text: "**A9｜Scenario**：二进制消息 —— `fw.plus.ws.binary.enabled=true` 时二进制帧按
+      `fw.plus.ws.binary.type`（默认 binary）进入订阅派发链路，上下文可标识 BINARY 并取到 byte[]；置
+      false 时维持 NOT_ACCEPTABLE。"
+    result: passed
+    reason:
+      text: binary.enabled=true 时二进制帧按 binary.type 派发，上下文为 MessageKind.BINARY 且携带
+        byte[]（handler/AbstractWebSocketHandler.java:530、webflux/ReactiveWsHandler.java:126,:175、config/WsConfig.java:329）；置
+        false 维持 NOT_ACCEPTABLE；测试 AbstractWebSocketHandlerTest.java:165 与
+        ReactiveWsHandlerTest.java:88,:111。
+      truncated: false
+  - id: A10
+    source: brief.md
+    text: "**A10｜Scenario**：webmvc 行为回归 —— `AbstractWebSocketHandler`
+      公共方法签名与报文契约（UNKNOWN_TYPE / INVALID_JSON / SCRIPT_ERROR / ping-pong）保持不变，既有
+      webmvc 测试全部通过。"
+    result: passed
+    reason:
+      text: AbstractWebSocketHandler 公共方法签名与报文契约（UNKNOWN_TYPE / INVALID_JSON /
+        SCRIPT_ERROR /
+        ping-pong）未漂移（handler/AbstractWebSocketHandler.java:509,:548,:560,:691,:759），既有
+        webmvc 测试在全量 703
+        条中通过（AbstractWebSocketHandlerTest.java:49,:61,:88,:100,:215）。
+      truncated: false
+  - id: A11
+    source: brief.md
+    text: "**A11｜Scenario**：webflux 双栈 ——
+      `@ConditionalOnWebApplication(type=REACTIVE)` 下注册响应式 WebSocket
+      端点，能完成握手鉴权、文本与二进制收发、定向发送与广播。"
+    result: passed
+    reason:
+      text: "@ConditionalOnWebApplication(type=REACTIVE)
+        下注册响应式端点（webflux/WsWebFluxAutoConfiguration.java:34、ReactiveWsHandler.j\
+        ava:88,:159,:342），握手鉴权、文本/二进制收发、定向发送与广播均有测试覆盖（ReactiveWsHandlerTest.jav\
+        a:51,:88,:146,:161）。"
+      truncated: false
+  - id: A12
+    source: brief.md
+    text: "**A12｜Scenario**：webflux 脚本非阻塞 —— webflux 栈下订阅脚本提交到独立有界线程池执行，不阻塞 Reactor
+      event loop。"
+    result: passed
+    reason:
+      text: webflux 栈订阅脚本经 publishOn(Schedulers.fromExecutor(scriptExecutor)) 与
+        runOnScriptExecutor()
+        进入独立有界线程池（webflux/ReactiveWsHandler.java:70,:108,:210,:318），测试
+        ReactiveWsHandlerTest.java:131 断言不在 Reactor event loop 执行。
+      truncated: false
+  - id: A13
+    source: brief.md
+    text: "**A13｜Scenario**：统一会话抽象 —— `WsInvocationContext.getSession()` 返回
+      `WsSession`，提供
+      `getAttributes()`/`sendText`/`sendBinary`/`close`/`isOpen`；webmvc 与
+      webflux 各有适配器实现。"
+    result: passed
+    reason:
+      text: WsInvocationContext.getSession() 返回 WsSession，提供
+        getAttributes/sendText/sendBinary/close/isOpen（spi/WsSession.java:21、spi/WsInvocationContext.java:81），webmvc
+        与 webflux
+        各有适配器（webmvc/ServletWsSession.java:18、webflux/ReactiveWsSession.java:22）并在两侧派发中实际使用（AbstractWebSocketHandler.java:751、ReactiveWsHandler.java:165）。
+      truncated: false
+  - id: A14
+    source: brief.md
+    text: "**A14｜Scenario**：自动配置清单一致 —— `AutoConfiguration.imports` 包含
+      `WsAutoConfiguration`、`WsRedisConfiguration`，与 `spring.factories` 不冲突。"
+    result: passed
+    reason:
+      text: AutoConfiguration.imports 与 spring.factories 均登记
+        WsAutoConfiguration、WsRedisConfiguration
+        且互不冲突（.../META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports:15,:16
+        与 .../META-INF/spring.factories:17,:18），装配测试
+        WsAutoConfigurationTest.java:35、WsRedisConfigurationTest.java:41。
+      truncated: false
+  - id: A15
+    source: brief.md
+    text: "**A15｜Scenario**：清理与命名 —— 死配置
+      `getErrorCode`/`getWebsocketEndpoint`/`getWebsocketBasePath`
+      已移除；`getInitBusinessType`/`getCloseBusinessType` 可用且旧拼写保留 `@Deprecated`
+      委托；无 `io.jsonwebtoken.lang.Collections` 等第三方内部 API 依赖。"
+    result: passed
+    reason:
+      text: 死配置 getErrorCode/getWebsocketEndpoint/getWebsocketBasePath
+        已不存在；getInitBusinessType/getCloseBusinessType 可用且旧拼写保留 @Deprecated
+        委托（web/ws/common/WsBaseService.java:312,:321,:331,:342）；未见
+        io.jsonwebtoken.lang.Collections 等第三方内部 API 依赖。
+      truncated: false
+  - id: A16
+    source: brief.md
+    text: "**A16｜Scenario**：外围产物 —— starter 提供 README（对齐 centrifuge
+      章节）；`fw-plus-sample` 下新增可编译的 ws 样例模块并在 `fw-plus-boot-samples/pom.xml` 注册。"
+    result: passed
+    reason:
+      text: starter README 与 centrifuge README 同为 引入依赖/配置/使用/注意事项
+        结构（fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-ws-spring-boot-starter/README.md:8,:19；对照
+        fw-plus-centrifuge-spring-boot-starter/README.md）。ws
+        样例模块已从空壳补齐：pom.xml:26 引入 starter，src/main 下有
+        WsSampleApplication、DemoTokenController、DemoWsDispatcher 三个类与
+        application.yml、static/index.html，并已在
+        fw-plus-sample/fw-plus-boot-samples/pom.xml 的 modules 中注册。样例调用的
+        WsBaseService#getSecretKeyAndSignatureAlgorithm()、WsBusinessDispatcher、WsInvocationContext、WsReplyHandle
+        与地基真实签名一致（DemoTokenController.java:43、DemoWsDispatcher.java:41,:59）。Runtime
+        回执 7f0a4b65-e8bb-47d5-a6ac-43c8fa4d9e15-ws-sample-compile.log 显示
+        Compiling 3 source files 且 BUILD SUCCESS，不再是 No sources to compile。
+      truncated: false
+builder_handoff:
+  candidate_id: bf4f3153-3f9d-498d-922a-5b40f448ffc6
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:130ecbb0-a7b9-4145-a42a-58cb721c7b9d
+  iteration: 2
+  summary:
+    text: |-
+      本轮只针对 A16 修复：fw-plus-sample 下新增的 ws 样例模块原本只有 pom.xml 与 .gitignore（空壳），现已补齐为可编译的最小可用样例并补上说明文档。
+
+      具体改动：
+      1. 新增样例源码 src/main/java/com/xiongx9527/fw/plus/boot/ws/sample/：WsSampleApplication（Spring Boot 入口，引入 starter 后 /ws/api 端点自动注册）、DemoTokenController（复用 WsBaseService#getSecretKeyAndSignatureAlgorithm 按 fw.plus.ws.token.secret 签发握手用 JWT）、DemoWsDispatcher（WsBusinessDispatcher 实现，通过 findEnabledSubscribes 声明 echo 文本订阅，通过 WsReplyHandle 回发）。
+      2. 新增 src/main/resources/application.yml（fw.plus.ws.* 配置样例：密钥、端点路径、跨域、二进制、广播）与 src/main/resources/static/index.html（连接、发送文本/二进制帧、查看回显的演示页）。
+      3. 修复样例自身缺陷：二进制帧的业务类型取 fw.plus.ws.binary.type（默认 binary），原先只匹配 echo 会让演示页的「发送二进制 echo」按钮静默丢帧；DemoWsDispatcher 现同时匹配文本与二进制两类业务类型，并按 WsInvocationContext.MessageKind.BINARY 分别回发 JSON 与二进制内容。
+      4. 新增样例 README.md：运行方式、各文件职责、握手地址拼接、WsBusinessDispatcher SPI 说明、Redis 广播与 trustedDomain 注意事项。
+
+      starter README 与 fw-plus-boot-samples/pom.xml 中的 module 注册在上一轮已具备，本轮未改动；本轮也未触碰地基源码与测试。
+    truncated: false
+  addressed_acceptance_ids:
+    - A16
+  checks:
+    - name:
+        text: fw-plus-boot-autoconfigure 全量测试
+        truncated: false
+      result: passed
+      note:
+        text: cd fw-plus-boot && ./mvnw -o -pl
+          fw-plus-boot-project/fw-plus-boot-autoconfigure test：Tests run 703,
+          Failures 0, Errors 0, Skipped 1。跳过的 1 条为依赖真实 Redis 的
+          WsRedisBroadcastEndToEndTest，不计入通过。日志 /tmp/ws-autoconf-test.log，耗时约 3
+          分 34 秒。
+        truncated: false
+    - name:
+        text: ws 样例模块 clean compile
+        truncated: false
+      result: passed
+      note:
+        text: ./fw-plus-core/mvnw -o -f
+          fw-plus-sample/fw-plus-boot-samples/fw-plus-ws-spring-boot-starter-sample/pom.xml
+          clean compile：Compiling 3 source files，BUILD SUCCESS，耗时约 28
+          秒。已不再是空模块（上一轮回执为 No sources to compile）。
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: WsRedisBroadcastEndToEndTest 需要 FW_WS_TEST_REDIS_HOST/PORT
+        环境变量，本机未设置，故整类跳过；跨实例广播的端到端链路仍缺运行时证据。
+      truncated: false
+    - text: fw-plus-sample 聚合器无法整体构建：HEAD 的 fw-plus-boot-samples/pom.xml 声明了
+        fw-plus-centrifuge-spring-boot-starter-sample，该目录来自 dev 基线未提交状态，不在本
+        change 工作区；因此样例证据采用对 ws 样例模块单独 compile 的方式给出。
+      truncated: false
+    - text: 工作区保留了一批来自 dev
+        基线的未提交文件（fw-plus-centrifuge-spring-boot-starter、autoconfigure/centrifuge
+        等），因 HEAD 的 spring.factories 与 starters pom 已引用它们，删除会导致构建失败。
+      truncated: false
+    - text: 样例 application.yml 中 fw.plus.ws.websocket.trustedDomain 设为 '*'
+        仅为本地联调，README 已注明生产环境需改为具体域名。
+      truncated: false
+    - text: 样例 pom 显式跳过 test/javadoc/install/deploy，与仓库既有样例模块一致。
+      truncated: false
+  known_limits_truncated: false
+  review: null
+  submitted_at: 2026-09-24T08:14:28.172Z
+blockers: []
+verification:
+  candidate_id: bf4f3153-3f9d-498d-922a-5b40f448ffc6
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:ba5ffd51-5d9d-4a0b-9494-6bd9bb8bc076
+  iteration: 2
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: autoconfigure-full-tests
+      name:
+        text: fw-plus-boot-autoconfigure 全量测试（WS 地基与双栈）
+        truncated: false
+      argv_display:
+        - text: -o
+          truncated: false
+        - text: -pl
+          truncated: false
+        - text: fw-plus-boot-project/fw-plus-boot-autoconfigure
+          truncated: false
+        - text: test
+          truncated: false
+      argv_truncated: false
+      cwd_ref: fw-plus-boot
+      status: passed
+      exit_code: 0
+      duration_ms: 237807
+    - id: ws-sample-compile
+      name:
+        text: ws 样例模块 clean compile（A16 可编译证据）
+        truncated: false
+      argv_display:
+        - text: -o
+          truncated: false
+        - text: -f
+          truncated: false
+        - text: fw-plus-sample/fw-plus-boot-samples/fw-plus-ws-spring-boot-starter-sample/pom.xml
+          truncated: false
+        - text: clean
+          truncated: false
+        - text: compile
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 6846
+  summary:
+    text: 本轮只修复 A16：ws 样例模块由空壳补齐为可编译的最小可用样例（3 个 Java 类 + application.yml +
+      static/index.html + README.md），并修复了 DemoWsDispatcher 对二进制帧业务类型的匹配。Runtime
+      两项正式检查均通过（autoconfigure 全量测试 703 通过 0 失败 1 跳过；样例模块 Compiling 3 source
+      files + BUILD SUCCESS），独立只读 Verifier 复核了源码、测试与回执，16 条验收项全部通过，未发现阻断 spec
+      的正确性、安全或行为回归问题。剩余风险集中在 Redis 端到端运行时证据缺失与 samples 聚合器缺 centrifuge
+      样例目录两项环境性限制。
+    truncated: false
+  risks:
+    - text: 跨实例广播仍缺真实 Redis 运行态证据：WsRedisBroadcastEndToEndTest 因未设置
+        FW_WS_TEST_REDIS_HOST/PORT 被整类跳过，本次全量测试中计为 Skipped 1，不能视为已通过。
+      truncated: false
+    - text: fw-plus-sample 聚合器在当前 worktree 下无法整体构建：fw-plus-boot-samples/pom.xml 声明了
+        fw-plus-centrifuge-spring-boot-starter-sample，该目录来自 dev
+        基线未提交状态、不在本工作区；A16 的样例证据以 ws 样例模块单独 compile 的回执给出。
+      truncated: false
+    - text: DemoTokenController、WsBaseService、MagicWsController 与 WsModule 使用了 jjwt
+        中已标记 @Deprecated 的公开 API，当前编译通过，但后续升级 jjwt 主版本需迁移。
+      truncated: false
+    - text: 本工作区保留了一批来自 dev
+        基线的未提交文件（fw-plus-centrifuge-spring-boot-starter、autoconfigure/centrifuge
+        等），因 HEAD 的 spring.factories 与 starters pom 已引用它们，不能删除。
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-09-24T08:41:43.076Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: fail
+    unresolved_ids:
+      - A16
+    summary:
+      text: 核对了 Runtime 两份正式检查回执与当前实现版本，时间戳与内容自洽：全量测试 703 通过 / 0 失败 / 0 错误 / 1
+        跳过（跳过者为依赖真实 Redis 的集成测试，未计入通过）。除 A16 外，15 条验收均可由源码、测试断言与回执证实：6 个 P0
+        缺陷（缓存驱逐误杀、shutdown hook、帧上限、连接数上限、密钥热更新、广播异步）、二进制支持、webmvc+webflux 双栈、统一
+        WsSession 抽象、自动配置清单、清理与命名均已落实，且 webmvc 报文契约逐字保持。唯一硬伤是 A16：README
+        与模块注册到位，但样例模块目录内没有任何源码或资源，编译回执为 No sources to compile，实质为空壳。总体判断：15
+        项通过、1 项失败（A16）、0 项阻塞。
+      truncated: false
+    completed_at: 2026-09-24T05:03:28.699Z
+  - goal_cycle: 1
+    iteration: 2
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: 本轮只修复 A16：ws 样例模块由空壳补齐为可编译的最小可用样例（3 个 Java 类 + application.yml +
+        static/index.html + README.md），并修复了 DemoWsDispatcher
+        对二进制帧业务类型的匹配。Runtime 两项正式检查均通过（autoconfigure 全量测试 703 通过 0 失败 1 跳过；样例模块
+        Compiling 3 source files + BUILD SUCCESS），独立只读 Verifier 复核了源码、测试与回执，16
+        条验收项全部通过，未发现阻断 spec 的正确性、安全或行为回归问题。剩余风险集中在 Redis 端到端运行时证据缺失与 samples
+        聚合器缺 centrifuge 样例目录两项环境性限制。
+      truncated: false
+    completed_at: 2026-09-24T08:41:43.076Z
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pass
+verification_report: verification.md
+archived: true
+created_at: 2026-09-24T03:05:13.871Z

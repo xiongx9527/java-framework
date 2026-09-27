@@ -19,6 +19,14 @@ public class WsDataSourceInfo extends MagicEntity {
 	private String secret;
 
 	/**
+	 * 数据源绑定的端点路径，仅作为数据源元信息保留，不参与握手鉴权解析。
+	 *
+	 * <p>握手鉴权已从 ws 地基移除；appId 由请求路径命中 {@code fw.plus.ws.servers} 的实例得到，
+	 * 详见 {@code ws-spring-boot-starter} 能力规格。</p>
+	 */
+	private String path;
+
+	/**
 	 * 描述
 	 */
 	private String description;
@@ -35,6 +43,7 @@ public class WsDataSourceInfo extends MagicEntity {
 		dataSourceInfo.setKey(this.key);
 		dataSourceInfo.setDescription(this.description);
 		dataSourceInfo.setSecret(this.secret);
+		dataSourceInfo.setPath(this.path);
 		dataSourceInfo.setProperties(copyProperties());
 		return dataSourceInfo;
 	}
@@ -46,6 +55,7 @@ public class WsDataSourceInfo extends MagicEntity {
 		dataSourceInfo.setKey(this.key);
 		dataSourceInfo.setDescription(this.description);
 		dataSourceInfo.setSecret(this.secret);
+		dataSourceInfo.setPath(this.path);
 		dataSourceInfo.setProperties(copyProperties());
 		return dataSourceInfo;
 	}

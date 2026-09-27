@@ -20,7 +20,6 @@
         <module>fw-plus-magicapi-plugin-druid</module>
         <module>fw-plus-magicapi-plugin-swagger</module>
         <module>fw-plus-magicapi-plugin-admin</module>
-        <module>fw-plus-magicapi-plugin-tiny-engine</module>
         <module>fw-plus-magicapi-plugin-debezium</module>
         <module>fw-plus-magicapi-plugin-db</module>
         <module>fw-plus-magicapi-plugin-redis</module>
@@ -29,14 +28,16 @@
         <module>fw-plus-magicapi-plugin-task</module>
         <module>fw-plus-magicapi-plugin-ws</module>
         <module>fw-plus-magicapi-plugin-dtp</module>
-        <module>fw-plus-magicapi-plugin-mqtt</module>
+        <module>fw-plus-magicapi-plugin-mqtt-server</module>
         <module>fw-plus-magicapi-plugin-influx</module>
         <module>fw-plus-magicapi-plugin-elasticsearch</module>
         <module>fw-plus-magicapi-plugin-satoken</module>
-        <module>fw-plus-magicapi-plugin-mcp</module>
-        <module>fw-plus-magicapi-plugin-mqttclient</module>
+        <module>fw-plus-magicapi-plugin-mqtt-client</module>
         <module>fw-plus-magicapi-plugin-word</module>
         <module>fw-plus-magicapi-plugin-java-entity</module>
+        <module>fw-plus-magicapi-plugin-spring-bean</module>
+        <module>fw-plus-magicapi-plugin-mybatisplus</module>
+        <module>fw-plus-magicapi-plugin-mybatisflex</module>
     </modules>
 
     <artifactId>fw-plus-magicapi-plugin</artifactId>

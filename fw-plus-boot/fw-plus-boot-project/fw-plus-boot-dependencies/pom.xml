@@ -613,19 +613,13 @@
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.boot</groupId>
-                <artifactId>fw-plus-magicapi-spring-boot-starter</artifactId>
+                <artifactId>fw-plus-ws-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.boot</groupId>
-                <artifactId>fw-plus-tiny-engine-spring-boot-starter</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-tiny-engine-core</artifactId>
+                <artifactId>fw-plus-magicapi-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -739,13 +733,13 @@
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.boot</groupId>
-                <artifactId>fw-plus-magicapi-plugin-mqtt</artifactId>
+                <artifactId>fw-plus-magicapi-plugin-mqtt-server</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.boot</groupId>
-                <artifactId>fw-plus-magicapi-plugin-mqttclient</artifactId>
+                <artifactId>fw-plus-magicapi-plugin-mqtt-client</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

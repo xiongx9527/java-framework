@@ -29,7 +29,7 @@ fw-plus 是 9527 的 Java 开发框架，基于 Spring Boot 3.5.8，提供 Sprin
 所有源码位于 `src/main/java`，资源位于 `src/main/resources`，源码编码统一为 UTF-8。
 
 ```
-fw-plus/                      # 根目录（聚合项目，无统一父 POM）
+fw-plus/                      # 根目录（聚合项目，根 pom.xml 聚合下列 5 个库层，根目录也有 mvnw）
 ├── fw-plus-core/             # 核心库层（Java 17, Spring Boot 3.5.8）
 │   ├── fw-plus-project/
 │   │   ├── fw-plus-parent/       # Core 层父 POM
@@ -72,7 +72,7 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 ├── fw-plus-boot/             # Spring Boot 自动配置层
 │   ├── fw-plus-boot-project/
 │   │   ├── fw-plus-boot/              # 集成自动配置（aggregator）
-│   │   ├── fw-plus-boot-autoconfigure/ # 核心自动配置（spring.factories 注册 18 个顶层 AutoConfiguration，含 JimuJsEnterpriseFilter）
+│   │   ├── fw-plus-boot-autoconfigure/ # 核心自动配置（spring.factories 注册 15 个顶层 AutoConfiguration，含 JimuJsEnterpriseFilter）
 │   │   ├── fw-plus-boot-common/       # Boot 公共类
 │   │   ├── fw-plus-boot-dependencies/ # Boot 层 BOM
 │   │   ├── fw-plus-boot-parent/       # Boot 层父 POM
@@ -94,8 +94,8 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 │   │       │   ├── fw-plus-magicapi-plugin-kafka/         # Kafka 消息队列
 │   │       │   ├── fw-plus-magicapi-plugin-mcp/           # MCP 协议支持
 │   │       │   ├── fw-plus-magicapi-plugin-mongo/         # MongoDB
-│   │       │   ├── fw-plus-magicapi-plugin-mqtt/          # MQTT 协议支持
-│   │       │   ├── fw-plus-magicapi-plugin-mqttclient/    # MQTT 客户端
+│   │       │   ├── fw-plus-magicapi-plugin-mqtt-server/          # MQTT 协议支持
+│   │       │   ├── fw-plus-magicapi-plugin-mqtt-client/    # MQTT 客户端
 │   │       │   ├── fw-plus-magicapi-plugin-pulsar/        # Pulsar 消息队列
 │   │       │   ├── fw-plus-magicapi-plugin-rabbitmq/      # RabbitMQ 消息队列
 │   │       │   ├── fw-plus-magicapi-plugin-redis/         # Redis 缓存
@@ -279,7 +279,9 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 
 ## 重要提醒
 
-- **Maven 构建**：`fw-plus-core`、`fw-plus-boot`、`fw-plus-cloud`、`fw-plus-ai` 四个库层各自带有 `mvnw`（Maven Wrapper）；`fw-plus-sample` 样例聚合目录不带 Wrapper。按 Core → Boot → Cloud / AI 顺序准备本地 Maven 依赖后，使用 `./fw-plus-core/mvnw -f fw-plus-sample/pom.xml validate` 作为样例统一入口。fw-plus-core 是底层依赖，各层级均有独立的父 POM。发版按版本号统一发，不单独发某个模块。
+- **Maven 构建**：根目录是聚合工程（`pom.xml` + `mvnw`，模块为 `fw-plus-core`/`fw-plus-boot`/`fw-plus-cloud`/`fw-plus-ai`/`fw-plus-sample`），可用 `./mvnw compile` / `./mvnw test` 一把跑全仓；四个库层各自也带有 `mvnw`，用于按层增量构建（如 `cd fw-plus-core && ./mvnw clean install -DskipTests`）。按 Core → Boot → Cloud / AI 顺序准备本地 Maven 依赖后，使用 `./fw-plus-core/mvnw -f fw-plus-sample/pom.xml validate` 作为样例统一入口。fw-plus-core 是底层依赖，各层级均有独立的父 POM。发版按版本号统一发，不单独发某个模块。
+  - **注意（shade 与离线）**：`fw-plus-ai-langchain4j-core` 用 maven-shade-plugin 把 `langchain4j-core` 打进自己的 jar，shade 只在 `package` 阶段发生；离线环境下若 shade 插件依赖未缓存，`install` 会失败，此时依赖 `langchain4j-core` 类的模块测试需以「该模块单独 `-pl` 构建」或「已安装 jar」为前提，根 reactor 的 `test` 阶段可能因只有 `target/classes` 而报 `NoClassDefFoundError`。
+  - **根目录 `./mvnw -o compile` 要求所有模块声明齐全**：`fw-plus-ai-langchain4j-*` 各模块需显式声明 `lombok`(provided) 与 `langchain4j-core`（`fw-plus-ai-langchain4j-core` 对 core  Jar 是 optional，不传递）；但 `fw-plus-ai-langchain4j-adapter` 受架构契约约束**禁止**依赖官方 `langchain4j-core`，只能走 shaded 版。
 - **Magic-API 版本**：使用自行维护的 2.2.2 版本，`org.ssssssss` 组的依赖通过 `<repositories>` 指向内部 Nexus 仓库（jugui-snapshot / jugui-release），请勿修改这些依赖的版本号。
 - **JDK 17 约束**：fw-plus-core 使用 Java 17（compiler source/target = 17）。
 - **源文件编码**：所有 Java 源文件、资源文件统一使用 UTF-8 编码。
@@ -290,11 +292,10 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 ## 构建、测试与开发命令
 
 ```bash
-# 全量编译（跳过测试）— 需在各模块目录下执行，根目录无统一 POM
-# 推荐使用各模块内置的 Maven Wrapper (mvnw)
-cd fw-plus-core && ./mvnw clean install -DskipTests
+# 全量编译（跳过测试）— 根目录聚合 5 个库层，可一把跑
+./mvnw clean install -DskipTests
 
-# 编译指定模块
+# 按层增量构建（仅该层及其依赖）
 cd fw-plus-core && ./mvnw clean install -pl fw-plus-project/fw-plus-common -DskipTests
 
 # 运行测试（Cobertura 覆盖率报告在 target/site/cobertura/）
@@ -349,10 +350,13 @@ cd fw-plus-core && ./mvnw clean deploy -DskipTests
 在这个仓库中，开始处理需要改动或调查的任务前，如果可能存在活跃 Comet workflow，把当前用户请求传入只读探针：`comet resume-probe . --stdin --json`。
 
 - 如果用户通过宿主明确调用任意 Comet Skill（例如 `@comet`、`/comet`、`@comet-native` 或 `/comet-hotfix`），显式调用优先于本恢复协议；不要运行 resume probe，直接进入被调用的 Skill。
+- 如果用户通过宿主明确调用的是非 Comet 的 Skill 或斜杠命令，任务意图已由该调用明确：不要运行 resume probe，直接执行该 Skill。
+- 如果你正在 Comet 流程内（包括正在等待用户回复你在流程中提出的问题），不要运行 resume probe；把这类回复（例如方案/选项选择）当作当前 change 的继续，直接按用户的选择推进。
 - 只信任返回的 `workflow`、`skill` 和 `entrySource`；它们只由项目配置或无配置兼容回退决定。不得扫描或切换另一套 workflow。
 - 如果 probe 返回 `auto_resume`，简短说明选中的 active change，并进入 `nextCommand` 指向的永久入口。不要把状态命令当作恢复入口直接推进。
 - 如果 probe 返回 `ask_user`，只问一个简短问题并等待用户回复。
 - 如果当前请求未明确调用 Comet Skill，且 probe 返回 `out_of_scope` 或 `none`，不要进入 Comet workflow。
+- `out_of_scope` 或 `none` 只表示不要因为这个新请求进入 Comet workflow；它绝不表示要暂停或退出一个已在进行的 Comet 流程。
 - 如果配置或状态无效且没有 `nextCommand`，停止并报告原因；不要猜测另一个 workflow。
 - 不能只因为存在 active change 就把无关任务挂到该 change。Native 的未提交改动由 Native 入口检查，不由探针自动归因。
 </comet-ambient-resume>

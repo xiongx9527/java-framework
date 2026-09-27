@@ -11,13 +11,8 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.freemarker.web.
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.influx.web.MagicInfluxController;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.web.MagicKafkaController;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mongo.web.MagicMongoController;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.starter.MagicAPIMcpProperties;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.web.McpHttpTransportService;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.web.McpSseStreamService;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.webflux.MagicMcpDiagnosticWebFluxController;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.webflux.MagicMcpWebFluxController;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.web.MagicMqttController;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqttclient.web.MagicMqttClientController;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.server.web.MagicMqttController;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.web.MagicMqttClientController;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.web.MagicPulsarController;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.web.MagicRabbitMqController;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.redis.web.MagicRedisController;
@@ -126,19 +121,6 @@ public class MagicAPIWebFluxControllerRegistrar implements SmartInitializingSing
 			mapping.registerController(new MagicMqttClientController(configuration));
 		} else if ("influx".equals(name)) {
 			mapping.registerController(new MagicInfluxController(configuration));
-		} else if ("mcp".equals(name)) {
-			MagicAPIMcpProperties mcpProperties = applicationContext.getBeanProvider(MagicAPIMcpProperties.class)
-					.getIfAvailable();
-			McpHttpTransportService transportService = applicationContext.getBeanProvider(McpHttpTransportService.class)
-					.getIfAvailable();
-			McpSseStreamService sseStreamService = applicationContext.getBeanProvider(McpSseStreamService.class)
-					.getIfAvailable();
-			if (mcpProperties != null && transportService != null && sseStreamService != null) {
-				mapping.registerController(new MagicMcpWebFluxController(mcpProperties, transportService,
-						sseStreamService), "")
-						.registerController(new MagicMcpDiagnosticWebFluxController(mcpProperties, transportService),
-								"");
-			}
 		}
 	}
 }
