@@ -4,7 +4,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Import;
 
-@ConditionalOnClass(name="dev.langchain4j.spring.LangChain4jAutoConfig")
+@ConditionalOnClass(name="dev.langchain4j.Experimental")
 @ConditionalOnProperty(prefix = "fw.plus.ai.langchain4j", name = "enabled", havingValue = "true", matchIfMissing = true)
 @Import({LangChain4jCoreAutoConfiguration.class,
 		LangChain4jOpenAiAutoConfiguration.class,

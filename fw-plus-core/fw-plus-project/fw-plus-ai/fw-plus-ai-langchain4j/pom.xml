@@ -31,6 +31,7 @@
         <module>fw-plus-ai-langchain4j-cassandra</module>
         <module>fw-plus-ai-langchain4j-neo4j</module>
         <module>fw-plus-ai-langchain4j-reactor</module>
+        <module>fw-plus-ai-langchain4j-core</module>
     </modules>
     <properties>
         <main.basedir>${basedir}/../../..</main.basedir>
