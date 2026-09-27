@@ -416,7 +416,7 @@ cd fw-plus-core && ./mvnw clean install -pl fw-plus-project/fw-plus-common -Dski
 
 **版本管理**：`fw-plus-core`、`fw-plus-boot`、`fw-plus-cloud`、`fw-plus-ai` 四个库层使用 `${revision}` 属性（当前值 `0.1.1-SNAPSHOT`）+ `flatten-maven-plugin` 解析版本占位符；`fw-plus-sample` 聚合器固定使用 `0.1.1-SNAPSHOT`，不使用 flatten。
 
-内部 Nexus 地址：`http://172.17.1.6:28081`，同时依赖 Jeecg 官方仓库（`https://maven.jeecg.org`）。
+依赖 Jeecg 官方仓库（`https://maven.jeecg.org`）。
 
 ## 前端控制台构建
 

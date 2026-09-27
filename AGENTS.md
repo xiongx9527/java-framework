@@ -338,7 +338,6 @@ cd fw-plus-core && ./mvnw clean deploy -DskipTests
 
 - **IDE**: IntelliJ IDEA（`.idea/` 目录已纳入版本控制）。
 - **AI 代理配置**: `AGENTS.md`（本文件）和 `CLAUDE.md` 包含项目指南和 AI 助手配置。
-- **内部 Nexus**: `http://172.17.1.6:28081/` — 仓库 `jugui-snapshot` 和 `jugui-release`。
 - **许可证**: Apache 2.0。
 
 <comet-ambient-resume>

@@ -50,4 +50,9 @@ public class SwaggerConfig {
      * 文档版本
      */
     private String version = "1.0";
+
+    /**
+     * contextPath，仅 webflux 支线使用（servlet 支线取 ServletContext，忽略此配置）
+     */
+    private String contextPath = "";
 }

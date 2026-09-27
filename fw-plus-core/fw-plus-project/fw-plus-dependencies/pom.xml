@@ -879,6 +879,11 @@
             </dependency>
             <dependency>
                 <groupId>com.github.xiaoymin</groupId>
+                <artifactId>knife4j-openapi3-webflux-spring-boot-starter</artifactId>
+                <version>${knife4j-openapi3.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.xiaoymin</groupId>
                 <artifactId>knife4j-gateway-spring-boot-starter</artifactId>
                 <version>${knife4j-gateway.version}</version>
             </dependency>

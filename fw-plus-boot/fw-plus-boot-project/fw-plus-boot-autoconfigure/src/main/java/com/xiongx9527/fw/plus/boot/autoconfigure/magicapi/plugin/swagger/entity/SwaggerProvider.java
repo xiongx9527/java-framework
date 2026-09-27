@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.entity;
 
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.MagicApiRegistryView;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson2.JSONValidator;
 import lombok.extern.slf4j.Slf4j;
@@ -12,7 +13,6 @@ import org.ssssssss.magicapi.core.model.BaseDefinition;
 import org.ssssssss.magicapi.core.model.DataType;
 import org.ssssssss.magicapi.core.model.Path;
 import org.ssssssss.magicapi.core.service.MagicResourceService;
-import org.ssssssss.magicapi.core.service.impl.RequestMagicDynamicRegistry;
 import org.ssssssss.magicapi.utils.JsonUtils;
 import org.ssssssss.magicapi.utils.PathUtils;
 import org.ssssssss.script.parsing.ast.literal.BooleanLiteral;
@@ -40,7 +40,7 @@ public class SwaggerProvider {
 
 	private final Map<String, Object> DEFINITION_MAP = new ConcurrentHashMap<>();
 
-	private final RequestMagicDynamicRegistry requestMagicDynamicRegistry;
+	private final MagicApiRegistryView registryView;
 
 	private final MagicResourceService magicResourceService;
 	/**
@@ -53,9 +53,9 @@ public class SwaggerProvider {
 	private final Map<String, Object> securityDefinitionMap;
 	private final Map<String, Object> securityMap;
 
-	public SwaggerProvider(RequestMagicDynamicRegistry requestMagicDynamicRegistry, MagicResourceService magicResourceService,
+	public SwaggerProvider(MagicApiRegistryView registryView, MagicResourceService magicResourceService,
 						   String basePath, SwaggerEntity.Info info, boolean persistenceResponseBody, String prefix, Map<String, Object> securityDefinitionMap, Map<String, Object> securityMap) {
-		this.requestMagicDynamicRegistry = requestMagicDynamicRegistry;
+		this.registryView = registryView;
 		this.magicResourceService = magicResourceService;
 		this.basePath = basePath;
 		this.info = info;
@@ -68,7 +68,7 @@ public class SwaggerProvider {
 	@ResponseBody
 	public SwaggerEntity swaggerJson() {
 		this.DEFINITION_MAP.clear();
-		List<ApiInfo> infos = requestMagicDynamicRegistry.mappings();
+		List<ApiInfo> infos = registryView.mappings();
 		SwaggerEntity swaggerEntity = new SwaggerEntity();
 		swaggerEntity.setInfo(info);
 		swaggerEntity.setBasePath(this.basePath);
