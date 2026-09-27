@@ -1,5 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter.model.LangChain4jModelAdapterAutoConfiguration;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter.store.LangChain4jEmbeddingStoreAdapterAutoConfiguration;
 import com.xiongx9527.fw.plus.ai.langchain4j.adapter.model.LangChain4jModelProviderAdapter;
 import com.xiongx9527.fw.plus.ai.langchain4j.adapter.store.LangChain4jEmbeddingStoreProviderAdapter;
 import com.xiongx9527.fw.plus.ai.model.AiModelAdapter;
@@ -13,17 +15,21 @@ import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.support.SpringFactoriesLoader;
 
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreDefinition;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreType;
 
+import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class LangChain4jAdapterAutoConfigurationTest {
@@ -260,6 +266,7 @@ public class LangChain4jAdapterAutoConfigurationTest {
 			}
 		}
 		throw new IllegalArgumentException("Cannot find bean method: " + methodName);
+	}
 
 	private LangChain4jEmbeddingStoreProviderAdapter provider(
 			org.springframework.context.ApplicationContext context, String name) {
