@@ -117,6 +117,7 @@ public class MagicDynamicMcpServer implements DisposableBean, SmartInitializingS
 			}
 			serverMap.put(key, runtime);
 			registrarMap.put(key, registrar);
+			serverInfos.put(key, info);
 			log.info("注册 MCP server:[{}] endpoint=[{}] 完成", key, runtime.getEndpoint());
 			return true;
 		} catch (Throwable e) {

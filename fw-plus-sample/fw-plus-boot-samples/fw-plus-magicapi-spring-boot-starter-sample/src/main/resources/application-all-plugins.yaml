@@ -10,6 +10,10 @@ fw:
     config:
       event:
         apollo-enabled: false
+    # 全插件样例不接数据源：mybatisplus 插件仅把 mybatis-plus-boot-starter 带上 classpath，
+    # 关闭 mp 自动配置以避免其 DataSource 单例条件在离线样例中触发装配失败
+    mp:
+      enabled: false
 
 spring:
   autoconfigure:

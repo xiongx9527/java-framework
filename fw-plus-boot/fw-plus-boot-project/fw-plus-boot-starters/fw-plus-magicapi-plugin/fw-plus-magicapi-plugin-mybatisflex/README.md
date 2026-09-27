@@ -23,7 +23,7 @@
 </dependency>
 ```
 
-本模块 POM 已声明 MyBatis-Flex 运行依赖：
+本模块仅提供 Magic-API 侧的 MyBatis-Flex 能力，不强制传递 MyBatis-Flex 装配依赖（`mybatis-flex-spring` 为 `optional`）。宿主需自行引入并保证其在 classpath 上：
 
 ```xml
 <dependency>

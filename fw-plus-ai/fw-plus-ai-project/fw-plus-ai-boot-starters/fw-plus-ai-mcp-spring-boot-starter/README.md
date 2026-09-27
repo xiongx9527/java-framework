@@ -126,6 +126,11 @@ public class WeatherToolProvider {
 | `fw-plus.ai.mcp.servers[].server.version` | 命名 runtime 的协议版本 | 继承顶层 |
 | `fw-plus.ai.mcp.servers[].base-packages` | 命名 runtime 的扫描包路径 | 继承顶层 |
 | `fw-plus.ai.mcp.thread-pool-size` | WebFlux 栈同步内核调用专用线程池大小 | `16` |
+| `fw-plus.ai.mcp.headers.accept` | 网关改写 header 名时自定义的 Accept 头名；未配置取内核默认 `Accept` | 内核默认 |
+| `fw-plus.ai.mcp.headers.protocol-version` | 自定义的协议版本头名；未配置取内核默认 `MCP-Protocol-Version` | 内核默认 |
+| `fw-plus.ai.mcp.headers.session-id` | 自定义的会话 id 头名；未配置取内核默认 `Mcp-Session-Id` | 内核默认 |
+| `fw-plus.ai.mcp.headers.origin` | 自定义的 Origin 头名；未配置取内核默认 `Origin` | 内核默认 |
+| `fw-plus.ai.mcp.scope-check-enabled` | capability scope 裁剪总开关：开启后入口按已认证 token 的 scopes 拒绝未覆盖目标能力（tools/resources/prompts）的请求；关闭时不做裁剪 | `false` |
 
 ## 传输方式
 

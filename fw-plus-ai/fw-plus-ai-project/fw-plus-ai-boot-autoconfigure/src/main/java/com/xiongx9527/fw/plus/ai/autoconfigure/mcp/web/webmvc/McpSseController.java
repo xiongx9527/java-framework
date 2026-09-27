@@ -40,7 +40,7 @@ public class McpSseController extends McpTransportController {
 			response.sendError(HttpServletResponse.SC_NOT_FOUND);
 			return;
 		}
-		if (!sse.isOriginAllowed(request.getHeader("Origin"))) {
+		if (!sse.isOriginAllowed(request.getHeader(originHeaderName()))) {
 			response.sendError(HttpServletResponse.SC_FORBIDDEN);
 			return;
 		}
@@ -79,7 +79,7 @@ public class McpSseController extends McpTransportController {
 			response.sendError(HttpServletResponse.SC_NOT_FOUND);
 			return;
 		}
-		if (!sse.isOriginAllowed(request.getHeader("Origin"))) {
+		if (!sse.isOriginAllowed(request.getHeader(originHeaderName()))) {
 			response.sendError(HttpServletResponse.SC_FORBIDDEN);
 			return;
 		}

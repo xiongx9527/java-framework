@@ -56,16 +56,6 @@ public class MagicApiMcpToolRegistrar {
 	}
 
 	/**
-	 * 为新增的 server 实例派生独立注册器：共享工具快照来源，但保持各自的增量状态，
-	 * 避免实例间 {@code registered} 集合互相干扰导致工具被误删或漏发通知。
-	 *
-	 * @return 新的注册器
-	 */
-	public MagicApiMcpToolRegistrar newInstanceRegistrar() {
-		return new MagicApiMcpToolRegistrar(registry);
-	}
-
-	/**
 	 * 同步工具快照到 toolStore。
 	 *
 	 * <p>幂等：工具集合与内容均未变化时不改动 store。广播 {@code notifications/tools/list_changed}
@@ -163,10 +153,6 @@ public class MagicApiMcpToolRegistrar {
 		}
 	}
 
-	public boolean isRegistered(String toolName) {
-		return registered.contains(toolName);
-	}
-
 	private ServerStoreTool serverStoreTool(MagicApiMcpTool tool) {
 		ToolItem item = new ToolItem();
 		item.setName(tool.getName());
@@ -209,9 +195,5 @@ public class MagicApiMcpToolRegistrar {
 			return false;
 		}
 		return Objects.equals(JsonUtils.toJson(left), JsonUtils.toJson(right));
-	}
-
-	static MagicResourceService resourceService(MagicApiMcpToolRegistry registry) {
-		return registry.getMagicResourceService();
 	}
 }
