@@ -21,6 +21,7 @@
   <modules>
     <module>fw-plus-ai-magicapi-sample</module>
     <module>fw-plus-ai-mcp-server-sample</module>
+    <module>fw-plus-ai-chat-sample</module>
   </modules>
   <properties>
     <maven.test.skip>true</maven.test.skip>
