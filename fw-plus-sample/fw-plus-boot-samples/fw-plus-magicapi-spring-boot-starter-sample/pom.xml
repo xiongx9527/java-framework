@@ -215,6 +215,26 @@
 
         <dependency>
             <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-java-entity</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-mybatisplus</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-mybatisflex</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-spring-bean</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
             <artifactId>fw-plus-magicapi-plugin-word</artifactId>
         </dependency>
 

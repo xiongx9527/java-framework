@@ -119,7 +119,12 @@ public class MagicApiMcpToolRegistry {
 		if (isScopeEnabled(api)) {
 			for (ApiInfo info : magicResourceService.<ApiInfo>files(API_TYPE)) {
 				if (matchesApi(api, info)) {
-					addByName(result, indexByName, toApiTool(api, info));
+					MagicApiMcpTool tool = toApiTool(api, info);
+					// 动态能力内部保持旧优先级：函数先到先得，api 不与已登记函数抢名；
+					// provider 优先由下面统一覆盖实现。
+					if (!indexByName.containsKey(tool.getName())) {
+						addByName(result, indexByName, tool);
+					}
 				}
 			}
 		}

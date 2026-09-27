@@ -44,6 +44,10 @@ class MagicApiAllPluginsClasspathTest {
 			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-vue3",
 			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-word",
 			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-ws",
+			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-java-entity",
+			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-mybatisplus",
+			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-mybatisflex",
+			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-spring-bean",
 			"com.xiongx9527.fw.plus.ai:fw-plus-ai-magicapi-plugin-model",
 			"com.xiongx9527.fw.plus.ai:fw-plus-ai-magicapi-plugin-mcp",
 			"com.xiongx9527.fw.plus.ai:fw-plus-ai-magicapi-plugin-vector"
@@ -74,7 +78,7 @@ class MagicApiAllPluginsClasspathTest {
 		Set<String> aiModules = readModules(root.resolve(
 				"fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/pom.xml"));
 
-		assertEquals(24, bootModules.size());
+		assertEquals(28, bootModules.size());
 		assertEquals(3, aiModules.size());
 		assertEquals(expectedArtifacts("com.xiongx9527.fw.plus.boot"), bootModules);
 		assertEquals(expectedArtifacts("com.xiongx9527.fw.plus.ai"), aiModules);
