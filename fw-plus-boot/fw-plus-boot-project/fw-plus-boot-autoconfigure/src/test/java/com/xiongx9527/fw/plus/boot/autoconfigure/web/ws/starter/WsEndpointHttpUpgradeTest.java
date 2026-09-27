@@ -39,6 +39,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         classes = WsEndpointHttpUpgradeTest.WsTestApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
+                "fw.plus.ws.enabled=true",
                 "fw.plus.ws.path=" + WsEndpointHttpUpgradeTest.ENDPOINT_PATH,
                 "fw.plus.ws.paths=" + WsEndpointHttpUpgradeTest.ADDITIONAL_ENDPOINT_PATH,
                 "fw.plus.ws.servers[0].key=" + WsEndpointHttpUpgradeTest.INSTANCE_KEY,
