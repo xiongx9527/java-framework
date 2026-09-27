@@ -106,9 +106,9 @@ public interface WsBaseService {
      *
      * @return WebSocket 路径，缺省 {@code /ws/api}
      */
-	default String getWebsocketPath() {
-		return getConfigValueAsString("path", "/ws/api");
-	}
+    default String getWebsocketPath() {
+        return getConfigValueAsString("path", "/ws/api");
+    }
 
     /**
      * 获取 WebSocket 受信任的域名。
@@ -139,18 +139,18 @@ public interface WsBaseService {
         return new String[0];
     }
 
-	/**
-	 * 获取 WS 地基配置对象；上下文不可用（如纯单元构造）时返回 {@code null}。
-	 *
-	 * @return WS 地基配置，可为 {@code null}
-	 */
-	default WsConfig getWsConfig() {
-		try {
-			return SpringUtils.getBean(WsConfig.class);
-		} catch (Exception e) {
-			return null;
-		}
-	}
+    /**
+     * 获取 WS 地基配置对象；上下文不可用（如纯单元构造）时返回 {@code null}。
+     *
+     * @return WS 地基配置，可为 {@code null}
+     */
+    default WsConfig getWsConfig() {
+        try {
+            return SpringUtils.getBean(WsConfig.class);
+        } catch (Exception e) {
+            return null;
+        }
+    }
     /**
      * 获取默认的应用 ID。
      *

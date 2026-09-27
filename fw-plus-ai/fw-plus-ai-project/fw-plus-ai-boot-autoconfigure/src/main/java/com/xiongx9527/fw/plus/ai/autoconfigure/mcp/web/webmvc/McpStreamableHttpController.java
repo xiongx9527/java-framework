@@ -36,7 +36,7 @@ public class McpStreamableHttpController extends McpTransportController {
 			return;
 		}
 
-		String session = request.getHeader(sessionIdHeader());
+		String session = request.getHeader(sessionIdHeaderName());
 		// 初始化请求没有会话头；已持会话的后续消息必须归属本 runtime。
 		if (session != null && !belongsToRuntime(session)) {
 			response.sendError(HttpServletResponse.SC_NOT_FOUND);
@@ -47,7 +47,7 @@ public class McpStreamableHttpController extends McpTransportController {
 		if (!isAuthenticated(session, "streamable-http", endpoint(), payload, request, response)) {
 			return;
 		}
-		write(transport.post(payload, headers(request)), response);
+		write(transport.post(payload, requestHeaders(request)), response);
 	}
 
 	/**
@@ -60,14 +60,14 @@ public class McpStreamableHttpController extends McpTransportController {
 			return;
 		}
 
-		String session = request.getHeader(sessionIdHeader());
+		String session = request.getHeader(sessionIdHeaderName());
 		if (session != null && !belongsToRuntime(session)) {
 			response.sendError(HttpServletResponse.SC_NOT_FOUND);
 			return;
 		}
 
 		authenticate(session, "streamable-http", endpoint(), null, request);
-		write(transport.delete(session, headers(request)), response);
+		write(transport.delete(session, requestHeaders(request)), response);
 	}
 
 	/**
@@ -80,7 +80,7 @@ public class McpStreamableHttpController extends McpTransportController {
 			return;
 		}
 
-		String session = request.getHeader(sessionIdHeader());
+		String session = request.getHeader(sessionIdHeaderName());
 		if (!belongsToRuntime(session)) {
 			response.sendError(HttpServletResponse.SC_NOT_FOUND);
 			return;
@@ -138,7 +138,7 @@ public class McpStreamableHttpController extends McpTransportController {
 		try {
 			// 心跳与适配层并发提交响应头时会互相覆盖，需要与内核同步。
 			synchronized (transport) {
-				HttpResult result = transport.openEventStream(session, writer, headers(request));
+				HttpResult result = transport.openEventStream(session, writer, requestHeaders(request));
 				response.setHeader("Cache-Control", "no-cache");
 				response.setHeader("X-Accel-Buffering", "no");
 				write(result, response);

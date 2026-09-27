@@ -133,6 +133,83 @@ class MagicApiMcpCapabilityRegistrarTest {
         assertThat(featureMgr.getResourceStore()).doesNotContainKey("mcp://readme");
     }
 
+    @Test
+    void shouldReplacePromptWhenOnlyMessageContentChanges() throws Exception {
+        prompts.add(prompt("summarize", "text"));
+        registrar.refresh();
+        Object before = featureMgr.getPromptStore().get("summarize").getInstance();
+
+        prompts.clear();
+        MagicMcpPromptInfo changed = prompt("summarize", "text");
+        changed.setMessages(Collections.singletonList(new MagicMcpPromptMessage("user", "请总结（v2）：${text}")));
+        prompts.add(changed);
+        registrar.refresh();
+
+        Object after = featureMgr.getPromptStore().get("summarize").getInstance();
+        assertThat(after).isNotSameAs(before);
+        assertThat(promptContent(featureMgr)).contains("v2");
+    }
+
+    @Test
+    void shouldKeepPromptWhenMessageContentUnchanged() {
+        prompts.add(prompt("summarize", "text"));
+        registrar.refresh();
+        Object before = featureMgr.getPromptStore().get("summarize").getInstance();
+
+        prompts.clear();
+        prompts.add(prompt("summarize", "text"));
+        registrar.refresh();
+
+        assertThat(featureMgr.getPromptStore().get("summarize").getInstance()).isSameAs(before);
+    }
+
+    @Test
+    void shouldClearTemplateAndCompletionStateWhenInstanceUnregisters() throws Exception {
+        MagicMcpResourceInfo info = resource("mcp://readme", "readme", "正文");
+        info.setTemplate("mcp://docs/{path}");
+        info.setCompletions(Collections.singletonMap("path", Arrays.asList("a", "b")));
+        resources.add(info);
+
+        registrar.refresh();
+        assertThat(featureMgr.getResourceTemplateStore()).containsKey("mcp://docs/{path}");
+        assertThat(featureMgr.getCompletionStore()).containsKey("resource:mcp://docs/{path}:path");
+
+        registrar.unregisterInstance(featureMgr);
+        assertThat(featureMgr.getResourceTemplateStore()).isEmpty();
+        assertThat(featureMgr.getCompletionStore()).isEmpty();
+        assertThat(incrementalStateKeys(registrar)).isEmpty();
+
+        // 重新注册同一实例时增量状态重建，不残留上一个生命周期的登记项
+        registrar.registerInstance(featureMgr);
+        assertThat(featureMgr.getResourceTemplateStore()).containsKey("mcp://docs/{path}");
+        assertThat(featureMgr.getCompletionStore()).containsKey("resource:mcp://docs/{path}:path");
+    }
+
+    private String promptContent(FeatureMgr mgr) throws Exception {
+        Object invoker = mgr.getPromptStore().get("summarize").getInstance();
+        @SuppressWarnings("unchecked")
+        List<PromptMessage> messages = (List<PromptMessage>) mgr.getPromptStore().get("summarize")
+                .getMethod().invoke(invoker, "text");
+        return String.valueOf(messages.get(0).getContent());
+    }
+
+    /**
+     * registrar 四张增量表的 key 集合；用于断言实例注销后增量状态被清空。
+     */
+    private java.util.Set<FeatureMgr> incrementalStateKeys(MagicApiMcpCapabilityRegistrar target)
+            throws Exception {
+        java.util.Set<FeatureMgr> keys = new java.util.LinkedHashSet<>();
+        for (String field : new String[] { "registeredResources", "registeredPrompts", "registeredTemplates",
+                "registeredCompletions" }) {
+            java.lang.reflect.Field declared = MagicApiMcpCapabilityRegistrar.class.getDeclaredField(field);
+            declared.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            java.util.Map<FeatureMgr, ?> table = (java.util.Map<FeatureMgr, ?>) declared.get(target);
+            keys.addAll(table.keySet());
+        }
+        return keys;
+    }
+
     private MagicMcpResourceInfo resource(String uri, String name, String content) {
         MagicMcpResourceInfo info = new MagicMcpResourceInfo();
         info.setId("resource-" + uri);

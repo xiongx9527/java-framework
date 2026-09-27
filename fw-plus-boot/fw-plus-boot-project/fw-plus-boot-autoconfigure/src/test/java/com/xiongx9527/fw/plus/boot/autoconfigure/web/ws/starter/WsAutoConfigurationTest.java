@@ -41,7 +41,10 @@ import static org.mockito.Mockito.when;
  */
 class WsAutoConfigurationTest {
 
+    // fw.plus.ws.enabled 无 matchIfMissing：未配置时装配关闭，
+    // 因此测试统一显式开启，仅「显式关闭」用例再覆盖为 false。
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
+            .withPropertyValues("fw.plus.ws.enabled=true")
             .withConfiguration(AutoConfigurations.of(RefreshAutoConfiguration.class, WsAutoConfiguration.class));
 
     @Test

@@ -46,7 +46,9 @@ class MagicAPIWsWiringTest {
 
     private final MagicAPIProperties properties = new MagicAPIProperties();
 
+    // fw.plus.ws.enabled 无 matchIfMissing：未配置时装配关闭，测试统一显式开启。
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
+            .withPropertyValues("fw.plus.ws.enabled=true")
             .withConfiguration(AutoConfigurations.of(RefreshAutoConfiguration.class, WsAutoConfiguration.class))
             .withUserConfiguration(MagicAPIWsConfiguration.class)
             .withBean(MagicAPIProperties.class, () -> properties)

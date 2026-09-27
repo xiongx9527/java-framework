@@ -3,8 +3,10 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web.webmvc;
 import com.ajaxjs.mcp.server.ServerStreamableHttp;
 import com.ajaxjs.mcp.server.model.HttpResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpAuthService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpCapabilities;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpPrincipal;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpRequest;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpHeaderNames;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
 import com.xiongx9527.fw.plus.ai.mcp.spi.ServerSseRegistry;
 import com.xiongx9527.fw.plus.ai.mcp.spi.ServerStreamableHttpRegistry;
@@ -30,8 +32,12 @@ public abstract class McpTransportController {
 
 	private final McpServerRuntime runtime;
 
+	private final McpHeaderNames headerNames;
+
 	protected McpTransportController(McpServerRuntime runtime) {
 		this.runtime = runtime;
+		this.headerNames = new McpHeaderNames(runtime.getProperties() == null ? null
+				: runtime.getProperties().getHeaders());
 	}
 
 	protected McpServerRuntime runtime() {
@@ -69,6 +75,29 @@ public abstract class McpTransportController {
 		Map<String, String> values = new LinkedHashMap<>();
 		Collections.list(request.getHeaderNames()).forEach(name -> values.put(name, request.getHeader(name)));
 		return values;
+	}
+
+	/**
+	 * 入口 header 集合：先按默认名收集，再应用自定义 header 名映射（网关改写场景）。
+	 */
+	protected Map<String, String> requestHeaders(HttpServletRequest request) {
+		Map<String, String> values = headers(request);
+		headerNames.applyCustomNames(values);
+		return values;
+	}
+
+	/**
+	 * 生效的会话 id 头名：未配置自定义名时为内核默认名。
+	 */
+	protected String sessionIdHeaderName() {
+		return headerNames.sessionId();
+	}
+
+	/**
+	 * 生效的 Origin 头名：未配置自定义名时为内核默认名。
+	 */
+	protected String originHeaderName() {
+		return headerNames.origin();
 	}
 
 	protected static void write(HttpResult result, HttpServletResponse response) throws IOException {
@@ -122,26 +151,40 @@ public abstract class McpTransportController {
 		if (authService == null) {
 			return McpPrincipal.ANONYMOUS;
 		}
-		return authService.authenticate(new McpRequest(sessionId, transport, endpoint, body, headers(request)));
+		return authService.authenticate(new McpRequest(sessionId, transport, endpoint, body, requestHeaders(request)));
 	}
 
 	/**
 	 * 认证并处理"匿名即拒绝"：未配置认证时为放行主体，配置了但 token 无效时是匿名主体。
+	 *
+	 * <p>开启 scope 裁剪时，认证通过后再按请求体对应的 capability 校验主体 scopes，
+	 * 未覆盖返回 403；未开启、非能力操作或主体未携带 scope 信息时一律放行。</p>
 	 *
 	 * @return 通过返回 {@code true}；已写入错误响应时返回 {@code false}
 	 */
 	protected boolean isAuthenticated(String sessionId, String transport, String endpoint, String body,
 			HttpServletRequest request, HttpServletResponse response) {
 		McpPrincipal principal = authenticate(sessionId, transport, endpoint, body, request);
-		if (principal != McpPrincipal.ANONYMOUS) {
-			return true;
+		if (principal == McpPrincipal.ANONYMOUS) {
+			return reject(response, HttpServletResponse.SC_UNAUTHORIZED, "unauthorized");
 		}
+		if (isScopeCheckEnabled() && !McpCapabilities.covers(principal, McpCapabilities.ofBody(body))) {
+			return reject(response, HttpServletResponse.SC_FORBIDDEN, "forbidden");
+		}
+		return true;
+	}
+
+	private boolean isScopeCheckEnabled() {
+		return runtime.getProperties() != null && runtime.getProperties().isScopeCheckEnabled();
+	}
+
+	private boolean reject(HttpServletResponse response, int status, String message) {
 		try {
-			response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+			response.setStatus(status);
 			response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-			response.getWriter().write("{\"code\":401,\"message\":\"unauthorized\"}");
+			response.getWriter().write("{\"code\":" + status + ",\"message\":\"" + message + "\"}");
 		} catch (IOException e) {
-			throw new IllegalStateException("failed to reject unauthorized MCP request", e);
+			throw new IllegalStateException("failed to reject MCP request", e);
 		}
 		return false;
 	}

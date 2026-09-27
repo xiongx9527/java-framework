@@ -40,6 +40,7 @@ import java.util.List;
  * </p>
  */
 @Configuration
+@ConditionalOnClass(name = "com.xiongx9527.fw.plus.ai.mcp.feature.McpFeatureScanner")
 @EnableConfigurationProperties(McpProperties.class)
 @ConditionalOnProperty(prefix = "fw-plus.ai.mcp", name = "enabled", havingValue = "true", matchIfMissing = true)
 @AutoConfigureAfter(name = "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration")

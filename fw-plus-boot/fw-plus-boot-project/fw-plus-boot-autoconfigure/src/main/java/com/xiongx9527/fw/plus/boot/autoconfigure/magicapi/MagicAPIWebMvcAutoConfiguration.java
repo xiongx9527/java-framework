@@ -198,8 +198,14 @@ public class MagicAPIWebMvcAutoConfiguration implements ApplicationRunner {
      *
      * @return ResultProvider实例，用于构建统一的API响应结果
      */
+	/**
+	 * Boot 自定义的 ResultProvider。bean 名加前缀以避免与 magic-api starter 的
+	 * {@code MagicModuleConfiguration#resultProvider()}（返回 core interface）撞名：
+	 * 两者同时在 classpath 时同名 bean 会触发 BeanDefinitionOverrideException。
+	 * 需要该实现的地方用 {@code @Qualifier("fwPlusMagicResultProvider")} 注入。
+	 */
 	@Bean
-    public ResultProvider resultProvider() {
+    public ResultProvider fwPlusMagicResultProvider() {
         return new ResultProvider(properties);
     }
 
@@ -234,6 +240,7 @@ public class MagicAPIWebMvcAutoConfiguration implements ApplicationRunner {
 	 * @return 数据源动态注册器实例
 	 */
 	@Bean
+	@ConditionalOnMissingBean
 	public DataSourceMagicDynamicRegistry magicDynamicRegistry(MagicResourceStorage<DataSourceInfo> magicResourceStorage,
 															   MagicDynamicDataSource magicDynamicDataSource,
 															   Map<String, DataSourceBuilder> dataSourceBuilderMap,
@@ -258,6 +265,7 @@ public class MagicAPIWebMvcAutoConfiguration implements ApplicationRunner {
 	 * @return 返回配置好的MagicResourceService实例
 	 */
 	@Bean
+	@ConditionalOnMissingBean
 	public MagicResourceService magicResourceService(org.ssssssss.magicapi.core.resource.Resource workspace) {
 		return new MyDefaultMagicResourceService(workspace, magicResourceStoragesProvider.getObject(), applicationContext);
 	}

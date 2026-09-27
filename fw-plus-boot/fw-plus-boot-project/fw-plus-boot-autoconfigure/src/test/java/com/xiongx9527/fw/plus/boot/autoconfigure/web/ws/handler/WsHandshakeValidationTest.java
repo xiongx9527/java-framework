@@ -21,7 +21,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class WsHandshakeValidationTest {
 
-    private final ApplicationContextRunner runner = new ApplicationContextRunner()
+    private final ApplicationContextRunner runner = new // fw.plus.ws.enabled 无 matchIfMissing：未配置时装配关闭，测试统一显式开启。
+            ApplicationContextRunner()
+            .withPropertyValues("fw.plus.ws.enabled=true")
             .withConfiguration(AutoConfigurations.of(RefreshAutoConfiguration.class, WsAutoConfiguration.class));
 
     @Test

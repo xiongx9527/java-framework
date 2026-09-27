@@ -24,7 +24,7 @@ fw-plus 是 9527 的 Java 开发框架，基于 Spring Boot 2.7.18，提供 Spri
 ## 模块结构
 
 ```
-fw-plus/                      # 根目录（聚合项目，无统一父 POM）
+fw-plus/                      # 根目录（聚合项目，根 pom.xml 聚合下列 5 个库层，根目录也有 mvnw）
 ├── fw-plus-core/             # 核心库层（Java 1.8, Spring Boot 2.7.18）
 │   ├── fw-plus-project/
 │   │   ├── fw-plus-parent/       # Core 层父 POM
@@ -87,7 +87,6 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 │   │       │   ├── fw-plus-magicapi-plugin-freemarker/    # Freemarker 模板
 │   │       │   ├── fw-plus-magicapi-plugin-influx/        # InfluxDB
 │   │       │   ├── fw-plus-magicapi-plugin-kafka/         # Kafka 消息队列
-│   │       │   ├── fw-plus-magicapi-plugin-mcp/           # MCP 协议支持
 │   │       │   ├── fw-plus-magicapi-plugin-mongo/         # MongoDB
 │   │       │   ├── fw-plus-magicapi-plugin-mqtt-server/          # MQTT 协议支持
 │   │       │   ├── fw-plus-magicapi-plugin-mqtt-client/    # MQTT 客户端
@@ -399,11 +398,11 @@ if (!list) { return; }
 ## 构建命令
 
 ```bash
-# 全量编译（跳过测试）— 需在各模块目录下执行，根目录无统一 POM
-# 四个库层各自带有 Maven Wrapper (mvnw)，无需系统安装 mvn
-cd fw-plus-core && ./mvnw clean install -DskipTests
+# 全量编译（跳过测试）— 可在根目录一把跑（根目录为聚合工程，带 pom.xml 与 mvnw）
+# 也可按层增量构建：四个库层各自带有 Maven Wrapper (mvnw)，无需系统安装 mvn
+./mvnw clean install -DskipTests
 
-# 编译指定模块（需先进入对应层目录）
+# 按层增量编译（需先进入对应层目录）
 cd fw-plus-core && ./mvnw clean install -pl fw-plus-project/fw-plus-common -DskipTests
 
 # 发布到内网 Nexus
@@ -413,7 +412,7 @@ cd fw-plus-core && ./mvnw clean install -pl fw-plus-project/fw-plus-common -Dski
 ./mvnw dependency:tree
 ```
 
-**构建顺序**：必须先按 Core → Boot → Cloud / AI 顺序准备本地 Maven 依赖，下层依赖上层的 Maven 产物。`fw-plus-sample` 样例聚合目录不带 Wrapper，统一入口为 `./fw-plus-core/mvnw -f fw-plus-sample/pom.xml validate`。根目录没有 pom.xml，不能在根目录直接执行 `mvn`。
+**构建顺序**：必须先按 Core → Boot → Cloud / AI 顺序准备本地 Maven 依赖，下层依赖上层的 Maven 产物。根目录为聚合工程（`pom.xml` + `mvnw`，模块为 `fw-plus-core`/`fw-plus-boot`/`fw-plus-cloud`/`fw-plus-ai`/`fw-plus-sample`），可在根目录执行 `./mvnw compile` / `./mvnw test`；四个库层各自也带有 `mvnw`，用于按层增量构建（如 `cd fw-plus-core && ./mvnw clean install -DskipTests`）。`fw-plus-sample` 样例聚合目录不带 Wrapper，统一入口为 `./fw-plus-core/mvnw -f fw-plus-sample/pom.xml validate`。
 
 **版本管理**：`fw-plus-core`、`fw-plus-boot`、`fw-plus-cloud`、`fw-plus-ai` 四个库层使用 `${revision}` 属性（当前值 `0.1.1-SNAPSHOT`）+ `flatten-maven-plugin` 解析版本占位符；`fw-plus-sample` 聚合器固定使用 `0.1.1-SNAPSHOT`，不使用 flatten。
 

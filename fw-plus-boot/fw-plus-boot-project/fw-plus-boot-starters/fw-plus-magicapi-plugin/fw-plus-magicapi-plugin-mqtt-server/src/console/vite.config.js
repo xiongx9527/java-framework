@@ -1,12 +1,18 @@
 import vue from '@vitejs/plugin-vue'
 import path from 'path'
 import pkg from './package.json'
+import cssInjectedByJsPlugin from 'vite-plugin-css-injected-by-js'
 
 export default {
     base: './',
+    resolve: {
+        alias: {
+            '@': path.resolve(__dirname, 'src/dashboard')
+        }
+    },
     build: {
         minify: false,
-        cssCodeSplit: true,
+        cssCodeSplit: false,
         outDir: 'dist',
         lib: {
             target: 'esnext',
@@ -26,5 +32,6 @@ export default {
     },
     plugins: [
         vue(),
+        cssInjectedByJsPlugin(),
     ]
 }
