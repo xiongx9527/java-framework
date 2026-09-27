@@ -45,7 +45,8 @@ class WsRedisConfigurationTest {
 
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(RefreshAutoConfiguration.class,
-                    WsAutoConfiguration.class));
+                    WsAutoConfiguration.class))
+            .withPropertyValues("fw.plus.ws.enabled=true");
 
     /**
      * 组装一个"Redis 可用"的上下文。

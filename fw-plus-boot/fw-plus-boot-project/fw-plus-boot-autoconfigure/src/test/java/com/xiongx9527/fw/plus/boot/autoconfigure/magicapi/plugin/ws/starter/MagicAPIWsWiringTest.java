@@ -29,6 +29,7 @@ import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 
+import org.assertj.core.api.Assertions;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -147,7 +148,7 @@ class MagicAPIWsWiringTest {
                     field.setAccessible(true);
                     Map<String, ?> interceptorMap = (Map<String, ?>) field.get(registrar);
 
-                    assertThat(interceptorMap.values()).containsExactly(interceptor);
+                    Assertions.<Object>assertThat(interceptorMap.values()).containsExactly(interceptor);
                 });
     }
 

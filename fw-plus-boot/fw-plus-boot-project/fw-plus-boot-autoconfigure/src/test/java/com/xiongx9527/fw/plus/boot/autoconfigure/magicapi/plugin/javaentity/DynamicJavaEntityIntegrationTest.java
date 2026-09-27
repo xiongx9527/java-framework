@@ -372,6 +372,11 @@ class DynamicJavaEntityIntegrationTest {
         }
 
         @Override
+        public void addModules(Iterable<String> moduleNames) {
+            delegate.addModules(moduleNames);
+        }
+
+        @Override
         public Boolean call() {
             started.countDown();
             boolean interrupted = false;

@@ -4,8 +4,10 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.spi.WsBasePathProvider;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.starter.WsAutoConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.web.reactive.WebFluxAutoConfiguration;
 import org.springframework.boot.test.context.runner.ReactiveWebApplicationContextRunner;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
+import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.handler.SimpleUrlHandlerMapping;
@@ -29,12 +31,15 @@ class WsWebFluxAutoConfigurationTest {
 	@Test
 	void reactiveApplicationShouldRegisterReactiveHandlerOnConfiguredPath() {
 		new ReactiveWebApplicationContextRunner()
-				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
+				.withConfiguration(AutoConfigurations.of(RefreshAutoConfiguration.class,
+						WsAutoConfiguration.class))
 				.withPropertyValues(
+						"fw.plus.ws.enabled=true",
 						"fw.plus.ws.path=/ws/reactive")
 				.run(context -> {
 					assertThat(context).hasSingleBean(ReactiveWsHandler.class);
-					SimpleUrlHandlerMapping mapping = context.getBean(SimpleUrlHandlerMapping.class);
+					SimpleUrlHandlerMapping mapping = context.getBean("wsReactiveHandlerMapping",
+							SimpleUrlHandlerMapping.class);
 					assertThat(mapping.getUrlMap()).containsKey("/ws/reactive");
 					assertThat(mapping.getUrlMap().get("/ws/reactive")).isInstanceOf(ReactiveWsHandler.class);
 				});
@@ -43,11 +48,14 @@ class WsWebFluxAutoConfigurationTest {
 	@Test
 	void reactiveEndpointShouldRespectBasePathProvider() {
 		new ReactiveWebApplicationContextRunner()
-				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
+				.withConfiguration(AutoConfigurations.of(RefreshAutoConfiguration.class,
+						WsAutoConfiguration.class))
 				.withUserConfiguration(BasePathConfiguration.class)
 				.withPropertyValues(
+						"fw.plus.ws.enabled=true",
 						"fw.plus.ws.path=/ws/api")
-				.run(context -> assertThat(context.getBean(SimpleUrlHandlerMapping.class).getUrlMap())
+				.run(context -> assertThat(context.getBean("wsReactiveHandlerMapping",
+						SimpleUrlHandlerMapping.class).getUrlMap())
 						.containsKey("/gateway/ws/api"));
 	}
 
@@ -57,13 +65,16 @@ class WsWebFluxAutoConfigurationTest {
 	@Test
 	void reactiveApplicationShouldExpandEveryPathAgainstEveryBasePath() {
 		new ReactiveWebApplicationContextRunner()
-				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
+				.withConfiguration(AutoConfigurations.of(RefreshAutoConfiguration.class,
+						WsAutoConfiguration.class))
 				.withUserConfiguration(MultiBasePathConfiguration.class)
 				.withPropertyValues(
+						"fw.plus.ws.enabled=true",
 						"fw.plus.ws.path=/ws/api",
 						"fw.plus.ws.paths=/ws/api2")
 				.run(context -> {
-					SimpleUrlHandlerMapping mapping = context.getBean(SimpleUrlHandlerMapping.class);
+					SimpleUrlHandlerMapping mapping = context.getBean("wsReactiveHandlerMapping",
+							SimpleUrlHandlerMapping.class);
 					assertThat(mapping.getUrlMap()).containsKeys(
 							"/gw-a/ws/api", "/gw-a/ws/api2", "/gw-b/ws/api", "/gw-b/ws/api2");
 				});
@@ -76,11 +87,14 @@ class WsWebFluxAutoConfigurationTest {
 	@Test
 	void reactiveBlankPrimaryPathShouldFollowBasePathOnly() {
 		new ReactiveWebApplicationContextRunner()
-				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
+				.withConfiguration(AutoConfigurations.of(RefreshAutoConfiguration.class,
+						WsAutoConfiguration.class))
 				.withUserConfiguration(BasePathConfiguration.class)
 				.withPropertyValues(
+						"fw.plus.ws.enabled=true",
 						"fw.plus.ws.path=")
-				.run(context -> assertThat(context.getBean(SimpleUrlHandlerMapping.class).getUrlMap())
+				.run(context -> assertThat(context.getBean("wsReactiveHandlerMapping",
+						SimpleUrlHandlerMapping.class).getUrlMap())
 						.containsOnlyKeys("/gateway/"));
 	}
 
@@ -90,13 +104,19 @@ class WsWebFluxAutoConfigurationTest {
 	@Test
 	void hostSuppliedMappingShouldCoexistWithFoundationMapping() {
 		new ReactiveWebApplicationContextRunner()
-				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
+				.withConfiguration(AutoConfigurations.of(RefreshAutoConfiguration.class,
+						WsAutoConfiguration.class))
 				.withUserConfiguration(BasePathConfiguration.class, HostMappingConfiguration.class)
 				.withPropertyValues(
+						"fw.plus.ws.enabled=true",
 						"fw.plus.ws.path=/ws/api")
 				.run(context -> {
-					Map<String, SimpleUrlHandlerMapping> mappings = context.getBeansOfType(SimpleUrlHandlerMapping.class);
-					assertThat(mappings).hasSize(2);
+					Map<String, SimpleUrlHandlerMapping> mappings = new HashMap<>();
+					mappings.put("wsReactiveHandlerMapping", context.getBean("wsReactiveHandlerMapping",
+							SimpleUrlHandlerMapping.class));
+					mappings.put("hostHandlerMapping", context.getBean("hostHandlerMapping",
+							SimpleUrlHandlerMapping.class));
+					assertThat(mappings.keySet()).hasSize(2);
 
 					SimpleUrlHandlerMapping foundation = mappings.get("wsReactiveHandlerMapping");
 					SimpleUrlHandlerMapping host = mappings.get("hostHandlerMapping");
@@ -109,7 +129,8 @@ class WsWebFluxAutoConfigurationTest {
 	@Test
 	void reactiveEndpointShouldBeAbsentWhenFeatureDisabled() {
 		new ReactiveWebApplicationContextRunner()
-				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
+				.withConfiguration(AutoConfigurations.of(RefreshAutoConfiguration.class,
+						WsAutoConfiguration.class))
 				.withPropertyValues(
 						"fw.plus.ws.enabled=false")
 				.run(context -> assertThat(context).doesNotHaveBean(ReactiveWsHandler.class));
@@ -118,7 +139,8 @@ class WsWebFluxAutoConfigurationTest {
 	@Test
 	void servletApplicationShouldNotRegisterReactiveHandler() {
 		new WebApplicationContextRunner()
-				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
+				.withConfiguration(AutoConfigurations.of(RefreshAutoConfiguration.class,
+						WsAutoConfiguration.class))
 				.run(context -> assertThat(context).doesNotHaveBean(ReactiveWsHandler.class));
 	}
 

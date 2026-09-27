@@ -1,8 +1,10 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.config;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.context.annotation.Configuration;
 
 import java.lang.reflect.Field;
@@ -21,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class WsConfigBindingTest {
 
 	private final ApplicationContextRunner runner = new ApplicationContextRunner()
+			.withConfiguration(AutoConfigurations.of(RefreshAutoConfiguration.class))
 			.withUserConfiguration(BindingConfiguration.class);
 
 	@Test
