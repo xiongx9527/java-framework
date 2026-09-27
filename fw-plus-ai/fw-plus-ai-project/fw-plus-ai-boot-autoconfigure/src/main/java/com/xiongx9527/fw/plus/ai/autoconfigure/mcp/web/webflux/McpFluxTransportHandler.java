@@ -117,13 +117,16 @@ class McpFluxTransportHandler {
 		if (!runtime.hasSession(uuid)) {
 			return ServerResponse.notFound().build();
 		}
-		if (!isAuthorized(uuid, request)) {
-			return ServerResponse.status(HttpStatus.UNAUTHORIZED).build();
-		}
 
+		// scope 裁剪需要请求体中的 JSON-RPC method，故授权后移到 body 读取之后（与 post() 一致）。
 		return request.bodyToMono(String.class).defaultIfEmpty("")
-				.flatMap(json -> Mono.fromCallable(() -> callSseHandle(sse, uuid, json)).subscribeOn(pool)
-						.flatMap(this::toResponse));
+				.flatMap(body -> {
+					if (!isAuthorized(uuid, request, body)) {
+						return ServerResponse.status(HttpStatus.UNAUTHORIZED).build();
+					}
+					return Mono.fromCallable(() -> callSseHandle(sse, uuid, body)).subscribeOn(pool)
+							.flatMap(this::toResponse);
+				});
 	}
 
 	private Mono<ServerResponse> post(ServerRequest request) {
