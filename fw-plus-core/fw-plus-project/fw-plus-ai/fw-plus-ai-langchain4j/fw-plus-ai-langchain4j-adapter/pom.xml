@@ -58,6 +58,7 @@
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-ai-langchain4j</artifactId>
             <version>${revision}</version>
+            <type>pom</type>
         </dependency>
 
 </dependencies>

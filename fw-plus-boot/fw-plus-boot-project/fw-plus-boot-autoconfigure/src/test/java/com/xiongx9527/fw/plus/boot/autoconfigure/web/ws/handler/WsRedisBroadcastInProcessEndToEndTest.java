@@ -55,7 +55,7 @@ class WsRedisBroadcastInProcessEndToEndTest {
         return new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(RefreshAutoConfiguration.class,
                         WsAutoConfiguration.class, WsRedisConfiguration.class))
-                .withPropertyValues("fw.plus.ws.appId=" + APP_ID)
+                .withPropertyValues("fw.plus.ws.enabled=true", "fw.plus.ws.appId=" + APP_ID)
                 .withBean(RedisConnectionFactory.class, () -> connectionFactory)
                 .withBean(StringRedisTemplate.class, () -> new StringRedisTemplate(connectionFactory));
     }

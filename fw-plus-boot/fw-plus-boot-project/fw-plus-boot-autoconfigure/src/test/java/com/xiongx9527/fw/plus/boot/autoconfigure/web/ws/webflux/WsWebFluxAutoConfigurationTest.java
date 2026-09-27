@@ -30,6 +30,7 @@ class WsWebFluxAutoConfigurationTest {
 	void reactiveApplicationShouldRegisterReactiveHandlerOnConfiguredPath() {
 		new ReactiveWebApplicationContextRunner()
 				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
+				.withPropertyValues("fw.plus.ws.enabled=true")
 				.withPropertyValues(
 						"fw.plus.ws.path=/ws/reactive")
 				.run(context -> {
@@ -44,6 +45,7 @@ class WsWebFluxAutoConfigurationTest {
 	void reactiveEndpointShouldRespectBasePathProvider() {
 		new ReactiveWebApplicationContextRunner()
 				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
+				.withPropertyValues("fw.plus.ws.enabled=true")
 				.withUserConfiguration(BasePathConfiguration.class)
 				.withPropertyValues(
 						"fw.plus.ws.path=/ws/api")
@@ -58,6 +60,7 @@ class WsWebFluxAutoConfigurationTest {
 	void reactiveApplicationShouldExpandEveryPathAgainstEveryBasePath() {
 		new ReactiveWebApplicationContextRunner()
 				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
+				.withPropertyValues("fw.plus.ws.enabled=true")
 				.withUserConfiguration(MultiBasePathConfiguration.class)
 				.withPropertyValues(
 						"fw.plus.ws.path=/ws/api",
@@ -77,6 +80,7 @@ class WsWebFluxAutoConfigurationTest {
 	void reactiveBlankPrimaryPathShouldFollowBasePathOnly() {
 		new ReactiveWebApplicationContextRunner()
 				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
+				.withPropertyValues("fw.plus.ws.enabled=true")
 				.withUserConfiguration(BasePathConfiguration.class)
 				.withPropertyValues(
 						"fw.plus.ws.path=")
@@ -91,6 +95,7 @@ class WsWebFluxAutoConfigurationTest {
 	void hostSuppliedMappingShouldCoexistWithFoundationMapping() {
 		new ReactiveWebApplicationContextRunner()
 				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
+				.withPropertyValues("fw.plus.ws.enabled=true")
 				.withUserConfiguration(BasePathConfiguration.class, HostMappingConfiguration.class)
 				.withPropertyValues(
 						"fw.plus.ws.path=/ws/api")
@@ -110,6 +115,7 @@ class WsWebFluxAutoConfigurationTest {
 	void reactiveEndpointShouldBeAbsentWhenFeatureDisabled() {
 		new ReactiveWebApplicationContextRunner()
 				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
+				.withPropertyValues("fw.plus.ws.enabled=true")
 				.withPropertyValues(
 						"fw.plus.ws.enabled=false")
 				.run(context -> assertThat(context).doesNotHaveBean(ReactiveWsHandler.class));
@@ -119,6 +125,7 @@ class WsWebFluxAutoConfigurationTest {
 	void servletApplicationShouldNotRegisterReactiveHandler() {
 		new WebApplicationContextRunner()
 				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
+				.withPropertyValues("fw.plus.ws.enabled=true")
 				.run(context -> assertThat(context).doesNotHaveBean(ReactiveWsHandler.class));
 	}
 
