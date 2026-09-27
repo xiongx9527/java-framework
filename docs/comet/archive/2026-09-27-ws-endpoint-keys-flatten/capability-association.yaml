@@ -1,0 +1,12 @@
+schema: comet.capability-association.v1
+status: explicit
+workflow: native
+capability: ws-spring-boot-starter
+current_spec: docs/comet/specs/ws-spring-boot-starter/spec.md
+current_hash: 7e3725c38c8aaf567e71aa6d6171e652541a8e9703e040f3e00e978144f5d01f
+confidence: high
+reason: 用户显式指定能力，已直接核对当前总 Spec 路径。
+historical_sources: []
+evidence:
+  - source: docs/comet/specs/ws-spring-boot-starter/spec.md
+    kind: native-spec
