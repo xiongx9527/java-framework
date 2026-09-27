@@ -5,7 +5,6 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.Swagger
 import io.swagger.v3.oas.models.OpenAPI;
 import org.springdoc.core.*;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -69,7 +68,6 @@ public class MagicSwaggerWebFluxConfiguration implements MagicPluginConfiguratio
 	 */
 	@Bean
 	@Primary
-	@ConditionalOnMissingBean(SwaggerUiConfigParameters.class)
 	public SwaggerUiConfigProperties magicSwaggerUiConfigProperties(SwaggerUiConfigProperties swaggerUiConfigProperties, SpringDocConfigProperties springDocConfigProperties) {
 		Set<AbstractSwaggerUiConfigProperties.SwaggerUrl> urls = swaggerUiConfigProperties.getUrls();
 		if (urls == null) {

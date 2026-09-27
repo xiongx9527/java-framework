@@ -165,6 +165,16 @@ class MagicSwaggerWebFluxTest {
 		assertThat(getClass().getClassLoader().getResource("META-INF/resources/doc.html")).isNotNull();
 	}
 
+	@Test
+	void servesKnife4jDocHtmlInReactiveApplication() {
+		reactiveRunner().run(context -> {
+			WebTestClient client = WebTestClient.bindToApplicationContext(context).build();
+			client.get().uri("/doc.html")
+					.exchange()
+					.expectStatus().isOk();
+		});
+	}
+
 	private static boolean hasPath(RequestMappingInfo info, String path) {
 		return info.getPatternsCondition() != null
 				&& info.getPatternsCondition().getPatterns().stream()
