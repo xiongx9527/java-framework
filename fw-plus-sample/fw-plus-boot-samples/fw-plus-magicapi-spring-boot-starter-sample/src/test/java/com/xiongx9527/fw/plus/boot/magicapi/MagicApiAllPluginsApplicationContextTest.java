@@ -62,10 +62,13 @@ class MagicApiAllPluginsApplicationContextTest {
 	 * 与 word 一样不参与 plugin name 对账，但必须是样例 classpath 与清单的一部分。
 	 */
 	private static final Set<String> MARKER_ONLY_ARTIFACTS = new LinkedHashSet<String>(Arrays.asList(
-			"fw-plus-magicapi-plugin-java-entity",
 			"fw-plus-magicapi-plugin-mybatisplus",
-			"fw-plus-magicapi-plugin-mybatisflex",
 			"fw-plus-magicapi-plugin-spring-bean"));
+	/**
+	 * jar 在样例 classpath 上、但其 plugin 注册依赖外部服务（broker），离线样例上下文不出现的 starter。
+	 */
+	private static final Set<String> OFFLINE_UNAVAILABLE_ARTIFACTS = new LinkedHashSet<String>(Arrays.asList(
+			"fw-plus-magicapi-plugin-mqtt-server"));
 	private static final String WORD_PLUGIN_RESOURCE = "magic-editor/plugins/magic-word.1.0.0.iife.js";
 
 	@Autowired
@@ -108,6 +111,7 @@ class MagicApiAllPluginsApplicationContextTest {
 		mappedArtifacts.addAll(CONDITIONAL_BACKOFF_ARTIFACTS);
 		mappedArtifacts.add(RESOURCE_ONLY_ARTIFACT);
 		mappedArtifacts.addAll(MARKER_ONLY_ARTIFACTS);
+		mappedArtifacts.addAll(OFFLINE_UNAVAILABLE_ARTIFACTS);
 		Set<String> declaredArtifacts = MagicApiAllPluginsClasspathTest.PLUGIN_ARTIFACTS.stream()
 				.map(coordinate -> coordinate.substring(coordinate.indexOf(':') + 1))
 				.collect(Collectors.toCollection(LinkedHashSet::new));
@@ -195,8 +199,9 @@ class MagicApiAllPluginsApplicationContextTest {
 		configurations.put("fw-plus-magicapi-plugin-influx", "influx");
 		configurations.put("fw-plus-magicapi-plugin-kafka", "kafka");
 		configurations.put("fw-plus-ai-magicapi-plugin-mcp", "mcp");
+		configurations.put("fw-plus-magicapi-plugin-java-entity", "java-entity");
+		configurations.put("fw-plus-magicapi-plugin-mybatisflex", "mybatisflex-xml");
 		configurations.put("fw-plus-magicapi-plugin-mongo", "mongo");
-		configurations.put("fw-plus-magicapi-plugin-mqtt-server", "mqtt");
 		configurations.put("fw-plus-magicapi-plugin-mqtt-client", "mqttclient");
 		configurations.put("fw-plus-magicapi-plugin-pulsar", "pulsar");
 		configurations.put("fw-plus-magicapi-plugin-rabbitmq", "rabbitmq");

@@ -233,6 +233,13 @@
             <artifactId>fw-plus-magicapi-plugin-spring-bean</artifactId>
         </dependency>
 
+        <!-- mybatisplus 插件把 mybatis-plus-boot-starter 引入 classpath 后会激活
+             MpAutoConfiguration → MpBaseAutoConfiguration，需 fw-plus-mp-base 提供 MpSqlInjector -->
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-mp-base</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>com.xiongx9527.fw.plus.boot</groupId>
             <artifactId>fw-plus-magicapi-plugin-word</artifactId>

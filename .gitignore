@@ -8,3 +8,6 @@
 /.comet/*
 !/.comet/config.yaml
 # <<< Comet managed project state <<<
+
+# 样例测试运行日志
+logDir_IS_UNDEFINED/

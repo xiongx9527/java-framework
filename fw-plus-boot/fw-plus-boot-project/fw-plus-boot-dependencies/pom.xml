@@ -783,6 +783,12 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-mp-base</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!--
             <dependency>
                 <groupId>org.dromara.dynamictp</groupId>

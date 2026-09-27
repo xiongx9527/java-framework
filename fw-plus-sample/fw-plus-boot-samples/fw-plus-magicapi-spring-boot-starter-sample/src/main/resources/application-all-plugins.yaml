@@ -10,6 +10,10 @@ fw:
     config:
       event:
         apollo-enabled: false
+    # 全插件样例不接数据源：mybatisplus 插件仅把 mybatis-plus-boot-starter 带上 classpath，
+    # 关闭 mp 自动配置以避免其 DataSource 单例条件在离线样例中触发装配失败
+    mp:
+      enabled: false
 
 spring:
   autoconfigure:
@@ -20,6 +24,10 @@ spring:
       - org.springframework.boot.autoconfigure.neo4j.Neo4jAutoConfiguration
       - org.springframework.boot.autoconfigure.data.neo4j.Neo4jDataAutoConfiguration
       - org.springframework.boot.autoconfigure.data.neo4j.Neo4jRepositoriesAutoConfiguration
+      # 离线样例不接外部 Redis：排除后 StringRedisTemplate 缺席，
+      # ws/mcp 等依赖它的集群广播配置按条件自然退化为单机
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
   cloud:
     config:
       enabled: false
