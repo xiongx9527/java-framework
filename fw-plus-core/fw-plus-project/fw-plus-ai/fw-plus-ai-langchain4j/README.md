@@ -16,10 +16,14 @@ fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是�
 | `fw-plus-ai-langchain4j-anthropic` | `langchain4j-anthropic-spring-boot-starter` | `dev.langchain4j.anthropic.spring` | `AutoConfig`, `ChatModelProperties`, `Properties` |
 | `fw-plus-ai-langchain4j-azure-ai-search` | `langchain4j-azure-ai-search-spring-boot-starter` | `dev.langchain4j.azure.aisearch.spring` | `AutoConfig`, `Properties` |
 | `fw-plus-ai-langchain4j-azure-open-ai` | `langchain4j-azure-open-ai-spring-boot-starter` | `dev.langchain4j.azure.openai.spring` | `AutoConfig`, `ChatModelProperties`, `EmbeddingModelProperties`, `ImageModelProperties`, `Properties` |
+| `fw-plus-ai-langchain4j-cassandra` | `langchain4j-cassandra` | `dev.langchain4j.store.embedding.cassandra`, `dev.langchain4j.store.embedding.astradb`, `dev.langchain4j.store.memory.chat.cassandra` | `CassandraEmbeddingStore`, `AstraDbEmbeddingStore`, `CassandraChatMemoryStore` |
+| `fw-plus-ai-langchain4j-core` | `langchain4j-spring-boot-starter` | `dev.langchain4j.spring`, `dev.langchain4j.rag.spring`, `dev.langchain4j.service.spring` | `LangChain4jAutoConfig`, `RagAutoConfig`, `RagProperties`, `RetrievalProperties`, `AiServicesAutoConfig`, `AiServiceScannerProcessor`, `ClassPathAiServiceScanner`, `AiServiceWiringMode`, `AiServiceFactory`, `AiService` |
 | `fw-plus-ai-langchain4j-dashscope` | `langchain4j-dashscope-spring-boot-starter` | `dev.langchain4j.dashscope.spring` | `AutoConfig`, `ChatModelProperties`, `EmbeddingModelProperties`, `LanguageModelProperties`, `Properties`, `TokenizerProperties` |
 | `fw-plus-ai-langchain4j-elasticsearch` | `langchain4j-elasticsearch-spring-boot-starter` | `dev.langchain4j.store.embedding.elasticsearch.spring` | `ElasticsearchClientHelper`, `ElasticsearchEmbeddingStoreAutoConfiguration`, `ElasticsearchEmbeddingStoreProperties` |
 | `fw-plus-ai-langchain4j-github-models` | `langchain4j-github-models-spring-boot-starter` | `dev.langchain4j.model.githubmodels.spring` | `AutoConfig`, `ChatModelProperties`, `EmbeddingModelProperties`, `Properties` |
+| `fw-plus-ai-langchain4j-infinispan` | `langchain4j-infinispan` | `dev.langchain4j.store.embedding.infinispan` | `InfinispanEmbeddingStore`, `InfinispanStoreConfiguration`, `LangchainSchemaCreator`, `LangChainInfinispanItem`, `LangChainMetadata`, `LangChainMetadataMarshaller`, `LangChainItemMarshaller` |
 | `fw-plus-ai-langchain4j-milvus` | `langchain4j-milvus-spring-boot-starter` | `dev.langchain4j.store.embedding.milvus.spring` | `MilvusEmbeddingStoreAutoConfiguration`, `MilvusEmbeddingStoreProperties` |
+| `fw-plus-ai-langchain4j-neo4j` | `langchain4j-neo4j` | `dev.langchain4j.store.embedding.neo4j`, `dev.langchain4j.store.graph.neo4j`, `dev.langchain4j.rag.content.retriever.neo4j` | `Neo4jEmbeddingStore`, `Neo4jEmbeddingUtils`, `Neo4jGraph`, `Neo4jException`, `Neo4jContentRetriever` |
 | `fw-plus-ai-langchain4j-ollama` | `langchain4j-ollama-spring-boot-starter` | `dev.langchain4j.ollama.spring` | `AutoConfig`, `ChatModelProperties`, `EmbeddingModelProperties`, `LanguageModelProperties`, `Properties` |
 | `fw-plus-ai-langchain4j-openai` | `langchain4j-open-ai-spring-boot-starter` | `dev.langchain4j.openai.spring` | `AutoConfig`, `ChatModelProperties`, `EmbeddingModelProperties`, `ImageModelProperties`, `LanguageModelProperties`, `ModerationModelProperties`, `Properties`, `ProxyProperties` |
 | `fw-plus-ai-langchain4j-qianfan` | `langchain4j-qianfan-spring-boot-starter` | `dev.langchain4j.qianfan.spring` | `AutoConfig`, `ChatModelProperties`, `EmbeddingModelProperties`, `LanguageModelProperties`, `Properties` |
@@ -30,16 +34,20 @@ fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是�
 
 ## Java 8 / Java 17 依赖版本对照
 
-以下版本只针对本目录新增的 Java 8 覆盖模块。Java 8 环境使用本工程覆盖模块及其降级依赖；Java 17 及以上环境应恢复使用 LangChain4j `0.35.0` 原始 artifact 及上游依赖版本。
+以下版本只针对本目录中做了依赖降级的 Java 8 覆盖模块。Java 8 环境使用本工程覆盖模块及其降级依赖；Java 17 及以上环境应恢复使用 LangChain4j `0.35.0` 原始 artifact 及上游依赖版本。其余覆盖模块没有显式降级依赖，其传递依赖版本统一由 `langchain4j-bom` / Spring Boot BOM 解析。
 
-| 覆盖模块 | Java 8 覆盖依赖 | Java 17 及以上原始依赖 |
-| --- | --- | --- |
+| 覆盖模块 | Java 8 覆盖依赖 | Java 17 及以上原始依赖 | 降级原因 |
+| --- | --- | --- | --- |
+| `fw-plus-ai-langchain4j-cassandra` | `com.datastax.oss:java-driver-core:4.17.0` | `com.datastax.astra:astra-db-client:1.2.4` | 上游 cassandra 模块 `maven.compiler.release=11`，`astra-db-client` 无法在 Java 8 运行；改用 `java-driver-core` 直连 Cassandra/Astra |
+| `fw-plus-ai-langchain4j-infinispan` | `org.infinispan:*:13.0.22.Final` | `org.infinispan:*:15.0.0.Final` | 上游 infinispan 模块 `maven.compiler.release=17`，且 parent 属性 `infinispan.version=15.0.0.Final`；降回 13.x 以保持 Java 8 兼容 |
 
 ## 覆盖方式
 
 这些模块中的源码保留上游 LangChain4j 的原始包名，例如：
 
-- `dev.langchain4j.spring.*`
+- `dev.langchain4j.spring.*`（`dev.langchain4j.spring.LangChain4jAutoConfig`）
+- `dev.langchain4j.rag.spring.*`（`RagAutoConfig`、`RagProperties`、`RetrievalProperties`）
+- `dev.langchain4j.service.spring.*`（`AiServicesAutoConfig`、`AiServiceScannerProcessor`、`ClassPathAiServiceScanner`、`AiServiceFactory`、`AiService`、`AiServiceWiringMode`）
 - `dev.langchain4j.openai.spring.*`
 - `dev.langchain4j.store.embedding.*.spring.*`
 
@@ -50,7 +58,7 @@ fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是�
 1. 修改这些模块时，必须继续保持 Java 8 兼容，不要使用 Java 9+ API，例如 `List.of()`、`Map.of()`、`Optional.or()`、`Stream.toList()` 等。
 2. 同步 LangChain4j `0.35` 或后续版本时，应先对比上游同名类的行为差异，再只迁移必要逻辑，避免直接复制会破坏 Java 8 兼容的代码。
 3. 包名、类名、Spring Bean 名称和配置属性前缀应尽量与上游保持一致，确保自动配置和 starter 行为可替换。
-4. 若新增 LangChain4j 扩展覆盖模块，应同步更新本说明和上层 `LangChain4jAutoConfiguration` 的导入及启动条件。
+4. 若新增 LangChain4j 扩展覆盖模块，应同步更新本说明和 `fw-plus-ai-langchain4j-core` 中 `dev.langchain4j.spring.LangChain4jAutoConfig` 的导入及启动条件。
 5. 若某个上游模块重新恢复 Java 8 兼容，也需要经过编译、自动配置测试和依赖冲突检查后，才能移除本地覆盖。
 
 ## 模型 API 版本边界

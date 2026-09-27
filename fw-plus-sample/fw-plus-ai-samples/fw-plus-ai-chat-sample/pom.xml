@@ -7,7 +7,6 @@
         <groupId>com.xiongx9527.fw.plus.ai</groupId>
         <artifactId>fw-plus-ai-samples</artifactId>
         <version>${revision}</version>
-        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>fw-plus-ai-chat-sample</artifactId>
@@ -48,5 +47,4 @@
             <version>${revision}</version>
         </dependency>
     </dependencies>
-
 </project>
