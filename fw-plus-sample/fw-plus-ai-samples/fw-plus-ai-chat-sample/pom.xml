@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.xiongx9527.fw.plus.ai</groupId>
         <artifactId>fw-plus-ai-samples</artifactId>
-        <version>0.1.1-SNAPSHOT</version>
+        <version>${revision}</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
