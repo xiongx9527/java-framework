@@ -24,7 +24,7 @@ fw-plus 是 9527 的 Java 开发框架，基于 Spring Boot 2.7.18，提供 Spri
 ## 模块结构
 
 ```
-fw-plus/                      # 根目录（聚合项目，无统一父 POM）
+fw-plus/                      # 根目录（聚合项目，根 pom.xml 聚合下列 5 个库层，根目录也有 mvnw）
 ├── fw-plus-core/             # 核心库层（Java 1.8, Spring Boot 2.7.18）
 │   ├── fw-plus-project/
 │   │   ├── fw-plus-parent/       # Core 层父 POM
@@ -398,11 +398,11 @@ if (!list) { return; }
 ## 构建命令
 
 ```bash
-# 全量编译（跳过测试）— 需在各模块目录下执行，根目录无统一 POM
-# 四个库层各自带有 Maven Wrapper (mvnw)，无需系统安装 mvn
-cd fw-plus-core && ./mvnw clean install -DskipTests
+# 全量编译（跳过测试）— 可在根目录一把跑（根目录为聚合工程，带 pom.xml 与 mvnw）
+# 也可按层增量构建：四个库层各自带有 Maven Wrapper (mvnw)，无需系统安装 mvn
+./mvnw clean install -DskipTests
 
-# 编译指定模块（需先进入对应层目录）
+# 按层增量编译（需先进入对应层目录）
 cd fw-plus-core && ./mvnw clean install -pl fw-plus-project/fw-plus-common -DskipTests
 
 # 发布到内网 Nexus
