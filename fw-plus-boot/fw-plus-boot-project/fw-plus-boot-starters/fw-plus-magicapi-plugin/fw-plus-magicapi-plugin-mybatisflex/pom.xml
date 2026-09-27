@@ -29,9 +29,11 @@
     </build>
 
     <dependencies>
+        <!-- optional：宿主自行选择 mybatis-flex 装配形态，插件不把数据源/自动配置链强制传递给宿主 -->
         <dependency>
             <groupId>com.mybatis-flex</groupId>
             <artifactId>mybatis-flex-spring</artifactId>
+            <optional>true</optional>
         </dependency>
     </dependencies>
 </project>

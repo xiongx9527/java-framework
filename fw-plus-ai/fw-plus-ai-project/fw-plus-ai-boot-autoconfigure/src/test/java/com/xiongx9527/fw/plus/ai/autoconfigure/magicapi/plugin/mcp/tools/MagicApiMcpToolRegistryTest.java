@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.tools;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.config.MagicApiMcpProperties;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.spi.MagicApiMcpCapabilityProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.ssssssss.magicapi.core.model.ApiInfo;
@@ -425,6 +426,44 @@ class MagicApiMcpToolRegistryTest {
         verify(magicResourceService, times(2)).<MagicEntity>files("function");
         // 重建后写回缓存，随后的读取复用同一份
         assertThat(registry.snapshot()).isSameAs(rebuilt);
+    }
+
+    @Test
+    void shouldPreferProviderToolOverDynamicToolWithSameName() {
+        MagicApiMcpToolRegistry registry = registry();
+        MagicApiMcpTool providerTool = new MagicApiMcpTool("provider-1", "echo", "provider 覆盖",
+                MagicApiMcpTool.TYPE_FUNCTION, null, "/echo", null, null, false, null);
+        registry.setCapabilityProviders(Collections.<MagicApiMcpCapabilityProvider>singletonList(
+                provider(providerTool)));
+
+        List<MagicApiMcpTool> tools = registry.snapshot();
+
+        assertThat(tools).extracting(MagicApiMcpTool::getName).containsOnlyOnce("echo");
+        assertThat(tools).anyMatch(tool -> "echo".equals(tool.getName())
+                && "provider 覆盖".equals(tool.getDescription()));
+    }
+
+    @Test
+    void shouldKeepProviderOnlyToolThatNoDynamicCapabilityClaims() {
+        MagicApiMcpToolRegistry registry = registry();
+        MagicApiMcpTool providerTool = new MagicApiMcpTool("provider-1", "provider-only", "provider 独有",
+                MagicApiMcpTool.TYPE_FUNCTION, null, "/provider", null, null, false, null);
+        registry.setCapabilityProviders(Collections.<MagicApiMcpCapabilityProvider>singletonList(
+                provider(providerTool)));
+
+        List<MagicApiMcpTool> tools = registry.snapshot();
+
+        assertThat(tools).extracting(MagicApiMcpTool::getName)
+                .contains("echo", "hidden", "provider-only");
+    }
+
+    private MagicApiMcpCapabilityProvider provider(final MagicApiMcpTool tool) {
+        return new MagicApiMcpCapabilityProvider() {
+            @Override
+            public List<MagicApiMcpTool> mcpTools() {
+                return Collections.singletonList(tool);
+            }
+        };
     }
 
     private MagicApiMcpToolRegistry registry() {

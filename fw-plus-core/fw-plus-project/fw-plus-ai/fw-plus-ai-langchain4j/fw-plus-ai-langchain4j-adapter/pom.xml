@@ -47,6 +47,18 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!--
+          fw-plus-ai-langchain4j-core 通过 shade 把官方 langchain4j-core 的类打进自己 jar，
+          shade 只在 package 阶段发生；根 reactor 跑 test 时该模块只提供 target/classes，
+          测试拿不到这些类。这里以 test scope 引入官方 core 仅供测试 classpath 使用，
+          生产 classpath 仍只走 shaded 版（架构契约按 compile 期依赖判定）。
+        -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-core</artifactId>
+            <version>${langchain4j.version}</version>
+            <scope>test</scope>
+        </dependency>
 
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>

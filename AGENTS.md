@@ -92,7 +92,6 @@ fw-plus/                      # 根目录（聚合项目，根 pom.xml 聚合下
 │   │       │   ├── fw-plus-magicapi-plugin-freemarker/    # Freemarker 模板
 │   │       │   ├── fw-plus-magicapi-plugin-influx/        # InfluxDB
 │   │       │   ├── fw-plus-magicapi-plugin-kafka/         # Kafka 消息队列
-│   │       │   ├── fw-plus-magicapi-plugin-mcp/           # MCP 协议支持
 │   │       │   ├── fw-plus-magicapi-plugin-mongo/         # MongoDB
 │   │       │   ├── fw-plus-magicapi-plugin-mqtt-server/          # MQTT 协议支持
 │   │       │   ├── fw-plus-magicapi-plugin-mqtt-client/    # MQTT 客户端
@@ -160,7 +159,9 @@ fw-plus/                      # 根目录（聚合项目，根 pom.xml 聚合下
 │   │   ├── nacos-gateway-sample
 │   │   └── nacos-server-sample        # Nacos Server 分发目录（非 Maven 子模块）
 │   └── fw-plus-ai-samples/            # AI 示例项目
-│       └── fw-plus-ai-magicapi-sample # Magic-API AI 示例
+│       ├── fw-plus-ai-magicapi-sample # Magic-API AI 示例
+│       ├── fw-plus-ai-mcp-server-sample # MCP Server 示例
+│       └── fw-plus-ai-chat-sample     # AI 对话示例
 │
 ├── META-INF/sql/             # 根目录 SQL 辅助资源
 ├── docs/                     # 项目文档与执行计划

@@ -30,6 +30,18 @@ public class McpProperties {
     private String endpoint = "/mcp";
 
     /**
+     * 协议 header 名称配置：网关改写 header 名时按配置名解析，未配置的项取内核默认名。
+     */
+    private Headers headers = new Headers();
+
+    /**
+     * 是否开启 capability scope 裁剪：开启后入口按已认证主体的 token scopes 拒绝
+     * 未覆盖目标能力（tools/resources/prompts）的请求。缺省 {@code false} 即不裁剪，
+     * 行为与改造前一致。
+     */
+    private boolean scopeCheckEnabled = false;
+
+    /**
      * 命名 server 列表；每项为一个可独立启动的 MCP runtime。
      */
     private List<McpProperties> servers = new ArrayList<>();
@@ -136,6 +148,72 @@ public class McpProperties {
 
     public void setThreadPoolSize(int threadPoolSize) {
         this.threadPoolSize = threadPoolSize;
+    }
+
+    public Headers getHeaders() {
+        return headers;
+    }
+
+    public void setHeaders(Headers headers) {
+        this.headers = headers == null ? new Headers() : headers;
+    }
+
+    public boolean isScopeCheckEnabled() {
+        return scopeCheckEnabled;
+    }
+
+    public void setScopeCheckEnabled(boolean scopeCheckEnabled) {
+        this.scopeCheckEnabled = scopeCheckEnabled;
+    }
+
+    /**
+     * 协议 header 名称：每项留空表示使用内核默认名（缺省行为与改造前一致）。
+     */
+    public static class Headers {
+
+        /** Accept 头名。 */
+        private String accept;
+
+        /** 协议版本头名（{@code MCP-Protocol-Version}）。 */
+        private String protocolVersion;
+
+        /** 会话 id 头名（{@code Mcp-Session-Id}）。 */
+        private String sessionId;
+
+        /** Origin 头名。 */
+        private String origin;
+
+        public String getAccept() {
+            return accept;
+        }
+
+        public void setAccept(String accept) {
+            this.accept = accept;
+        }
+
+        public String getProtocolVersion() {
+            return protocolVersion;
+        }
+
+        public void setProtocolVersion(String protocolVersion) {
+            this.protocolVersion = protocolVersion;
+        }
+
+        public String getSessionId() {
+            return sessionId;
+        }
+
+        public void setSessionId(String sessionId) {
+            this.sessionId = sessionId;
+        }
+
+        public String getOrigin() {
+            return origin;
+        }
+
+        public void setOrigin(String origin) {
+            this.origin = origin;
+        }
     }
 
     public static class Server {

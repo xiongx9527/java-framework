@@ -67,8 +67,4 @@ public class MagicApiMcpServerRegistry extends McpServerRegistry {
 		callToolResult.setResult(detail);
 		return callToolResult;
 	}
-
-	static Map<String, Object> emptyArguments() {
-		return Collections.emptyMap();
-	}
 }

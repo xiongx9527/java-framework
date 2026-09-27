@@ -11,37 +11,37 @@ import java.util.List;
 @Data
 public class MagicMcpPromptMessage {
 
-    private String role = "user";
+	private String role = "user";
 
-    private String content;
+	private String content;
 
-    public MagicMcpPromptMessage() {
-    }
+	public MagicMcpPromptMessage() {
+	}
 
-    public MagicMcpPromptMessage(String role, String content) {
-        this.role = role;
-        this.content = content;
-    }
+	public MagicMcpPromptMessage(String role, String content) {
+		this.role = role;
+		this.content = content;
+	}
 
-    /**
-     * 提示词参数声明。
-     */
-    @Data
-    public static class Argument {
+	/**
+	 * 提示词参数声明。
+	 */
+	@Data
+	public static class Argument {
 
-        private String name;
+		private String name;
 
-        private String description;
+		private String description;
 
-        private boolean required = true;
-    }
+		private boolean required = true;
+	}
 
-    /**
-     * 提示词定义中的消息集合。
-     */
-    @Data
-    public static class Messages {
+	/**
+	 * 提示词定义中的消息集合。
+	 */
+	@Data
+	public static class Messages {
 
-        private List<MagicMcpPromptMessage> messages = new ArrayList<MagicMcpPromptMessage>();
-    }
+		private List<MagicMcpPromptMessage> messages = new ArrayList<MagicMcpPromptMessage>();
+	}
 }
