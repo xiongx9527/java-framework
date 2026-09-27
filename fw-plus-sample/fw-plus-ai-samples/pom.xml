@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.xiongx9527.fw.plus.ai</groupId>
         <artifactId>fw-plus-ai-build</artifactId>
-        <version>0.1.1-SNAPSHOT</version>
+        <version>${revision}</version>
         <relativePath>../../fw-plus-ai/pom.xml</relativePath>
     </parent>
     <packaging>pom</packaging>
@@ -15,11 +15,10 @@
         <module>fw-plus-ai-mcp-server-sample</module>
         <module>fw-plus-ai-chat-sample</module>
     </modules>
-    <version>0.1.1-SNAPSHOT</version>
+    <version>${revision}</version>
     <artifactId>fw-plus-ai-samples</artifactId>
     <properties>
         <main.basedir>${basedir}/../..</main.basedir>
-        <revision>0.1.1-SNAPSHOT</revision>
         <!--跳过test-->
         <maven.test.skip>true</maven.test.skip>
         <!--跳过javadoc生成-->
@@ -35,7 +34,7 @@
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-boot-dependencies</artifactId>
-                <version>0.1.1-SNAPSHOT</version>
+                <version>${revision}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -44,7 +43,7 @@
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.ai</groupId>
                 <artifactId>fw-plus-ai-boot-dependencies</artifactId>
-                <version>0.1.1-SNAPSHOT</version>
+                <version>${revision}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
