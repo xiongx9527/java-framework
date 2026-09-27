@@ -250,7 +250,7 @@ class ReactiveWsHandlerTest {
 
 	private static WsConfig wsConfig() {
 		WsConfig config = new WsConfig();
-		config.getWebsocket().setPath("/ws/api");
+		config.setPath("/ws/api");
 		return config;
 	}
 

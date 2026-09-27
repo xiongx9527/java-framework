@@ -106,9 +106,9 @@ public interface WsBaseService {
      *
      * @return WebSocket 路径，缺省 {@code /ws/api}
      */
-    default String getWebsocketPath() {
-        return getConfigValueAsString("websocket.path", "/ws/api");
-    }
+	default String getWebsocketPath() {
+		return getConfigValueAsString("path", "/ws/api");
+	}
 
     /**
      * 获取 WebSocket 受信任的域名。

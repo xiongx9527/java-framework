@@ -33,7 +33,7 @@ import static org.mockito.Mockito.when;
 
 /**
  * 非 magic 应用只引入 WS 地基模块时的验收测试：
- * endpoint 按 {@code fw.plus.ws.websocket.path} 与 {@code fw.plus.ws.websocket.paths} 注册，
+ * endpoint 按 {@code fw.plus.ws.path} 与 {@code fw.plus.ws.paths} 注册，
  * 处理器与 SPI 自动装配；容器内多个基础路径提供者、宿主自带的 {@link WebSocketConfigurer}
  * 都与地基注册器并存。
  *
@@ -63,7 +63,7 @@ class WsAutoConfigurationTest {
 
     @Test
     void endpointPathShouldFollowConfiguredWebsocketPath() {
-        runner.withPropertyValues("fw.plus.ws.websocket.path=/ws/custom").run(context -> {
+        runner.withPropertyValues("fw.plus.ws.path=/ws/custom").run(context -> {
             WebSocketHandlerRegistry registry = mockRegistry();
 
             context.getBean(WebSocketConfigurer.class).registerWebSocketHandlers(registry);
@@ -86,7 +86,7 @@ class WsAutoConfigurationTest {
     @Test
     void endpointPathShouldBePrefixedByHostBasePathProvider() {
         runner.withBean(WsBasePathProvider.class, () -> () -> "/magic-api")
-                .withPropertyValues("fw.plus.ws.websocket.path=ws/api")
+                .withPropertyValues("fw.plus.ws.path=ws/api")
                 .run(context -> {
                     WebSocketHandlerRegistry registry = mockRegistry();
 
@@ -102,8 +102,8 @@ class WsAutoConfigurationTest {
     @Test
     void additionalPathsShouldRegisterEveryUniquePathOnSameHandler() {
         runner.withPropertyValues(
-                "fw.plus.ws.websocket.path=/ws/api",
-                "fw.plus.ws.websocket.paths=/ws/api2,/ws/api, ws/api3 ").run(context -> {
+                "fw.plus.ws.path=/ws/api",
+                "fw.plus.ws.paths=/ws/api2,/ws/api, ws/api3 ").run(context -> {
             WebSocketHandlerRegistry registry = mockRegistry();
 
             context.getBean(WebSocketConfigurer.class).registerWebSocketHandlers(registry);
@@ -120,7 +120,7 @@ class WsAutoConfigurationTest {
     void multipleBasePathProvidersShouldRegisterEveryCombination() {
         runner.withBean("magicApiBasePathProvider", WsBasePathProvider.class, () -> () -> "/magic-api")
                 .withBean("bffBasePathProvider", WsBasePathProvider.class, () -> () -> "/bff")
-                .withPropertyValues("fw.plus.ws.websocket.path=/ws/api")
+                .withPropertyValues("fw.plus.ws.path=/ws/api")
                 .run(context -> {
                     WebSocketHandlerRegistry registry = mockRegistry();
 

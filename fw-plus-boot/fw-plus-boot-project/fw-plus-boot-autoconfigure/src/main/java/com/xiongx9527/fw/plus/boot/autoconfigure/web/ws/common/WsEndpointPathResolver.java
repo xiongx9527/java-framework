@@ -39,8 +39,8 @@ public final class WsEndpointPathResolver {
 	/**
 	 * 解析端点相对路径列表。
 	 *
-	 * @param primaryPath     主路径（{@code fw.plus.ws.websocket.path}），允许为空串以保留既有语义
-	 * @param additionalPaths 追加路径（{@code fw.plus.ws.websocket.paths}），可为空
+	 * @param primaryPath     主路径（{@code fw.plus.ws.path}），允许为空串以保留既有语义
+	 * @param additionalPaths 追加路径（{@code fw.plus.ws.paths}），可为空
 	 * @return 按配置顺序去重后的相对路径列表，不含基础路径
 	 */
 	public static List<String> resolveRelativePaths(String primaryPath, List<String> additionalPaths) {
@@ -58,7 +58,7 @@ public final class WsEndpointPathResolver {
 	/**
 	 * 解析全部实例的端点相对路径：默认实例始终存在，命名实例在其之上做纯增量。
 	 *
-	 * <p>默认实例取 {@code websocket.path} 与 {@code websocket.paths}；命名实例取各自的
+	 * <p>默认实例取 {@code path} 与 {@code paths}；命名实例取各自的
 	 * {@code path} 与 {@code paths}，与默认实例重复的路径只注册一次。因此不配
 	 * {@code fw.plus.ws.servers} 时结果与改造前完全一致。</p>
 	 *
@@ -70,7 +70,7 @@ public final class WsEndpointPathResolver {
 			return resolveRelativePaths(null, null);
 		}
 		LinkedHashSet<String> unique = new LinkedHashSet<>();
-		unique.addAll(resolveRelativePaths(config.getWebsocket().getPath(), config.getWebsocket().getPaths()));
+		unique.addAll(resolveRelativePaths(config.getPath(), config.getPaths()));
 		List<WsInstance> servers = config.getServers();
 		if (servers != null) {
 			for (WsInstance server : servers) {

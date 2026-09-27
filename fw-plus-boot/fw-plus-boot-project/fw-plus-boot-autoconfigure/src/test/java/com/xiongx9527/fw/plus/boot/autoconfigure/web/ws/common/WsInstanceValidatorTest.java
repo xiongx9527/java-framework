@@ -89,7 +89,7 @@ class WsInstanceValidatorTest {
                 .isThrownBy(() -> WsInstanceValidator.validate(trailingSlash));
 
         WsConfig additionalPaths = new WsConfig();
-        additionalPaths.getWebsocket().setPaths(Arrays.asList("/ws/api2", "/ws/api3"));
+        additionalPaths.setPaths(Arrays.asList("/ws/api2", "/ws/api3"));
         additionalPaths.setServers(Arrays.asList(server("report", null, "/ws/api3")));
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> WsInstanceValidator.validate(additionalPaths))

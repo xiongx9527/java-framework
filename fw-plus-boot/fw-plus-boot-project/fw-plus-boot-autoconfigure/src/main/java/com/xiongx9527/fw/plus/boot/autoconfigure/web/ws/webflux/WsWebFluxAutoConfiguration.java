@@ -53,7 +53,7 @@ public class WsWebFluxAutoConfiguration {
 	}
 
 	/**
-	 * 把处理器挂到 {@code fw.plus.ws.websocket.path} 上，外加 {@code fw.plus.ws.websocket.paths}
+	 * 把处理器挂到 {@code fw.plus.ws.path} 上，外加 {@code fw.plus.ws.paths}
 	 * 与容器内多个 {@link WsBasePathProvider} 展开出的其余路径。
 	 *
 	 * @param handler           响应式处理器

@@ -6,15 +6,15 @@ fw:
     ws:
       enabled: true
       appId: default
+      path: /ws/api              # 默认实例主端点，路径在顶层，与 servers[].path 同形
+      paths:                     # 默认实例追加端点，与主路径共用同一套处理器
+        - /ws/api2
       servers:
         # 一个实例 = 一个 key + 一组端点 + 一个 appId，与默认实例并存且为纯增量
         - key: report
           path: /ws/api3
           appId: report
       websocket:
-        path: /ws/api
-        paths:
-          - /ws/api2
         # 演示用：允许任意来源；生产请改为具体域名
         trustedDomain: '*'
       binary:

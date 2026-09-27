@@ -60,7 +60,7 @@ public class WsAutoConfiguration {
     }
 
     /**
-     * 端点注册器：把处理器挂到 {@code websocket.path} 上。
+     * 端点注册器：把处理器挂到 {@code fw.plus.ws.path} 上。
      *
      * <p>基础路径取容器内全部 {@link WsBasePathProvider}（宿主可在自身配置中声明该 Bean，
      * 也可声明多个），按 {@code @Primary} 与 {@code @Order}/{@code Ordered} 定序后逐个展开；

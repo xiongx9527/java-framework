@@ -33,7 +33,7 @@ import java.util.Map;
 public final class WsInstanceValidator {
 
 	/**
-	 * 默认实例在冲突信息中的标识：默认实例没有 key，由 {@code fw.plus.ws.websocket.*} 描述。
+	 * 默认实例在冲突信息中的标识：默认实例没有 key，端点来自顶层 {@code fw.plus.ws.path} / {@code fw.plus.ws.paths}。
 	 */
 	private static final String DEFAULT_INSTANCE = "default";
 
@@ -52,7 +52,7 @@ public final class WsInstanceValidator {
 		}
 		Map<String, String> endpoints = new LinkedHashMap<>();
 		for (String endpoint : WsEndpointPathResolver.resolveRelativePaths(
-				config.getWebsocket().getPath(), config.getWebsocket().getPaths())) {
+				config.getPath(), config.getPaths())) {
 			String normalized = normalizeEndpoint(endpoint);
 			if (normalized != null) {
 				endpoints.put(normalized, DEFAULT_INSTANCE);
@@ -114,7 +114,7 @@ public final class WsInstanceValidator {
 	 */
 	private static String describeOwner(String owner) {
 		if (DEFAULT_INSTANCE.equals(owner)) {
-			return "the default instance (fw.plus.ws.websocket.path / fw.plus.ws.websocket.paths)";
+			return "the default instance (fw.plus.ws.path / fw.plus.ws.paths)";
 		}
 		return "server key '" + owner + "'";
 	}

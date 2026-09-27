@@ -5,7 +5,10 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Configuration;
 
+import java.lang.reflect.Field;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -26,8 +29,8 @@ class WsConfigBindingTest {
 			WsConfig config = context.getBean(WsConfig.class);
 			assertThat(config.isEnabled()).isTrue();
 			assertThat(config.getAppId()).isEqualTo("default");
-			assertThat(config.getWebsocket().getPath()).isEqualTo("/ws/api");
-			assertThat(config.getWebsocket().getPaths()).isEmpty();
+			assertThat(config.getPath()).isEqualTo("/ws/api");
+			assertThat(config.getPaths()).isEmpty();
 			assertThat(config.getWebsocket().getTrustedDomain()).isEmpty();
 			assertThat(config.getWebsocket().getSubProtocols()).isEmpty();
 			assertThat(config.getWebsocket().isSupportsPartialMessages()).isFalse();
@@ -62,14 +65,14 @@ class WsConfigBindingTest {
 	void nestedPropertiesShouldBind() {
 		runner.withPropertyValues(
 				"fw.plus.ws.appId=portal",
-				"fw.plus.ws.websocket.path=/custom/ws",
+				"fw.plus.ws.path=/custom/ws",
 				"fw.plus.ws.session.cache.expireMinutes=5",
 				"fw.plus.ws.redis.channel.broadcast=custom:channel",
 				"fw.plus.ws.binary.enabled=false",
 				"fw.plus.ws.broadcast.async=true").run(context -> {
 				WsConfig config = context.getBean(WsConfig.class);
 				assertThat(config.getAppId()).isEqualTo("portal");
-				assertThat(config.getWebsocket().getPath()).isEqualTo("/custom/ws");
+				assertThat(config.getPath()).isEqualTo("/custom/ws");
 			assertThat(config.getSession().getCache().getExpireMinutes()).isEqualTo(5);
 			assertThat(config.getRedis().getChannel().getBroadcast()).isEqualTo("custom:channel");
 			assertThat(config.getBinary().isEnabled()).isFalse();
@@ -78,13 +81,42 @@ class WsConfigBindingTest {
 	}
 
 	@Test
-	void additionalWebsocketPathsShouldBind() {
+	void additionalPathsShouldBind() {
 		runner.withPropertyValues(
-					"fw.plus.ws.websocket.paths=/ws/api2, /ws/api3").run(context -> {
+					"fw.plus.ws.paths=/ws/api2, /ws/api3").run(context -> {
 			WsConfig config = context.getBean(WsConfig.class);
-			assertThat(config.getWebsocket().getPaths()).containsExactly("/ws/api2", "/ws/api3");
-			assertThat(config.flatten().get("websocket.paths"))
-					.isEqualTo(config.getWebsocket().getPaths());
+			assertThat(config.getPaths()).containsExactly("/ws/api2", "/ws/api3");
+			assertThat(config.flatten().get("paths"))
+					.isEqualTo(config.getPaths());
+		});
+	}
+
+	@Test
+	void explicitEmptyPathShouldBindAsEmptyString() {
+		runner.withPropertyValues(
+				"fw.plus.ws.path=").run(context -> {
+			WsConfig config = context.getBean(WsConfig.class);
+			// 空串是合法值，表示「只按基础路径注册」，不得回落内置默认
+			assertThat(config.getPath()).isEmpty();
+			assertThat((String) config.flatten().get("path")).isEmpty();
+		});
+	}
+
+	@Test
+	void legacyWebsocketEndpointKeysShouldNotBind() {
+		runner.withPropertyValues(
+				"fw.plus.ws.websocket.path=/legacy/ws",
+				"fw.plus.ws.websocket.paths=/legacy/api2",
+				"fw.plus.ws.websocket.endpoint=/ws/execute",
+				"fw.plus.ws.websocket.basePath=/legacy/base").run(context -> {
+			WsConfig config = context.getBean(WsConfig.class);
+			// 旧键已移除，一律按 Spring 默认忽略；端点只认顶层 path / paths
+			assertThat(config.getPath()).isEqualTo("/ws/api");
+			assertThat(config.getPaths()).isEmpty();
+			assertThat(config.getWebsocket().getTrustedDomain()).isEmpty();
+			Map<String, Object> flat = config.flatten();
+			assertThat(flat).doesNotContainKeys(
+					"websocket.path", "websocket.paths", "websocket.endpoint", "websocket.basePath");
 		});
 	}
 
@@ -126,6 +158,21 @@ class WsConfigBindingTest {
 	}
 
 	@Test
+	void websocketShouldOnlyCarryHandshakeParameters() {
+		runner.run(context -> {
+			WsConfig config = context.getBean(WsConfig.class);
+			String websocketFields = Arrays.stream(WsConfig.Websocket.class.getDeclaredFields())
+					.map(Field::getName)
+					.sorted()
+					.collect(Collectors.joining(","));
+			assertThat(websocketFields).isEqualTo("subProtocols,supportsPartialMessages,trustedDomain");
+			assertThat(WsConfig.class.getDeclaredFields())
+					.extracting(Field::getName)
+					.contains("path", "paths");
+		});
+	}
+
+	@Test
 	void legacyInstancesKeyShouldNotBind() {
 		runner.withPropertyValues(
 				"fw.plus.ws.instances[0].name=report",
@@ -143,8 +190,9 @@ class WsConfigBindingTest {
 			Map<String, Object> flat = context.getBean(WsConfig.class).flatten();
 			assertThat(flat).containsKeys(
 					"enabled", "appId",
-					"websocket.path", "websocket.paths", "websocket.trustedDomain", "websocket.subProtocols",
-					"websocket.supportsPartialMessages", "websocket.endpoint", "websocket.basePath",
+					"path", "paths",
+					"websocket.trustedDomain", "websocket.subProtocols",
+					"websocket.supportsPartialMessages",
 					"session.cache.maxClients", "session.cache.expireMinutes", "session.cache.concurrencyLevel",
 					"session.delayMillis", "session.maxTextMessageSize", "session.maxBinaryMessageSize",
 					"session.maxTotalSessions", "session.maxSessionsPerClient",

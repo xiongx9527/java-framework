@@ -102,7 +102,7 @@ class MagicAPIWsWiringTest {
 	@Test
 	void additionalPathsShouldRegisterAlongsideMagicWebBasePath() {
 		properties.setWeb("/magic-api");
-		runner.withPropertyValues("fw.plus.ws.websocket.paths=/ws/api2,/ws/api")
+		runner.withPropertyValues("fw.plus.ws.paths=/ws/api2,/ws/api")
 				.run(context -> {
 					WebSocketHandlerRegistry registry = mockRegistry();
 

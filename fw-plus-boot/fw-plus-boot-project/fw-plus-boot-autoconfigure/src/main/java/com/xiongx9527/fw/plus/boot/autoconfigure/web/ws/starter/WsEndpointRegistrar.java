@@ -25,8 +25,8 @@ import java.util.Map;
 /**
  * 把 WebSocket 处理器注册到端点路径。
  *
- * <p>端点路径 = {@link WsBasePathProvider#getBasePath()} + {@code fw.plus.ws.websocket.path}，
- * 另外可按 {@code fw.plus.ws.websocket.paths} 在同一个处理器上追加若干路径，
+ * <p>端点路径 = {@link WsBasePathProvider#getBasePath()} + {@code fw.plus.ws.path}，
+ * 另外可按 {@code fw.plus.ws.paths} 在同一个处理器上追加若干路径，
  * 供多应用、多入口复用一套 WS 地基。容器内存在多个基础路径提供者时，
  * 每个基础路径与每条相对路径都会注册。路径拼接与跨域、子协议、握手拦截器的处理规则与拆分前保持一致。</p>
  *
@@ -139,7 +139,7 @@ public class WsEndpointRegistrar implements WebSocketConfigurer, WsBaseService {
     }
 
     /**
-     * 待注册的相对路径：默认实例取 {@code websocket.path} 与 {@code websocket.paths}，
+     * 待注册的相对路径：默认实例取 {@code path} 与 {@code paths}，
      * 命名实例再叠加各自的 {@code path} 与 {@code paths}，按顺序去重。
      *
      * @return 相对路径列表

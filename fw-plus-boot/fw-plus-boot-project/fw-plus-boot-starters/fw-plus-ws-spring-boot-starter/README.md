@@ -23,15 +23,16 @@ fw:
   plus:
     ws:
       enabled: true
-      appId: default                         # 默认实例 appId
+      appId: default                         # 默认实例 appId，未命中实例时回落
+      path: /ws/api                          # 默认实例主端点，与 servers[].path 同形
+      paths:                                 # 默认实例追加端点，与主路径共用同一套处理器
+        - /ws/api2
       servers:                               # 命名实例，一个实例 = 一个 key + 一组端点 + 一个 appId
         - key: report                        # 必填非空且全局唯一，不参与握手匹配
-          path: /ws/api2                     # 相对路径或含基础路径的完整路径
+          path: /ws/api3                     # 相对路径或含基础路径的完整路径
           paths:                             # 追加端点，与 path 共用同一套处理器
           appId: report                      # 留空则回落全局 appId
-      websocket:
-        path: /ws/api
-        paths:                     # 追加端点路径，与主路径共用同一套处理器
+      websocket:                             # 只保留握手参数
         trustedDomain: https://example.com    # 留空表示不允许跨域
         subProtocols:                          # 可选，逗号分隔
       binary:
@@ -48,8 +49,8 @@ fw:
 | `enabled` | `true` | 总开关 |
 | `appId` | `default` | 默认实例 appId |
 | `servers` | 空 | 命名实例列表，每项含 `key`、`path`、`paths` 与 `appId`；`key` 必填唯一、端点不得与默认实例或其它实例重复，否则启动失败；不进 flatten，由 `WsInstanceResolver` 按请求路径解析 |
-| `websocket.path` | `/ws/api` | 端点路径 |
-| `websocket.paths` | 空 | 追加端点路径，逗号分隔或列表；与主路径去重后逐条注册 |
+| `path` | `/ws/api` | 默认实例主端点路径 |
+| `paths` | 空 | 默认实例追加端点路径，逗号分隔或列表；与主路径去重后逐条注册 |
 | `websocket.trustedDomain` | 空 | 受信任来源，逗号分隔；留空表示不允许跨域 |
 | `websocket.subProtocols` | 空 | 子协议，逗号分隔 |
 | `websocket.supportsPartialMessages` | `false` | 是否支持部分消息 |
@@ -118,16 +119,15 @@ ws://localhost:8080/ws/api?clientId=<clientId>
 fw:
   plus:
     ws:
-      websocket:
-        path: /ws/api
-        paths:
-          - /ws/api2
-          - /ws/api3
+      path: /ws/api          # 默认实例主端点
+      paths:                 # 默认实例追加端点
+        - /ws/api2
+        - /ws/api3
 ```
 
 基础路径来自容器内的 `WsBasePathProvider` Bean，可声明多个：每个基础路径与每条相对路径都会注册，同一完整路径只注册一次。多个候选按 `@Primary` 优先、其余按 `@Order`/`Ordered` 定序；一个都没有时按无基础路径处理。
 
-webflux 栈的展开结果与 webmvc 完全一致，两端共用同一套拼接规则；`websocket.path` 显式置空属配置错误，两端表现一致，只在基础路径后追加一个连接斜杠。
+webflux 栈的展开结果与 webmvc 完全一致，两端共用同一套拼接规则；`path` 显式置空属配置错误，两端表现一致，只在基础路径后追加一个连接斜杠。
 
 ## 一个实例 = 一个名字 + 一组端点 + 一个 appId
 
@@ -137,7 +137,7 @@ webflux 栈的展开结果与 webmvc 完全一致，两端共用同一套拼接�
 fw:
   plus:
     ws:
-      appId: default                # 默认实例 appId，端点取 websocket.path / websocket.paths
+      appId: default                # 默认实例 appId，端点取顶层 path / paths
       servers:
         - key: order                 # 必填非空且全局唯一，不参与握手匹配
           path: /ws/order
@@ -157,7 +157,7 @@ fw:
 
 实例 `path` 也可以直接写含基础路径的完整路径，此时精确匹配优先，不会被同尾缀的相对路径抢先。实例命中的 appId 会带进 `WsSessionInfo`、订阅派发（`findEnabledSubscribes(appId, businessType)`）与 Redis 广播过滤，magic 侧的 `ws['xxx']` 数据源 key 就是这个 appId。
 
-实例端点同样参与注册：注册路径 = 默认实例（`websocket.path` + `websocket.paths`）叠加各命名实例的 `path` 与 `paths`，重复路径只注册一次，规则见上一章。
+实例端点同样参与注册：注册路径 = 默认实例（`path` + `paths`）叠加各命名实例的 `path` 与 `paths`，重复路径只注册一次，规则见上一章。
 
 启动期由 webmvc 与 webflux 两条栈在装配路径上各校验一次，出现以下情形应用启动失败（`IllegalArgumentException`）：
 
@@ -182,6 +182,7 @@ fw:
 ## 注意事项
 
 - 命名实例的 appId 需在业务侧登记（订阅、`ws['xxx']` 数据源），否则会话派发不到对应订阅。
+- 端点键只有顶层 `path` / `paths` 一个来源，与命名实例同形；`websocket.path`、`websocket.paths` 已移除，写入时会被 Spring 忽略并按缺省 `/ws/api` 生效，升级时请把自定义路径迁到顶层；`websocket.endpoint`、`websocket.basePath`、`instances` 同样不再识别。
 - 任意入站消息（文本、二进制、Ping、Pong）都会刷新活跃时间，只发业务消息从不发心跳的长连接不会被判超时。
 - 缓存驱逐默认不会主动关闭仍打开的会话；需要回收不发 FIN 就掉线的连接时开启 `session.idleScanEnabled`。
 - 生产环境请把 `websocket.trustedDomain` 配成具体来源，不要留空也不要用 `*`。

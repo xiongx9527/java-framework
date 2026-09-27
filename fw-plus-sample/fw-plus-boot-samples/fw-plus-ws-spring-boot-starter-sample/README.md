@@ -21,7 +21,7 @@ cd fw-plus-core && ./mvnw -o -f fw-plus-sample/fw-plus-boot-samples/fw-plus-ws-s
 
 握手地址为 `ws://localhost:8080/ws/api?clientId=<clientId>`，与 `index.html` 的拼接方式一致。
 
-`application.yml` 另注册了 `/ws/api2`，并用 `fw.plus.ws.servers` 追加了一个 key 为 `report` 的实例（`/ws/api3` + `appId=report`）：一个实例 = 一个 key + 一组端点 + 一个 appId，握手时按请求路径匹配实例，未命中则回落到 `fw.plus.ws.appId`。
+`application.yml` 用顶层 `fw.plus.ws.path` / `fw.plus.ws.paths` 把默认实例注册到 `/ws/api` 与 `/ws/api2`，再用 `fw.plus.ws.servers` 追加了一个 key 为 `report` 的实例（`/ws/api3` + `appId=report`）：一个实例 = 一个 key + 一组端点 + 一个 appId，握手时按请求路径匹配实例，未命中则回落到 `fw.plus.ws.appId`。
 
 业务侧只需提供 `WsBusinessDispatcher` 实现：地基负责连接、会话、心跳与广播，
 `findEnabledSubscribes` 决定哪些订阅生效，`execute` 执行业务并通过 `WsReplyHandle` 回发。
