@@ -516,13 +516,6 @@
             <artifactId>magic-api-spring-boot-starter</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
-            <exclusions>
-                <!-- Spring Boot 3 栈只保留 jakarta servlet 实现，javaee 版会与其重复注册同名 bean -->
-                <exclusion>
-                    <groupId>org.ssssssss</groupId>
-                    <artifactId>magic-api-servlet-javaee</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
 
         <dependency>
