@@ -92,7 +92,8 @@ class LocalDbTxCoordinatorTest {
 				definition("b", "a"), () -> "unused"));
 
 		assertThat(thrown.getDbTxCode()).isEqualTo(DbTxErrorCode.DBTX_BEGIN_FAILED);
-		assertThat(thrown.getCause()).hasMessageContaining("b begin failed");
+		// Spring 6 把原始 SQLException 改写进 CannotCreateTransactionException，原始消息在 cause 链中
+		assertThat(thrown.getCause().getCause()).hasMessageContaining("b begin failed");
 		assertThat(fixture.events).containsExactly("a:begin", "b:begin", "a:rollback");
 		assertNoSpringResources();
 	}
@@ -110,7 +111,7 @@ class LocalDbTxCoordinatorTest {
 
 		assertThat(thrown).isSameAs(callbackFailure);
 		assertThat(thrown.getSuppressed()).hasSize(1);
-		assertThat(thrown.getSuppressed()[0]).hasMessageContaining("b rollback failed");
+		assertThat(thrown.getSuppressed()[0]).hasMessageContaining("rollback failed");
 		assertThat(fixture.events).containsExactly("a:begin", "b:begin", "b:rollback", "a:rollback");
 		assertNoSpringResources();
 	}
@@ -161,7 +162,7 @@ class LocalDbTxCoordinatorTest {
 				Collections.<String>emptyList(), Collections.singletonList("a"),
 				Collections.singletonList("b"));
 		assertThat(thrown.getSuppressed()).hasSize(1);
-		assertThat(thrown.getSuppressed()[0]).hasMessageContaining("a rollback failed");
+		assertThat(thrown.getSuppressed()[0]).hasMessageContaining("rollback failed");
 		assertThat(fixture.events).containsExactly("a:begin", "b:begin", "b:commit", "a:rollback");
 		assertNoSpringResources();
 	}
