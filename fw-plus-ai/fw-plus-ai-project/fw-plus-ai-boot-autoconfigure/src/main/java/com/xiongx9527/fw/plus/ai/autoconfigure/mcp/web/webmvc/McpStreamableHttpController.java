@@ -5,8 +5,8 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
 import com.xiongx9527.fw.plus.ai.mcp.spi.ServerStreamableHttpRegistry;
 import org.springframework.web.bind.annotation.RequestBody;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -89,7 +89,7 @@ public class McpStreamableHttpController extends McpTransportController {
 		authenticate(session, "streamable-http", endpoint(), null, request);
 
 		response.setCharacterEncoding("UTF-8");
-		javax.servlet.AsyncContext async = request.startAsync();
+		jakarta.servlet.AsyncContext async = request.startAsync();
 		// 会话过期与心跳由内核负责，适配层不设置异步超时。
 		async.setTimeout(0);
 		AtomicBoolean ended = new AtomicBoolean();
@@ -107,7 +107,7 @@ public class McpStreamableHttpController extends McpTransportController {
 			}
 		};
 
-		async.addListener(new javax.servlet.AsyncListener() {
+		async.addListener(new jakarta.servlet.AsyncListener() {
 			private void cleanup() {
 				if (session != null)
 					transport.closeEventStream(session, writer);
@@ -115,22 +115,22 @@ public class McpStreamableHttpController extends McpTransportController {
 			}
 
 			@Override
-			public void onComplete(javax.servlet.AsyncEvent event) {
+			public void onComplete(jakarta.servlet.AsyncEvent event) {
 				cleanup();
 			}
 
 			@Override
-			public void onTimeout(javax.servlet.AsyncEvent event) {
+			public void onTimeout(jakarta.servlet.AsyncEvent event) {
 				cleanup();
 			}
 
 			@Override
-			public void onError(javax.servlet.AsyncEvent event) {
+			public void onError(jakarta.servlet.AsyncEvent event) {
 				cleanup();
 			}
 
 			@Override
-			public void onStartAsync(javax.servlet.AsyncEvent event) {
+			public void onStartAsync(jakarta.servlet.AsyncEvent event) {
 				// 无需处理
 			}
 		});

@@ -124,7 +124,7 @@ class McpFluxTransportHandler {
 					if (!isAuthorized(uuid, request, body)) {
 						return ServerResponse.status(HttpStatus.UNAUTHORIZED).build();
 					}
-					return Mono.fromCallable(() -> callSseHandle(sse, uuid, body)).subscribeOn(pool)
+					return Mono.<SyncResult>fromCallable(() -> callSseHandle(sse, uuid, body)).subscribeOn(pool)
 							.flatMap(this::toResponse);
 				});
 	}

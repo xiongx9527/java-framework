@@ -138,6 +138,7 @@
                 <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-ai-langchain4j</artifactId>
                 <version>${project.version}</version>
+                <type>pom</type>
             </dependency>
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
@@ -145,9 +146,9 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-langchain4j-spring-boot-starter</artifactId>
-                <version>${project.version}</version>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-spring-boot-starter</artifactId>
+                <version>${langchain4j-community.version}</version>
             </dependency>
 
         </dependencies>

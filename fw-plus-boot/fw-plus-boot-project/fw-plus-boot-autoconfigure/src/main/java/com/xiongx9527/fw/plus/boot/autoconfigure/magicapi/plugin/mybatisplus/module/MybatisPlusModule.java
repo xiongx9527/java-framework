@@ -13,7 +13,7 @@ import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.baomidou.mybatisplus.core.toolkit.Constants;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
-import com.baomidou.mybatisplus.extension.plugins.PaginationInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.github.yulichang.query.MPJQueryWrapper;
@@ -186,8 +186,10 @@ public class MybatisPlusModule implements MagicDbSqlOperations,
 	}
 
 	private MybatisConfiguration configuration(MybatisPlusProperties properties) {
-		MybatisConfiguration configuration = properties == null ? null : properties.getConfiguration();
-		configuration = configuration == null ? new MybatisConfiguration() : configuration;
+		MybatisConfiguration configuration = new MybatisConfiguration();
+		if (properties != null && properties.getConfiguration() != null) {
+			properties.getConfiguration().applyTo(configuration);
+		}
 		return configuration;
 	}
 
@@ -224,14 +226,14 @@ public class MybatisPlusModule implements MagicDbSqlOperations,
 				if (interceptor == null) {
 					continue;
 				}
-				if (interceptor instanceof PaginationInterceptor) {
+				if (interceptor instanceof MybatisPlusInterceptor) {
 					hasPagination = true;
 				}
 				plugins.add(interceptor);
 			}
 		}
 		if (!hasPagination) {
-			plugins.add(new PaginationInterceptor());
+			plugins.add(new MybatisPlusInterceptor());
 		}
 		return plugins.toArray(new Interceptor[plugins.size()]);
 	}

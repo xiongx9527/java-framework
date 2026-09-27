@@ -12,8 +12,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +36,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Configuration
 @ConditionalOnWebApplication(type = Type.SERVLET)
 @ConditionalOnClass(name = {
-		"javax.servlet.http.HttpServletRequest",
+		"jakarta.servlet.http.HttpServletRequest",
 		"org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping" })
 public class McpRoutingRegistrar implements SmartInitializingSingleton {
 
