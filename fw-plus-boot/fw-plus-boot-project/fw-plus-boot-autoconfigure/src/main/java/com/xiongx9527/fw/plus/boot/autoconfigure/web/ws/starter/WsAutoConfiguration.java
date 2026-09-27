@@ -39,7 +39,7 @@ import java.util.List;
  * @author zzy
  */
 @Configuration
-@ConditionalOnProperty(prefix = "fw.plus.ws", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "fw.plus.ws", name = "enabled", havingValue = "true")
 @ConditionalOnClass(name = {"org.springframework.web.socket.WebSocketHandler"})
 @EnableConfigurationProperties(WsConfig.class)
 @AutoConfigureAfter(name = {"org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration"})
