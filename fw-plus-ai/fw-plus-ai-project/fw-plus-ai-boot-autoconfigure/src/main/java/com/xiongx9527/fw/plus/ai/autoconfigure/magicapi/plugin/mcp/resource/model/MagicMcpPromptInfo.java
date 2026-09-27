@@ -11,18 +11,18 @@ import java.util.Map;
 @Data
 public class MagicMcpPromptInfo extends MagicEntity {
 
-    private String name;
+	private String name;
 
-    private String description;
+	private String description;
 
-    private boolean enabled = true;
+	private boolean enabled = true;
 
-    private List<MagicMcpPromptMessage.Argument> arguments = new ArrayList<MagicMcpPromptMessage.Argument>();
+	private List<MagicMcpPromptMessage.Argument> arguments = new ArrayList<MagicMcpPromptMessage.Argument>();
 
-    private List<MagicMcpPromptMessage> messages = new ArrayList<MagicMcpPromptMessage>();
+	private List<MagicMcpPromptMessage> messages = new ArrayList<MagicMcpPromptMessage>();
 
-    /**
-     * 补全候选：key 为参数名，value 为候选值；注册为 MCP {@code completion/complete}。
-     */
-    private Map<String, List<String>> completions = new LinkedHashMap<>();
+	/**
+	 * 补全候选：key 为参数名，value 为候选值；注册为 MCP {@code completion/complete}。
+	 */
+	private Map<String, List<String>> completions = new LinkedHashMap<>();
 }

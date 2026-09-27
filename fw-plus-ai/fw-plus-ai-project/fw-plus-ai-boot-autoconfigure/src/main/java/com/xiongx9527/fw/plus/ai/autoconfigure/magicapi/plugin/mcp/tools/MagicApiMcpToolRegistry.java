@@ -13,12 +13,10 @@ import org.ssssssss.magicapi.core.service.MagicResourceService;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Magic-API → MCP 工具快照注册表。
@@ -83,9 +81,6 @@ public class MagicApiMcpToolRegistry {
 	}
 
 	/**
-	 * 读取 Magic-API api/function 元数据并应用过滤，产出当前已过滤工具快照。
-	 */
-	/**
 	 * 当前已过滤工具快照：缓存有效直接返回，否则重建。
 	 *
 	 * @return 工具快照
@@ -109,31 +104,47 @@ public class MagicApiMcpToolRegistry {
 
 	private List<MagicApiMcpTool> buildSnapshot() {
 		List<MagicApiMcpTool> result = new ArrayList<>();
-		Set<String> seen = new LinkedHashSet<>();
+		// 工具名 -> 在 result 中的下标；同名冲突时 provider 优先（替换），与
+		// MagicApiMcpCapabilityRegistrar 对 resources/prompts 的 putIfAbsent 语义一致。
+		Map<String, Integer> indexByName = new LinkedHashMap<>();
 		MagicApiMcpProperties.Scope functions = tools.getFunctions();
 		if (isScopeEnabled(functions)) {
 			for (MagicEntity entity : magicResourceService.<MagicEntity>files(FUNCTION_TYPE)) {
 				if (matchesFunction(functions, entity)) {
-					result.add(toFunctionTool(entity));
+					addByName(result, indexByName, toFunctionTool(entity));
 				}
 			}
 		}
 		MagicApiMcpProperties.Api api = tools.getApi();
 		if (isScopeEnabled(api)) {
 			for (ApiInfo info : magicResourceService.<ApiInfo>files(API_TYPE)) {
-				if (matchesApi(api, info) && seen.add(info.getName())) {
-					result.add(toApiTool(api, info));
+				if (matchesApi(api, info)) {
+					addByName(result, indexByName, toApiTool(api, info));
 				}
 			}
 		}
 		for (MagicApiMcpCapabilityProvider provider : providers) {
 			for (MagicApiMcpTool tool : provider.mcpTools()) {
-				if (tool != null && tool.getName() != null && seen.add(tool.getName())) {
-					result.add(tool);
+				if (tool != null && tool.getName() != null) {
+					addByName(result, indexByName, tool);
 				}
 			}
 		}
 		return Collections.unmodifiableList(result);
+	}
+
+	/**
+	 * 按工具名登记：首次出现追加到尾部，同名再次出现时后注册者覆盖先注册者
+	 * （动态能力先登记，故 provider 同名工具会替换掉被抢占的动态工具）。
+	 */
+	private void addByName(List<MagicApiMcpTool> result, Map<String, Integer> indexByName, MagicApiMcpTool tool) {
+		Integer index = indexByName.get(tool.getName());
+		if (index == null) {
+			indexByName.put(tool.getName(), result.size());
+			result.add(tool);
+		} else {
+			result.set(index, tool);
+		}
 	}
 
 	private boolean isScopeEnabled(MagicApiMcpProperties.Scope scope) {

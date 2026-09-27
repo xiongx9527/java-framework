@@ -123,7 +123,7 @@ WS 能力在 `spring.factories` 与 `META-INF/spring/org.springframework.boot.au
 
 Scenario 编号延续历史变更：A1 至 A25 为此前 change 已验收的既有场景（其中受端点键提升影响的场景已按新形态重述，行为口径不变），A26 起为本次端点键提升 change 新增。
 
-- **Scenario A1**：WsConfig 为类型安全嵌套 POJO，`fw.plus.ws.*` 下 `path`、`paths` 与其余既有键均可绑定；`flatten()` 扁平键集合在改造前的基础上新增 `path`、`paths` 两个端点键，`websocket:` 下只产出 `trustedDomain`、`subProtocols`、`supportsPartialMessages` 三个握手键（握手 token 相关键已随鉴权移除，不再产出扁平键）。
+- **Scenario A1**：WsConfig 为类型安全嵌套 POJO，`fw.plus.ws.*` 下 `path`、`paths` 与其余既有键均可绑定；`flatten()` 扁平键集合为 `path`、`paths` 两个端点键 + `websocket.trustedDomain`、`websocket.subProtocols`、`websocket.supportsPartialMessages` 三个握手键（端点键提升后 `websocket.` 下的四个旧键不再产出扁平键，握手 token 相关键已随鉴权移除）。
 - **Scenario A2**：`WsBaseService` getter 名与返回类型不变，magic-api ws 插件取到相同配置值（历史结论：token 相关 getter 已随握手鉴权移除，magic 插件侧只做了保持编译的最小删除）。
 - **Scenario A3**：只发业务文本消息不发 ping 的会话超过 `expireMinutes` 仍有效，不被关闭、不返回 SERVICE_OVERLOAD。
 - **Scenario A4**：关闭走 `DisposableBean`，无 `Runtime.addShutdownHook`，重复创建 handler 不累积钩子。
@@ -137,7 +137,7 @@ Scenario 编号延续历史变更：A1 至 A25 为此前 change 已验收的既�
 - **Scenario A12**：webflux 栈订阅脚本在独立有界线程池执行，不阻塞 event loop。
 - **Scenario A13**：`getSession()` 返回 `WsSession`，两栈各有适配器，提供 getAttributes/sendText/sendBinary/close/isOpen。
 - **Scenario A14**：WS 自动配置只登记 `WsAutoConfiguration` 一项，`spring.factories` 与 `AutoConfiguration.imports` 一致；Redis 与 webflux 装配经 `@Import` 生效，与分别登记时行为一致。
-- **Scenario A15**：死配置已移除，新拼写可用且旧拼写保留 `@Deprecated` 委托，无第三方内部 API 依赖。
+- **Scenario A15**：死配置已移除，旧拼写（`websocket.path`、`websocket.paths`、`websocket.endpoint`、`websocket.basePath` 及 `instances`/`name`）直接删除字段与扁平键，不留 `@Deprecated` 兼容字段，无第三方内部 API 依赖。
 - **Scenario A16**：starter 提供 README，`fw-plus-sample` 新增可编译样例并在 samples pom 注册。
 - **Scenario A17**：webmvc 栈按 `paths` 与多个 `WsBasePathProvider` 展开出全部端点，每条路径的跨域、子协议与握手拦截器一致；容器内存在多个 base path provider 不再抛 `NoUniqueBeanDefinitionException`。
 - **Scenario A18**：同一应用内除地基注册器外还有宿主自注册的 configurer（webmvc）或 mapping（webflux）时，双方路径都能完成注册与握手，互不覆盖；两端展开出的完整路径集合一致。

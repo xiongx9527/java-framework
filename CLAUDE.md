@@ -413,7 +413,7 @@ cd fw-plus-core && ./mvnw clean install -pl fw-plus-project/fw-plus-common -Dski
 ./mvnw dependency:tree
 ```
 
-**构建顺序**：必须先按 Core → Boot → Cloud / AI 顺序准备本地 Maven 依赖，下层依赖上层的 Maven 产物。`fw-plus-sample` 样例聚合目录不带 Wrapper，统一入口为 `./fw-plus-core/mvnw -f fw-plus-sample/pom.xml validate`。根目录没有 pom.xml，不能在根目录直接执行 `mvn`。
+**构建顺序**：必须先按 Core → Boot → Cloud / AI 顺序准备本地 Maven 依赖，下层依赖上层的 Maven 产物。根目录为聚合工程（`pom.xml` + `mvnw`，模块为 `fw-plus-core`/`fw-plus-boot`/`fw-plus-cloud`/`fw-plus-ai`/`fw-plus-sample`），可在根目录执行 `./mvnw compile` / `./mvnw test`；四个库层各自也带有 `mvnw`，用于按层增量构建（如 `cd fw-plus-core && ./mvnw clean install -DskipTests`）。`fw-plus-sample` 样例聚合目录不带 Wrapper，统一入口为 `./fw-plus-core/mvnw -f fw-plus-sample/pom.xml validate`。
 
 **版本管理**：`fw-plus-core`、`fw-plus-boot`、`fw-plus-cloud`、`fw-plus-ai` 四个库层使用 `${revision}` 属性（当前值 `0.1.1-SNAPSHOT`）+ `flatten-maven-plugin` 解析版本占位符；`fw-plus-sample` 聚合器固定使用 `0.1.1-SNAPSHOT`，不使用 flatten。
 

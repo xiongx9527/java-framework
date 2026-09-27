@@ -102,6 +102,8 @@ public class MagicApiMcpCapabilityRegistrar implements SmartInitializingSingleto
 		featureMgr.getCompletionStore().clear();
 		registeredResources.remove(featureMgr);
 		registeredPrompts.remove(featureMgr);
+		registeredTemplates.remove(featureMgr);
+		registeredCompletions.remove(featureMgr);
 	}
 
 	private void syncResources(FeatureMgr featureMgr) {
@@ -169,7 +171,7 @@ public class MagicApiMcpCapabilityRegistrar implements SmartInitializingSingleto
 		}
 		for (Map.Entry<String, ServerStorePrompt> entry : desired.entrySet()) {
 			ServerStorePrompt existing = store.get(entry.getKey());
-			if (existing == null || !samePrompt(existing.getPrompt(), entry.getValue().getPrompt())) {
+			if (existing == null || !samePrompt(existing, entry.getValue())) {
 				store.put(entry.getKey(), entry.getValue());
 			}
 		}
@@ -388,8 +390,27 @@ public class MagicApiMcpCapabilityRegistrar implements SmartInitializingSingleto
 		}
 	}
 
-	private boolean samePrompt(PromptItem left, PromptItem right) {
-		return Objects.equals(JsonUtils.toJsonString(left), JsonUtils.toJsonString(right));
+	/**
+	 * 提示词内容存在 invoker（{@code MagicMcpPromptInfo.messages}）而非 {@link PromptItem} 上，
+	 * 比较时必须一并纳入，否则只改消息文案时 store 不会替换（与 {@link #sameResource} 对称）。
+	 */
+	private boolean samePrompt(ServerStorePrompt left, ServerStorePrompt right) {
+		if (!Objects.equals(JsonUtils.toJsonString(left.getPrompt()), JsonUtils.toJsonString(right.getPrompt()))) {
+			return false;
+		}
+		return Objects.equals(readMessages(left), readMessages(right));
+	}
+
+	/**
+	 * 读取提示词消息定义：invoker 持有原始 {@link MagicMcpPromptInfo}，
+	 * 取其中 messages 的 JSON 作为内容判等依据；非本插件 invoker 时返回 {@code null}。
+	 */
+	private String readMessages(ServerStorePrompt store) {
+		if (store.getInstance() instanceof MagicPromptInvoker) {
+			MagicMcpPromptInfo info = ((MagicPromptInvoker) store.getInstance()).getInfo();
+			return info.getMessages() == null ? null : JsonUtils.toJsonString(info.getMessages());
+		}
+		return null;
 	}
 
 	/**
@@ -540,6 +561,10 @@ public class MagicApiMcpCapabilityRegistrar implements SmartInitializingSingleto
 
 		MagicPromptInvoker(MagicMcpPromptInfo info) {
 			this.info = info;
+		}
+
+		MagicMcpPromptInfo getInfo() {
+			return info;
 		}
 
 		public List<PromptMessage> get() {

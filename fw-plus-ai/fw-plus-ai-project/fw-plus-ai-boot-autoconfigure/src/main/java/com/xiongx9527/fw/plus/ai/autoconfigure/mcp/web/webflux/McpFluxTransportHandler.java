@@ -4,8 +4,10 @@ import com.ajaxjs.mcp.server.ServerStreamableHttp;
 import com.ajaxjs.mcp.server.error.JsonRpcErrorException;
 import com.ajaxjs.mcp.server.model.HttpResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpAuthService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpCapabilities;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpPrincipal;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpRequest;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpHeaderNames;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
 import com.xiongx9527.fw.plus.ai.mcp.spi.ServerSseRegistry;
 import com.xiongx9527.fw.plus.ai.mcp.spi.ServerStreamableHttpRegistry;
@@ -44,10 +46,14 @@ class McpFluxTransportHandler {
 
 	private final McpServerRuntime runtime;
 
+	private final McpHeaderNames headerNames;
+
 	private final Scheduler pool;
 
 	McpFluxTransportHandler(McpServerRuntime runtime, Scheduler pool) {
 		this.runtime = runtime;
+		this.headerNames = new McpHeaderNames(runtime.getProperties() == null ? null
+				: runtime.getProperties().getHeaders());
 		this.pool = pool;
 	}
 
@@ -78,7 +84,7 @@ class McpFluxTransportHandler {
 		if (sse == null) {
 			return ServerResponse.notFound().build();
 		}
-		if (!sse.isOriginAllowed(request.headers().firstHeader("Origin"))) {
+		if (!sse.isOriginAllowed(request.headers().firstHeader(headerNames.origin()))) {
 			return ServerResponse.status(HttpStatus.FORBIDDEN).build();
 		}
 		if (!isAuthorized(null, request)) {
@@ -102,7 +108,7 @@ class McpFluxTransportHandler {
 		if (sse == null) {
 			return ServerResponse.notFound().build();
 		}
-		if (!sse.isOriginAllowed(request.headers().firstHeader("Origin"))) {
+		if (!sse.isOriginAllowed(request.headers().firstHeader(headerNames.origin()))) {
 			return ServerResponse.status(HttpStatus.FORBIDDEN).build();
 		}
 
@@ -126,17 +132,20 @@ class McpFluxTransportHandler {
 			return ServerResponse.notFound().build();
 		}
 
-		String session = request.headers().firstHeader(ServerStreamableHttp.SESSION_ID_HEADER);
+		String session = request.headers().firstHeader(headerNames.sessionId());
 		// 初始化请求没有会话头；已持会话的后续消息必须归属本 runtime。
 		if (session != null && !runtime.hasSession(session)) {
 			return ServerResponse.notFound().build();
 		}
-		if (!isAuthorized(session, request)) {
-			return ServerResponse.status(HttpStatus.UNAUTHORIZED).build();
-		}
 
+		// scope 裁剪需要请求体中的 JSON-RPC method，故授权后移到 body 读取之后。
 		return request.bodyToMono(String.class).defaultIfEmpty("")
-				.flatMap(body -> handlePost(transport, body, request));
+				.flatMap(body -> {
+					if (!isAuthorized(session, request, body)) {
+						return ServerResponse.status(HttpStatus.UNAUTHORIZED).build();
+					}
+					return handlePost(transport, body, request);
+				});
 	}
 
 	private Mono<ServerResponse> handlePost(ServerStreamableHttpRegistry transport, String body,
@@ -152,7 +161,7 @@ class McpFluxTransportHandler {
 			return ServerResponse.notFound().build();
 		}
 
-		String session = request.headers().firstHeader(ServerStreamableHttp.SESSION_ID_HEADER);
+		String session = request.headers().firstHeader(headerNames.sessionId());
 		if (session != null && !runtime.hasSession(session)) {
 			return ServerResponse.notFound().build();
 		}
@@ -170,7 +179,7 @@ class McpFluxTransportHandler {
 			return ServerResponse.notFound().build();
 		}
 
-		String session = request.headers().firstHeader(ServerStreamableHttp.SESSION_ID_HEADER);
+		String session = request.headers().firstHeader(headerNames.sessionId());
 		if (session == null || !runtime.hasSession(session)) {
 			return ServerResponse.notFound().build();
 		}
@@ -243,6 +252,7 @@ class McpFluxTransportHandler {
 				values.put(entry.getKey(), headerValues.get(0));
 			}
 		}
+		headerNames.applyCustomNames(values);
 		return values;
 	}
 
@@ -250,16 +260,33 @@ class McpFluxTransportHandler {
 	 * 认证并处理"匿名即拒绝"：未配置认证服务或认证关闭时为放行主体，
 	 * 开了认证但 token 无效时是匿名主体。
 	 *
+	 * <p>开启 scope 裁剪时，认证通过后再按请求体对应的 capability 校验主体 scopes；
+	 * 未开启、非能力操作或主体未携带 scope 信息时一律放行。</p>
+	 *
 	 * @return 通过返回 {@code true}
 	 */
 	private boolean isAuthorized(String sessionId, ServerRequest request) {
+		return isAuthorized(sessionId, request, null);
+	}
+
+	private boolean isAuthorized(String sessionId, ServerRequest request, String body) {
 		McpAuthService authService = runtime.getAuthService();
 		if (authService == null) {
 			return true;
 		}
 		McpPrincipal principal = authService.authenticate(new McpRequest(sessionId, runtime.getTransport(),
-				endpoint(), null, headers(request)));
-		return principal != McpPrincipal.ANONYMOUS;
+				endpoint(), body, headers(request)));
+		if (principal == McpPrincipal.ANONYMOUS) {
+			return false;
+		}
+		if (isScopeCheckEnabled() && !McpCapabilities.covers(principal, McpCapabilities.ofBody(body))) {
+			return false;
+		}
+		return true;
+	}
+
+	private boolean isScopeCheckEnabled() {
+		return runtime.getProperties() != null && runtime.getProperties().isScopeCheckEnabled();
 	}
 
 	private ServerSseRegistry sseRegistry() {
