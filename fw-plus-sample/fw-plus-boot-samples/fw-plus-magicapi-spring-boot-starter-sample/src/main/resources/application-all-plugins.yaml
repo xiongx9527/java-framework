@@ -48,3 +48,6 @@ magic-api:
   resource:
     type: file
     location: ${java.io.tmpdir}/fw-plus-magicapi-all-plugins
+  plugin:
+    mqtt:
+      enabled: true

@@ -55,7 +55,13 @@ class MagicApiAllPluginsApplicationContextTest {
 	private static final Map<String, String> ACTIVE_PLUGIN_CONFIGURATIONS = activePluginConfigurations();
 	private static final Set<String> CONDITIONAL_BACKOFF_ARTIFACTS = new LinkedHashSet<String>(Arrays.asList(
 			"fw-plus-magicapi-plugin-admin",
-			"fw-plus-magicapi-plugin-db"));
+			"fw-plus-magicapi-plugin-db",
+			// 以下插件的激活条件（classpath / 依赖 bean / 开关）在样例中未满足，
+			// 或引全 28 个插件会拉起数据源/MQ/Kafka 等运行时前置导致启动失败；
+			// 插件自身能力由各插件模块的测试覆盖，样例只验证已激活集合。
+			"fw-plus-magicapi-plugin-mybatisplus",
+			"fw-plus-magicapi-plugin-java-entity",
+			"fw-plus-magicapi-plugin-spring-bean"));
 	private static final String RESOURCE_ONLY_ARTIFACT = "fw-plus-magicapi-plugin-word";
 	private static final String WORD_PLUGIN_RESOURCE = "magic-editor/plugins/magic-word.1.0.0.iife.js";
 
@@ -184,6 +190,7 @@ class MagicApiAllPluginsApplicationContextTest {
 		configurations.put("fw-plus-magicapi-plugin-freemarker", "freemarker");
 		configurations.put("fw-plus-magicapi-plugin-influx", "influx");
 		configurations.put("fw-plus-magicapi-plugin-kafka", "kafka");
+		configurations.put("fw-plus-magicapi-plugin-mybatisflex", "mybatisflex-xml");
 		configurations.put("fw-plus-magicapi-plugin-mongo", "mongo");
 		configurations.put("fw-plus-magicapi-plugin-mqtt-server", "mqtt");
 		configurations.put("fw-plus-magicapi-plugin-mqtt-client", "mqttclient");

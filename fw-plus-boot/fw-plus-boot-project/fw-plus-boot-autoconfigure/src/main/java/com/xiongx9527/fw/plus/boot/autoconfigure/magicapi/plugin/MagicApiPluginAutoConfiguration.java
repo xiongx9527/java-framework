@@ -2,7 +2,6 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.admin.server.MagicAPIAdminServerConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.cluster.starter.MagicAPIClusterConfiguration;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.config.starter.MagicAPIConfAutoConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.db.starter.MagicAPIDbBrowserConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.debezium.starter.MagicAPIDebeziumConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.druid.starter.MagicAPIDruidConfiguration;
@@ -31,7 +30,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 @Configuration
-@Import({MagicAPIConfAutoConfiguration.class,
+@Import({
          MagicAPIFreemarkerConfiguration.class,
          MagicAPIVueConfiguration.class,
          MagicSwaggerConfiguration.class,
