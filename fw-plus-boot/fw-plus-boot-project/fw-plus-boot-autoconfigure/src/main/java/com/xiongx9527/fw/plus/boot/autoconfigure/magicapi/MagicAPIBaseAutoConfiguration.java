@@ -1,7 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.MagicAPIDynamicDataSourceAutoConfiguration;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.webflux.MagicAPIWebFluxAutoConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.webflux.MagicAPIWebFluxConditionalConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
@@ -23,7 +23,7 @@ import org.springframework.context.annotation.Import;
 @ConditionalOnProperty(prefix = "fw.plus.magicapi", name = "enabled", havingValue = "true", matchIfMissing = true)
 @Import({
 		MagicAPIWebMvcAutoConfiguration.class,
-		MagicAPIWebFluxAutoConfiguration.class,
+		MagicAPIWebFluxConditionalConfiguration.class,
 		MagicAPIDynamicDataSourceAutoConfiguration.class
 })
 public class MagicAPIBaseAutoConfiguration {

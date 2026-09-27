@@ -374,14 +374,30 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 	}
 
 	private Set<String> dependencyArtifactIds(File pom) throws Exception {
+		return compileScopeDependencies(pom).keySet();
+	}
+
+	/**
+	 * 只取编译期生效的依赖（compile/provided/runtime）：架构契约约束的是"生产 classpath 不走
+	 * 官方 langchain4j-core"，test scope 用于在 reactor 内提供被 shade 的类，不违反该约束。
+	 */
+	private Map<String, String> compileScopeDependencies(File pom) throws Exception {
 		Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(pom);
 		NodeList dependencies = document.getElementsByTagName("dependency");
-		Set<String> artifactIds = new LinkedHashSet<String>();
+		Map<String, String> artifactIds = new LinkedHashMap<String, String>();
 		for (int index = 0; index < dependencies.getLength(); index++) {
 			Element dependency = (Element) dependencies.item(index);
+			String scope = "compile";
+			NodeList scopeElements = dependency.getElementsByTagName("scope");
+			if (scopeElements.getLength() > 0) {
+				scope = scopeElements.item(0).getTextContent().trim();
+			}
+			if ("test".equals(scope) || "import".equals(scope)) {
+				continue;
+			}
 			NodeList artifactIdElements = dependency.getElementsByTagName("artifactId");
 			if (artifactIdElements.getLength() > 0) {
-				artifactIds.add(artifactIdElements.item(0).getTextContent().trim());
+				artifactIds.put(artifactIdElements.item(0).getTextContent().trim(), scope);
 			}
 		}
 		return artifactIds;
