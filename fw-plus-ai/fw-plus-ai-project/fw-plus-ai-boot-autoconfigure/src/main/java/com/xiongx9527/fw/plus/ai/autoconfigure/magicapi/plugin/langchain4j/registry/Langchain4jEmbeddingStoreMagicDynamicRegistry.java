@@ -30,8 +30,23 @@ public class Langchain4jEmbeddingStoreMagicDynamicRegistry
 
     @Override
     protected EmbeddingStore<TextSegment> buildInstance(Langchain4jEmbeddingStoreInfo entity) {
-        EmbeddingModel embeddingModel = embeddingModels.get(entity.getEmbeddingModelKey());
+        EmbeddingModel embeddingModel = requireEmbeddingModel(entity,
+                embeddingModels.get(entity.getEmbeddingModelKey()));
         return factories.buildEmbeddingStore(entity, embeddingModel);
+    }
+
+    /**
+     * embedding-store 必须引用一个已启用的 embedding-model：缺失即注册失败，并给出可操作的提示
+     * （即使 options 已配置 dimension 也不放行，避免产生无法向量化的孤立 store）。
+     */
+    public static EmbeddingModel requireEmbeddingModel(Langchain4jEmbeddingStoreInfo entity,
+            EmbeddingModel embeddingModel) {
+        if (embeddingModel == null) {
+            throw new IllegalArgumentException(String.format(
+                    "请先配置并启用 embedding-model: %s（embedding-store 依赖它提供向量能力与默认维度）",
+                    entity.getEmbeddingModelKey()));
+        }
+        return embeddingModel;
     }
 
     @EventListener(condition = "#event.type == 'langchain4j-embedding-store'")

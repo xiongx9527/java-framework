@@ -4,6 +4,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.facto
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jEmbeddingStoreInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jEmbeddingModelDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jEmbeddingStoreDataSource;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.registry.Langchain4jEmbeddingStoreMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resource.Langchain4jEmbeddingStoreMagicResourceStorage;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
@@ -76,7 +77,8 @@ public class Langchain4jStartupRegistrar implements SmartLifecycle {
             }
             try {
                 EmbeddingStore<TextSegment> instance = factories.buildEmbeddingStore(store,
-                        embeddingModelDataSource.get(store.getEmbeddingModelKey()));
+                        Langchain4jEmbeddingStoreMagicDynamicRegistry.requireEmbeddingModel(store,
+                                embeddingModelDataSource.get(store.getEmbeddingModelKey())));
                 if (instance != null) {
                     storeDataSource.put(store.getKey(), instance);
                     logger.info("LangChain4j embedding-store 启动重试成功: key={}, embeddingModel={}",
