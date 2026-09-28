@@ -153,37 +153,96 @@
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
+        <!-- 模型资源插件：向量库全家桶（optional；fw 包装模块内为 optional 不传递，需显式声明；
+             原 test scope 条目统一提升为 compile+optional，测试代码仍可用） -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-elasticsearch</artifactId>
             <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-milvus</artifactId>
-            <scope>compile</scope>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-redis</artifactId>
             <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-milvus</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-qdrant</artifactId>
             <scope>compile</scope>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-weaviate</artifactId>
             <scope>compile</scope>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>io.milvus</groupId>
             <artifactId>milvus-sdk-java</artifactId>
             <scope>compile</scope>
+            <optional>true</optional>
         </dependency>
 
+        <!-- 模型资源插件：模型供应商（optional；qianfan/github-models/voyage-ai/azure-open-ai/
+             vertex-ai-gemini 已由 fw 包装模块传递，此处补齐 google-gemini/hugging-face/local-ai/
+             zhipu（社区版）/onnx 内置 embedding 与 neo4j store） -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-google-ai-gemini</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-hugging-face</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-local-ai</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-zhipu-ai</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-embeddings</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-embeddings-bge-small-en-v15-q</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-embeddings-all-minilm-l6-v2-q</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j-neo4j</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -194,6 +253,18 @@
                     <artifactId>log4j-to-slf4j</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j-milvus</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j-elasticsearch</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j-redis</artifactId>
         </dependency>
     </dependencies>
 </project>
