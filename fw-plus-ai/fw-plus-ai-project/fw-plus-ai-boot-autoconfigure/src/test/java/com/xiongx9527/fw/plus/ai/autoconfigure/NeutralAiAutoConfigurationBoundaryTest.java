@@ -60,7 +60,9 @@ public class NeutralAiAutoConfigurationBoundaryTest {
 		String path = file.getPath().replace(File.separatorChar, '/');
 		return file.isDirectory() && ("target".equals(file.getName())
 				|| path.contains("/autoconfigure/langchain4j/")
-				|| path.endsWith("/autoconfigure/langchain4j"));
+				|| path.endsWith("/autoconfigure/langchain4j")
+				|| path.contains("/autoconfigure/magicapi/modules/langchain4j")
+				|| path.contains("/autoconfigure/magicapi/plugin/langchain4j"));
 	}
 
 	private String read(File file) throws IOException {
