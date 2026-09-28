@@ -26,11 +26,11 @@ public class Langchain4jLanguageModelMagicDynamicRegistry
 
     @EventListener(condition = "#event.type == 'langchain4j-language-model'")
     public void onFileEvent(FileEvent event) {
-        processEvent(event);
+        safelyProcess(event);
     }
 
     @EventListener(condition = "#event.type == 'langchain4j-language-model'")
     public void onGroupEvent(GroupEvent event) {
-        processEvent(event);
+        safelyProcess(event);
     }
 }

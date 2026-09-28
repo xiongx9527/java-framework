@@ -26,11 +26,11 @@ public class Langchain4jChatModelMagicDynamicRegistry
 
     @EventListener(condition = "#event.type == 'langchain4j-chat-model'")
     public void onFileEvent(FileEvent event) {
-        processEvent(event);
+        safelyProcess(event);
     }
 
     @EventListener(condition = "#event.type == 'langchain4j-chat-model'")
     public void onGroupEvent(GroupEvent event) {
-        processEvent(event);
+        safelyProcess(event);
     }
 }

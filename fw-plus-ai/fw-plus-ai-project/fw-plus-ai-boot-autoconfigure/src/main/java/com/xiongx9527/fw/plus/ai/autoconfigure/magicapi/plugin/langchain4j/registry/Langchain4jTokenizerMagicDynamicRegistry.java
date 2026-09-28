@@ -26,11 +26,11 @@ public class Langchain4jTokenizerMagicDynamicRegistry
 
     @EventListener(condition = "#event.type == 'langchain4j-tokenizer'")
     public void onFileEvent(FileEvent event) {
-        processEvent(event);
+        safelyProcess(event);
     }
 
     @EventListener(condition = "#event.type == 'langchain4j-tokenizer'")
     public void onGroupEvent(GroupEvent event) {
-        processEvent(event);
+        safelyProcess(event);
     }
 }

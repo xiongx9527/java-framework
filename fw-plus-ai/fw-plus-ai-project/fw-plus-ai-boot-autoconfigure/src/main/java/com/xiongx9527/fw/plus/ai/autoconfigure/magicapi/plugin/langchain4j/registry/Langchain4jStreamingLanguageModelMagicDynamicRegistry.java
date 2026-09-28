@@ -29,11 +29,11 @@ public class Langchain4jStreamingLanguageModelMagicDynamicRegistry
 
     @EventListener(condition = "#event.type == 'langchain4j-streaming-language-model'")
     public void onFileEvent(FileEvent event) {
-        processEvent(event);
+        safelyProcess(event);
     }
 
     @EventListener(condition = "#event.type == 'langchain4j-streaming-language-model'")
     public void onGroupEvent(GroupEvent event) {
-        processEvent(event);
+        safelyProcess(event);
     }
 }
