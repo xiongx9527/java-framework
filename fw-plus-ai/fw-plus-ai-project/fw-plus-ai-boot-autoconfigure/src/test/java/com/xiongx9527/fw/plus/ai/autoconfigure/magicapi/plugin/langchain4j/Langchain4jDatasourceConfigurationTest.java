@@ -29,6 +29,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.ssssssss.magicapi.core.service.MagicResourceService;
 
+import java.util.Arrays;
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -80,12 +83,20 @@ class Langchain4jDatasourceConfigurationTest {
     }
 
     @Test
-    void shouldImportSevenTopLevelSubConfigurations() {
+    void shouldImportSharedFactoryConfigAndSevenTypeSubConfigurations() {
         Import imported = Langchain4jDatasourceConfiguration.class.getAnnotation(Import.class);
         assertThat(imported).as("父装配必须用 @Import 引入子配置").isNotNull();
 
-        Class<?>[] children = imported.value();
-        assertThat(children).as("七类资源各一个子 Configuration").hasSize(7);
+        List<Class<?>> children = Arrays.asList(imported.value());
+        assertThat(children).as("共享工厂配置与七类资源的子配置一并引入")
+                .contains(Langchain4jModelFactoryConfiguration.class,
+                        Langchain4jChatModelConfiguration.class,
+                        Langchain4jStreamingChatModelConfiguration.class,
+                        Langchain4jLanguageModelConfiguration.class,
+                        Langchain4jStreamingLanguageModelConfiguration.class,
+                        Langchain4jEmbeddingModelConfiguration.class,
+                        Langchain4jTokenizerConfiguration.class,
+                        Langchain4jEmbeddingStoreConfiguration.class);
         for (Class<?> child : children) {
             assertThat(child.getEnclosingClass()).as("%s 应为顶层类", child.getName()).isNull();
             assertThat(child.getAnnotation(Configuration.class))
@@ -112,7 +123,8 @@ class Langchain4jDatasourceConfigurationTest {
 
     @Test
     void shouldKeepPluginIdentityOnParent() {
-        Langchain4jDatasourceConfiguration configuration = new Langchain4jDatasourceConfiguration();
+        Langchain4jDatasourceConfiguration configuration = new Langchain4jDatasourceConfiguration(
+                new Langchain4jModelFactoryRegistry(), new MagicDynamicLangchain4jEmbeddingModelDataSource());
 
         assertThat(configuration.plugin().getName()).isEqualTo("langchain4j");
         assertThat(configuration.controllerRegister()).isNotNull();

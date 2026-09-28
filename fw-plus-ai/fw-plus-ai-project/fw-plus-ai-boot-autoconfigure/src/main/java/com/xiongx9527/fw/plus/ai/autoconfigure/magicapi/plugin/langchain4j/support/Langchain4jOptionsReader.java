@@ -184,6 +184,8 @@ public class Langchain4jOptionsReader {
     }
 
     private String path(String name) {
-        return "langchain4j-" + type + "[" + key + "].options." + name;
+        // type 传入完整 datasource type（如 langchain4j-chat-model），错误信息形如
+        // langchain4j-chat-model[qwen-main].options.api-key
+        return type + "[" + key + "].options." + name;
     }
 }

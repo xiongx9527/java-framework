@@ -63,7 +63,7 @@ class Langchain4jQwenModelFactoryTest {
     }
 
     private static Langchain4jOptionsReader reader(Map<String, Object> options) {
-        return new Langchain4jOptionsReader("chat-model", "qwen-main", options);
+        return new Langchain4jOptionsReader("langchain4j-chat-model", "qwen-main", options);
     }
 
     private static Map<String, Object> options(Object... pairs) {

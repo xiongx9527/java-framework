@@ -1,6 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.Langchain4jDatasourceConfiguration;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.Langchain4jModelFactoryConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jChatModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
 import dev.langchain4j.model.chat.ChatLanguageModel;
@@ -93,7 +93,7 @@ class Langchain4jModelFactoryRegistryTest {
     }
 
     private static ModelFactory[] defaultFactories() throws Exception {
-        Method method = Langchain4jDatasourceConfiguration.class.getDeclaredMethod("defaultFactories");
+        Method method = Langchain4jModelFactoryConfiguration.class.getDeclaredMethod("defaultFactories");
         method.setAccessible(true);
         return (ModelFactory[]) method.invoke(null);
     }

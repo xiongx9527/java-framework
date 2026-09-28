@@ -12,7 +12,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jStreamingLanguageModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jTokenizerInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jEmbeddingModelDataSource;
-import com.xiongx9527.fw.plus.common.util.SpringUtils;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.registry.Langchain4jEmbeddingStoreMagicDynamicRegistry;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.data.segment.TextSegment;
@@ -22,6 +22,8 @@ import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.ssssssss.magicapi.core.config.MagicConfiguration;
 import org.ssssssss.magicapi.core.web.MagicController;
 import org.ssssssss.magicapi.core.web.MagicExceptionHandler;
@@ -30,24 +32,26 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.io.Closeable;
 import java.util.Map;
 
 /**
- * datasource 连接测试：按 body（datasource JSON）构建实例并做最小探测，不落库、不注册）。
- * 协议对齐官方 mongo datasource test：返回 "ok" 或中文错误信息。
+ * datasource 连接测试：按 body（datasource JSON）构建实例并做最小探测，不落库、不注册。
+ * 协议对齐官方 datasource test：返回 "ok" 或中文错误信息。
  */
 public class Langchain4jDatasourceController extends MagicController implements MagicExceptionHandler {
 
-    public Langchain4jDatasourceController(MagicConfiguration configuration) {
+    private static final Logger logger = LoggerFactory.getLogger(Langchain4jDatasourceController.class);
+
+    private final Langchain4jModelFactoryRegistry factories;
+    private final MagicDynamicLangchain4jEmbeddingModelDataSource embeddingModels;
+
+    public Langchain4jDatasourceController(MagicConfiguration configuration,
+            Langchain4jModelFactoryRegistry factories,
+            MagicDynamicLangchain4jEmbeddingModelDataSource embeddingModels) {
         super(configuration);
-    }
-
-    private Langchain4jModelFactoryRegistry factories() {
-        return SpringUtils.getBean(Langchain4jModelFactoryRegistry.class);
-    }
-
-    private MagicDynamicLangchain4jEmbeddingModelDataSource embeddingModels() {
-        return SpringUtils.getBean(MagicDynamicLangchain4jEmbeddingModelDataSource.class);
+        this.factories = factories;
+        this.embeddingModels = embeddingModels;
     }
 
     /**
@@ -63,11 +67,16 @@ public class Langchain4jDatasourceController extends MagicController implements 
             Langchain4jModelInfo info = toInfo(modelType, body);
             EmbeddingModel embeddingModel = null;
             if (modelType == Langchain4jModelTypes.EMBEDDING_STORE) {
-                embeddingModel = embeddingModels().get(
-                        ((Langchain4jEmbeddingStoreInfo) info).getEmbeddingModelKey());
+                embeddingModel = Langchain4jEmbeddingStoreMagicDynamicRegistry.requireEmbeddingModel(
+                        (Langchain4jEmbeddingStoreInfo) info,
+                        embeddingModels.get(((Langchain4jEmbeddingStoreInfo) info).getEmbeddingModelKey()));
             }
-            Object instance = factories().build(modelType, info, embeddingModel);
-            probe(modelType, instance, embeddingModel);
+            Object instance = factories.build(modelType, info, embeddingModel);
+            try {
+                probe(modelType, instance, embeddingModel);
+            } finally {
+                closeProbeInstance(modelType, instance);
+            }
             return "ok";
         } catch (IllegalArgumentException e) {
             return e.getMessage();
@@ -114,9 +123,6 @@ public class Langchain4jDatasourceController extends MagicController implements 
                 ((Tokenizer) instance).estimateTokenCountInText("test");
                 break;
             case EMBEDDING_STORE:
-                if (embeddingModel == null) {
-                    throw new IllegalArgumentException("embedding-model 未配置或未启用，无法探测 embedding-store");
-                }
                 EmbeddingStore<TextSegment> store = castStore(instance);
                 Embedding embedding = embeddingModel.embed("test").content();
                 store.add(embedding, TextSegment.from("probe"));
@@ -127,6 +133,18 @@ public class Langchain4jDatasourceController extends MagicController implements 
             default:
                 // streaming 两类仅验证构建，不发起调用
                 break;
+        }
+    }
+
+    /** embedding-store 的探测实例是一次性的，探测结束后释放其连接。 */
+    private void closeProbeInstance(Langchain4jModelTypes type, Object instance) {
+        if (type != Langchain4jModelTypes.EMBEDDING_STORE || !(instance instanceof Closeable)) {
+            return;
+        }
+        try {
+            ((Closeable) instance).close();
+        } catch (Exception e) {
+            logger.warn("关闭连接测试实例失败: type={}", type.type(), e);
         }
     }
 

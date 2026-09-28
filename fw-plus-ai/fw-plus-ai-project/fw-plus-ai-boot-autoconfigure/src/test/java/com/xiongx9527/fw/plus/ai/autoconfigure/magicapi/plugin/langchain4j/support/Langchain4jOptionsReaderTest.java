@@ -28,7 +28,7 @@ class Langchain4jOptionsReaderTest {
         options.put("timeout", "60s");
         options.put("stops", "a, b");
         options.put("flags", Arrays.asList("x", "y"));
-        reader = new Langchain4jOptionsReader("chat-model", "qwen-main", options);
+        reader = new Langchain4jOptionsReader("langchain4j-chat-model", "qwen-main", options);
     }
 
     @Test
@@ -40,7 +40,7 @@ class Langchain4jOptionsReaderTest {
 
     @Test
     void shouldReportFullPathWhenRequiredIsBlank() {
-        Langchain4jOptionsReader blank = new Langchain4jOptionsReader("tokenizer", "t1",
+        Langchain4jOptionsReader blank = new Langchain4jOptionsReader("langchain4j-tokenizer", "t1",
                 single("api-key", "   "));
 
         assertThatThrownBy(() -> blank.required("api-key"))
@@ -72,7 +72,7 @@ class Langchain4jOptionsReaderTest {
         assertThat(reader.integer("top-k", null)).isEqualTo(20);
         assertThat(reader.longValue("top-k", null)).isEqualTo(20L);
 
-        assertThatThrownBy(() -> new Langchain4jOptionsReader("chat-model", "k",
+        assertThatThrownBy(() -> new Langchain4jOptionsReader("langchain4j-chat-model", "k",
                 single("max-tokens", "99999999999")).integer("max-tokens", null))
                 .hasMessageContaining("超出 int 范围");
     }
@@ -81,7 +81,7 @@ class Langchain4jOptionsReaderTest {
     void shouldReadBooleansAndRejectInvalid() {
         assertThat(reader.bool("enable-search", false)).isTrue();
 
-        assertThatThrownBy(() -> new Langchain4jOptionsReader("chat-model", "k",
+        assertThatThrownBy(() -> new Langchain4jOptionsReader("langchain4j-chat-model", "k",
                 single("enable-search", "yes")).bool("enable-search", false))
                 .hasMessageContaining("不是合法布尔值");
     }
@@ -89,14 +89,14 @@ class Langchain4jOptionsReaderTest {
     @Test
     void shouldParseDurationFormats() {
         assertThat(reader.duration("timeout", null)).isEqualTo(Duration.ofSeconds(60));
-        assertThat(new Langchain4jOptionsReader("chat-model", "k", single("t", "2m"))
+        assertThat(new Langchain4jOptionsReader("langchain4j-chat-model", "k", single("t", "2m"))
                 .duration("t", null)).isEqualTo(Duration.ofMinutes(2));
-        assertThat(new Langchain4jOptionsReader("chat-model", "k", single("t", "PT1M"))
+        assertThat(new Langchain4jOptionsReader("langchain4j-chat-model", "k", single("t", "PT1M"))
                 .duration("t", null)).isEqualTo(Duration.ofMinutes(1));
-        assertThat(new Langchain4jOptionsReader("chat-model", "k", single("t", "1500"))
+        assertThat(new Langchain4jOptionsReader("langchain4j-chat-model", "k", single("t", "1500"))
                 .duration("t", null)).isEqualTo(Duration.ofMillis(1500));
 
-        assertThatThrownBy(() -> new Langchain4jOptionsReader("chat-model", "k", single("t", "60x"))
+        assertThatThrownBy(() -> new Langchain4jOptionsReader("langchain4j-chat-model", "k", single("t", "60x"))
                 .duration("t", null))
                 .hasMessageContaining("不是合法时长");
     }
@@ -110,7 +110,7 @@ class Langchain4jOptionsReaderTest {
 
     @Test
     void shouldParseEnumCaseInsensitively() {
-        Langchain4jOptionsReader enums = new Langchain4jOptionsReader("chat-model", "k", single("mode", "second"));
+        Langchain4jOptionsReader enums = new Langchain4jOptionsReader("langchain4j-chat-model", "k", single("mode", "second"));
 
         assertThat(enums.enumValue("mode", Sample.class, Sample.FIRST)).isEqualTo(Sample.SECOND);
         assertThat(enums.enumValue("absent", Sample.class, Sample.FIRST)).isEqualTo(Sample.FIRST);
