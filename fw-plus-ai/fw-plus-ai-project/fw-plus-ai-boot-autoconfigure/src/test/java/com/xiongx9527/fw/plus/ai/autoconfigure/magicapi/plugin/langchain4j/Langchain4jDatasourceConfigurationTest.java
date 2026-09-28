@@ -23,6 +23,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resou
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resource.Langchain4jStreamingLanguageModelMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resource.Langchain4jTokenizerMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.web.Langchain4jStartupRegistrar;
+import org.ssssssss.magicapi.core.model.Plugin;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Configuration;
@@ -129,5 +130,32 @@ class Langchain4jDatasourceConfigurationTest {
         assertThat(configuration.plugin().getName()).isEqualTo("langchain4j");
         assertThat(configuration.controllerRegister()).isNotNull();
         assertThat(configuration).isInstanceOf(org.ssssssss.magicapi.core.config.MagicPluginConfiguration.class);
+    }
+
+    @Test
+    void shouldOnlyDeclareBaseIdentityWhenFrontendAssetsMissing() {
+        Plugin plugin = Langchain4jDatasourceConfiguration.buildPlugin(false);
+
+        assertThat(plugin.getName()).isEqualTo("langchain4j");
+        assertThat(plugin.getJavascriptFilename()).as("前端产物缺失时只按基础插件标识注册").isNull();
+    }
+
+    @Test
+    void shouldDeclareFrontendAssetsWhenPresent() {
+        Plugin plugin = Langchain4jDatasourceConfiguration.buildPlugin(true);
+
+        assertThat(plugin.getName()).isEqualTo("langchain4j");
+        assertThat(plugin.getJavascriptFilename()).isEqualTo("magic-langchain4j.1.0.0.iife.js");
+    }
+
+    @Test
+    void pluginShouldFollowFrontendAssetPresenceOnClasspath() {
+        boolean present = Langchain4jDatasourceConfiguration.class.getClassLoader()
+                .getResource(Langchain4jDatasourceConfiguration.FRONTEND_RESOURCE) != null;
+        Langchain4jDatasourceConfiguration configuration = new Langchain4jDatasourceConfiguration(
+                new Langchain4jModelFactoryRegistry(), new MagicDynamicLangchain4jEmbeddingModelDataSource());
+
+        assertThat(configuration.plugin().getJavascriptFilename())
+                .isEqualTo(Langchain4jDatasourceConfiguration.buildPlugin(present).getJavascriptFilename());
     }
 }

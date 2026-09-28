@@ -47,6 +47,11 @@ import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 })
 public class Langchain4jDatasourceConfiguration implements MagicPluginConfiguration {
 
+    /** 控制台前端产物名（由 fw-plus-ai-magicapi-plugin-langchain4j 打入 magic-editor/plugins） */
+    static final String JAVASCRIPT_FILENAME = "magic-langchain4j.1.0.0.iife.js";
+
+    static final String FRONTEND_RESOURCE = "magic-editor/plugins/" + JAVASCRIPT_FILENAME;
+
     private final Langchain4jModelFactoryRegistry factories;
     private final MagicDynamicLangchain4jEmbeddingModelDataSource embeddingModels;
 
@@ -54,6 +59,16 @@ public class Langchain4jDatasourceConfiguration implements MagicPluginConfigurat
             MagicDynamicLangchain4jEmbeddingModelDataSource embeddingModels) {
         this.factories = factories;
         this.embeddingModels = embeddingModels;
+    }
+
+    /**
+     * 前端产物缺失时降级为只声明插件标识：服务端装配与取用不受影响，
+     * 只是控制台不加载该插件的配置组件。
+     */
+    static Plugin buildPlugin(boolean frontendPresent) {
+        return frontendPresent
+                ? new Plugin("langchain4j", "MagicLangchain4j", JAVASCRIPT_FILENAME)
+                : new Plugin("langchain4j");
     }
 
     /** 启动完成钩子：embedding-store 先于其 embedding-model 加载时，统一重试一次注册 */
@@ -70,7 +85,9 @@ public class Langchain4jDatasourceConfiguration implements MagicPluginConfigurat
 
     @Override
     public Plugin plugin() {
-        return new Plugin("langchain4j", "MagicLangchain4j", "magic-langchain4j.1.0.0.iife.js");
+        boolean frontendPresent = Langchain4jDatasourceConfiguration.class.getClassLoader()
+                .getResource(FRONTEND_RESOURCE) != null;
+        return buildPlugin(frontendPresent);
     }
 
     @Override

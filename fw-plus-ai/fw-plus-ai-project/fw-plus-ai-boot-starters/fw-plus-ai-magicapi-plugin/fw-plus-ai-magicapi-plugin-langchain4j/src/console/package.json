@@ -1,0 +1,17 @@
+{
+  "name": "magic-langchain4j",
+  "version": "1.0.0",
+  "description": "Magic-API LangChain4j Model Plugin",
+  "main": "index.js",
+  "scripts": {
+    "build": "vite build",
+    "test": "node --test test/"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^2.0.1",
+    "vite": "^2.7.10",
+    "vue": "^3.2.26"
+  }
+}
