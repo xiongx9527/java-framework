@@ -57,16 +57,20 @@ public class Langchain4jOptionsReader {
         return value == null ? (defaultValue == null ? 0L : defaultValue) : toLong(name, value);
     }
 
-    public double dbl(String name, Double defaultValue) {
+    /**
+     * 读取可空的双精度参数：缺省时返回 {@code defaultValue}（允许为 {@code null}，
+     * 表示不设置该参数、由 langchain4j 使用自身默认值）。
+     */
+    public Double dbl(String name, Double defaultValue) {
         Object value = options.get(name);
         if (value == null) {
-            return defaultValue == null ? 0d : defaultValue;
+            return defaultValue;
         }
         if (value instanceof Number) {
             return ((Number) value).doubleValue();
         }
         try {
-            return Double.parseDouble(String.valueOf(value).trim());
+            return Double.valueOf(String.valueOf(value).trim());
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException(path(name) + " 不是合法数字: " + value);
         }
