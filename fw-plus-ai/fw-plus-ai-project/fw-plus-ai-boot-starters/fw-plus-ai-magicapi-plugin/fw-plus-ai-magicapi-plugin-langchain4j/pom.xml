@@ -8,23 +8,42 @@
         <artifactId>fw-plus-ai-magicapi-plugin</artifactId>
         <version>${revision}</version>
     </parent>
+    <packaging>pom</packaging>
 
     <artifactId>fw-plus-ai-magicapi-plugin-langchain4j</artifactId>
 
+    <modules>
+        <module>fw-plus-ai-magicapi-plugin-langchain4j-chat-model</module>
+        <module>fw-plus-ai-magicapi-plugin-langchain4j-streaming-chat-model</module>
+        <module>fw-plus-ai-magicapi-plugin-langchain4j-language-model</module>
+        <module>fw-plus-ai-magicapi-plugin-langchain4j-streaming-language-model</module>
+        <module>fw-plus-ai-magicapi-plugin-langchain4j-embedding-model</module>
+        <module>fw-plus-ai-magicapi-plugin-langchain4j-tokenizer</module>
+        <module>fw-plus-ai-magicapi-plugin-langchain4j-embedding-store</module>
+    </modules>
+
     <properties>
         <main.basedir>${basedir}/../../..</main.basedir>
+        <!-- 父工程自身非 console 工程：默认跳过前端构建，由七个子工程各自覆盖为 false -->
+        <langchain4j.console.skip>true</langchain4j.console.skip>
     </properties>
 
     <build>
         <plugins>
-            <!-- 前端 console 自动编译打包 -->
+            <!-- 前端 console 自动编译打包（executions 由 fw-plus-ai-magicapi-plugin 的 pluginManagement 提供） -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
+                <configuration>
+                    <skip>${langchain4j.console.skip}</skip>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
+                <configuration>
+                    <skip>${langchain4j.console.skip}</skip>
+                </configuration>
             </plugin>
         </plugins>
     </build>
@@ -32,7 +51,12 @@
     <dependencies>
         <dependency>
             <groupId>com.xiongx9527.fw.plus.ai</groupId>
-            <artifactId>fw-plus-ai-boot-autoconfigure</artifactId>
+            <artifactId>fw-plus-ai-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.ssssssss</groupId>
+            <artifactId>magic-api</artifactId>
         </dependency>
     </dependencies>
+
 </project>

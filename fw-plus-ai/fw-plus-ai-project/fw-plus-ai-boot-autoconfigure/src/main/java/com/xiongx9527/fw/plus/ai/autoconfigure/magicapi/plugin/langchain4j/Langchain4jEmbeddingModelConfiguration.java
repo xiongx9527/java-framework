@@ -11,7 +11,13 @@ import org.springframework.context.annotation.Configuration;
 
 /** embedding-model 数据源的装配：实例持有者、资源存储与动态注册器。 */
 @Configuration(proxyBeanMethods = false)
-public class Langchain4jEmbeddingModelConfiguration {
+public class Langchain4jEmbeddingModelConfiguration extends AbstractLangchain4jPluginConfiguration {
+
+    private static final String JAVASCRIPT_FILENAME = "magic-langchain4j-embedding-model.1.0.0.iife.js";
+
+    public Langchain4jEmbeddingModelConfiguration() {
+        super("langchain4j-embedding-model", "MagicLangchain4jEmbeddingModel", JAVASCRIPT_FILENAME);
+    }
 
     @Bean
     @ConditionalOnMissingBean

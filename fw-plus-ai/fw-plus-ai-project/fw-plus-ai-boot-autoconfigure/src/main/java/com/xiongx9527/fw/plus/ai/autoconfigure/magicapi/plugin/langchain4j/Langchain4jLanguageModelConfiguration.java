@@ -11,7 +11,13 @@ import org.springframework.context.annotation.Configuration;
 
 /** language-model 数据源的装配：实例持有者、资源存储与动态注册器。 */
 @Configuration(proxyBeanMethods = false)
-public class Langchain4jLanguageModelConfiguration {
+public class Langchain4jLanguageModelConfiguration extends AbstractLangchain4jPluginConfiguration {
+
+    private static final String JAVASCRIPT_FILENAME = "magic-langchain4j-language-model.1.0.0.iife.js";
+
+    public Langchain4jLanguageModelConfiguration() {
+        super("langchain4j-language-model", "MagicLangchain4jLanguageModel", JAVASCRIPT_FILENAME);
+    }
 
     @Bean
     @ConditionalOnMissingBean

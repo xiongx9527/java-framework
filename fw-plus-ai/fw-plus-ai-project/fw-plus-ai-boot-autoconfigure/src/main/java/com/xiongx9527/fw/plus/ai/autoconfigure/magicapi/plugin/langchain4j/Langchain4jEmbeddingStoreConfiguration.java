@@ -15,7 +15,13 @@ import org.springframework.context.annotation.Configuration;
  * 注册器额外依赖 embedding-model 持有者，用于按 {@code embeddingModelKey} 取被引用的模型。
  */
 @Configuration(proxyBeanMethods = false)
-public class Langchain4jEmbeddingStoreConfiguration {
+public class Langchain4jEmbeddingStoreConfiguration extends AbstractLangchain4jPluginConfiguration {
+
+    private static final String JAVASCRIPT_FILENAME = "magic-langchain4j-embedding-store.1.0.0.iife.js";
+
+    public Langchain4jEmbeddingStoreConfiguration() {
+        super("langchain4j-embedding-store", "MagicLangchain4jEmbeddingStore", JAVASCRIPT_FILENAME);
+    }
 
     @Bean
     @ConditionalOnMissingBean

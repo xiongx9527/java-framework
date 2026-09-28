@@ -11,7 +11,13 @@ import org.springframework.context.annotation.Configuration;
 
 /** streaming-chat-model 数据源的装配：实例持有者、资源存储与动态注册器。 */
 @Configuration(proxyBeanMethods = false)
-public class Langchain4jStreamingChatModelConfiguration {
+public class Langchain4jStreamingChatModelConfiguration extends AbstractLangchain4jPluginConfiguration {
+
+    private static final String JAVASCRIPT_FILENAME = "magic-langchain4j-streaming-chat-model.1.0.0.iife.js";
+
+    public Langchain4jStreamingChatModelConfiguration() {
+        super("langchain4j-streaming-chat-model", "MagicLangchain4jStreamingChatModel", JAVASCRIPT_FILENAME);
+    }
 
     @Bean
     @ConditionalOnMissingBean

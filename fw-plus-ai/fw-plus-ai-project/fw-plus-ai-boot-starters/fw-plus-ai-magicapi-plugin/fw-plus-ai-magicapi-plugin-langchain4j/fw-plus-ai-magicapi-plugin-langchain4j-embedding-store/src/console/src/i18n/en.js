@@ -1,0 +1,74 @@
+export default {
+    langchain4j: {
+        type: {
+            'embedding-store': 'Embedding Store'
+        },
+        common: {
+            name: 'Name',
+            key: 'Key',
+            provider: 'Provider',
+            enabled: 'Enabled',
+            embeddingModelKey: 'Embedding Model',
+            options: 'Provider Options'
+        },
+        option: {
+            yes: 'Yes',
+            no: 'No',
+            true: 'Yes',
+            false: 'No'
+        },
+        hint: {
+            required: 'Required',
+            optional: 'Optional',
+            duration: 'e.g. 60s / 2m / PT1M, empty uses default',
+            tags: 'Separate multiple values with commas',
+            switch: 'Leave empty to skip',
+            select: 'Free text allowed',
+            empty: 'No extra options for this provider',
+            embeddingModelKey: 'Pick or type an enabled embedding-model key'
+        },
+        provider: {
+            'elasticsearch': 'Elasticsearch',
+            'in-memory': 'In-Memory',
+            'milvus': 'Milvus',
+            'neo4j': 'Neo4j',
+            'qdrant': 'Qdrant',
+            'redis': 'Redis',
+            'weaviate': 'Weaviate',
+        },
+        field: {
+            'api-key': 'API Key',
+            'auto-flush-on-insert': 'Auto Flush On Insert',
+            'avoid-dups': 'Avoid Duplicates',
+            'collection-name': 'Collection Name',
+            'consistency-level': 'Consistency Level',
+            'database-name': 'Database Name',
+            'dimension': 'Dimension',
+            'embedding-property': 'Embedding Property',
+            'grpc-port': 'gRPC Port',
+            'host': 'Host',
+            'id-property': 'Id Property',
+            'index-name': 'Index Name',
+            'index-type': 'Index Type',
+            'label': 'Label',
+            'metadata-keys': 'Metadata Keys',
+            'metadata-prefix': 'Metadata Prefix',
+            'metric-type': 'Metric Type',
+            'object-class': 'Object Class',
+            'password': 'Password',
+            'payload-text-key': 'Payload Text Key',
+            'port': 'Port',
+            'retrieve-embeddings-on-search': 'Retrieve Embeddings On Search',
+            'scheme': 'Scheme',
+            'secured-grpc': 'Secured gRPC',
+            'server-url': 'Server URL',
+            'text-property': 'Text Property',
+            'token': 'Token',
+            'uri': 'URI',
+            'use-grpc-for-inserts': 'Use gRPC For Inserts',
+            'use-tls': 'Use TLS',
+            'user': 'User',
+            'username': 'Username',
+        }
+    }
+}

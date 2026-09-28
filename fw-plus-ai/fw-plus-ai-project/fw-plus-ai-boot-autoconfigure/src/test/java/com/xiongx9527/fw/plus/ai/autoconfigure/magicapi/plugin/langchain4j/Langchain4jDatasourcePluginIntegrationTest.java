@@ -29,7 +29,9 @@ import org.ssssssss.magicapi.core.service.MagicResourceService;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -129,13 +131,36 @@ class Langchain4jDatasourcePluginIntegrationTest {
     void shouldFailPluginRegistrationButKeepServerSideAssemblyWhenFrontendMissing() {
         runner.run(context -> {
             assertThat(context).hasNotFailed();
-            boolean frontendPresent = Langchain4jDatasourceConfiguration.class.getClassLoader()
-                    .getResource(Langchain4jDatasourceConfiguration.FRONTEND_RESOURCE) != null;
-
-            assertThat(context.getBean(Langchain4jDatasourceConfiguration.class).plugin().getJavascriptFilename())
-                    .isEqualTo(frontendPresent ? Langchain4jDatasourceConfiguration.JAVASCRIPT_FILENAME : null);
-            // 服务端装配不受前端产物影响
+            // 每类资源一个插件配置：产物缺失时各自只按基础标识注册，服务端装配不受影响
+            for (AbstractLangchain4jPluginConfiguration configuration
+                    : context.getBeansOfType(AbstractLangchain4jPluginConfiguration.class).values()) {
+                boolean frontendPresent = configuration.getClass().getClassLoader()
+                        .getResource(configuration.frontendResource()) != null;
+                assertThat(configuration.plugin().getJavascriptFilename())
+                        .isEqualTo(frontendPresent ? configuration.javascriptFilename() : null);
+            }
             assertThat(context).hasSingleBean(MagicDynamicLangchain4jChatModelDataSource.class);
+        });
+    }
+
+    @Test
+    void shouldDeclareOnePluginConfigurationBeanPerType() {
+        runner.run(context -> {
+            List<String> pluginNames =
+                    context.getBeansOfType(AbstractLangchain4jPluginConfiguration.class).values().stream()
+                            .map(AbstractLangchain4jPluginConfiguration::pluginName)
+                            .sorted()
+                            .collect(Collectors.toList());
+
+            assertThat(pluginNames).as("七类资源各一个插件配置，magic-api 逐个注册 controller")
+                    .containsExactly(
+                            "langchain4j-chat-model",
+                            "langchain4j-embedding-model",
+                            "langchain4j-embedding-store",
+                            "langchain4j-language-model",
+                            "langchain4j-streaming-chat-model",
+                            "langchain4j-streaming-language-model",
+                            "langchain4j-tokenizer");
         });
     }
 
