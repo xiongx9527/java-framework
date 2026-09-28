@@ -11,7 +11,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jStreamingChatModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jStreamingLanguageModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jTokenizerInfo;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jModelHolder;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jEmbeddingModelDataSource;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.message.UserMessage;
@@ -46,8 +46,8 @@ public class Langchain4jDatasourceController extends MagicController implements 
         return SpringUtils.getBean(Langchain4jModelFactoryRegistry.class);
     }
 
-    private Langchain4jModelHolder holder() {
-        return SpringUtils.getBean(Langchain4jModelHolder.class);
+    private MagicDynamicLangchain4jEmbeddingModelDataSource embeddingModels() {
+        return SpringUtils.getBean(MagicDynamicLangchain4jEmbeddingModelDataSource.class);
     }
 
     /**
@@ -63,7 +63,7 @@ public class Langchain4jDatasourceController extends MagicController implements 
             Langchain4jModelInfo info = toInfo(modelType, body);
             EmbeddingModel embeddingModel = null;
             if (modelType == Langchain4jModelTypes.EMBEDDING_STORE) {
-                embeddingModel = holder().get(Langchain4jModelTypes.EMBEDDING_MODEL,
+                embeddingModel = embeddingModels().get(
                         ((Langchain4jEmbeddingStoreInfo) info).getEmbeddingModelKey());
             }
             Object instance = factories().build(modelType, info, embeddingModel);

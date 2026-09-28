@@ -1,11 +1,9 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.registry;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.Langchain4jModelFactoryRegistry;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jEmbeddingStoreInfo;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.AbstractMagicDynamicLangchain4jDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jModelHolder;
-import dev.langchain4j.model.embedding.EmbeddingModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.ssssssss.magicapi.core.service.AbstractMagicDynamicRegistry;
@@ -16,18 +14,21 @@ import org.ssssssss.magicapi.core.service.MagicResourceStorage;
  * 先驱逐旧实例 → enabled 检查 → 显式工厂构建 → 成功才落库；构建失败不注册、不遗留半成品。
  *
  * @param <T> 具体资源实体
+ * @param <M> 该资源类型对应的实例类型
  */
-public abstract class AbstractLangchain4jModelMagicDynamicRegistry<T extends Langchain4jModelInfo>
+public abstract class AbstractLangchain4jModelMagicDynamicRegistry<T extends Langchain4jModelInfo, M>
         extends AbstractMagicDynamicRegistry<T> {
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractLangchain4jModelMagicDynamicRegistry.class);
 
-    protected final Langchain4jModelHolder holder;
+    /** 本类型的实例持有者（每类资源一个，不跨类型共享） */
+    protected final AbstractMagicDynamicLangchain4jDataSource<M> holder;
     protected final Langchain4jModelFactoryRegistry factories;
     protected final Langchain4jModelTypes type;
 
     protected AbstractLangchain4jModelMagicDynamicRegistry(MagicResourceStorage<T> magicResourceStorage,
-            Langchain4jModelHolder holder, Langchain4jModelFactoryRegistry factories, Langchain4jModelTypes type) {
+            AbstractMagicDynamicLangchain4jDataSource<M> holder, Langchain4jModelFactoryRegistry factories,
+            Langchain4jModelTypes type) {
         super(magicResourceStorage);
         this.holder = holder;
         this.factories = factories;
@@ -37,11 +38,11 @@ public abstract class AbstractLangchain4jModelMagicDynamicRegistry<T extends Lan
     @Override
     protected boolean register(MappingNode<T> node) {
         T entity = node.getEntity();
-        holder.evict(type, entity.getKey());
+        holder.evict(entity.getKey());
         if (!entity.isEnabled()) {
             return true;
         }
-        Object instance;
+        M instance;
         try {
             instance = buildInstance(entity);
         } catch (RuntimeException e) {
@@ -51,23 +52,16 @@ public abstract class AbstractLangchain4jModelMagicDynamicRegistry<T extends Lan
         if (instance == null) {
             return false;
         }
-        holder.put(type, entity.getKey(), instance);
+        holder.put(entity.getKey(), instance);
         return super.register(node);
     }
 
     @Override
     protected void unregister(MappingNode<T> node) {
-        holder.evict(type, node.getEntity().getKey());
+        holder.evict(node.getEntity().getKey());
         super.unregister(node);
     }
 
-    private Object buildInstance(T entity) {
-        if (type == Langchain4jModelTypes.EMBEDDING_STORE) {
-            Langchain4jEmbeddingStoreInfo storeInfo = (Langchain4jEmbeddingStoreInfo) entity;
-            EmbeddingModel embeddingModel = holder.get(Langchain4jModelTypes.EMBEDDING_MODEL,
-                    storeInfo.getEmbeddingModelKey());
-            return factories.build(type, entity, embeddingModel);
-        }
-        return factories.build(type, entity);
-    }
+    /** 按实体构建本类型实例；返回 {@code null} 表示构建失败、不注册。 */
+    protected abstract M buildInstance(T entity);
 }

@@ -2,9 +2,11 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.web;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.Langchain4jModelFactoryRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jEmbeddingStoreInfo;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jEmbeddingModelDataSource;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jEmbeddingStoreDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resource.Langchain4jEmbeddingStoreMagicResourceStorage;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jModelHolder;
+import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.store.embedding.EmbeddingStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.SmartLifecycle;
@@ -19,16 +21,21 @@ public class Langchain4jStartupRegistrar implements SmartLifecycle {
     private static final Logger logger = LoggerFactory.getLogger(Langchain4jStartupRegistrar.class);
 
     private final MagicResourceService magicResourceService;
-    private final Langchain4jModelHolder holder;
+    private final MagicDynamicLangchain4jEmbeddingStoreDataSource storeDataSource;
+    private final MagicDynamicLangchain4jEmbeddingModelDataSource embeddingModelDataSource;
     private final Langchain4jModelFactoryRegistry factories;
     private final Langchain4jEmbeddingStoreMagicResourceStorage storeStorage;
 
     private volatile boolean running;
 
-    public Langchain4jStartupRegistrar(MagicResourceService magicResourceService, Langchain4jModelHolder holder,
-            Langchain4jModelFactoryRegistry factories, Langchain4jEmbeddingStoreMagicResourceStorage storeStorage) {
+    public Langchain4jStartupRegistrar(MagicResourceService magicResourceService,
+            MagicDynamicLangchain4jEmbeddingStoreDataSource storeDataSource,
+            MagicDynamicLangchain4jEmbeddingModelDataSource embeddingModelDataSource,
+            Langchain4jModelFactoryRegistry factories,
+            Langchain4jEmbeddingStoreMagicResourceStorage storeStorage) {
         this.magicResourceService = magicResourceService;
-        this.holder = holder;
+        this.storeDataSource = storeDataSource;
+        this.embeddingModelDataSource = embeddingModelDataSource;
         this.factories = factories;
         this.storeStorage = storeStorage;
     }
@@ -64,14 +71,14 @@ public class Langchain4jStartupRegistrar implements SmartLifecycle {
             if (!store.isEnabled()) {
                 continue;
             }
-            if (holder.get(Langchain4jModelTypes.EMBEDDING_STORE, store.getKey()) != null) {
+            if (storeDataSource.get(store.getKey()) != null) {
                 continue;
             }
             try {
-                Object instance = factories.build(Langchain4jModelTypes.EMBEDDING_STORE, store,
-                        holder.get(Langchain4jModelTypes.EMBEDDING_MODEL, store.getEmbeddingModelKey()));
+                EmbeddingStore<TextSegment> instance = factories.buildEmbeddingStore(store,
+                        embeddingModelDataSource.get(store.getEmbeddingModelKey()));
                 if (instance != null) {
-                    holder.put(Langchain4jModelTypes.EMBEDDING_STORE, store.getKey(), instance);
+                    storeDataSource.put(store.getKey(), instance);
                     logger.info("LangChain4j embedding-store 启动重试成功: key={}, embeddingModel={}",
                             store.getKey(), store.getEmbeddingModelKey());
                 }

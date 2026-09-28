@@ -24,9 +24,15 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.facto
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.voyageai.Langchain4jVoyageAiModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.zhipu.Langchain4jZhipuModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jChatModelDataSource;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jEmbeddingModelDataSource;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jEmbeddingStoreDataSource;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jLanguageModelDataSource;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jStreamingChatModelDataSource;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jStreamingLanguageModelDataSource;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jTokenizerDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.registry.*;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resource.*;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jModelHolder;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.web.Langchain4jDatasourceController;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.web.Langchain4jStartupRegistrar;
 import org.springframework.beans.factory.ObjectProvider;
@@ -42,7 +48,7 @@ import org.ssssssss.magicapi.core.service.MagicResourceService;
 import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 
 /**
- * LangChain4j 模型资源插件装配：七类 datasource 的 storage、动态注册器、工厂短名表、
+ * LangChain4j 模型资源插件装配：七类 datasource 的实例持有者、storage、动态注册器、工厂短名表、
  * 连接测试 Controller 与启动重试。
  *
  * <p>生效条件：magic-api starter 在 classpath、{@link MagicResourceService} bean 已注册、
@@ -86,12 +92,6 @@ public class Langchain4jDatasourceConfiguration implements MagicPluginConfigurat
 
     @Bean
     @ConditionalOnMissingBean
-    public Langchain4jModelHolder langchain4jModelHolder() {
-        return new Langchain4jModelHolder();
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
     public Langchain4jModelFactoryRegistry langchain4jModelFactoryRegistry(
             ObjectProvider<ModelFactory> factoryProvider) {
         Langchain4jModelFactoryRegistry registry = new Langchain4jModelFactoryRegistry();
@@ -104,6 +104,48 @@ public class Langchain4jDatasourceConfiguration implements MagicPluginConfigurat
             }
         }
         return registry;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public MagicDynamicLangchain4jChatModelDataSource langchain4jChatModelDataSource() {
+        return new MagicDynamicLangchain4jChatModelDataSource();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public MagicDynamicLangchain4jStreamingChatModelDataSource langchain4jStreamingChatModelDataSource() {
+        return new MagicDynamicLangchain4jStreamingChatModelDataSource();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public MagicDynamicLangchain4jLanguageModelDataSource langchain4jLanguageModelDataSource() {
+        return new MagicDynamicLangchain4jLanguageModelDataSource();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public MagicDynamicLangchain4jStreamingLanguageModelDataSource langchain4jStreamingLanguageModelDataSource() {
+        return new MagicDynamicLangchain4jStreamingLanguageModelDataSource();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public MagicDynamicLangchain4jEmbeddingModelDataSource langchain4jEmbeddingModelDataSource() {
+        return new MagicDynamicLangchain4jEmbeddingModelDataSource();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public MagicDynamicLangchain4jTokenizerDataSource langchain4jTokenizerDataSource() {
+        return new MagicDynamicLangchain4jTokenizerDataSource();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public MagicDynamicLangchain4jEmbeddingStoreDataSource langchain4jEmbeddingStoreDataSource() {
+        return new MagicDynamicLangchain4jEmbeddingStoreDataSource();
     }
 
     @Bean
@@ -165,66 +207,78 @@ public class Langchain4jDatasourceConfiguration implements MagicPluginConfigurat
     @Bean
     @ConditionalOnMissingBean
     public Langchain4jChatModelMagicDynamicRegistry langchain4jChatModelMagicDynamicRegistry(
-            Langchain4jChatModelMagicResourceStorage storage, Langchain4jModelHolder holder,
+            Langchain4jChatModelMagicResourceStorage storage,
+            MagicDynamicLangchain4jChatModelDataSource dataSource,
             Langchain4jModelFactoryRegistry factories) {
-        return new Langchain4jChatModelMagicDynamicRegistry(storage, holder, factories);
+        return new Langchain4jChatModelMagicDynamicRegistry(storage, dataSource, factories);
     }
 
     @Bean
     @ConditionalOnMissingBean
     public Langchain4jStreamingChatModelMagicDynamicRegistry langchain4jStreamingChatModelMagicDynamicRegistry(
-            Langchain4jStreamingChatModelMagicResourceStorage storage, Langchain4jModelHolder holder,
+            Langchain4jStreamingChatModelMagicResourceStorage storage,
+            MagicDynamicLangchain4jStreamingChatModelDataSource dataSource,
             Langchain4jModelFactoryRegistry factories) {
-        return new Langchain4jStreamingChatModelMagicDynamicRegistry(storage, holder, factories);
+        return new Langchain4jStreamingChatModelMagicDynamicRegistry(storage, dataSource, factories);
     }
 
     @Bean
     @ConditionalOnMissingBean
     public Langchain4jLanguageModelMagicDynamicRegistry langchain4jLanguageModelMagicDynamicRegistry(
-            Langchain4jLanguageModelMagicResourceStorage storage, Langchain4jModelHolder holder,
+            Langchain4jLanguageModelMagicResourceStorage storage,
+            MagicDynamicLangchain4jLanguageModelDataSource dataSource,
             Langchain4jModelFactoryRegistry factories) {
-        return new Langchain4jLanguageModelMagicDynamicRegistry(storage, holder, factories);
+        return new Langchain4jLanguageModelMagicDynamicRegistry(storage, dataSource, factories);
     }
 
     @Bean
     @ConditionalOnMissingBean
     public Langchain4jStreamingLanguageModelMagicDynamicRegistry langchain4jStreamingLanguageModelMagicDynamicRegistry(
-            Langchain4jStreamingLanguageModelMagicResourceStorage storage, Langchain4jModelHolder holder,
+            Langchain4jStreamingLanguageModelMagicResourceStorage storage,
+            MagicDynamicLangchain4jStreamingLanguageModelDataSource dataSource,
             Langchain4jModelFactoryRegistry factories) {
-        return new Langchain4jStreamingLanguageModelMagicDynamicRegistry(storage, holder, factories);
+        return new Langchain4jStreamingLanguageModelMagicDynamicRegistry(storage, dataSource, factories);
     }
 
     @Bean
     @ConditionalOnMissingBean
     public Langchain4jEmbeddingModelMagicDynamicRegistry langchain4jEmbeddingModelMagicDynamicRegistry(
-            Langchain4jEmbeddingModelMagicResourceStorage storage, Langchain4jModelHolder holder,
+            Langchain4jEmbeddingModelMagicResourceStorage storage,
+            MagicDynamicLangchain4jEmbeddingModelDataSource dataSource,
             Langchain4jModelFactoryRegistry factories) {
-        return new Langchain4jEmbeddingModelMagicDynamicRegistry(storage, holder, factories);
+        return new Langchain4jEmbeddingModelMagicDynamicRegistry(storage, dataSource, factories);
     }
 
     @Bean
     @ConditionalOnMissingBean
     public Langchain4jTokenizerMagicDynamicRegistry langchain4jTokenizerMagicDynamicRegistry(
-            Langchain4jTokenizerMagicResourceStorage storage, Langchain4jModelHolder holder,
+            Langchain4jTokenizerMagicResourceStorage storage,
+            MagicDynamicLangchain4jTokenizerDataSource dataSource,
             Langchain4jModelFactoryRegistry factories) {
-        return new Langchain4jTokenizerMagicDynamicRegistry(storage, holder, factories);
+        return new Langchain4jTokenizerMagicDynamicRegistry(storage, dataSource, factories);
     }
 
     @Bean
     @ConditionalOnMissingBean
     public Langchain4jEmbeddingStoreMagicDynamicRegistry langchain4jEmbeddingStoreMagicDynamicRegistry(
-            Langchain4jEmbeddingStoreMagicResourceStorage storage, Langchain4jModelHolder holder,
+            Langchain4jEmbeddingStoreMagicResourceStorage storage,
+            MagicDynamicLangchain4jEmbeddingStoreDataSource dataSource,
+            MagicDynamicLangchain4jEmbeddingModelDataSource embeddingModelDataSource,
             Langchain4jModelFactoryRegistry factories) {
-        return new Langchain4jEmbeddingStoreMagicDynamicRegistry(storage, holder, factories);
+        return new Langchain4jEmbeddingStoreMagicDynamicRegistry(storage, dataSource, embeddingModelDataSource,
+                factories);
     }
 
     /** 启动完成钩子：embedding-store 先于其 embedding-model 加载时，统一重试一次注册 */
     @Bean
     @ConditionalOnMissingBean
     public Langchain4jStartupRegistrar langchain4jStartupRegistrar(MagicResourceService magicResourceService,
-            Langchain4jModelHolder holder, Langchain4jModelFactoryRegistry factories,
+            MagicDynamicLangchain4jEmbeddingStoreDataSource storeDataSource,
+            MagicDynamicLangchain4jEmbeddingModelDataSource embeddingModelDataSource,
+            Langchain4jModelFactoryRegistry factories,
             Langchain4jEmbeddingStoreMagicResourceStorage storeStorage) {
-        return new Langchain4jStartupRegistrar(magicResourceService, holder, factories, storeStorage);
+        return new Langchain4jStartupRegistrar(magicResourceService, storeDataSource, embeddingModelDataSource,
+                factories, storeStorage);
     }
 
     @Override

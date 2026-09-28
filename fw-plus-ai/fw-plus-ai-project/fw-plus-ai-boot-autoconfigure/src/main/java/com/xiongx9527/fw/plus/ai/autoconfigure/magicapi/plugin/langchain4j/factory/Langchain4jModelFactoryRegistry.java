@@ -1,9 +1,23 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jChatModelInfo;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jEmbeddingModelInfo;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jEmbeddingStoreInfo;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jLanguageModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jStreamingChatModelInfo;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jStreamingLanguageModelInfo;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jTokenizerInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
+import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.model.Tokenizer;
+import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.model.language.LanguageModel;
+import dev.langchain4j.model.language.StreamingLanguageModel;
+import dev.langchain4j.store.embedding.EmbeddingStore;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -71,6 +85,39 @@ public class Langchain4jModelFactoryRegistry {
             default:
                 throw new IllegalArgumentException("不支持的资源类型: " + type);
         }
+    }
+
+    /**
+     * 类型化的构建入口：注册器按自身固定类型调用，返回类型由编译器保证，避免调用点各自强转。
+     */
+    public ChatLanguageModel buildChatModel(Langchain4jChatModelInfo info) {
+        return (ChatLanguageModel) build(Langchain4jModelTypes.CHAT_MODEL, info);
+    }
+
+    public StreamingChatLanguageModel buildStreamingChatModel(Langchain4jStreamingChatModelInfo info) {
+        return (StreamingChatLanguageModel) build(Langchain4jModelTypes.STREAMING_CHAT_MODEL, info);
+    }
+
+    public LanguageModel buildLanguageModel(Langchain4jLanguageModelInfo info) {
+        return (LanguageModel) build(Langchain4jModelTypes.LANGUAGE_MODEL, info);
+    }
+
+    public StreamingLanguageModel buildStreamingLanguageModel(Langchain4jStreamingLanguageModelInfo info) {
+        return (StreamingLanguageModel) build(Langchain4jModelTypes.STREAMING_LANGUAGE_MODEL, info);
+    }
+
+    public EmbeddingModel buildEmbeddingModel(Langchain4jEmbeddingModelInfo info) {
+        return (EmbeddingModel) build(Langchain4jModelTypes.EMBEDDING_MODEL, info);
+    }
+
+    public Tokenizer buildTokenizer(Langchain4jTokenizerInfo info) {
+        return (Tokenizer) build(Langchain4jModelTypes.TOKENIZER, info);
+    }
+
+    @SuppressWarnings("unchecked")
+    public EmbeddingStore<TextSegment> buildEmbeddingStore(Langchain4jEmbeddingStoreInfo info,
+            EmbeddingModel embeddingModel) {
+        return (EmbeddingStore<TextSegment>) build(Langchain4jModelTypes.EMBEDDING_STORE, info, embeddingModel);
     }
 
     /**
