@@ -8,7 +8,7 @@ import dev.langchain4j.model.embedding.onnx.bgesmallenv15q.BgeSmallEnV15Quantize
 /**
  * 本地内置 embedding 模型工厂（onnx 量化模型，离线可用、无需凭证）。
  * 每个短名注册一个实例：new Langchain4jOnnxEmbeddingModelFactory("bge-small") /
- * new Langchain4jOnnxEmbeddingModelFactory("all-minlm")，仅 embedding 能力。
+ * new Langchain4jOnnxEmbeddingModelFactory("all-minilm")，仅 embedding 能力。
  */
 public class Langchain4jOnnxEmbeddingModelFactory implements ModelFactory {
 
@@ -25,7 +25,7 @@ public class Langchain4jOnnxEmbeddingModelFactory implements ModelFactory {
 
     @Override
     public dev.langchain4j.model.embedding.EmbeddingModel buildEmbeddingModel(Langchain4jOptionsReader o) {
-        if ("all-minlm".equals(provider)) {
+        if ("all-minilm".equals(provider)) {
             return new AllMiniLmL6V2QuantizedEmbeddingModel();
         }
         return new BgeSmallEnV15QuantizedEmbeddingModel();

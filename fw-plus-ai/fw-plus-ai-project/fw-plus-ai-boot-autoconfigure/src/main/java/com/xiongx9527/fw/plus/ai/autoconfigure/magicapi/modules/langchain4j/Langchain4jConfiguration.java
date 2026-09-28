@@ -10,6 +10,8 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jStreamingLanguageModelDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jTokenizerDataSource;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -22,6 +24,9 @@ import org.springframework.context.annotation.Import;
  * 不注册该 bean，脚本侧不会出现半可用的模块。</p>
  */
 @Configuration
+@ConditionalOnClass(name = "dev.langchain4j.model.chat.ChatLanguageModel")
+@ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j", name = "enabled", havingValue = "true",
+        matchIfMissing = true)
 @Import(Langchain4jToolConfiguration.class)
 public class Langchain4jConfiguration {
 

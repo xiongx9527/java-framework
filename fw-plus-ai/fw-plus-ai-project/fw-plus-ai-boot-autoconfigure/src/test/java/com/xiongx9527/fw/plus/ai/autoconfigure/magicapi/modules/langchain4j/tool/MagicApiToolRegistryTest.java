@@ -158,8 +158,16 @@ class MagicApiToolRegistryTest {
 		assertThat(registry.api("missing")).isNull();
 	}
 
-	private List<MagicEntity> functionEntities() {
-		PathMagicEntity function = new PathMagicEntity();
+	@Test
+	void shouldSkipApiWithoutMethodWhenMethodWhitelistConfigured() {
+		properties.getTools().getApi().setMethods(Collections.singletonList("GET"));
+		when(magicResourceService.<ApiInfo>files("api"))
+				.thenReturn(Collections.singletonList(apiInfo(null)));
+
+		assertThat(registry.snapshot()).isEmpty();
+	}
+
+	private List<MagicEntity> functionEntities() {		PathMagicEntity function = new PathMagicEntity();
 		function.setId("function-1");
 		function.setName("getEnv");
 		function.setGroupId("group-1");

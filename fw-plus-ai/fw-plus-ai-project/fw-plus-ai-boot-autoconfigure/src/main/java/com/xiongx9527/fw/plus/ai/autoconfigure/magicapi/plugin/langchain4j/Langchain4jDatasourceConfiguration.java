@@ -28,7 +28,10 @@ import org.ssssssss.magicapi.core.web.MagicControllerRegister;
  * 由已注册工厂的能力探测生成，与 FactoryRegistry 单一事实源一致。</p>
  */
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnClass(name = "org.ssssssss.magicapi.spring.boot.starter.MagicAPIAutoConfiguration")
+@ConditionalOnClass(name = {
+        "org.ssssssss.magicapi.spring.boot.starter.MagicAPIAutoConfiguration",
+        "dev.langchain4j.model.chat.ChatLanguageModel"
+})
 @ConditionalOnBean(MagicResourceService.class)
 @ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j", name = "enabled", havingValue = "true",
         matchIfMissing = true)

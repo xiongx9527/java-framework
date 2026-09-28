@@ -51,7 +51,7 @@ public class Langchain4jModelFactoryConfiguration {
                 new Langchain4jHuggingFaceModelFactory(),
                 new Langchain4jLocalAiModelFactory(),
                 new Langchain4jOnnxEmbeddingModelFactory("bge-small"),
-                new Langchain4jOnnxEmbeddingModelFactory("all-minlm"),
+                new Langchain4jOnnxEmbeddingModelFactory("all-minilm"),
                 new Langchain4jInMemoryModelFactory(),
                 new Langchain4jRedisModelFactory(),
                 new Langchain4jMilvusModelFactory(),

@@ -38,6 +38,26 @@ class Langchain4jToolAutoConfigurationTest {
 	}
 
 	@Test
+	void shouldSkipToolProviderWhenPluginRootSwitchDisabled() {
+		new ApplicationContextRunner()
+				.withConfiguration(AutoConfigurations.of(Langchain4jConfiguration.class))
+				.withBean(MagicResourceService.class, () -> mock(MagicResourceService.class))
+				.withPropertyValues("fw.plus.magicapi.langchain4j.enabled=false")
+				.run(context -> {
+					assertThat(context).doesNotHaveBean(MagicApiToolProvider.class);
+					assertThat(context).doesNotHaveBean(Langchain4jToolProperties.class);
+				});
+	}
+
+	@Test
+	void shouldRegisterToolProviderThroughPluginConfiguration() {
+		new ApplicationContextRunner()
+				.withConfiguration(AutoConfigurations.of(Langchain4jConfiguration.class))
+				.withBean(MagicResourceService.class, () -> mock(MagicResourceService.class))
+				.run(context -> assertThat(context).hasSingleBean(MagicApiToolProvider.class));
+	}
+
+	@Test
 	void shouldSkipToolProviderWhenMagicResourceServiceAbsent() {
 		new ApplicationContextRunner()
 				.withConfiguration(AutoConfigurations.of(Langchain4jToolConfiguration.class))

@@ -19,12 +19,13 @@ import org.ssssssss.magicapi.core.service.MagicResourceService;
  * {@code AiServices.builder(Svc.class).toolProvider(...)} 即可。</p>
  *
  * <p>生效条件：langchain4j 在 classpath、{@link MagicResourceService} bean 已注册
- * （即 magic-api starter 启用）、{@code fw.plus.magicapi.langchain4j.tool.enabled} 未关闭。</p>
+ * （即 magic-api starter 启用）、插件总开关 {@code fw.plus.magicapi.langchain4j.enabled} 与
+ * 工具开关 {@code fw.plus.magicapi.langchain4j.tool.enabled} 均未关闭。</p>
  */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnClass(ToolProvider.class)
 @ConditionalOnBean(MagicResourceService.class)
-@ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.tool", name = "enabled", havingValue = "true",
+@ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j", name = "tool.enabled", havingValue = "true",
 		matchIfMissing = true)
 @EnableConfigurationProperties(Langchain4jToolProperties.class)
 public class Langchain4jToolConfiguration {

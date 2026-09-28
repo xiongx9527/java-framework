@@ -44,6 +44,9 @@ public class MagicApiToolRegistry {
 
 	private volatile List<MagicApiTool> snapshotCache;
 
+	/** 快照重建与失效的互斥锁 */
+	private final Object snapshotLock = new Object();
+
 	public MagicApiToolRegistry(MagicResourceService magicResourceService, Langchain4jToolProperties properties) {
 		this.magicResourceService = Objects.requireNonNull(magicResourceService, "magicResourceService");
 		this.properties = Objects.requireNonNull(properties, "properties");
@@ -61,16 +64,23 @@ public class MagicApiToolRegistry {
 		if (cached != null) {
 			return cached;
 		}
-		List<MagicApiTool> result = buildSnapshot();
-		snapshotCache = result;
-		return result;
+		// 与 invalidateSnapshot 互斥：避免「读到 null → 重建」期间被置空后把旧快照回写，
+		// 导致刚保存的资源在下一次事件前不可见。
+		synchronized (snapshotLock) {
+			if (snapshotCache == null) {
+				snapshotCache = buildSnapshot();
+			}
+			return snapshotCache;
+		}
 	}
 
 	/**
 	 * 资源变更后调用：使快照失效，下次读取重建。
 	 */
 	public void invalidateSnapshot() {
-		snapshotCache = null;
+		synchronized (snapshotLock) {
+			snapshotCache = null;
+		}
 	}
 
 	/**
@@ -186,11 +196,16 @@ public class MagicApiToolRegistry {
 		return false;
 	}
 
-	private boolean matchesMethod(Langchain4jToolProperties.Api scope, ApiInfo info) {		List<String> methods = scope.getMethods();
+	private boolean matchesMethod(Langchain4jToolProperties.Api scope, ApiInfo info) {
+		List<String> methods = scope.getMethods();
 		if (methods == null || methods.isEmpty()) {
 			return true;
 		}
 		String method = upper(info.getMethod());
+		if (StringUtils.isBlank(method)) {
+			// 未声明 HTTP 方法的 api 无法命中白名单，按不曝光处理（避免解引用 null）
+			return false;
+		}
 		for (String configured : methods) {
 			if (method.equals(upper(configured))) {
 				return true;
