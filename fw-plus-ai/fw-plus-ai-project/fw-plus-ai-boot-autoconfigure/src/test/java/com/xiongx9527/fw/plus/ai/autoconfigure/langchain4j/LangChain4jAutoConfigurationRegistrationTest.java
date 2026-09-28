@@ -18,10 +18,10 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class LangChain4jAutoConfigurationRegistrationTest {
 
@@ -45,9 +45,9 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 		EXPECTED_CLASS_CONDITIONS.put(
 				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jCoreAutoConfiguration",
 				new String[] {
-						"dev.langchain4j.model.chat.ChatLanguageModel",
-						"dev.langchain4j.model.chat.StreamingChatLanguageModel",
-						"dev.langchain4j.service.spring.AiService"
+						"dev.langchain4j.service.spring.AiServicesAutoConfig",
+						"dev.langchain4j.rag.spring.RagAutoConfig",
+						"dev.langchain4j.service.spring.AiServiceScannerProcessor"
 				});
 		EXPECTED_CLASS_CONDITIONS.put(
 				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jOpenAiAutoConfiguration",
@@ -127,10 +127,10 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 	public void shouldDeclareEnabledConditionOnRootAutoConfiguration() {
 		ConditionalOnProperty conditional = LangChain4jAutoConfiguration.class.getAnnotation(ConditionalOnProperty.class);
 
-		assertNotNull("LangChain4jAutoConfiguration should declare @ConditionalOnProperty", conditional);
+		assertNotNull(conditional, "LangChain4jAutoConfiguration should declare @ConditionalOnProperty");
 		assertEquals("fw.plus.ai.langchain4j", conditional.prefix());
 		assertEquals("true", conditional.havingValue());
-		assertTrue("LangChain4jAutoConfiguration should be enabled by default", conditional.matchIfMissing());
+		assertTrue(conditional.matchIfMissing(), "LangChain4jAutoConfiguration should be enabled by default");
 		assertEquals("enabled", conditional.name()[0]);
 	}
 
@@ -138,9 +138,11 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 	public void shouldDeclareClassConditionOnRootAutoConfiguration() {
 		ConditionalOnClass conditional = LangChain4jAutoConfiguration.class.getAnnotation(ConditionalOnClass.class);
 
-		assertNotNull("LangChain4jAutoConfiguration should declare @ConditionalOnClass", conditional);
-		assertEquals(new LinkedHashSet<String>(Arrays.asList("dev.langchain4j.spring.LangChain4jAutoConfig")),
-				classNames(conditional.value()));
+		assertNotNull(conditional, "LangChain4jAutoConfiguration should declare @ConditionalOnClass");
+		// 根配置以 name 形式引用官方 starter 的标记类；value 与 name 两种形式都纳入断言。
+		Set<String> actual = new LinkedHashSet<String>(classNames(conditional.value()));
+		actual.addAll(Arrays.asList(conditional.name()));
+		assertEquals(new LinkedHashSet<String>(Arrays.asList("dev.langchain4j.Experimental")), actual);
 	}
 
 	@Test
@@ -149,9 +151,9 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 			Class<?> importedClass = Class.forName(className);
 			ConditionalOnProperty conditional = importedClass.getAnnotation(ConditionalOnProperty.class);
 
-			assertNotNull(className + " should declare @ConditionalOnProperty", conditional);
+			assertNotNull(conditional, className + " should declare @ConditionalOnProperty");
 			assertEquals("true", conditional.havingValue());
-			assertTrue(className + " should be enabled by default", conditional.matchIfMissing());
+			assertTrue(conditional.matchIfMissing(), className + " should be enabled by default");
 			assertEquals("enabled", conditional.name()[0]);
 		}
 	}
@@ -162,7 +164,7 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 			Class<?> importedClass = Class.forName(className);
 			ConditionalOnClass conditional = importedClass.getAnnotation(ConditionalOnClass.class);
 
-			assertNotNull(className + " should declare @ConditionalOnClass", conditional);
+			assertNotNull(conditional, className + " should declare @ConditionalOnClass");
 			assertEquals(new LinkedHashSet<String>(Arrays.asList(EXPECTED_CLASS_CONDITIONS.get(className))),
 					classNames(conditional.value()));
 		}
@@ -193,17 +195,17 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 			if (method.getAnnotation(org.springframework.context.annotation.Bean.class) == null) {
 				continue;
 			}
-			assertFalse("Azure auto-configuration must not create a native embedding store",
-					method.getReturnType().getName().contains("AzureAiSearchEmbeddingStore"));
+			assertFalse(method.getReturnType().getName().contains("AzureAiSearchEmbeddingStore"),
+					"Azure auto-configuration must not create a native embedding store");
 			if (method.getReturnType().getName().contains("AzureAiSearchContentRetriever")) {
 				retrieverBean = true;
 			}
 		}
-		assertTrue("Azure content retriever bean should remain available", retrieverBean);
+		assertTrue(retrieverBean, "Azure content retriever bean should remain available");
 	}
 
 	@Test
-	public void shouldKeepEmbeddingStoreProviderSdksOutOfTheAutoConfigureCompileClasspath() throws Exception {
+	public void shouldDropRemovedStoreBypassWrappersAndKeepProviderSdksOptional() throws Exception {
 		File pom = findProjectFile("fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml");
 		Map<String, String> scopes = dependencyScopes(pom);
 
@@ -212,9 +214,12 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 				"fw-plus-ai-langchain4j-redis",
 				"fw-plus-ai-langchain4j-milvus"
 		}) {
-			assertFalse("Removed store bypass wrapper should not remain: " + wrapper,
-					scopes.containsKey(wrapper));
+			assertFalse(scopes.containsKey(wrapper), "Removed store bypass wrapper should not remain: " + wrapper);
 		}
+
+		// store 工厂直接在 main 里使用官方 SDK 类型，因此必须是编译期依赖；
+		// 同时以 optional 声明，避免把供应商 jar 传递给下游使用方。
+		Map<String, Boolean> optionals = dependencyOptionals(pom);
 		for (String providerSdk : new String[] {
 				"langchain4j-elasticsearch",
 				"langchain4j-milvus",
@@ -223,7 +228,9 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 				"langchain4j-weaviate",
 				"milvus-sdk-java"
 		}) {
-			assertEquals(providerSdk + " should be test-only", "test", scopes.get(providerSdk));
+			assertEquals("compile", scopes.get(providerSdk), providerSdk + " should be on the compile classpath");
+			assertEquals(Boolean.TRUE, optionals.get(providerSdk),
+					providerSdk + " should be optional so it is not propagated downstream");
 		}
 	}
 
@@ -274,5 +281,23 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 			scopes.put(artifactIds.item(0).getTextContent().trim(), scope);
 		}
 		return scopes;
+	}
+
+	private Map<String, Boolean> dependencyOptionals(File pom) throws Exception {
+		Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(pom);
+		NodeList dependencies = document.getElementsByTagName("dependency");
+		Map<String, Boolean> optionals = new LinkedHashMap<String, Boolean>();
+		for (int index = 0; index < dependencies.getLength(); index++) {
+			Element dependency = (Element) dependencies.item(index);
+			NodeList artifactIds = dependency.getElementsByTagName("artifactId");
+			if (artifactIds.getLength() == 0) {
+				continue;
+			}
+			NodeList optionalElements = dependency.getElementsByTagName("optional");
+			boolean optional = optionalElements.getLength() > 0
+					&& Boolean.parseBoolean(optionalElements.item(0).getTextContent().trim());
+			optionals.put(artifactIds.item(0).getTextContent().trim(), optional);
+		}
+		return optionals;
 	}
 }
