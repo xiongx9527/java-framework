@@ -2,14 +2,10 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.fact
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.ModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
-import dev.langchain4j.model.Tokenizer;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
-import dev.langchain4j.model.openai.OpenAiLanguageModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
-import dev.langchain4j.model.openai.OpenAiStreamingLanguageModel;
-import dev.langchain4j.model.openai.OpenAiTokenizer;
 import java.util.List;
 
 /**
@@ -72,35 +68,7 @@ public class Langchain4jOpenAiModelFactory implements ModelFactory {
                 .build();
     }
 
-    @Override
-    public OpenAiLanguageModel buildLanguageModel(Langchain4jOptionsReader o) {
-        return OpenAiLanguageModel.builder()
-                .baseUrl(o.string("base-url", null))
-                .apiKey(o.required("api-key"))
-                .organizationId(o.string("organization-id", null))
-                .modelName(o.required("model-name"))
-                .temperature(o.dbl("temperature", DEFAULT_TEMPERATURE))
-                .timeout(o.duration("timeout", null))
-                .maxRetries(nullIfZero(o.integer("max-retries", null)))
-                .logRequests(o.bool("log-requests", null))
-                .logResponses(o.bool("log-responses", null))
-                .build();
-    }
 
-    @Override
-    public OpenAiStreamingLanguageModel buildStreamingLanguageModel(Langchain4jOptionsReader o) {
-        // 注意：0.35.0 streaming builder 无 maxRetries
-        return OpenAiStreamingLanguageModel.builder()
-                .baseUrl(o.string("base-url", null))
-                .apiKey(o.required("api-key"))
-                .organizationId(o.string("organization-id", null))
-                .modelName(o.required("model-name"))
-                .temperature(o.dbl("temperature", DEFAULT_TEMPERATURE))
-                .timeout(o.duration("timeout", null))
-                .logRequests(o.bool("log-requests", null))
-                .logResponses(o.bool("log-responses", null))
-                .build();
-    }
 
     @Override
     public OpenAiEmbeddingModel buildEmbeddingModel(Langchain4jOptionsReader o) {
@@ -115,11 +83,6 @@ public class Langchain4jOpenAiModelFactory implements ModelFactory {
                 .logRequests(o.bool("log-requests", null))
                 .logResponses(o.bool("log-responses", null))
                 .build();
-    }
-
-    @Override
-    public Tokenizer buildTokenizer(Langchain4jOptionsReader o) {
-        return new OpenAiTokenizer(o.required("api-key"));
     }
 
     /** reader 的 integer(name,null) 键缺失返回 0；对 Integer 形参归零为 null 表示未配置 */

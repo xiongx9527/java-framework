@@ -5,7 +5,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.suppo
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import dev.langchain4j.store.embedding.neo4j.Neo4jEmbeddingStore;
+import dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingStore;
 
 /**
  * Neo4j 向量库工厂：Neo4jEmbeddingStore（Lombok @Builder 构造）。

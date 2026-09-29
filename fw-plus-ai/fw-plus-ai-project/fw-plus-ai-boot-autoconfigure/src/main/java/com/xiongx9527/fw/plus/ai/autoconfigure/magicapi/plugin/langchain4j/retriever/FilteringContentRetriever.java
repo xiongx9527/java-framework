@@ -84,7 +84,7 @@ public class FilteringContentRetriever implements ContentRetriever {
 	/** metadata 里有 title 时，把标题以《title》形式渲染到文本头部，便于模型识别资料出处。 */
 	private static Content renderTitle(Content content) {
 		Metadata metadata = content.textSegment().metadata();
-		String title = metadata == null ? null : metadata.get(KEY_TITLE);
+		String title = metadata.getString(KEY_TITLE);
 		if (title == null || title.trim().isEmpty()
 				|| content.textSegment().text().startsWith("《" + title + "》")) {
 			return content;
@@ -96,7 +96,7 @@ public class FilteringContentRetriever implements ContentRetriever {
 	private boolean matchesFilters(Content content) {
 		Metadata metadata = content.textSegment().metadata();
 		for (Map.Entry<String, String> entry : filters.entrySet()) {
-			String actual = metadata == null ? null : metadata.get(entry.getKey());
+			String actual = metadata.getString(entry.getKey());
 			if (actual == null) {
 				return false;
 			}
@@ -123,7 +123,7 @@ public class FilteringContentRetriever implements ContentRetriever {
 
 	/** 取 metadata 里的 score；缺失或解析失败按 1.0（不因元数据缺失丢内容）。 */
 	private static double scoreOf(Content content) {
-		String score = content.textSegment().metadata(KEY_SCORE);
+		String score = content.textSegment().metadata().getString(KEY_SCORE);
 		if (score == null || score.trim().isEmpty()) {
 			return 1.0;
 		}

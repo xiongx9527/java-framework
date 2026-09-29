@@ -1,15 +1,12 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.Assistant;
-import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.SimpleAssistant;
-import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.EphemeralChatMemory;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.memory.chat.TokenWindowChatMemory;
-import dev.langchain4j.model.Tokenizer;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.TokenCountEstimator;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.rag.DefaultRetrievalAugmentor;
 import dev.langchain4j.rag.RetrievalAugmentor;
 import dev.langchain4j.rag.content.injector.ContentInjector;
@@ -33,7 +30,7 @@ import java.util.function.Function;
  * {@code langchain4jToolProvider['key']}、{@code langchain4jContentRetriever['key']}、
  * {@code langchain4jContentInjector.get(path)}。</p>
  *
- * <p>{@link #chatModel(ChatLanguageModel)} 与 {@link #streamingModel(StreamingChatLanguageModel)}
+ * <p>{@link #chatModel(ChatModel)} 与 {@link #streamingModel(StreamingChatModel)}
  * 至少配一个；其余能力不配即不参与装配。
  * 记忆二选一：配置 {@link #tokenizer(Tokenizer)} 用 {@code TokenWindowChatMemory}（按 token 截断），
  * 否则用 {@code MessageWindowChatMemory}（按条数截断）——都不配时用进程内窗口记忆（默认 20 条）。
@@ -45,9 +42,9 @@ public class AssistantBuilder {
 	/** 进程内记忆的默认窗口（条） */
 	private static final int DEFAULT_MEMORY_MAX_MESSAGES = 20;
 
-	private ChatLanguageModel chatModel;
+	private ChatModel chatModel;
 
-	private StreamingChatLanguageModel streamingModel;
+	private StreamingChatModel streamingModel;
 
 	private Function<Object, String> systemMessageProvider;
 
@@ -56,7 +53,7 @@ public class AssistantBuilder {
 	private int memoryMaxMessages = DEFAULT_MEMORY_MAX_MESSAGES;
 
 	/** 按 token 截断记忆时使用的 Tokenizer；配置后记忆改用 TokenWindowChatMemory */
-	private Tokenizer tokenizer;
+	private TokenCountEstimator tokenizer;
 
 	/** TokenWindowChatMemory 的 token 上限（仅在配置了 tokenizer 时生效，默认 1000） */
 	private Integer maxTokens;
@@ -73,14 +70,14 @@ public class AssistantBuilder {
 
 	private ContentInjector contentInjector;
 
-	/** 对话模型（必填）：{@code langchain4jChatModel['key']} 或任意 {@link ChatLanguageModel} 实例 */
-	public AssistantBuilder chatModel(ChatLanguageModel model) {
+	/** 对话模型（必填）：{@code langchain4jChatModel['key']} 或任意 {@link ChatModel} 实例 */
+	public AssistantBuilder chatModel(ChatModel model) {
 		this.chatModel = model;
 		return this;
 	}
 
 	/** 流式模型：{@code langchain4jStreamingChatModel['key']}；不配则助手不支持 {@code stream(...)} */
-	public AssistantBuilder streamingModel(StreamingChatLanguageModel model) {
+	public AssistantBuilder streamingModel(StreamingChatModel model) {
 		this.streamingModel = model;
 		return this;
 	}
@@ -109,7 +106,7 @@ public class AssistantBuilder {
 	 *
 	 * @param tokenizer Tokenizer，如 {@code langchain4jTokenizer['openai']}
 	 */
-	public AssistantBuilder tokenizer(Tokenizer tokenizer) {
+	public AssistantBuilder tokenizer(TokenCountEstimator tokenizer) {
 		this.tokenizer = tokenizer;
 		return this;
 	}
@@ -171,7 +168,7 @@ public class AssistantBuilder {
 	 */
 	public SimpleAssistant build() {
 		// 第 4 参是文本补全的 StreamingLanguageModel，builder 不配置（对话流式走 assistant.stream）
-		return new SimpleAssistant(assemble(), chatModel, null, null);
+		return new SimpleAssistant(assemble(), chatModel, null);
 	}
 
 	/** 需要底层 {@link Assistant} 类型（如继续挂 AiServices 能力）时取用 */
@@ -187,10 +184,10 @@ public class AssistantBuilder {
 				.chatMemoryProvider(resolveChatMemoryProvider());
 
 		if (chatModel != null) {
-			builder.chatLanguageModel(chatModel);
+			builder.chatModel(chatModel);
 		}
 		if (streamingModel != null) {
-			builder.streamingChatLanguageModel(streamingModel);
+			builder.streamingChatModel(streamingModel);
 		}
 		if (systemMessageProvider != null) {
 			builder.systemMessageProvider(systemMessageProvider);

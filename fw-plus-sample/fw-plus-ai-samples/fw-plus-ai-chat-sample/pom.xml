@@ -22,14 +22,14 @@
 
         <!-- Ollama owner 覆盖模块：提供 dev.langchain4j.ollama.spring.AutoConfig 与 Ollama*Model Bean -->
         <dependency>
-            <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-ai-langchain4j-ollama</artifactId>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-ollama</artifactId>
         </dependency>
 
         <!-- 流式链路用 OpenAI 集成指到 Ollama 的 OpenAI 兼容端点（/v1）：0.35.0 的 ollama 流式不支持工具 -->
         <dependency>
-            <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-ai-langchain4j-openai</artifactId>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-open-ai</artifactId>
         </dependency>
 
         <dependency>

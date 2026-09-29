@@ -1,6 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model;
 
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import org.junit.jupiter.api.Test;
 
@@ -20,10 +20,7 @@ class MagicDynamicLangchain4jDataSourcesTest {
         List<AbstractMagicDynamicLangchain4jDataSource<?>> dataSources = Arrays.asList(
                 new MagicDynamicLangchain4jChatModelDataSource(),
                 new MagicDynamicLangchain4jStreamingChatModelDataSource(),
-                new MagicDynamicLangchain4jLanguageModelDataSource(),
-                new MagicDynamicLangchain4jStreamingLanguageModelDataSource(),
                 new MagicDynamicLangchain4jEmbeddingModelDataSource(),
-                new MagicDynamicLangchain4jTokenizerDataSource(),
                 new MagicDynamicLangchain4jEmbeddingStoreDataSource());
 
         assertThat(dataSources).hasSize(Langchain4jModelTypes.values().length);
@@ -36,7 +33,7 @@ class MagicDynamicLangchain4jDataSourcesTest {
         MagicDynamicLangchain4jChatModelDataSource chatModels = new MagicDynamicLangchain4jChatModelDataSource();
         MagicDynamicLangchain4jEmbeddingModelDataSource embeddingModels = new MagicDynamicLangchain4jEmbeddingModelDataSource();
 
-        chatModels.put("shared-key", mock(ChatLanguageModel.class));
+        chatModels.put("shared-key", mock(ChatModel.class));
 
         assertThat(embeddingModels.get("shared-key")).isNull();
         assertThat(embeddingModels.keys()).isEmpty();

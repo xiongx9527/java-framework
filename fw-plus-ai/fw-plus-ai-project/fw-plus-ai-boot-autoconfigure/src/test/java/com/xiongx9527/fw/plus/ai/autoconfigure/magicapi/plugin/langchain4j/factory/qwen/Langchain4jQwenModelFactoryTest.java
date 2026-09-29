@@ -25,10 +25,7 @@ class Langchain4jQwenModelFactoryTest {
 
         assertThat(factory.buildChatModel(reader, Collections.emptyList())).isNotNull();
         assertThat(factory.buildStreamingChatModel(reader, Collections.emptyList())).isNotNull();
-        assertThat(factory.buildLanguageModel(reader)).isNotNull();
-        assertThat(factory.buildStreamingLanguageModel(reader)).isNotNull();
         assertThat(factory.buildEmbeddingModel(reader)).isNotNull();
-        assertThat(factory.buildTokenizer(reader)).isNotNull();
     }
 
     @Test

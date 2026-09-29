@@ -7,7 +7,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.registry.Langchain4jChatModelMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resource.Langchain4jChatModelMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.web.Langchain4jDatasourceController;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -18,7 +18,7 @@ import org.springframework.context.annotation.Configuration;
 import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 
 /** chat-model 数据源的装配：实例持有者、资源存储与动态注册器；并承载连接测试 Controller。 */
-@ConditionalOnClass(name = "dev.langchain4j.model.chat.ChatLanguageModel")
+@ConditionalOnClass(name = "dev.langchain4j.model.chat.ChatModel")
 @ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.chat-model", name = "enabled",
         havingValue = "true", matchIfMissing = true)
 @Configuration(proxyBeanMethods = false)
@@ -69,14 +69,14 @@ public class Langchain4jChatModelConfiguration extends AbstractLangchain4jPlugin
             Langchain4jChatModelMagicResourceStorage storage,
             MagicDynamicLangchain4jChatModelDataSource dataSource,
             Langchain4jModelFactoryRegistry factories,
-            ObjectProvider<ChatLanguageModel> defaultInstance) {
+            ObjectProvider<ChatModel> defaultInstance) {
         return new Langchain4jChatModelMagicDynamicRegistry(storage, dataSource, factories, defaultInstance);
     }
 
     /** 脚本模块：chatModel['key'] 按 key 取实例；不指定 key 时回落到 Spring 默认实例 */
     @Bean
     @ConditionalOnMissingBean
-    public Langchain4jChatModelModule langchain4jChatModelModule(MagicDynamicLangchain4jChatModelDataSource chatModels, ObjectProvider<ChatLanguageModel> defaultInstance) {
+    public Langchain4jChatModelModule langchain4jChatModelModule(MagicDynamicLangchain4jChatModelDataSource chatModels, ObjectProvider<ChatModel> defaultInstance) {
         return new Langchain4jChatModelModule(chatModels, defaultInstance);
     }
 }

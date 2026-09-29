@@ -2,13 +2,9 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.fact
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.ModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
-import dev.langchain4j.model.Tokenizer;
 import dev.langchain4j.model.azure.AzureOpenAiChatModel;
 import dev.langchain4j.model.azure.AzureOpenAiEmbeddingModel;
-import dev.langchain4j.model.azure.AzureOpenAiLanguageModel;
 import dev.langchain4j.model.azure.AzureOpenAiStreamingChatModel;
-import dev.langchain4j.model.azure.AzureOpenAiStreamingLanguageModel;
-import dev.langchain4j.model.azure.AzureOpenAiTokenizer;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import java.util.List;
 
@@ -64,30 +60,7 @@ public class Langchain4jAzureOpenAiModelFactory implements ModelFactory {
                 .build();
     }
 
-    @Override
-    public AzureOpenAiLanguageModel buildLanguageModel(Langchain4jOptionsReader o) {
-        return AzureOpenAiLanguageModel.builder()
-                .endpoint(o.required("endpoint"))
-                .apiKey(o.required("api-key"))
-                .deploymentName(o.required("deployment-name"))
-                .temperature(o.dbl("temperature", null))
-                .timeout(o.duration("timeout", null))
-                .maxRetries(nullIfZero(o.integer("max-retries", null)))
-                .logRequestsAndResponses(o.bool("log-requests-and-responses", null))
-                .build();
-    }
 
-    @Override
-    public AzureOpenAiStreamingLanguageModel buildStreamingLanguageModel(Langchain4jOptionsReader o) {
-        return AzureOpenAiStreamingLanguageModel.builder()
-                .endpoint(o.required("endpoint"))
-                .apiKey(o.required("api-key"))
-                .deploymentName(o.required("deployment-name"))
-                .temperature(o.dbl("temperature", null))
-                .timeout(o.duration("timeout", null))
-                .logRequestsAndResponses(o.bool("log-requests-and-responses", null))
-                .build();
-    }
 
     @Override
     public AzureOpenAiEmbeddingModel buildEmbeddingModel(Langchain4jOptionsReader o) {
@@ -99,12 +72,6 @@ public class Langchain4jAzureOpenAiModelFactory implements ModelFactory {
                 .maxRetries(nullIfZero(o.integer("max-retries", null)))
                 .logRequestsAndResponses(o.bool("log-requests-and-responses", null))
                 .build();
-    }
-
-    @Override
-    public Tokenizer buildTokenizer(Langchain4jOptionsReader o) {
-        // AzureOpenAiTokenizer 无参构造；token 统计为估算值
-        return new AzureOpenAiTokenizer();
     }
 
     private static Integer nullIfZero(Integer value) {

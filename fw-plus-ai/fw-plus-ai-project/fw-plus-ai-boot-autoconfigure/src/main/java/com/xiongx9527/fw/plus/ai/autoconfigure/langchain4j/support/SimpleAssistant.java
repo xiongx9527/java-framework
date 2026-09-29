@@ -1,17 +1,28 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.language.LanguageModel;
-import dev.langchain4j.model.language.StreamingLanguageModel;
-import dev.langchain4j.model.output.Response;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.PartialResponse;
+import dev.langchain4j.model.chat.response.PartialResponseContext;
+import dev.langchain4j.model.chat.response.PartialThinking;
+import dev.langchain4j.model.chat.response.PartialThinkingContext;
+import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
+import dev.langchain4j.model.chat.response.StreamingHandle;
 import dev.langchain4j.service.TokenStream;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 
@@ -28,12 +39,16 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  * assistant.chat("用一句话介绍杭州");                       // memoryId=default，context=""
  * assistant.chat("session-1", "杭州天气怎么样");             // memoryId 自定，context=""
  *
- * // SSE 推流：start 事件先带 requestId 表示已受理，token 事件逐段推送，
- * // done 事件带完整回复文本；出错发 error 事件（data 为错误信息）后 completeWithError
+ * // SSE 推流：start 事件先带 requestId 表示已受理，token 事件逐段推送；
+ * // 推理模型思考时推 thinking（增量）/ thinking-done（本轮完整思考文本）；
+ * // 工具调用时推 tool-call（执行前，name/arguments）与 tool-result（执行后，name/arguments/result）；
+ * // RAG 检索后推 retrieved（JSON 数组，元素为检索片段文本）；
+ * // done 事件带完整回复文本；出错发 error 事件（data 为错误信息）后 completeWithError。
+ * // 客户端断开时自动取消模型流式调用（langchain4j 1.20.2 StreamingHandle）。
  * SseEmitter emitter = assistant.streamToSse("session-1", "讲个故事");
  * }</pre>
  *
- * <p>模型（{@code ChatLanguageModel} / {@code LanguageModel} / {@code StreamingLanguageModel}）
+ * <p>模型（{@code ChatModel} / {@code LanguageModel} / {@code StreamingLanguageModel}）
  * 一律经构造方法传入，方法内部直接使用对应字段。直连调用用 generate 系列（无记忆、不经 AiServices）：
  * {@code generate(message)} 直连对话、{@code generateText(prompt)} 文本补全、
  * {@code generateTextToSse(prompt)} 补全 SSE 推流；{@code chat / stream / streamToSse} 走 assistant 记忆对话。</p>
@@ -67,44 +82,50 @@ public class SimpleAssistant {
 	/** SSE 事件名：出错（data 为错误信息，发送后 completeWithError 结束） */
 	public static final String EVENT_ERROR = "error";
 
+	/** SSE 事件名：思考中（data 为思考文本增量，仅推理模型产生） */
+	public static final String EVENT_THINKING = "thinking";
+
+	/** SSE 事件名：思考完成（data 为本轮完整思考文本） */
+	public static final String EVENT_THINKING_DONE = "thinking-done";
+
+	/** SSE 事件名：工具调用中（工具执行前，data 为 JSON：name、arguments） */
+	public static final String EVENT_TOOL_CALL = "tool-call";
+
+	/** SSE 事件名：工具调用完成（data 为 JSON：name、arguments、result） */
+	public static final String EVENT_TOOL_RESULT = "tool-result";
+
+	/** SSE 事件名：RAG 检索完成（data 为 JSON 数组，元素为检索到的文本片段） */
+	public static final String EVENT_RETRIEVED = "retrieved";
+
 	private final Assistant assistant;
 
-	private final ChatLanguageModel chatModel;
+	private final ChatModel chatModel;
 
-	private final LanguageModel languageModel;
-
-	private final StreamingLanguageModel streamingLanguageModel;
+	private final StreamingChatModel streamingTextModel;
 
 	/**
-	 * 全量构造：底层 {@link Assistant} 与三类模型都由调用方给定（不需要的可传 null），
+	 * 全量构造：底层 {@link Assistant} 与两类模型都由调用方给定（不需要的可传 null），
 	 * 便于把外部已有的模型实例装配进同一个封装对象。
 	 */
-	public SimpleAssistant(Assistant assistant, ChatLanguageModel chatModel,
-						   LanguageModel languageModel, StreamingLanguageModel streamingLanguageModel) {
+	public SimpleAssistant(Assistant assistant, ChatModel chatModel, StreamingChatModel streamingTextModel) {
 		this.assistant = assistant;
 		this.chatModel = chatModel;
-		this.languageModel = languageModel;
-		this.streamingLanguageModel = streamingLanguageModel;
+		this.streamingTextModel = streamingTextModel;
 	}
 
 	/** 全能来源：{@code AiServices<Assistant>}（chat / stream / 记忆 / 工具 / 检索增强） */
 	public SimpleAssistant(Assistant assistant) {
-		this(assistant, null, null, null);
+		this(assistant, null, null);
 	}
 
-	/** 仅同步对话：{@code ChatLanguageModel}，无记忆、无流式 */
-	public SimpleAssistant(ChatLanguageModel chatModel) {
-		this(null, chatModel, null, null);
+	/** 仅同步对话：{@code ChatModel}，无记忆、无流式 */
+	public SimpleAssistant(ChatModel chatModel) {
+		this(null, chatModel, null);
 	}
 
-	/** 仅文本补全：{@code LanguageModel} */
-	public SimpleAssistant(LanguageModel languageModel) {
-		this(null, null, languageModel, null);
-	}
-
-	/** 仅流式补全：{@code StreamingLanguageModel}，逐段推送 */
-	public SimpleAssistant(StreamingLanguageModel streamingLanguageModel) {
-		this(null, null, null, streamingLanguageModel);
+	/** 仅流式对话：{@code StreamingChatModel}，逐段推送 */
+	public SimpleAssistant(StreamingChatModel streamingTextModel) {
+		this(null, null, streamingTextModel);
 	}
 
 	/** 需要底层 {@link Assistant} 类型（如再挂别的 AiServices 能力）时取用 */
@@ -139,31 +160,31 @@ public class SimpleAssistant {
 
 	// -------------------------------------------------- 直连对话（generate 系列，无记忆）
 
-	/** 直连对话：用构造传入的 {@code ChatLanguageModel} 发一条用户消息并返回回复文本（无记忆） */
+	/** 直连对话：用构造传入的 {@code ChatModel} 发一条用户消息并返回回复文本（无记忆） */
 	public String generate(String message) {
-		return chatModel().generate(UserMessage.from(message)).content().text();
+		return chatModel().chat(UserMessage.from(message)).aiMessage().text();
 	}
 
 	/** 直连对话（带系统提示）：第一参数为系统提示 */
 	public String generate(String systemPrompt, String message) {
-		return chatModel().generate(Arrays.asList(SystemMessage.from(systemPrompt), UserMessage.from(message)))
-				.content().text();
+		return chatModel().chat(Arrays.asList(SystemMessage.from(systemPrompt), UserMessage.from(message)))
+				.aiMessage().text();
 	}
 
-	/** 直连对话（自定义消息序列）：用构造传入的 {@code ChatLanguageModel}，脚本里拼好上下文再发一次 */
+	/** 直连对话（自定义消息序列）：用构造传入的 {@code ChatModel}，脚本里拼好上下文再发一次 */
 	public String generate(List<ChatMessage> messages) {
-		return chatModel().generate(messages).content().text();
+		return chatModel().chat(messages).aiMessage().text();
 	}
 
-	// -------------------------------------------------- 文本补全（语言模型直连）
+	// -------------------------------------------------- 文本补全（直连单轮对话）
 
-	/** 一次性文本补全：用构造传入的 {@code LanguageModel}（非对话模型）直接生成文本 */
+	/** 一次性文本生成：用构造传入的 {@code ChatModel} 直接生成文本 */
 	public String generateText(String prompt) {
-		return languageModel().generate(prompt).content();
+		return chatModel().chat(prompt);
 	}
 
 	/**
-	 * 流式文本补全：用构造传入的 {@code StreamingLanguageModel} 逐段回调 {@code onToken}，
+	 * 流式文本生成：用构造传入的 {@code StreamingChatModel} 逐段回调 {@code onToken}，
 	 * 阻塞等待完成后返回完整文本。
 	 *
 	 * @param onToken 每段文本回调，可为 null
@@ -172,9 +193,9 @@ public class SimpleAssistant {
 		StringBuilder full = new StringBuilder();
 		java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(1);
 		java.util.concurrent.atomic.AtomicReference<Throwable> error = new java.util.concurrent.atomic.AtomicReference<>();
-		streamingLanguageModel().generate(prompt, new dev.langchain4j.model.StreamingResponseHandler<String>() {
+		streamingTextModel().chat(prompt, new StreamingChatResponseHandler() {
 			@Override
-			public void onNext(String token) {
+			public void onPartialResponse(String token) {
 				full.append(token);
 				if (onToken != null) {
 					onToken.accept(token);
@@ -182,7 +203,7 @@ public class SimpleAssistant {
 			}
 
 			@Override
-			public void onComplete(dev.langchain4j.model.output.Response<String> response) {
+			public void onCompleteResponse(ChatResponse response) {
 				done.countDown();
 			}
 
@@ -208,8 +229,10 @@ public class SimpleAssistant {
 
 	/**
 	 * 流式文本补全的 SSE 推流：调用模型前先发 {@code start} 事件把 requestId 交给前端，
-	 * 逐段推 {@code token}；结束时发 {@code done} 事件（data 为完整文本，未产出时 [DONE]）并完成，
+	 * 逐段推 {@code token}；推理模型思考时推 {@code thinking}（增量）与 {@code thinking-done}
+	 * （本轮完整思考文本）；结束时发 {@code done} 事件（data 为完整文本，未产出时 [DONE]）并完成，
 	 * 异常自动 completeWithError。SseEmitter 不设超时（0L），由生成速度决定。
+	 * 客户端断开时自动取消模型流式调用。
 	 */
 	public SseEmitter generateTextToSse(String prompt) {
 		return doGenerateTextToSse(prompt, null, null, null, null);
@@ -248,12 +271,28 @@ public class SimpleAssistant {
 			java.util.function.Consumer<String> onStarted, java.util.function.Consumer<String> onDone) {
 		SseEmitter emitter = new SseEmitter(0L);
 		String requestId = java.util.UUID.randomUUID().toString().replace("-", "");
-		// 客户端断开/超时后置位：后续 token 不再推送也不再消费。
-		// langchain4j 0.35.0 的流式 API 无取消句柄，模型侧只能放弃消费（HTTP 流会自然结束）
+		// 客户端断开/超时后置位：后续事件不再推送；捕获到 StreamingHandle 后同时取消模型流式调用
 		java.util.concurrent.atomic.AtomicBoolean cancelled = new java.util.concurrent.atomic.AtomicBoolean(false);
-		emitter.onCompletion(() -> cancelled.set(true));
-		emitter.onError(t -> cancelled.set(true));
-		emitter.onTimeout(() -> cancelled.set(true));
+		AtomicReference<StreamingHandle> handleRef = new AtomicReference<>();
+		Runnable cancelStreaming = () -> {
+			StreamingHandle handle = handleRef.get();
+			if (handle != null && !handle.isCancelled()) {
+				handle.cancel();
+			}
+		};
+		emitter.onCompletion(() -> {
+			cancelled.set(true);
+			cancelStreaming.run();
+		});
+		emitter.onError(t -> {
+			cancelled.set(true);
+			cancelStreaming.run();
+		});
+		emitter.onTimeout(() -> {
+			cancelled.set(true);
+			cancelStreaming.run();
+		});
+		ThinkingSseTracker thinking = new ThinkingSseTracker();
 		try {
 			// 调用模型前先告知前端「已受理」；start 事件 data 默认为 requestId，调用方提供 startData 时用调用方的
 			Object start = startData != null ? startData : requestId;
@@ -268,26 +307,44 @@ public class SimpleAssistant {
 			}
 		}
 
-		streamingLanguageModel().generate(prompt, new dev.langchain4j.model.StreamingResponseHandler<String>() {
+		streamingTextModel().chat(prompt, new StreamingChatResponseHandler() {
 			@Override
-			public void onNext(String token) {
-				if (cancelled.get()) {
-					return;
-				}
-				try {
-					emitter.send(SseEmitter.event().name(EVENT_TOKEN).id(requestId).data(token));
-				} catch (Exception e) {
-					cancelled.set(true);
-					emitter.completeWithError(e);
-				}
+			public void onPartialResponse(PartialResponse partial, PartialResponseContext context) {
+				captureHandle(handleRef, context == null ? null : context.streamingHandle(), cancelled);
+				onPartialResponse(partial.text());
 			}
 
 			@Override
-			public void onComplete(dev.langchain4j.model.output.Response<String> response) {
+			public void onPartialResponse(String token) {
+				if (cancelled.get()) {
+					return;
+				}
+				// 从思考转入回答：先结束思考轮
+				thinking.finish(emitter, cancelled, requestId);
+				sendEvent(emitter, cancelled, EVENT_TOKEN, requestId, token);
+			}
+
+			@Override
+			public void onPartialThinking(PartialThinking partialThinking, PartialThinkingContext context) {
+				captureHandle(handleRef, context == null ? null : context.streamingHandle(), cancelled);
+				onPartialThinking(partialThinking);
+			}
+
+			@Override
+			public void onPartialThinking(PartialThinking partialThinking) {
+				if (cancelled.get()) {
+					return;
+				}
+				thinking.delta(partialThinking.text(), emitter, cancelled, requestId);
+			}
+
+			@Override
+			public void onCompleteResponse(ChatResponse response) {
 				// done 事件带上完整回复文本：前端流式中途丢段时可兜底
-				String text = response == null || response.content() == null
-						|| response.content().isEmpty()
-						? DONE_FALLBACK : response.content();
+				String text = response == null || response.aiMessage() == null
+						|| response.aiMessage().text() == null
+						|| response.aiMessage().text().isEmpty()
+						? DONE_FALLBACK : response.aiMessage().text();
 				try {
 					if (!cancelled.get()) {
 						Object data = doneDataMapper != null ? doneDataMapper.apply(text) : text;
@@ -326,7 +383,9 @@ public class SimpleAssistant {
 
 	/**
 	 * SSE 推流（自动生成 requestId）：调用模型前先发 {@code start} 事件把 requestId 交给前端，
-	 * 再逐段推 {@code token}；结束时发 {@code done} 事件并完成，异常自动 completeWithError。
+	 * 再逐段推 {@code token}；推理模型思考时推 {@code thinking}/{@code thinking-done}，
+	 * 工具调用推 {@code tool-call}/{@code tool-result}，RAG 检索推 {@code retrieved}；
+	 * 结束时发 {@code done} 事件并完成，异常自动 completeWithError；客户端断开时取消模型调用。
 	 * 每个事件都带 SSE 标准 id 字段（值为本轮 requestId），前端可用 {@code lastEventId} 取到。
 	 * SseEmitter 不设超时（0L），由生成速度决定。
 	 */
@@ -375,12 +434,29 @@ public class SimpleAssistant {
 			Consumer<String> onStarted, Consumer<String> onDone) {
 		SseEmitter emitter = new SseEmitter(0L);
 		String requestId = java.util.UUID.randomUUID().toString().replace("-", "");
-		// 客户端断开/超时后置位：后续 token 不再推送也不再消费。
-		// langchain4j 0.35.0 的流式 API 无取消句柄，模型侧只能放弃消费（HTTP 流会自然结束）
+		// 客户端断开/超时后置位：后续事件不再推送；捕获到 StreamingHandle 后同时取消模型流式调用
+		// （langchain4j 1.20.2 起 TokenStream 的 WithContext 回调可拿到 StreamingHandle）
 		java.util.concurrent.atomic.AtomicBoolean cancelled = new java.util.concurrent.atomic.AtomicBoolean(false);
-		emitter.onCompletion(() -> cancelled.set(true));
-		emitter.onError(t -> cancelled.set(true));
-		emitter.onTimeout(() -> cancelled.set(true));
+		AtomicReference<StreamingHandle> handleRef = new AtomicReference<>();
+		Runnable cancelStreaming = () -> {
+			StreamingHandle handle = handleRef.get();
+			if (handle != null && !handle.isCancelled()) {
+				handle.cancel();
+			}
+		};
+		emitter.onCompletion(() -> {
+			cancelled.set(true);
+			cancelStreaming.run();
+		});
+		emitter.onError(t -> {
+			cancelled.set(true);
+			cancelStreaming.run();
+		});
+		emitter.onTimeout(() -> {
+			cancelled.set(true);
+			cancelStreaming.run();
+		});
+		ThinkingSseTracker thinking = new ThinkingSseTracker();
 		try {
 			// 调用模型前先告知前端「已受理」；start 事件 data 默认为 requestId，调用方提供 startData 时用调用方的
 			Object start = startData != null ? startData : requestId;
@@ -396,20 +472,46 @@ public class SimpleAssistant {
 		}
 
 		stream(memoryId, message)
-				.onNext(token -> {
-					if (cancelled.get()) {
-						return;
-					}
-					try {
-						emitter.send(SseEmitter.event().name(EVENT_TOKEN).id(requestId).data(token));
-					} catch (Exception e) {
-						cancelled.set(true);
-						emitter.completeWithError(e);
+				.onPartialThinkingWithContext((partial, context) -> {
+					captureHandle(handleRef, context == null ? null : context.streamingHandle(), cancelled);
+					if (!cancelled.get()) {
+						thinking.delta(partial.text(), emitter, cancelled, requestId);
 					}
 				})
-				.onComplete(response -> {
+				.onPartialResponseWithContext((partial, context) -> {
+					captureHandle(handleRef, context == null ? null : context.streamingHandle(), cancelled);
+					if (!cancelled.get()) {
+						// 从思考转入回答：先结束思考轮
+						thinking.finish(emitter, cancelled, requestId);
+						sendEvent(emitter, cancelled, EVENT_TOKEN, requestId, partial.text());
+					}
+				})
+				.onRetrieved(contents -> {
+					if (cancelled.get() || contents == null || contents.isEmpty()) {
+						return;
+					}
+					List<String> texts = contents.stream()
+							.map(content -> content.textSegment().text())
+							.collect(Collectors.toList());
+					sendEvent(emitter, cancelled, EVENT_RETRIEVED, requestId, toJson(texts));
+				})
+				.beforeToolExecution(before -> {
+					if (!cancelled.get()) {
+						// 思考后发起工具调用：先结束思考轮
+						thinking.finish(emitter, cancelled, requestId);
+						sendEvent(emitter, cancelled, EVENT_TOOL_CALL, requestId,
+								toJson(toolCallData(before.request(), null)));
+					}
+				})
+				.onToolExecuted(execution -> {
+					if (!cancelled.get()) {
+						sendEvent(emitter, cancelled, EVENT_TOOL_RESULT, requestId,
+								toJson(toolCallData(execution.request(), execution.result())));
+					}
+				})
+				.onCompleteResponse(response -> {
 					// done 事件带上完整回复文本：前端流式中途丢段时可兜底
-					String text = doneData(response);
+					String text = doneData(response.aiMessage());
 					try {
 						if (!cancelled.get()) {
 							Object data = doneDataMapper != null ? doneDataMapper.apply(text) : text;
@@ -448,12 +550,94 @@ public class SimpleAssistant {
 	 * done 事件的数据：完整回复文本；模型没有产出文本（如纯工具调用轮、response 为空）时
 	 * 退化为 {@code [DONE]} 标记。
 	 */
-	static String doneData(Response<AiMessage> response) {
-		if (response == null || response.content() == null
-				|| response.content().text() == null || response.content().text().isEmpty()) {
+	static String doneData(AiMessage response) {
+		if (response == null || response.text() == null || response.text().isEmpty()) {
 			return DONE_FALLBACK;
 		}
-		return response.content().text();
+		return response.text();
+	}
+
+	// -------------------------------------------------- SSE 事件辅助
+
+	private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
+
+	/** 序列化为 JSON 字符串（SSE data 统一发文本）；失败时退化为 toString */
+	static String toJson(Object value) {
+		try {
+			return JSON_MAPPER.writeValueAsString(value);
+		} catch (Exception e) {
+			return String.valueOf(value);
+		}
+	}
+
+	/**
+	 * 发送 SSE 事件：cancelled 时跳过；发送失败置位 cancelled 并 completeWithError。
+	 */
+	private static void sendEvent(SseEmitter emitter, java.util.concurrent.atomic.AtomicBoolean cancelled,
+			String event, String requestId, Object data) {
+		if (cancelled.get()) {
+			return;
+		}
+		try {
+			emitter.send(SseEmitter.event().name(event).id(requestId).data(data));
+		} catch (Exception e) {
+			cancelled.set(true);
+			emitter.completeWithError(e);
+		}
+	}
+
+	/** 捕获流式句柄供断开时取消：客户端已断开则立即取消 */
+	private static void captureHandle(AtomicReference<StreamingHandle> handleRef, StreamingHandle handle,
+			java.util.concurrent.atomic.AtomicBoolean cancelled) {
+		if (handle == null) {
+			return;
+		}
+		handleRef.set(handle);
+		if (cancelled.get()) {
+			handle.cancel();
+		}
+	}
+
+	/** 工具事件 data：name、arguments，执行完成后附 result */
+	static Map<String, Object> toolCallData(ToolExecutionRequest request, String result) {
+		Map<String, Object> data = new LinkedHashMap<>();
+		data.put("name", request.name());
+		data.put("arguments", request.arguments());
+		if (result != null) {
+			data.put("result", result);
+		}
+		return data;
+	}
+
+	/**
+	 * 思考事件跟踪：首个思考增量开始新一轮并发送 thinking（增量）；
+	 * 思考转入回答或工具调用时发送 thinking-done（data 为本轮完整思考文本）。
+	 */
+	private static final class ThinkingSseTracker {
+
+		private final StringBuilder text = new StringBuilder();
+
+		private boolean active;
+
+		/** 收到思考增量：必要时开始新一轮，随后发送 thinking 事件 */
+		void delta(String delta, SseEmitter emitter, java.util.concurrent.atomic.AtomicBoolean cancelled,
+				String requestId) {
+			if (!active) {
+				text.setLength(0);
+				active = true;
+			}
+			text.append(delta);
+			sendEvent(emitter, cancelled, EVENT_THINKING, requestId, delta);
+		}
+
+		/** 结束当前思考轮并发送 thinking-done；无进行中的思考轮时忽略 */
+		void finish(SseEmitter emitter, java.util.concurrent.atomic.AtomicBoolean cancelled, String requestId) {
+			if (!active) {
+				return;
+			}
+			active = false;
+			sendEvent(emitter, cancelled, EVENT_THINKING_DONE, requestId, text.toString());
+		}
 	}
 
 	// -------------------------------------------------- 内部取用：模型经构造方法传入
@@ -465,24 +649,17 @@ public class SimpleAssistant {
 		return assistant;
 	}
 
-	private ChatLanguageModel chatModel() {
+	private ChatModel chatModel() {
 		if (chatModel == null) {
-			throw new IllegalStateException("未配置 ChatLanguageModel：请用构造方法传入");
+			throw new IllegalStateException("未配置 ChatModel：请用构造方法传入");
 		}
 		return chatModel;
 	}
 
-	private LanguageModel languageModel() {
-		if (languageModel == null) {
-			throw new IllegalStateException("未配置 LanguageModel：请用构造方法传入");
+	private StreamingChatModel streamingTextModel() {
+		if (streamingTextModel == null) {
+			throw new IllegalStateException("未配置 StreamingChatModel：请用构造方法传入");
 		}
-		return languageModel;
-	}
-
-	private StreamingLanguageModel streamingLanguageModel() {
-		if (streamingLanguageModel == null) {
-			throw new IllegalStateException("未配置 StreamingLanguageModel：请用构造方法传入");
-		}
-		return streamingLanguageModel;
+		return streamingTextModel;
 	}
 }

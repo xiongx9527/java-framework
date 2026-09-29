@@ -126,7 +126,7 @@ public class EphemeralChatMemory implements ChatMemory {
 
 	/** 去掉 user message 尾部由 retrievalAugmentor 拼入的检索段。 */
 	private static UserMessage stripRag(UserMessage message) {
-		int anchor = message.text().indexOf(RAG_SEPARATOR);
-		return anchor < 0 ? message : UserMessage.from(message.text().substring(0, anchor));
+		int anchor = message.singleText().indexOf(RAG_SEPARATOR);
+		return anchor < 0 ? message : UserMessage.from(message.singleText().substring(0, anchor));
 	}
 }

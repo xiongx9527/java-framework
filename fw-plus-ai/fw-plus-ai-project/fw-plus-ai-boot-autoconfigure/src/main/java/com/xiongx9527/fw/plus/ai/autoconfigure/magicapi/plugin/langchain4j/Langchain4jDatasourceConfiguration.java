@@ -34,10 +34,7 @@ import org.ssssssss.magicapi.core.service.MagicResourceService;
         // 依赖前者在本批次中先注册的 bean 定义，重排会导致 store 类型静默缺席
         Langchain4jChatModelConfiguration.class,
         Langchain4jStreamingChatModelConfiguration.class,
-        Langchain4jLanguageModelConfiguration.class,
-        Langchain4jStreamingLanguageModelConfiguration.class,
         Langchain4jEmbeddingModelConfiguration.class,
-        Langchain4jTokenizerConfiguration.class,
         Langchain4jEmbeddingStoreConfiguration.class,
         Langchain4jToolProviderConfiguration.class,
         Langchain4jSystemMessageProviderConfiguration.class,

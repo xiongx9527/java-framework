@@ -5,21 +5,16 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.facto
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jChatModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jEmbeddingModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jEmbeddingStoreInfo;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jLanguageModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jStreamingChatModelInfo;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jStreamingLanguageModelInfo;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jTokenizerInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jEmbeddingModelDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.registry.Langchain4jEmbeddingStoreMagicDynamicRegistry;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.model.Tokenizer;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import org.slf4j.Logger;
@@ -97,14 +92,8 @@ public class Langchain4jDatasourceController extends MagicController implements 
                 return (T) JSON.parseObject(json, Langchain4jChatModelInfo.class);
             case STREAMING_CHAT_MODEL:
                 return (T) JSON.parseObject(json, Langchain4jStreamingChatModelInfo.class);
-            case LANGUAGE_MODEL:
-                return (T) JSON.parseObject(json, Langchain4jLanguageModelInfo.class);
-            case STREAMING_LANGUAGE_MODEL:
-                return (T) JSON.parseObject(json, Langchain4jStreamingLanguageModelInfo.class);
             case EMBEDDING_MODEL:
                 return (T) JSON.parseObject(json, Langchain4jEmbeddingModelInfo.class);
-            case TOKENIZER:
-                return (T) JSON.parseObject(json, Langchain4jTokenizerInfo.class);
             case EMBEDDING_STORE:
                 return (T) JSON.parseObject(json, Langchain4jEmbeddingStoreInfo.class);
             default:
@@ -115,16 +104,10 @@ public class Langchain4jDatasourceController extends MagicController implements 
     private void probe(Langchain4jModelTypes type, Object instance, EmbeddingModel embeddingModel) {
         switch (type) {
             case CHAT_MODEL:
-                ((ChatLanguageModel) instance).generate(UserMessage.from("ping"));
-                break;
-            case LANGUAGE_MODEL:
-                ((LanguageModel) instance).generate("ping");
+                ((ChatModel) instance).chat(UserMessage.from("ping"));
                 break;
             case EMBEDDING_MODEL:
                 ((EmbeddingModel) instance).embed("test");
-                break;
-            case TOKENIZER:
-                ((Tokenizer) instance).estimateTokenCountInText("test");
                 break;
             case EMBEDDING_STORE:
                 EmbeddingStore<TextSegment> store = castStore(instance);
@@ -133,7 +116,6 @@ public class Langchain4jDatasourceController extends MagicController implements 
                 store.search(EmbeddingSearchRequest.builder().queryEmbedding(embedding).maxResults(1).build());
                 break;
             case STREAMING_CHAT_MODEL:
-            case STREAMING_LANGUAGE_MODEL:
             default:
                 // streaming 两类仅验证构建，不发起调用
                 break;

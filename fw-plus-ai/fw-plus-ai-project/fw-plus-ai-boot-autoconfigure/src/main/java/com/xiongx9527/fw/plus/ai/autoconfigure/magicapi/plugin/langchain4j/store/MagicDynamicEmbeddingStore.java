@@ -5,6 +5,8 @@ import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import com.xiongx9527.fw.plus.common.util.StringUtils;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 
@@ -31,6 +33,11 @@ public class MagicDynamicEmbeddingStore implements EmbeddingStore<TextSegment> {
             }
             return SpringUtils.getBean(key,EmbeddingStore.class);
         }
+    }
+
+    @Override
+    public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
+        return getEmbeddingStore().search(request);
     }
 
     @Override

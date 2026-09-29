@@ -1,7 +1,12 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider;
 
-import dev.langchain4j.agent.tool.ToolParameters;
 import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.model.chat.request.json.JsonBooleanSchema;
+import dev.langchain4j.model.chat.request.json.JsonIntegerSchema;
+import dev.langchain4j.model.chat.request.json.JsonNumberSchema;
+import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
+import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
+import dev.langchain4j.model.chat.request.json.JsonStringSchema;
 import dev.langchain4j.service.tool.ToolExecutor;
 import dev.langchain4j.service.tool.ToolProvider;
 import dev.langchain4j.service.tool.ToolProviderRequest;
@@ -52,18 +57,41 @@ public class MagicApiToolProvider implements ToolProvider {
 
 	/**
 	 * 入参 schema（JSON Schema 子集）转 langchain4j 工具参数；无 properties 时给空参数表。
+	 * 1.x 中 {@code ToolParameters} 已被 {@link JsonObjectSchema} 取代。
 	 */
-	private ToolParameters toToolParameters(Map<String, Object> inputSchema) {
-		if (inputSchema == null || !(inputSchema.get("properties") instanceof Map)) {
-			return ToolParameters.builder().build();
+	private JsonObjectSchema toToolParameters(Map<String, Object> inputSchema) {
+		JsonObjectSchema.Builder builder = JsonObjectSchema.builder();
+		if (inputSchema != null && inputSchema.get("properties") instanceof Map) {
+			for (Map.Entry<String, Map<String, Object>> entry : unsafeProperties(inputSchema.get("properties")).entrySet()) {
+				JsonSchemaElement element = toSchemaElement(entry.getValue());
+				if (element != null) {
+					builder.addProperty(entry.getKey(), element);
+				}
+			}
 		}
-		ToolParameters.Builder builder = ToolParameters.builder()
-				.properties(unsafeProperties(inputSchema.get("properties")));
-		Object required = inputSchema.get("required");
-		if (required instanceof List) {
-			builder.required(unsafeRequired((List<?>) required));
+		if (inputSchema != null && inputSchema.get("required") instanceof List) {
+			builder.required(unsafeRequired((List<?>) inputSchema.get("required")));
 		}
 		return builder.build();
+	}
+
+	/** 单个属性定义（{type, description, ...}）转 {@link JsonSchemaElement}；未知类型按 string 处理 */
+	private JsonSchemaElement toSchemaElement(Map<String, Object> property) {
+		if (property == null) {
+			return null;
+		}
+		String description = property.get("description") == null ? null : String.valueOf(property.get("description"));
+		String type = property.get("type") == null ? "string" : String.valueOf(property.get("type"));
+		switch (type) {
+			case "integer":
+				return JsonIntegerSchema.builder().description(description).build();
+			case "number":
+				return JsonNumberSchema.builder().description(description).build();
+			case "boolean":
+				return JsonBooleanSchema.builder().description(description).build();
+			default:
+				return JsonStringSchema.builder().description(description).build();
+		}
 	}
 
 	@SuppressWarnings("unchecked")

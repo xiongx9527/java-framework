@@ -2,7 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.chat
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.MagicToolInvoker;
 import dev.langchain4j.data.message.ChatMessageJsonCodec;
-import dev.langchain4j.data.message.GsonChatMessageJsonCodec;
+import dev.langchain4j.data.message.JacksonChatMessageJsonCodec;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +24,7 @@ public class MagicDynamicLangchain4jChatMemoryStoreDataSource implements Disposa
 
 	private final MagicToolInvoker invoker;
 
-	private final ChatMessageJsonCodec codec = new GsonChatMessageJsonCodec();
+	private final ChatMessageJsonCodec codec = new JacksonChatMessageJsonCodec();
 
 	private final Map<String, ChatMemoryStore> stores = new ConcurrentHashMap<>();
 

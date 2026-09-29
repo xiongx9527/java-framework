@@ -1,6 +1,6 @@
 package dev.langchain4j.rag.content.retriever.nebula;
 
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
 import dev.langchain4j.rag.content.Content;
@@ -36,13 +36,13 @@ public class NebulaContentRetriever implements ContentRetriever {
 
     private final NebulaGraph graph;
 
-    private final ChatLanguageModel chatLanguageModel;
+    private final ChatModel chatLanguageModel;
 
     private final PromptTemplate promptTemplate;
 
     @Builder
     public NebulaContentRetriever(NebulaGraph graph,
-                                  ChatLanguageModel chatLanguageModel,
+                                  ChatModel chatLanguageModel,
                                   PromptTemplate promptTemplate) {
 
         this.graph = ensureNotNull(graph, "graph");
@@ -66,7 +66,7 @@ public class NebulaContentRetriever implements ContentRetriever {
         variables.put("schema", schema);
         variables.put("question", question);
         Prompt nGqlPrompt = promptTemplate.apply(variables);
-        String nGqlQuery = chatLanguageModel.generate(nGqlPrompt.text());
+        String nGqlQuery = chatLanguageModel.chat(nGqlPrompt.text());
         Matcher matcher = BACKTICKS_PATTERN.matcher(nGqlQuery);
         if (matcher.find()) {
             return matcher.group(1);

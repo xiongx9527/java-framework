@@ -37,9 +37,4 @@ public class MagicApiContentInjector implements ContentInjector {
 	public ChatMessage inject(List<Content> contents, ChatMessage chatMessage) {
 		return module.inject(path, contents, chatMessage);
 	}
-
-	@Override
-	public UserMessage inject(List<Content> contents, UserMessage userMessage) {
-		return (UserMessage) module.inject(path, contents, userMessage);
-	}
 }

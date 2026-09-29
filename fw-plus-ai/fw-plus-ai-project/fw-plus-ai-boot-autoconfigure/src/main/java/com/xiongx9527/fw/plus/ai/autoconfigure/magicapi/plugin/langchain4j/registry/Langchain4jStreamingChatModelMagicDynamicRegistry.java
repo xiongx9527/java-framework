@@ -9,7 +9,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jStreamingChatModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jStreamingChatModelDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resource.Langchain4jStreamingChatModelMagicResourceStorage;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import org.ssssssss.magicapi.core.event.FileEvent;
 import org.ssssssss.magicapi.core.event.GroupEvent;
 import org.springframework.context.event.EventListener;
@@ -17,18 +17,18 @@ import org.springframework.context.event.EventListener;
 /** streaming-chat-model 动态注册器。 */
 public class Langchain4jStreamingChatModelMagicDynamicRegistry
         extends AbstractLangchain4jModelMagicDynamicRegistry<Langchain4jStreamingChatModelInfo,
-        StreamingChatLanguageModel> {
+        StreamingChatModel> {
 
     public Langchain4jStreamingChatModelMagicDynamicRegistry(
             Langchain4jStreamingChatModelMagicResourceStorage storage,
             MagicDynamicLangchain4jStreamingChatModelDataSource holder,
             Langchain4jModelFactoryRegistry factories,
-            ObjectProvider<StreamingChatLanguageModel> defaultInstance) {
+            ObjectProvider<StreamingChatModel> defaultInstance) {
         super(storage, holder, factories, Langchain4jModelTypes.STREAMING_CHAT_MODEL, defaultInstance);
     }
 
     @Override
-    protected StreamingChatLanguageModel buildInstance(Langchain4jStreamingChatModelInfo entity) {
+    protected StreamingChatModel buildInstance(Langchain4jStreamingChatModelInfo entity) {
         return factories.buildStreamingChatModel(entity);
     }
 

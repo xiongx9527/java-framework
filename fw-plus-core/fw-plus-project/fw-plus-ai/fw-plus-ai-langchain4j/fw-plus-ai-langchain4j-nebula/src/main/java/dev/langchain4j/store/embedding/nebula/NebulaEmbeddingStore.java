@@ -7,6 +7,8 @@ import com.vesoft.nebula.client.graph.data.ValueWrapper;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
+import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.graph.nebula.NebulaException;
 import dev.langchain4j.store.graph.nebula.NebulaUtils;
@@ -181,6 +183,12 @@ public class NebulaEmbeddingStore implements EmbeddingStore<TextSegment> {
     }
 
     @Override
+    public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
+        List<EmbeddingMatch<TextSegment>> matches =
+                findRelevant(request.queryEmbedding(), request.maxResults(), request.minScore());
+        return new EmbeddingSearchResult<>(matches);
+    }
+
     public List<EmbeddingMatch<TextSegment>> findRelevant(Embedding referenceEmbedding, int maxResults, double minScore) {
 
         List<Float> reference = referenceEmbedding.vectorAsList();

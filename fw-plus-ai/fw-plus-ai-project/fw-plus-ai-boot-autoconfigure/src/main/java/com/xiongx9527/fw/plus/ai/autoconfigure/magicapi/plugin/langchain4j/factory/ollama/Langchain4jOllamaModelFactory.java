@@ -5,9 +5,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.suppo
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.ollama.OllamaChatModel;
 import dev.langchain4j.model.ollama.OllamaEmbeddingModel;
-import dev.langchain4j.model.ollama.OllamaLanguageModel;
 import dev.langchain4j.model.ollama.OllamaStreamingChatModel;
-import dev.langchain4j.model.ollama.OllamaStreamingLanguageModel;
 
 import java.util.List;
 
@@ -38,7 +36,6 @@ public class Langchain4jOllamaModelFactory implements ModelFactory {
                 .numPredict(nullIfZero(o.integer("num-predict", null)))
                 .numCtx(nullIfZero(o.integer("num-ctx", null)))
                 .stop(o.stringList("stop", null))
-                .format(o.string("format", null))
                 .timeout(o.duration("timeout", null))
                 .maxRetries(nullIfZero(o.integer("max-retries", 3)))
                 .listeners(listeners)
@@ -60,7 +57,6 @@ public class Langchain4jOllamaModelFactory implements ModelFactory {
                 .numPredict(nullIfZero(o.integer("num-predict", null)))
                 .numCtx(nullIfZero(o.integer("num-ctx", null)))
                 .stop(o.stringList("stop", null))
-                .format(o.string("format", null))
                 .timeout(o.duration("timeout", null))
                 .listeners(listeners)
                 .build();
@@ -76,43 +72,7 @@ public class Langchain4jOllamaModelFactory implements ModelFactory {
                 .build();
     }
 
-    @Override
-    public OllamaLanguageModel buildLanguageModel(Langchain4jOptionsReader o) {
-        return OllamaLanguageModel.builder()
-                .baseUrl(o.string("base-url", DEFAULT_BASE_URL))
-                .modelName(o.string("model-name", DEFAULT_MODEL))
-                .temperature(o.dbl("temperature", 0.7))
-                .topK(nullIfZero(o.integer("top-k", null)))
-                .topP(o.dbl("top-p", null))
-                .repeatPenalty(o.dbl("repeat-penalty", null))
-                .seed(nullIfZero(o.integer("seed", null)))
-                .numPredict(nullIfZero(o.integer("num-predict", null)))
-                .numCtx(nullIfZero(o.integer("num-ctx", null)))
-                .stop(o.stringList("stop", null))
-                .format(o.string("format", null))
-                .timeout(o.duration("timeout", null))
-                .maxRetries(nullIfZero(o.integer("max-retries", 3)))
-                .build();
-    }
 
-    @Override
-    public OllamaStreamingLanguageModel buildStreamingLanguageModel(Langchain4jOptionsReader o) {
-        // 注意：0.35.0 streaming builder 无 maxRetries
-        return OllamaStreamingLanguageModel.builder()
-                .baseUrl(o.string("base-url", DEFAULT_BASE_URL))
-                .modelName(o.string("model-name", DEFAULT_MODEL))
-                .temperature(o.dbl("temperature", 0.7))
-                .topK(nullIfZero(o.integer("top-k", null)))
-                .topP(o.dbl("top-p", null))
-                .repeatPenalty(o.dbl("repeat-penalty", null))
-                .seed(nullIfZero(o.integer("seed", null)))
-                .numPredict(nullIfZero(o.integer("num-predict", null)))
-                .numCtx(nullIfZero(o.integer("num-ctx", null)))
-                .stop(o.stringList("stop", null))
-                .format(o.string("format", null))
-                .timeout(o.duration("timeout", null))
-                .build();
-    }
 
     private static Integer nullIfZero(Integer value) {
         return value != null && value == 0 ? null : value;

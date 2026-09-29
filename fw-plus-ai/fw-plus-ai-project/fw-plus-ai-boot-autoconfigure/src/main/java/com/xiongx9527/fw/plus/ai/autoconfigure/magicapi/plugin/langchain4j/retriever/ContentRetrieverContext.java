@@ -8,7 +8,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.modul
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.module.Langchain4jContentRetrieverModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.MagicToolInvoker;
 import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.store.embedding.EmbeddingStore;
@@ -60,7 +60,7 @@ public class ContentRetrieverContext {
 	}
 
 	/** 按 key 懒取 chat-model（neo4j 用它把自然语言转成 Cypher）；key 为空取 Spring 默认实例 */
-	public ChatLanguageModel chatModel(String key) {
+	public ChatModel chatModel(String key) {
 		return new MagicDynamicChatLanguageModel(require(chatModels, "langchain4j-chat-model"), key);
 	}
 

@@ -5,7 +5,6 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.suppo
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.huggingface.HuggingFaceChatModel;
 import dev.langchain4j.model.huggingface.HuggingFaceEmbeddingModel;
-import dev.langchain4j.model.huggingface.HuggingFaceLanguageModel;
 import java.util.List;
 
 /**
@@ -34,18 +33,6 @@ public class Langchain4jHuggingFaceModelFactory implements ModelFactory {
                 .build();
     }
 
-    @Override
-    public HuggingFaceLanguageModel buildLanguageModel(Langchain4jOptionsReader o) {
-        // HuggingFaceLanguageModel 构造：(accessToken, modelId, timeout, temperature, maxNewTokens, returnFullText, waitForModel)
-        return new HuggingFaceLanguageModel(
-                o.required("access-token"),
-                o.string("model-id", "mistralai/Mistral-7B-Instruct-v0.2"),
-                o.duration("timeout", null),
-                o.dbl("temperature", null),
-                nullIfZero(o.integer("max-new-tokens", null)),
-                o.bool("return-full-text", null),
-                o.bool("wait-for-model", null));
-    }
 
     @Override
     public HuggingFaceEmbeddingModel buildEmbeddingModel(Langchain4jOptionsReader o) {

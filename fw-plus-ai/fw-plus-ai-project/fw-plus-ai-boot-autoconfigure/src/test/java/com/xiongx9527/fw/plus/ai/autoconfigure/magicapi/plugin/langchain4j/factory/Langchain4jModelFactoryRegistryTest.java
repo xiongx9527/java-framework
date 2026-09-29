@@ -4,7 +4,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.Langc
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jChatModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -68,9 +68,6 @@ class Langchain4jModelFactoryRegistryTest {
         assertThat(registry.providers(Langchain4jModelTypes.EMBEDDING_STORE))
                 .contains("in-memory", "milvus")
                 .doesNotContain("openai");
-        assertThat(registry.providers(Langchain4jModelTypes.TOKENIZER))
-                .contains("openai", "qwen")
-                .doesNotContain("in-memory", "milvus");
     }
 
     @Test
@@ -82,7 +79,7 @@ class Langchain4jModelFactoryRegistryTest {
         options.put("model-name", "gpt-4o");
         info.setOptions(options);
 
-        assertThat(registry.build(Langchain4jModelTypes.CHAT_MODEL, info)).isInstanceOf(ChatLanguageModel.class);
+        assertThat(registry.build(Langchain4jModelTypes.CHAT_MODEL, info)).isInstanceOf(ChatModel.class);
     }
 
     @Test
@@ -127,9 +124,9 @@ class Langchain4jModelFactoryRegistryTest {
         }
 
         @Override
-        public ChatLanguageModel buildChatModel(Langchain4jOptionsReader o, List<ChatModelListener> listeners) {
+        public ChatModel buildChatModel(Langchain4jOptionsReader o, List<ChatModelListener> listeners) {
             this.listeners = listeners;
-            return mock(ChatLanguageModel.class);
+            return mock(ChatModel.class);
         }
     }
 

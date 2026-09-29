@@ -15,10 +15,7 @@
     <modules>
         <module>fw-plus-ai-magicapi-plugin-langchain4j-chat-model</module>
         <module>fw-plus-ai-magicapi-plugin-langchain4j-streaming-chat-model</module>
-        <module>fw-plus-ai-magicapi-plugin-langchain4j-language-model</module>
-        <module>fw-plus-ai-magicapi-plugin-langchain4j-streaming-language-model</module>
         <module>fw-plus-ai-magicapi-plugin-langchain4j-embedding-model</module>
-        <module>fw-plus-ai-magicapi-plugin-langchain4j-tokenizer</module>
         <module>fw-plus-ai-magicapi-plugin-langchain4j-embedding-store</module>
         <module>fw-plus-ai-magicapi-plugin-langchain4j-tool-provider</module>
         <module>fw-plus-ai-magicapi-plugin-langchain4j-system-message</module>

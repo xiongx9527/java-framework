@@ -83,7 +83,7 @@ class NebulaEmbeddingUtils {
         String text = embedded == null ? "" : embedded.text();
         String metadata = embedded == null || embedded.metadata() == null
                 ? "{}"
-                : JSONUtil.toJsonStr(embedded.metadata().asMap());
+                : JSONUtil.toJsonStr(embedded.metadata().toMap());
 
         return new StringBuilder("UPSERT VERTEX ON ")
                 .append(store.getTag())

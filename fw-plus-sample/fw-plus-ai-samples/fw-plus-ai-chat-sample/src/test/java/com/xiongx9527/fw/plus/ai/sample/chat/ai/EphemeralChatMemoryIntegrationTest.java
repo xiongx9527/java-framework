@@ -6,7 +6,7 @@ import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ChatMessageType;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
@@ -70,11 +70,11 @@ class EphemeralChatMemoryIntegrationTest {
 	/**
 	 * 可编排模型：记录每次收到的消息，按序回放预设回复。
 	 *
-	 * <p>带工具的重载必须一并实现——{@code ChatLanguageModel} 对它的默认实现是直接抛
+	 * <p>带工具的重载必须一并实现——{@code ChatModel} 对它的默认实现是直接抛
 	 * {@code IllegalArgumentException: Tools are currently not supported by this model}，
 	 * 而框架走的正是这个重载。</p>
 	 */
-	private static class RecordingChatModel implements ChatLanguageModel {
+	private static class RecordingChatModel implements ChatModel {
 
 		private final List<List<ChatMessage>> requests = new ArrayList<>();
 		private final Deque<AiMessage> replies = new ArrayDeque<>();

@@ -1,13 +1,10 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model;
 
-/** 七类模型资源的类型常量：同时作为 datasource type 与 storage folder。 */
+/** 模型资源的类型常量：同时作为 datasource type 与 storage folder。 */
 public enum Langchain4jModelTypes {
     CHAT_MODEL("langchain4j-chat-model"),
     STREAMING_CHAT_MODEL("langchain4j-streaming-chat-model"),
-    LANGUAGE_MODEL("langchain4j-language-model"),
-    STREAMING_LANGUAGE_MODEL("langchain4j-streaming-language-model"),
     EMBEDDING_MODEL("langchain4j-embedding-model"),
-    TOKENIZER("langchain4j-tokenizer"),
     EMBEDDING_STORE("langchain4j-embedding-store");
 
     private final String type;

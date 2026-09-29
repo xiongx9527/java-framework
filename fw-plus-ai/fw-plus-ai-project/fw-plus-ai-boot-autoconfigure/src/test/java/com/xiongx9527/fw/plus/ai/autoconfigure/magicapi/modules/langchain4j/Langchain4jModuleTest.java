@@ -5,11 +5,10 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.model.language.StreamingLanguageModel;
-import dev.langchain4j.model.output.Response;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.injector.ContentInjector;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
@@ -120,62 +119,7 @@ class Langchain4jModuleTest {
         assertThat(model.requests.get(0).get(0)).isEqualTo(UserMessage.from("参考资料后的问题"));
     }
 
-    /** 流式文本补全的 SSE：start（requestId）→ token 逐段 → done（完整文本） */
-    @Test
-    void shouldCompleteToSseWithStartTokenAndDoneEvents() {
-        AtomicReference<String> startedRequestId = new AtomicReference<>();
-        StreamingLanguageModel streamingModel =
-                (prompt, handler) -> {
-                    handler.onNext("北京当前 ");
-                    handler.onComplete(Response.from("北京当前 32℃"));
-                };
-
-        org.springframework.web.servlet.mvc.method.annotation.SseEmitter emitter =
-                new SimpleAssistant(null, null, null, streamingModel)
-                        .generateTextToSse("北京天气", startedRequestId::set);
-
-        assertThat(emitter).isNotNull();
-        assertThat(startedRequestId.get()).as("start 事件应回传 32 位 requestId").hasSize(32);
-    }
-
-    /** 一次性文本补全：LanguageModel 直接生成文本 */
-    @Test
-    void shouldCompleteWithLanguageModel() {
-        LanguageModel languageModel = prompt -> Response.from("补全文本");
-
-        assertThat(new SimpleAssistant(languageModel).generateText("写一段简介"))
-                .isEqualTo("补全文本");
-    }
-
-    /** 流式文本补全：onToken 逐段回调，阻塞等待完成后拼接完整文本 */
-    @Test
-    void shouldCompleteWithStreamingLanguageModel() {
-        List<String> streamed = new ArrayList<>();
-        StreamingLanguageModel streamingModel =
-                (prompt, handler) -> {
-                    handler.onNext("北京当前 ");
-                    handler.onNext("32℃");
-                    handler.onComplete(Response.from("北京当前 32℃"));
-                };
-
-        String full = new SimpleAssistant(streamingModel).generateText("北京天气", streamed::add);
-
-        assertThat(full).isEqualTo("北京当前 32℃");
-        assertThat(streamed).containsExactly("北京当前 ", "32℃");
-    }
-
-    /** 流式文本补全出错：错误向外抛出 */
-    @Test
-    void shouldPropagateStreamingCompleteError() {
-        StreamingLanguageModel failingModel =
-                (prompt, handler) -> handler.onError(new IllegalStateException("模型不可用"));
-
-        assertThatThrownBy(() -> new SimpleAssistant(failingModel).generateText("提示", null))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("流式文本补全失败");
-    }
-
-    @Test
+                    @Test
     void shouldFailFastWithoutAnyModel() {
         assertThatThrownBy(() -> module.assistant().build())
                 .isInstanceOf(IllegalArgumentException.class)
@@ -183,27 +127,19 @@ class Langchain4jModuleTest {
                 .hasMessageContaining("至少调用 chatModel(...) 或 streamingModel(...)");
     }
 
-    /** 只配流式模型也能构建（此时只能走 stream(...) 链路，不能调用 chat(...)） */
-    @Test
-    void shouldBuildWithStreamingModelOnly() {
-        StreamingChatLanguageModel streaming = new StreamingChatLanguageModel() {
-            @Override
-            public void generate(List<ChatMessage> messages,
-                    dev.langchain4j.model.StreamingResponseHandler<AiMessage> handler) {
-                // 无需真正生成
-            }
-        };
+    	/** 只配流式模型也能构建 */
+	@Test
+	void shouldBuildWithStreamingModelOnly() {
+		StreamingChatModel streaming = new StreamingChatModel() {
+		};
 
-        SimpleAssistant assistant = module.assistant().streamingModel(streaming).build();
+		SimpleAssistant assistant = module.assistant().streamingModel(streaming).build();
 
-        assertThat(assistant).isNotNull();
-        assertThatThrownBy(() -> assistant.chat("s-1", "", "你好"))
-                .as("0.35.0 只配流式模型时，同步 chat 会因缺少 chatLanguageModel 而失败")
-                .isInstanceOf(NullPointerException.class);
-    }
+		assertThat(assistant).isNotNull();
+	}
 
     /** 记录每次请求、按序回放的对话模型替身 */
-    private static final class RecordingChatModel implements ChatLanguageModel {
+    private static final class RecordingChatModel implements ChatModel {
 
         private final List<List<ChatMessage>> requests = new ArrayList<>();
         private final List<String> replies;
@@ -213,10 +149,12 @@ class Langchain4jModuleTest {
         }
 
         @Override
-        public Response<AiMessage> generate(List<ChatMessage> messages) {
+        public dev.langchain4j.model.chat.response.ChatResponse chat(java.util.List<ChatMessage> messages) {
             requests.add(new ArrayList<>(messages));
             int index = Math.min(requests.size() - 1, replies.size() - 1);
-            return Response.from(AiMessage.from(replies.get(index)));
+            return dev.langchain4j.model.chat.response.ChatResponse.builder()
+                    .aiMessage(AiMessage.from(replies.get(index)))
+                    .build();
         }
     }
 }

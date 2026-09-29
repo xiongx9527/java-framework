@@ -1,6 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model;
 
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import org.junit.jupiter.api.Test;
 
 import java.io.Closeable;
@@ -23,7 +23,7 @@ class MagicDynamicLangchain4jChatModelDataSourceTest {
     @Test
     void shouldHoldInstanceByKey() {
         MagicDynamicLangchain4jChatModelDataSource dataSource = new MagicDynamicLangchain4jChatModelDataSource();
-        ChatLanguageModel model = mock(ChatLanguageModel.class);
+        ChatModel model = mock(ChatModel.class);
 
         dataSource.put("qwen-main", model);
 
@@ -46,7 +46,7 @@ class MagicDynamicLangchain4jChatModelDataSourceTest {
     @Test
     void shouldRejectSnapshotAndKeyViewMutation() {
         MagicDynamicLangchain4jChatModelDataSource dataSource = new MagicDynamicLangchain4jChatModelDataSource();
-        dataSource.put("a", mock(ChatLanguageModel.class));
+        dataSource.put("a", mock(ChatModel.class));
 
         assertThatCode(() -> dataSource.snapshot().clear()).isInstanceOf(UnsupportedOperationException.class);
         assertThatCode(() -> dataSource.keys().clear()).isInstanceOf(UnsupportedOperationException.class);
@@ -57,7 +57,7 @@ class MagicDynamicLangchain4jChatModelDataSourceTest {
     void shouldCloseInstanceOnEvict() throws Exception {
         MagicDynamicLangchain4jChatModelDataSource dataSource = new MagicDynamicLangchain4jChatModelDataSource();
         AtomicInteger closed = new AtomicInteger();
-        ChatLanguageModel model = closeable(closed);
+        ChatModel model = closeable(closed);
         dataSource.put("k", model);
 
         dataSource.evict("k");
@@ -69,9 +69,9 @@ class MagicDynamicLangchain4jChatModelDataSourceTest {
     @Test
     void shouldNotBreakWhenCloseThrows() throws Exception {
         MagicDynamicLangchain4jChatModelDataSource dataSource = new MagicDynamicLangchain4jChatModelDataSource();
-        ChatLanguageModel bad = mock(ChatLanguageModel.class, withSettings().extraInterfaces(Closeable.class));
+        ChatModel bad = mock(ChatModel.class, withSettings().extraInterfaces(Closeable.class));
         doThrow(new IOException("模拟关闭失败")).when((Closeable) bad).close();
-        ChatLanguageModel good = mock(ChatLanguageModel.class);
+        ChatModel good = mock(ChatModel.class);
         dataSource.put("bad", bad);
         dataSource.put("good", good);
 
@@ -106,16 +106,16 @@ class MagicDynamicLangchain4jChatModelDataSourceTest {
     @Test
     void shouldNotCloseNonCloseableInstanceOnEvict() {
         MagicDynamicLangchain4jChatModelDataSource dataSource = new MagicDynamicLangchain4jChatModelDataSource();
-        dataSource.put("plain", mock(ChatLanguageModel.class));
+        dataSource.put("plain", mock(ChatModel.class));
 
         assertThatCode(() -> dataSource.evict("plain")).doesNotThrowAnyException();
 
         assertThat(dataSource.get("plain")).isNull();
     }
 
-    /** 同时是 ChatLanguageModel 与 Closeable 的替身，close 时计数。 */
-    private static ChatLanguageModel closeable(AtomicInteger counter) throws IOException {
-        ChatLanguageModel model = mock(ChatLanguageModel.class, withSettings().extraInterfaces(Closeable.class));
+    /** 同时是 ChatModel 与 Closeable 的替身，close 时计数。 */
+    private static ChatModel closeable(AtomicInteger counter) throws IOException {
+        ChatModel model = mock(ChatModel.class, withSettings().extraInterfaces(Closeable.class));
         doAnswer(invocation -> {
             counter.incrementAndGet();
             return null;

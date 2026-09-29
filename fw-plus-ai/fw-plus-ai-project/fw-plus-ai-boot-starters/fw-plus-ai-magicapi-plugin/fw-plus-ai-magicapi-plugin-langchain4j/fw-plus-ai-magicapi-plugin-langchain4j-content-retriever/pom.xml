@@ -22,16 +22,16 @@
         </dependency>
         <!-- 图库检索 provider 的实现依赖：autoconfigure 里是 optional，由本 starter 补齐运行时 -->
         <dependency>
-            <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-ai-langchain4j-neo4j</artifactId>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-community-neo4j</artifactId>
         </dependency>
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-ai-langchain4j-nebula</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-ai-langchain4j-azure-ai-search</artifactId>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-azure-ai-search</artifactId>
         </dependency>
     </dependencies>
 </project>

@@ -34,7 +34,7 @@
 
         <dependency>
             <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-dashscope</artifactId>
+            <artifactId>langchain4j-community-dashscope</artifactId>
         </dependency>
 
         <dependency>
@@ -54,7 +54,7 @@
 
         <dependency>
             <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-qianfan</artifactId>
+            <artifactId>langchain4j-community-qianfan</artifactId>
         </dependency>
 
         <dependency>
@@ -76,7 +76,7 @@
         </dependency>
         <dependency>
             <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-zhipu-ai</artifactId>
+            <artifactId>langchain4j-community-zhipu-ai</artifactId>
         </dependency>
     </dependencies>
 </project>

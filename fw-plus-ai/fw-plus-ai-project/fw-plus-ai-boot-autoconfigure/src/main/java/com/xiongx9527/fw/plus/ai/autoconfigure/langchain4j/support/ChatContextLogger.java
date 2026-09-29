@@ -4,10 +4,10 @@ import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.data.message.ChatMessageType;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
-import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.listener.ChatModelErrorContext;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.listener.ChatModelRequestContext;
@@ -15,7 +15,6 @@ import dev.langchain4j.model.chat.listener.ChatModelResponseContext;
 import dev.langchain4j.model.output.TokenUsage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 
@@ -48,9 +47,9 @@ public class ChatContextLogger implements ChatModelListener {
 
     @Override
 	public void onRequest(ChatModelRequestContext requestContext) {
-		List<ChatMessage> messages = requestContext.request().messages();
+		List<ChatMessage> messages = requestContext.chatRequest().messages();
 		log.info("════════ 模型请求上下文（{} 条消息） ════════", messages.size());
-		logTools(requestContext.request().toolSpecifications());
+		logTools(requestContext.chatRequest().toolSpecifications());
 		int index = 0;
 		for (ChatMessage message : messages) {
 			logMessage(index++, message);
@@ -70,7 +69,7 @@ public class ChatContextLogger implements ChatModelListener {
 
 	@Override
 	public void onResponse(ChatModelResponseContext responseContext) {
-		AiMessage aiMessage = responseContext.response().aiMessage();
+		AiMessage aiMessage = responseContext.chatResponse().aiMessage();
 		if (aiMessage.hasToolExecutionRequests()) {
 			for (ToolExecutionRequest request : aiMessage.toolExecutionRequests()) {
 				log.info("TOOL_CALL    模型请求工具 {} 参数 {}", request.name(), request.arguments());
@@ -78,7 +77,7 @@ public class ChatContextLogger implements ChatModelListener {
 		} else {
 			log.info("RESPONSE     模型回复: {}", abbreviate(aiMessage.text()));
 		}
-		TokenUsage tokenUsage = responseContext.response().tokenUsage();
+		TokenUsage tokenUsage = responseContext.chatResponse().tokenUsage();
 		if (tokenUsage != null) {
 			log.info("RESPONSE     token 用量 {}", tokenUsage);
 		}
@@ -93,7 +92,7 @@ public class ChatContextLogger implements ChatModelListener {
 		if (message.type() == ChatMessageType.SYSTEM) {
 			log.info("[{}] SYSTEM      {}", index, abbreviate(((SystemMessage) message).text()));
 		} else if (message.type() == ChatMessageType.USER) {
-			log.info("[{}] USER        {}", index, abbreviate(message.text()));
+			log.info("[{}] USER        {}", index, abbreviate(((UserMessage) message).singleText()));
 		} else if (message.type() == ChatMessageType.TOOL_EXECUTION_RESULT) {
 			ToolExecutionResultMessage result = (ToolExecutionResultMessage) message;
 			log.info("[{}] TOOL_RESPONSE 工具 {} 返回: {}",

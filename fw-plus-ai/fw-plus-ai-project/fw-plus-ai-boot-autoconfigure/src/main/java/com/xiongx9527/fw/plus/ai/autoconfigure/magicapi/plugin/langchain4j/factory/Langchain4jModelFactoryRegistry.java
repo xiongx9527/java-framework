@@ -3,21 +3,15 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.fact
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jChatModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jEmbeddingModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jEmbeddingStoreInfo;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jLanguageModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jStreamingChatModelInfo;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jStreamingLanguageModelInfo;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jTokenizerInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
 import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.model.Tokenizer;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.model.language.LanguageModel;
-import dev.langchain4j.model.language.StreamingLanguageModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 
 import java.util.Collections;
@@ -85,14 +79,8 @@ public class Langchain4jModelFactoryRegistry {
                 return factory.buildChatModel(reader, listeners);
             case STREAMING_CHAT_MODEL:
                 return factory.buildStreamingChatModel(reader, listeners);
-            case LANGUAGE_MODEL:
-                return factory.buildLanguageModel(reader);
-            case STREAMING_LANGUAGE_MODEL:
-                return factory.buildStreamingLanguageModel(reader);
             case EMBEDDING_MODEL:
                 return factory.buildEmbeddingModel(reader);
-            case TOKENIZER:
-                return factory.buildTokenizer(reader);
             case EMBEDDING_STORE:
                 return factory.buildEmbeddingStore(reader, embeddingModel);
             default:
@@ -103,30 +91,16 @@ public class Langchain4jModelFactoryRegistry {
     /**
      * 类型化的构建入口：注册器按自身固定类型调用，返回类型由编译器保证，避免调用点各自强转。
      */
-    public ChatLanguageModel buildChatModel(Langchain4jChatModelInfo info) {
-        return (ChatLanguageModel) build(Langchain4jModelTypes.CHAT_MODEL, info);
+    public ChatModel buildChatModel(Langchain4jChatModelInfo info) {
+        return (ChatModel) build(Langchain4jModelTypes.CHAT_MODEL, info);
     }
 
-    public StreamingChatLanguageModel buildStreamingChatModel(Langchain4jStreamingChatModelInfo info) {
-        return (StreamingChatLanguageModel) build(Langchain4jModelTypes.STREAMING_CHAT_MODEL, info);
+    public StreamingChatModel buildStreamingChatModel(Langchain4jStreamingChatModelInfo info) {
+        return (StreamingChatModel) build(Langchain4jModelTypes.STREAMING_CHAT_MODEL, info);
     }
-
-    public LanguageModel buildLanguageModel(Langchain4jLanguageModelInfo info) {
-        return (LanguageModel) build(Langchain4jModelTypes.LANGUAGE_MODEL, info);
-    }
-
-    public StreamingLanguageModel buildStreamingLanguageModel(Langchain4jStreamingLanguageModelInfo info) {
-        return (StreamingLanguageModel) build(Langchain4jModelTypes.STREAMING_LANGUAGE_MODEL, info);
-    }
-
     public EmbeddingModel buildEmbeddingModel(Langchain4jEmbeddingModelInfo info) {
         return (EmbeddingModel) build(Langchain4jModelTypes.EMBEDDING_MODEL, info);
     }
-
-    public Tokenizer buildTokenizer(Langchain4jTokenizerInfo info) {
-        return (Tokenizer) build(Langchain4jModelTypes.TOKENIZER, info);
-    }
-
     @SuppressWarnings("unchecked")
     public EmbeddingStore<TextSegment> buildEmbeddingStore(Langchain4jEmbeddingStoreInfo info,
             EmbeddingModel embeddingModel) {
@@ -142,10 +116,7 @@ public class Langchain4jModelFactoryRegistry {
             switch (type) {
                 case CHAT_MODEL: factory.buildChatModel(PROBE, Collections.<ChatModelListener>emptyList()); break;
                 case STREAMING_CHAT_MODEL: factory.buildStreamingChatModel(PROBE, Collections.<ChatModelListener>emptyList()); break;
-                case LANGUAGE_MODEL: factory.buildLanguageModel(PROBE); break;
-                case STREAMING_LANGUAGE_MODEL: factory.buildStreamingLanguageModel(PROBE); break;
                 case EMBEDDING_MODEL: factory.buildEmbeddingModel(PROBE); break;
-                case TOKENIZER: factory.buildTokenizer(PROBE); break;
                 case EMBEDDING_STORE: factory.buildEmbeddingStore(PROBE, null); break;
                 default: return false;
             }

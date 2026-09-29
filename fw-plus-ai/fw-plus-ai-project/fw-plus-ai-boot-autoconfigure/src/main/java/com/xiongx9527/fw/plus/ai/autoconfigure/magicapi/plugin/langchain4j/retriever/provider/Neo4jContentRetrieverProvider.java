@@ -12,7 +12,8 @@ import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
 
 /**
- * 图库检索：{@code Neo4jContentRetriever}，用 chat-model 把自然语言转成 Cypher 后在 Neo4j 上执行。
+ * 图库检索：{@code Neo4jContentRetriever}（官方 1.0.0-beta2 源码适配 1.x 后收录于
+ * fw-plus-ai-langchain4j-neo4j 模块），用 chat-model 把自然语言转成 Cypher 后在 Neo4j 上执行。
  *
  * <p>options：{@code chat-model-key}（必填）、{@code uri} / {@code username} / {@code password}
  * （连接参数，缺省同 langchain4j 示例值）、{@code prompt-template}（留空用内置模板）。</p>

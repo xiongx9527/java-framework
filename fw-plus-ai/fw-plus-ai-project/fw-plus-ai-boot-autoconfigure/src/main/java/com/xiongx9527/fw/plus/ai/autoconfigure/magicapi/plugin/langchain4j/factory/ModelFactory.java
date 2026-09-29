@@ -2,13 +2,10 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.fact
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
 import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.model.Tokenizer;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.model.language.LanguageModel;
-import dev.langchain4j.model.language.StreamingLanguageModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import java.util.List;
 
@@ -28,22 +25,16 @@ public interface ModelFactory {
     /** provider 短名，如 "openai" */
     String provider();
 
-    default ChatLanguageModel buildChatModel(Langchain4jOptionsReader o, List<ChatModelListener> listeners) {
+    default ChatModel buildChatModel(Langchain4jOptionsReader o, List<ChatModelListener> listeners) {
         throw unsupported();
     }
 
-    default StreamingChatLanguageModel buildStreamingChatModel(Langchain4jOptionsReader o,
+    default StreamingChatModel buildStreamingChatModel(Langchain4jOptionsReader o,
             List<ChatModelListener> listeners) {
         throw unsupported();
     }
 
-    default LanguageModel buildLanguageModel(Langchain4jOptionsReader o) { throw unsupported(); }
-
-    default StreamingLanguageModel buildStreamingLanguageModel(Langchain4jOptionsReader o) { throw unsupported(); }
-
     default EmbeddingModel buildEmbeddingModel(Langchain4jOptionsReader o) { throw unsupported(); }
-
-    default Tokenizer buildTokenizer(Langchain4jOptionsReader o) { throw unsupported(); }
 
     default EmbeddingStore<TextSegment> buildEmbeddingStore(Langchain4jOptionsReader o, EmbeddingModel embeddingModel) {
         throw unsupported();

@@ -6,7 +6,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model
 import java.util.Collections;
 import java.util.Set;
 
-/** chat-model 资源存储：folder=langchain4j-chat-model，每份 JSON 一个 ChatLanguageModel。 */
+/** chat-model 资源存储：folder=langchain4j-chat-model，每份 JSON 一个 ChatModel。 */
 public class Langchain4jChatModelMagicResourceStorage
         extends AbstractLangchain4jModelResourceStorage<Langchain4jChatModelInfo> {
 

@@ -4,7 +4,7 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.service.TokenStream;
 import org.junit.jupiter.api.Test;
@@ -71,60 +71,6 @@ class SimpleAssistantTest {
 		assertThat(emitter).isNotNull();
 		assertThat(startedRequestId.get()).as("start 事件应回传 32 位 requestId").hasSize(32);
 		verify(assistant).stream("s-1", "", "讲个故事");
-	}
-
-	/** 一次性文本补全：LanguageModel 直接生成文本 */
-	@Test
-	void shouldGenerateTextWithLanguageModel() {
-		dev.langchain4j.model.language.LanguageModel languageModel =
-				prompt -> dev.langchain4j.model.output.Response.from("补全文本");
-
-		assertThat(new SimpleAssistant(languageModel).generateText("写一段简介")).isEqualTo("补全文本");
-	}
-
-	/** 流式文本补全：onToken 逐段回调，阻塞等待完成后拼接完整文本 */
-	@Test
-	void shouldGenerateTextWithStreamingLanguageModel() {
-		List<String> streamed = new ArrayList<>();
-		dev.langchain4j.model.language.StreamingLanguageModel streamingModel =
-				(prompt, handler) -> {
-					handler.onNext("北京当前 ");
-					handler.onNext("32℃");
-					handler.onComplete(dev.langchain4j.model.output.Response.from("北京当前 32℃"));
-				};
-
-		String full = new SimpleAssistant(streamingModel).generateText("北京天气", streamed::add);
-
-		assertThat(full).isEqualTo("北京当前 32℃");
-		assertThat(streamed).containsExactly("北京当前 ", "32℃");
-	}
-
-	/** 流式文本补全出错：错误向外抛出 */
-	@Test
-	void shouldPropagateStreamingGenerateTextError() {
-		dev.langchain4j.model.language.StreamingLanguageModel failingModel =
-				(prompt, handler) -> handler.onError(new IllegalStateException("模型不可用"));
-
-		assertThatThrownBy(() -> new SimpleAssistant(failingModel).generateText("提示", null))
-				.isInstanceOf(IllegalStateException.class)
-				.hasMessageContaining("流式文本补全失败");
-	}
-
-	/** 流式文本补全的 SSE：start（requestId）→ token 逐段 → done（完整文本） */
-	@Test
-	void shouldGenerateTextToSseWithStartTokenAndDoneEvents() {
-		AtomicReference<String> startedRequestId = new AtomicReference<>();
-		dev.langchain4j.model.language.StreamingLanguageModel streamingModel =
-				(prompt, handler) -> {
-					handler.onNext("北京当前 ");
-					handler.onComplete(dev.langchain4j.model.output.Response.from("北京当前 32℃"));
-				};
-
-		SseEmitter emitter = new SimpleAssistant(streamingModel)
-				.generateTextToSse("北京天气", startedRequestId::set);
-
-		assertThat(emitter).isNotNull();
-		assertThat(startedRequestId.get()).as("start 事件应回传 32 位 requestId").hasSize(32);
 	}
 
     @Test
@@ -200,28 +146,12 @@ class SimpleAssistantTest {
         assertThat(done).containsExactly("杭州多云");
     }
 
-    /** 流式文本补全 SSE：onDone 回调收到完整文本（finally 保证调用） */
-    @Test
-    void generateTextToSseInvokesOnDoneWithFullText() {
-        dev.langchain4j.model.language.StreamingLanguageModel streamingModel =
-                (prompt, handler) -> {
-                    handler.onNext("北京当前 ");
-                    handler.onComplete(dev.langchain4j.model.output.Response.from("北京当前 32℃"));
-                };
-        List<String> done = new ArrayList<>();
-        Consumer<String> onDone = done::add;
-
-        new SimpleAssistant(streamingModel).generateTextToSse("北京天气", null, onDone);
-
-        assertThat(done).containsExactly("北京当前 32℃");
-    }
-
 	/** done 事件的数据：完整回复文本；模型没有产出文本（如纯工具调用轮、response 为空）时退化为 [DONE]。 */
 	@Test
 	void doneDataFallsBackWhenResponseHasNoText() {
 		assertThat(SimpleAssistant.doneData(null)).isEqualTo("[DONE]");
-		assertThat(SimpleAssistant.doneData(Response.from(AiMessage.from("完整回复")))).isEqualTo("完整回复");
-		assertThat(SimpleAssistant.doneData(Response.from(AiMessage.from("")))).isEqualTo("[DONE]");
+		assertThat(SimpleAssistant.doneData(AiMessage.from("完整回复"))).isEqualTo("完整回复");
+		assertThat(SimpleAssistant.doneData(AiMessage.from(""))).isEqualTo("[DONE]");
 	}
 
 	/** 生成一个会在 start() 时依次触发 onNext/onComplete 的 TokenStream 替身 */
@@ -229,10 +159,10 @@ class SimpleAssistantTest {
 		return new TokenStream() {
 
 			private final List<Consumer<String>> nextHandlers = new ArrayList<>();
-			private Consumer<Response<AiMessage>> completeHandler;
+			private Consumer<dev.langchain4j.model.chat.response.ChatResponse> completeHandler;
 
 			@Override
-			public TokenStream onNext(Consumer<String> handler) {
+			public TokenStream onPartialResponse(java.util.function.Consumer<String> handler) {
 				nextHandlers.add(handler);
 				return this;
 			}
@@ -243,7 +173,12 @@ class SimpleAssistantTest {
 			}
 
 			@Override
-			public TokenStream onComplete(Consumer<Response<AiMessage>> handler) {
+			public TokenStream onToolExecuted(java.util.function.Consumer<dev.langchain4j.service.tool.ToolExecution> handler) {
+				return this;
+			}
+
+			@Override
+			public TokenStream onCompleteResponse(java.util.function.Consumer<dev.langchain4j.model.chat.response.ChatResponse> handler) {
 				completeHandler = handler;
 				return this;
 			}
@@ -268,14 +203,16 @@ class SimpleAssistantTest {
 					for (String token : tokens) {
 						full.append(token);
 					}
-					completeHandler.accept(Response.from(AiMessage.from(full.toString())));
+					completeHandler.accept(dev.langchain4j.model.chat.response.ChatResponse.builder()
+						.aiMessage(AiMessage.from(full.toString()))
+						.build());
 				}
 			}
 		};
 	}
 
 	/** 记录每次请求、按序回放的对话模型替身 */
-	private static final class RecordingChatModel implements ChatLanguageModel {
+	private static final class RecordingChatModel implements ChatModel {
 
 		private final List<List<ChatMessage>> requests = new ArrayList<>();
 		private final List<String> replies;
@@ -285,10 +222,12 @@ class SimpleAssistantTest {
 		}
 
 		@Override
-		public Response<AiMessage> generate(List<ChatMessage> messages) {
+		public dev.langchain4j.model.chat.response.ChatResponse chat(List<ChatMessage> messages) {
 			requests.add(new ArrayList<>(messages));
 			int index = Math.min(requests.size() - 1, replies.size() - 1);
-			return Response.from(AiMessage.from(replies.get(index)));
+			return dev.langchain4j.model.chat.response.ChatResponse.builder()
+					.aiMessage(AiMessage.from(replies.get(index)))
+					.build();
 		}
 	}
 }

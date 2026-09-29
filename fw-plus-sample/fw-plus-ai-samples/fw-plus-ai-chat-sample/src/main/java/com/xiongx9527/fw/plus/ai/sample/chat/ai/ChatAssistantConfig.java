@@ -9,8 +9,8 @@ import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.memory.chat.TokenWindowChatMemory;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.ollama.OllamaChatModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import dev.langchain4j.rag.RetrievalAugmentor;
@@ -68,7 +68,7 @@ public class ChatAssistantConfig {
 	 * 只多出一行 {@code .listeners(...)}——这是本样例自建 Bean 的唯一原因。
 	 *
 	 * <p>框架侧 ollama 装配已用 {@code fw.plus.ai.langchain4j.ollama.enabled=false} 关掉，
-	 * 否则容器内会出现两个 {@link ChatLanguageModel} Bean，{@link #assistant} 按类型注入会报歧义。</p>
+	 * 否则容器内会出现两个 {@link ChatModel} Bean，{@link #assistant} 按类型注入会报歧义。</p>
 	 */
 	@Bean
 	public OllamaChatModel chatModel(OllamaProperties properties, ChatContextLogger chatContextLogger) {
@@ -83,7 +83,6 @@ public class ChatAssistantConfig {
 				.seed(p.getSeed())
 				.numPredict(p.getNumPredict())
 				.stop(p.getStop())
-				.format(p.getFormat())
 				.timeout(p.getTimeout())
 				.maxRetries(p.getMaxRetries())
 				.customHeaders(p.getCustomHeaders())
@@ -137,8 +136,8 @@ public class ChatAssistantConfig {
 	}
 
 	@Bean
-	public Assistant assistant(ChatLanguageModel chatModel,
-							   StreamingChatLanguageModel streamingChatModel,
+	public Assistant assistant(ChatModel chatModel,
+							   StreamingChatModel streamingChatModel,
 							   WeatherTools weatherTools,
 							   SystemPromptBuilder systemPromptBuilder,
 							   ChatMemoryProvider chatMemoryProvider,
@@ -148,8 +147,8 @@ public class ChatAssistantConfig {
 		// 注意 memory 里只容得下一条 SystemMessage——框架会把 provider 的产出写进去，
 		// 所以不要再由别处写第二条，否则互相顶掉
 		AiServices<Assistant> builder = AiServices.builder(Assistant.class)
-				.chatLanguageModel(chatModel)
-				.streamingChatLanguageModel(streamingChatModel)
+				.chatModel(chatModel)
+				.streamingChatModel(streamingChatModel)
 				.chatMemoryProvider(chatMemoryProvider)
 				.systemMessageProvider(systemPromptBuilder::build)
 				.tools(weatherTools);

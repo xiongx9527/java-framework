@@ -3,9 +3,9 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.fact
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.ModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
-import dev.langchain4j.model.zhipu.ZhipuAiChatModel;
-import dev.langchain4j.model.zhipu.ZhipuAiEmbeddingModel;
-import dev.langchain4j.model.zhipu.ZhipuAiStreamingChatModel;
+import dev.langchain4j.community.model.zhipu.ZhipuAiChatModel;
+import dev.langchain4j.community.model.zhipu.ZhipuAiEmbeddingModel;
+import dev.langchain4j.community.model.zhipu.ZhipuAiStreamingChatModel;
 import java.util.List;
 
 /**

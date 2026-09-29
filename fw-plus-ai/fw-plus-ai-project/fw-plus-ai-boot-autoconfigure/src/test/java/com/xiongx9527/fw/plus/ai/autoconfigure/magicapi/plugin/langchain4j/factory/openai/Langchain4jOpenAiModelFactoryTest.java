@@ -56,7 +56,8 @@ class Langchain4jOpenAiModelFactoryTest {
         OpenAiChatModel model = factory.buildChatModel(reader(options("api-key", "sk-test", "model-name", "gpt-4o")),
                 Collections.singletonList(listener));
 
-        assertThat((java.util.List<?>) field(model, "listeners")).containsExactly(listener);
+        java.util.List<?> listenersInModel = (java.util.List<?>) field(model, "listeners");
+        assertThat(listenersInModel).hasSize(1).first().isEqualTo(listener);
     }
 
     @Test
@@ -79,10 +80,7 @@ class Langchain4jOpenAiModelFactoryTest {
 
         assertThat(factory.buildChatModel(reader, Collections.emptyList())).isNotNull();
         assertThat(factory.buildStreamingChatModel(reader, Collections.emptyList())).isNotNull();
-        assertThat(factory.buildLanguageModel(reader)).isNotNull();
-        assertThat(factory.buildStreamingLanguageModel(reader)).isNotNull();
         assertThat(factory.buildEmbeddingModel(reader)).isNotNull();
-        assertThat(factory.buildTokenizer(reader)).isNotNull();
     }
 
     @Test

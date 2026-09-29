@@ -10,7 +10,6 @@
     </parent>
     <packaging>pom</packaging>
     <modules>
-        <module>fw-plus-ai-spring-adapter</module>
     </modules>
     <artifactId>fw-plus-ai-spring</artifactId>
 
