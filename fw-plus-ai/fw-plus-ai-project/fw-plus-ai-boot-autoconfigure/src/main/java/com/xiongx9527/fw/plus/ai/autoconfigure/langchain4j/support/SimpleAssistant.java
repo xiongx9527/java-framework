@@ -124,7 +124,7 @@ public class SimpleAssistant {
 
 	/** 完整形态：透传给底层 {@link Assistant} */
 	public String chat(String memoryId, String context, String message) {
-		return requireAssistant().chat(memoryId, context, message);
+		return requireAssistant().chat(memoryId, normalizeContext(context), message);
 	}
 
 	/** 流式：memoryId 取 {@value #DEFAULT_MEMORY_ID}，context 为空，返回原始 {@link TokenStream} */
@@ -135,6 +135,11 @@ public class SimpleAssistant {
 	/** 流式：返回原始 {@link TokenStream}，需要自定义回调时用 */
 	public TokenStream stream(String memoryId, String message) {
 		return requireAssistant().stream(memoryId, DEFAULT_CONTEXT, message);
+	}
+
+	/** 流式完整形态：透传给底层 {@link Assistant}，可自行挂回调（如 {@code onRetrieved}） */
+	public TokenStream stream(String memoryId, String context, String message) {
+		return requireAssistant().stream(memoryId, normalizeContext(context), message);
 	}
 
 	// -------------------------------------------------- 直连对话（generate 系列，无记忆）
@@ -335,17 +340,22 @@ public class SimpleAssistant {
 	}
 
 	public SseEmitter streamToSse(String memoryId, String message) {
-		return doStreamToSse(memoryId, message, null, null, null, null);
+		return doStreamToSse(memoryId, DEFAULT_CONTEXT, message, null, null, null, null);
+	}
+
+	/** 同上（带 context，动态系统提示定制）；第三参传 null 时需显式转型，避免与 Object/Consumer 重载二义 */
+	public SseEmitter streamToSse(String memoryId, String context, String message) {
+		return doStreamToSse(memoryId, normalizeContext(context), message, null, null, null, null);
 	}
 
 	/** 同上（start 事件 data 由调用方提供，如自己的聊天记录ID；null 时用自动生成的 requestId） */
 	public SseEmitter streamToSse(String memoryId, String message, Object startData) {
-		return doStreamToSse(memoryId, message, startData, null, null, null);
+		return doStreamToSse(memoryId, DEFAULT_CONTEXT, message, startData, null, null, null);
 	}
 
 	/** 同上（经 {@code onStarted} 拿到本轮 requestId） */
 	public SseEmitter streamToSse(String memoryId, String message, Consumer<String> onStarted) {
-		return doStreamToSse(memoryId, message, null, null, onStarted, null);
+		return doStreamToSse(memoryId, DEFAULT_CONTEXT, message, null, null, onStarted, null);
 	}
 
 	/**
@@ -357,7 +367,7 @@ public class SimpleAssistant {
 	 */
 	public SseEmitter streamToSse(String memoryId, String message,
 			Object startData, java.util.function.Function<String, Object> doneDataMapper) {
-		return doStreamToSse(memoryId, message, startData, doneDataMapper, null, null);
+		return doStreamToSse(memoryId, DEFAULT_CONTEXT, message, startData, doneDataMapper, null, null);
 	}
 
 	/**
@@ -367,10 +377,10 @@ public class SimpleAssistant {
 	 */
 	public SseEmitter streamToSse(String memoryId, String message,
 			Consumer<String> onStarted, Consumer<String> onDone) {
-		return doStreamToSse(memoryId, message, null, null, onStarted, onDone);
+		return doStreamToSse(memoryId, DEFAULT_CONTEXT, message, null, null, onStarted, onDone);
 	}
 
-	private SseEmitter doStreamToSse(String memoryId, String message, Object startData,
+	private SseEmitter doStreamToSse(String memoryId, String context, String message, Object startData,
 			java.util.function.Function<String, Object> doneDataMapper,
 			Consumer<String> onStarted, Consumer<String> onDone) {
 		SseEmitter emitter = new SseEmitter(0L);
@@ -395,7 +405,7 @@ public class SimpleAssistant {
 			}
 		}
 
-		stream(memoryId, message)
+		stream(memoryId, context, message)
 				.onNext(token -> {
 					if (cancelled.get()) {
 						return;
@@ -457,6 +467,11 @@ public class SimpleAssistant {
 	}
 
 	// -------------------------------------------------- 内部取用：模型经构造方法传入
+
+	/** context 为空（null 或纯空白）时归一化为 {@value #DEFAULT_CONTEXT}，避免 null/空白进入系统提示模板。 */
+	private static String normalizeContext(String context) {
+		return context == null || context.trim().isEmpty() ? DEFAULT_CONTEXT : context;
+	}
 
 	private Assistant requireAssistant() {
 		if (assistant == null) {
