@@ -44,6 +44,7 @@ public class Langchain4jDatasourceController extends MagicController implements 
     private static final Logger logger = LoggerFactory.getLogger(Langchain4jDatasourceController.class);
 
     private final Langchain4jModelFactoryRegistry factories;
+    /** 允许为 null：embedding-model 按类型独立装配，可能未启用（此时无法测试 embedding-store） */
     private final MagicDynamicLangchain4jEmbeddingModelDataSource embeddingModels;
 
     public Langchain4jDatasourceController(MagicConfiguration configuration,
@@ -67,6 +68,9 @@ public class Langchain4jDatasourceController extends MagicController implements 
             Langchain4jModelInfo info = toInfo(modelType, body);
             EmbeddingModel embeddingModel = null;
             if (modelType == Langchain4jModelTypes.EMBEDDING_STORE) {
+                if (embeddingModels == null) {
+                    return "当前应用未装配 LangChain4j embedding-model，无法测试 embedding-store";
+                }
                 embeddingModel = Langchain4jEmbeddingStoreMagicDynamicRegistry.requireEmbeddingModel(
                         (Langchain4jEmbeddingStoreInfo) info,
                         embeddingModels.get(((Langchain4jEmbeddingStoreInfo) info).getEmbeddingModelKey()));

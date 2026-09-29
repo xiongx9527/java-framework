@@ -7,6 +7,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.registry.Langchain4jChatModelMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resource.Langchain4jChatModelMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.web.Langchain4jDatasourceController;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -24,10 +25,11 @@ public class Langchain4jChatModelConfiguration extends AbstractLangchain4jPlugin
     private static final String JAVASCRIPT_FILENAME = "magic-langchain4j-chat-model.1.0.0.iife.js";
 
     private final Langchain4jModelFactoryRegistry factories;
-    private final MagicDynamicLangchain4jEmbeddingModelDataSource embeddingModels;
+    /** 惰性依赖：embedding-model 按类型独立装配，可能未启用；仅连接测试 embedding-store 时取用 */
+    private final ObjectProvider<MagicDynamicLangchain4jEmbeddingModelDataSource> embeddingModels;
 
     public Langchain4jChatModelConfiguration(Langchain4jModelFactoryRegistry factories,
-            MagicDynamicLangchain4jEmbeddingModelDataSource embeddingModels) {
+            ObjectProvider<MagicDynamicLangchain4jEmbeddingModelDataSource> embeddingModels) {
         super("langchain4j-chat-model", "MagicLangchain4jChatModel", JAVASCRIPT_FILENAME);
         this.factories = factories;
         this.embeddingModels = embeddingModels;
@@ -41,7 +43,7 @@ public class Langchain4jChatModelConfiguration extends AbstractLangchain4jPlugin
     public MagicControllerRegister controllerRegister() {
         return (mapping, configuration) ->
                 mapping.registerController(new Langchain4jDatasourceController(configuration, factories,
-                        embeddingModels));
+                        embeddingModels.getIfAvailable()));
     }
 
 
