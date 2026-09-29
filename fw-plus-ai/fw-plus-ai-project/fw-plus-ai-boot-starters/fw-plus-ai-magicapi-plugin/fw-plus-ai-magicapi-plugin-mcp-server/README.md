@@ -1,4 +1,4 @@
-# fw-plus-ai-magicapi-plugin-mcp
+# fw-plus-ai-magicapi-plugin-mcp-server
 
 Magic-API 的 MCP 插件，把 Magic-API 的接口/函数与三类动态资源（工具、资源、提示词）暴露为 MCP 能力，并支持在控制台维护多个独立的 MCP server 实例。
 
@@ -9,7 +9,7 @@ Magic-API 的 MCP 插件，把 Magic-API 的接口/函数与三类动态资源�
 ```xml
 <dependency>
     <groupId>com.xiongx9527.fw.plus.ai</groupId>
-    <artifactId>fw-plus-ai-magicapi-plugin-mcp</artifactId>
+    <artifactId>fw-plus-ai-magicapi-plugin-mcp-server</artifactId>
     <version>${fw-plus-ai.version}</version>
 </dependency>
 ```
@@ -129,7 +129,7 @@ Servlet 与 WebFlux 入口在认证失败（匿名主体）时直接返回 401�
 
 | 旧（Boot 层） | 新（AI 层） |
 | --- | --- |
-| `fw-plus-magicapi-plugin-mcp` | `fw-plus-ai-magicapi-plugin-mcp`（console 前端） |
+| `fw-plus-magicapi-plugin-mcp` | `fw-plus-ai-magicapi-plugin-mcp-server`（console 前端） |
 | `…boot.autoconfigure.magicapi.plugin.mcp.*` | `…ai.autoconfigure.magicapi.plugin.mcp.*` + `…ai.autoconfigure.mcp.*` |
 | `McpAccessTokenVerifier` / `SaTokenMcpAuthService` | starter 的 `McpAuthService` SPI；classpath 有 `sa-token-oauth2` 时自动用 `SaTokenOAuth2McpAuthService`，或提供自定义 bean |
 | `McpToolsHandler` / `McpResourcesHandler` 等 | 经内核 `FeatureMgr` 的 store 注册 + `MagicApiMcpServerRegistry` 改写响应 |

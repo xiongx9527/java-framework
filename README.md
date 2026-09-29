@@ -174,7 +174,7 @@ AI 层将模型、向量存储与具体框架实现解耦。应用可先依赖�
 | 聚合 | `fw-plus-ai-boot-starter` |
 | LangChain4j | `fw-plus-ai-langchain4j`（Java 8 provider 覆盖）、`fw-plus-ai-boot-autoconfigure` |
 | 应用能力 | `fw-plus-ai-tinyflow-spring-boot-starter` |
-| Magic-API 插件 | `fw-plus-ai-magicapi-plugin-mcp` |
+| Magic-API 插件 | `fw-plus-ai-magicapi-plugin-mcp-server` |
 | MCP | `fw-plus-ai-mcp-server-spring-boot-starter` |
 
 ## Magic-API 资源模型

@@ -63,8 +63,12 @@ class MagicApiAllPluginsClasspathTest {
 			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-vue3",
 			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-word",
 			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-ws",
-			"com.xiongx9527.fw.plus.ai:fw-plus-ai-magicapi-plugin-mcp",
-			"com.xiongx9527.fw.plus.ai:fw-plus-ai-magicapi-plugin-langchain4j"
+			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-java-entity",
+			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-mybatisplus",
+			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-mybatisflex",
+			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-spring-bean",
+			"com.xiongx9527.fw.plus.ai:fw-plus-ai-magicapi-plugin-langchain4j",
+			"com.xiongx9527.fw.plus.ai:fw-plus-ai-magicapi-plugin-mcp-server"
 	);
 
 	@Test
