@@ -22,12 +22,12 @@
             <artifactId>fw-plus-ai-boot-autoconfigure</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-ai-langchain4j-core</artifactId>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-core</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-ai-langchain4j-neo4j</artifactId>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-neo4j</artifactId>
         </dependency>
         <dependency>
             <groupId>dev.langchain4j</groupId>
