@@ -67,7 +67,8 @@ class MagicApiAllPluginsClasspathTest {
 			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-mybatisplus",
 			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-mybatisflex",
 			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-spring-bean",
-			"com.xiongx9527.fw.plus.ai:fw-plus-ai-magicapi-plugin-mcp",
+			"com.xiongx9527.fw.plus.ai:fw-plus-ai-magicapi-plugin-langchain4j",
+			"com.xiongx9527.fw.plus.ai:fw-plus-ai-magicapi-plugin-mcp-server"
 	);
 
 	@Test
@@ -79,7 +80,7 @@ class MagicApiAllPluginsClasspathTest {
 				"fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/pom.xml"));
 
 		assertEquals(28, bootModules.size());
-		assertEquals(3, aiModules.size());
+		assertEquals(2, aiModules.size());
 		assertEquals(expectedArtifacts("com.xiongx9527.fw.plus.boot"), bootModules);
 		assertEquals(expectedArtifacts("com.xiongx9527.fw.plus.ai"), aiModules);
 	}

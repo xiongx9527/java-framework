@@ -6,7 +6,7 @@
 
 - `fw-plus-ai-langchain4j`、`fw-plus-ai-langchain4j-*`：LangChain4j `0.35.0` 的 Java 8 兼容 provider 覆盖模块，保持与上游相同的 `dev.langchain4j.*` 包名与类名。
 - `fw-plus-ai-boot-autoconfigure`：按 classpath 条件装配 provider 自动配置（总开关 `fw.plus.ai.langchain4j.enabled`），并提供 MCP 服务端、MCP 集群与 Magic-API MCP 插件能力。
-- `fw-plus-ai-magicapi-plugin-mcp`：Magic-API MCP 插件。
+- `fw-plus-ai-magicapi-plugin-mcp-server`：Magic-API MCP 插件。
 - 聚合入口：`fw-plus-ai-boot-starter`、`fw-plus-ai-mcp-server-spring-boot-starter`。
 
 各 provider 自动配置的条件与属性以 `fw-plus-ai-boot-autoconfigure` 中 `LangChain4j*AutoConfiguration` 源码为准。

@@ -219,7 +219,7 @@ class MagicApiAllPluginsApplicationContextTest {
 		configurations.put("fw-plus-magicapi-plugin-task", "task");
 		configurations.put("fw-plus-magicapi-plugin-vue3", "vue3");
 		configurations.put("fw-plus-magicapi-plugin-ws", "ws");
-		configurations.put("fw-plus-ai-magicapi-plugin-mcp", "mcp");
+		configurations.put("fw-plus-ai-magicapi-plugin-mcp-server", "mcp");
 		return Collections.unmodifiableMap(configurations);
 	}
 
