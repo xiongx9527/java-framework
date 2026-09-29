@@ -6,6 +6,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.modul
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jEmbeddingModelModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jEmbeddingStoreModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.model.MagicDynamicLangchain4jContentRetrieverDataSource;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.module.Langchain4jContentRetrieverModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.MagicToolInvoker;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.chat.ChatLanguageModel;
@@ -29,7 +30,7 @@ public class ContentRetrieverContext {
 
 	private final ObjectProvider<Langchain4jChatModelModule> chatModels;
 
-	private final MagicDynamicLangchain4jContentRetrieverDataSource retrievers;
+	private final Langchain4jContentRetrieverModule retrievers;
 
 	private final ObjectProvider<WebSearchEngine> webSearchEngines;
 
@@ -38,7 +39,7 @@ public class ContentRetrieverContext {
 	public ContentRetrieverContext(ObjectProvider<Langchain4jEmbeddingStoreModule> embeddingStores,
 			ObjectProvider<Langchain4jEmbeddingModelModule> embeddingModels,
 			ObjectProvider<Langchain4jChatModelModule> chatModels,
-			MagicDynamicLangchain4jContentRetrieverDataSource retrievers,
+			Langchain4jContentRetrieverModule retrievers,
 			ObjectProvider<WebSearchEngine> webSearchEngines,
 			MagicToolInvoker invoker) {
 		this.embeddingStores = embeddingStores;

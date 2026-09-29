@@ -1,8 +1,11 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.model.MagicDynamicLangchain4jContentRetrieverDataSource;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.module.Langchain4jContentRetrieverModule;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import com.xiongx9527.fw.plus.common.util.StringUtils;
+import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.language.StreamingLanguageModel;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.rag.query.Query;
@@ -15,11 +18,11 @@ import java.util.List;
  */
 public class MagicDynamicContentRetriever implements ContentRetriever {
 
-	private final MagicDynamicLangchain4jContentRetrieverDataSource retrievers;
+	private final Langchain4jContentRetrieverModule retrievers;
 
 	private final String key;
 
-	public MagicDynamicContentRetriever(MagicDynamicLangchain4jContentRetrieverDataSource retrievers, String key) {
+	public MagicDynamicContentRetriever(Langchain4jContentRetrieverModule retrievers, String key) {
 		this.retrievers = retrievers;
 		this.key = key;
 	}
@@ -30,13 +33,13 @@ public class MagicDynamicContentRetriever implements ContentRetriever {
 	}
 
 	private ContentRetriever resolve() {
-		ContentRetriever retriever = retrievers.get(key);
-		if (retriever != null) {
-			return retriever;
+		try {
+			return retrievers.getDynamicAttribute(key);
+		} catch (Exception e) {
+			if (StringUtils.isEmpty(key)) {
+				return SpringUtils.getBean(ContentRetriever.class);
+			}
+			return SpringUtils.getBean(key,ContentRetriever.class);
 		}
-		if (StringUtils.isEmpty(key)) {
-			return SpringUtils.getBean(ContentRetriever.class);
-		}
-		return SpringUtils.getBean(key, ContentRetriever.class);
 	}
 }
