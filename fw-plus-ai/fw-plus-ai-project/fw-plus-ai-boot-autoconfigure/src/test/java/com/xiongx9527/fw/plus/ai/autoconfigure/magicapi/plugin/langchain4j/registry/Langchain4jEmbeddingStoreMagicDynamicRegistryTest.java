@@ -25,6 +25,14 @@ import static org.mockito.Mockito.when;
  */
 class Langchain4jEmbeddingStoreMagicDynamicRegistryTest {
 
+    @SuppressWarnings("unchecked")
+    private static <T> org.springframework.beans.factory.ObjectProvider<T> providerOf(T instance) {
+        org.springframework.beans.factory.ObjectProvider<T> provider =
+                org.mockito.Mockito.mock(org.springframework.beans.factory.ObjectProvider.class);
+        org.mockito.Mockito.when(provider.getIfAvailable()).thenReturn(instance);
+        return provider;
+    }
+
     private MagicDynamicLangchain4jEmbeddingModelDataSource embeddingModels;
     private MagicDynamicLangchain4jEmbeddingStoreDataSource stores;
     private Langchain4jEmbeddingStoreMagicDynamicRegistry registry;
@@ -38,7 +46,7 @@ class Langchain4jEmbeddingStoreMagicDynamicRegistryTest {
         registry = new Langchain4jEmbeddingStoreMagicDynamicRegistry(
                 new Langchain4jEmbeddingStoreMagicResourceStorage(
                         factories.providers(Langchain4jModelTypes.EMBEDDING_STORE)),
-                stores, embeddingModels, factories);
+                stores, embeddingModels, factories, providerOf(null));
     }
 
     @Test

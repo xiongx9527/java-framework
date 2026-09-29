@@ -37,18 +37,37 @@ public abstract class AbstractLangchain4jModelMagicDynamicRegistry<T extends Lan
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractLangchain4jModelMagicDynamicRegistry.class);
 
+    /** Spring 默认实例在脚本与控制台侧的约定 key（id 为 null，只读展示，不可保存覆盖） */
+    public static final String DEFAULT_KEY = "default";
+
     /** 本类型的实例持有者（每类资源一个，不跨类型共享） */
     protected final AbstractMagicDynamicLangchain4jDataSource<M> holder;
     protected final Langchain4jModelFactoryRegistry factories;
     protected final Langchain4jModelTypes type;
+    /** Spring 容器中的默认实例（core 层 langchain4j 自动配置注入），可能不存在 */
+    protected final org.springframework.beans.factory.ObjectProvider<M> defaultInstance;
 
     protected AbstractLangchain4jModelMagicDynamicRegistry(MagicResourceStorage<T> magicResourceStorage,
             AbstractMagicDynamicLangchain4jDataSource<M> holder, Langchain4jModelFactoryRegistry factories,
-            Langchain4jModelTypes type) {
+            Langchain4jModelTypes type, org.springframework.beans.factory.ObjectProvider<M> defaultInstance) {
         super(magicResourceStorage);
         this.holder = holder;
         this.factories = factories;
         this.type = type;
+        this.defaultInstance = defaultInstance;
+    }
+
+    /** 本类型默认条目（Spring 注入实例）展示用的 provider 短名，由子类声明 */
+    protected abstract String defaultProvider();
+
+    /** Spring 默认实例（可能不存在）；供 defaultMappings 与脚本默认取用 */
+    protected M requireDefaultInstance() {
+        M instance = defaultInstance == null ? null : defaultInstance.getIfAvailable();
+        if (instance == null) {
+            throw new IllegalArgumentException(String.format(
+                    "Spring 容器中没有默认的 LangChain4j %s 实例（请启用 langchain4j 对应自动配置）", type.type()));
+        }
+        return instance;
     }
 
     @Override

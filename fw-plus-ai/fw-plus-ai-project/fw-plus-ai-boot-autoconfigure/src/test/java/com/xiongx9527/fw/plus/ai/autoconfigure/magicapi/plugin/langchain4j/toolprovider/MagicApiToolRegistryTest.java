@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.tool;
+package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,7 +25,7 @@ class MagicApiToolRegistryTest {
 
 	private MagicResourceService magicResourceService;
 
-	private Langchain4jToolProperties properties;
+	private Langchain4jToolProperties.Tools tools;
 
 	private MagicApiToolRegistry registry;
 
@@ -33,8 +33,8 @@ class MagicApiToolRegistryTest {
 	void setUp() {
 		magicResourceService = mock(MagicResourceService.class);
 		when(magicResourceService.getGroupPath(anyString())).thenReturn("/公共");
-		properties = new Langchain4jToolProperties();
-		registry = new MagicApiToolRegistry(magicResourceService, properties);
+		tools = new Langchain4jToolProperties.Tools();
+		registry = new MagicApiToolRegistry(magicResourceService, tools);
 	}
 
 	@Test
@@ -52,7 +52,7 @@ class MagicApiToolRegistryTest {
 
 	@Test
 	void shouldFilterApisByConfiguredMethods() {
-		properties.getTools().getApi().setMethods(Collections.singletonList("GET"));
+		tools.getApi().setMethods(Collections.singletonList("GET"));
 		when(magicResourceService.<ApiInfo>files("api")).thenReturn(Arrays.asList(apiInfo("POST"), apiInfo("GET")));
 
 		List<MagicApiTool> snapshot = registry.snapshot();
@@ -62,7 +62,7 @@ class MagicApiToolRegistryTest {
 
 	@Test
 	void shouldFilterByIncludeGroups() {
-		properties.getTools().getApi().setIncludeGroups(Collections.singletonList("/评估"));
+		tools.getApi().setIncludeGroups(Collections.singletonList("/评估"));
 		when(magicResourceService.getGroupPath("group-eval")).thenReturn("/评估/查询");
 		when(magicResourceService.getGroupPath("group-other")).thenReturn("/系统/配置");
 		when(magicResourceService.<ApiInfo>files("api")).thenReturn(
@@ -75,7 +75,7 @@ class MagicApiToolRegistryTest {
 
 	@Test
 	void shouldFilterByExcludeGroups() {
-		properties.getTools().getApi().setExcludeGroups(Collections.singletonList("/系统/**"));
+		tools.getApi().setExcludeGroups(Collections.singletonList("/系统/**"));
 		when(magicResourceService.getGroupPath("group-eval")).thenReturn("/评估/查询");
 		when(magicResourceService.getGroupPath("group-other")).thenReturn("/系统/配置");
 		when(magicResourceService.<ApiInfo>files("api")).thenReturn(
@@ -160,7 +160,7 @@ class MagicApiToolRegistryTest {
 
 	@Test
 	void shouldSkipApiWithoutMethodWhenMethodWhitelistConfigured() {
-		properties.getTools().getApi().setMethods(Collections.singletonList("GET"));
+		tools.getApi().setMethods(Collections.singletonList("GET"));
 		when(magicResourceService.<ApiInfo>files("api"))
 				.thenReturn(Collections.singletonList(apiInfo(null)));
 

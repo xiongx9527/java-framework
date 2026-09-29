@@ -46,8 +46,9 @@ public class Langchain4jStreamingChatModelConfiguration extends AbstractLangchai
     public Langchain4jStreamingChatModelMagicDynamicRegistry langchain4jStreamingChatModelMagicDynamicRegistry(
             Langchain4jStreamingChatModelMagicResourceStorage storage,
             MagicDynamicLangchain4jStreamingChatModelDataSource dataSource,
-            Langchain4jModelFactoryRegistry factories) {
-        return new Langchain4jStreamingChatModelMagicDynamicRegistry(storage, dataSource, factories);
+            Langchain4jModelFactoryRegistry factories,
+            ObjectProvider<StreamingChatLanguageModel> defaultInstance) {
+        return new Langchain4jStreamingChatModelMagicDynamicRegistry(storage, dataSource, factories, defaultInstance);
     }
 
     /** 脚本模块：chatModel['key'] 按 key 取实例；不指定 key 时回落到 Spring 默认实例 */

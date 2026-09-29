@@ -1,5 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.registry;
 
+import java.util.ArrayList;
+import org.springframework.beans.factory.ObjectProvider;
 import java.util.List;
 import java.util.Collections;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.Langchain4jModelFactoryRegistry;
@@ -17,8 +19,9 @@ public class Langchain4jChatModelMagicDynamicRegistry
         extends AbstractLangchain4jModelMagicDynamicRegistry<Langchain4jChatModelInfo, ChatLanguageModel> {
 
     public Langchain4jChatModelMagicDynamicRegistry(Langchain4jChatModelMagicResourceStorage storage,
-            MagicDynamicLangchain4jChatModelDataSource holder, Langchain4jModelFactoryRegistry factories) {
-        super(storage, holder, factories, Langchain4jModelTypes.CHAT_MODEL);
+            MagicDynamicLangchain4jChatModelDataSource holder, Langchain4jModelFactoryRegistry factories,
+            ObjectProvider<ChatLanguageModel> defaultInstance) {
+        super(storage, holder, factories, Langchain4jModelTypes.CHAT_MODEL, defaultInstance);
     }
 
     @Override
@@ -36,9 +39,24 @@ public class Langchain4jChatModelMagicDynamicRegistry
         safelyProcess(event);
     }
 
-    /** 本插件无静态默认数据源：实例均来自控制台保存的 datasource；保留 mongo 插件同构语义 */
+    /** 默认实例（Spring 注入，key=default）+ 控制台配置的 datasource，一并暴露给控制台与脚本 */
     @Override
     public List<Langchain4jChatModelInfo> defaultMappings() {
-        return Collections.emptyList();
+        List<Langchain4jChatModelInfo> result = new ArrayList<>();
+        if (defaultInstance.getIfAvailable() != null) {
+            Langchain4jChatModelInfo info = new Langchain4jChatModelInfo();
+            info.setKey(AbstractLangchain4jModelMagicDynamicRegistry.DEFAULT_KEY);
+            info.setName("默认数据源");
+            info.setProvider(defaultProvider());
+            info.setEnabled(true);
+            result.add(info);
+        }
+        result.addAll(mappings());
+        return result;
+    }
+
+    @Override
+    protected String defaultProvider() {
+        return "openai";
     }
 }

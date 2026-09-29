@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.tool;
+package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider;
 
 import com.alibaba.fastjson2.JSON;
 import org.apache.commons.lang3.StringUtils;
@@ -20,7 +20,7 @@ import java.util.Objects;
  * Magic-API → LangChain4j 工具快照注册表。
  *
  * <p>订阅 Magic-API 的 api/function 元数据（经 {@link MagicResourceService}），按
- * {@link Langchain4jToolProperties} 过滤生成已过滤工具快照：exclude-groups / exclude-paths
+ * {@link Langchain4jToolProperties.Tools} 过滤生成已过滤工具快照：exclude-groups / exclude-paths
  * 最高优先，其次 include-groups（Ant 匹配 group path）、include-paths，api 另有 methods
  * 白名单与 require-opt-in（与 MCP 共用 {@code mcpTool} 选项）。工具名采用 MCP 风格原样名：
  * api 为 {@code "POST /path"}，function 为函数名，同名冲突时 function 优先。</p>
@@ -38,7 +38,7 @@ public class MagicApiToolRegistry {
 
 	private final MagicResourceService magicResourceService;
 
-	private final Langchain4jToolProperties properties;
+	private final Langchain4jToolProperties.Tools tools;
 
 	private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
@@ -47,9 +47,9 @@ public class MagicApiToolRegistry {
 	/** 快照重建与失效的互斥锁 */
 	private final Object snapshotLock = new Object();
 
-	public MagicApiToolRegistry(MagicResourceService magicResourceService, Langchain4jToolProperties properties) {
+	public MagicApiToolRegistry(MagicResourceService magicResourceService, Langchain4jToolProperties.Tools tools) {
 		this.magicResourceService = Objects.requireNonNull(magicResourceService, "magicResourceService");
-		this.properties = Objects.requireNonNull(properties, "properties");
+		this.tools = tools == null ? new Langchain4jToolProperties.Tools() : tools;
 	}
 
 	public MagicResourceService getMagicResourceService() {
@@ -104,7 +104,7 @@ public class MagicApiToolRegistry {
 		List<MagicApiTool> result = new ArrayList<>();
 		// 工具名 -> 在 result 中的下标；function 先登记，api 不与已登记 function 抢名。
 		Map<String, Integer> indexByName = new LinkedHashMap<>();
-		Langchain4jToolProperties.Scope functions = properties.getTools().getFunctions();
+		Langchain4jToolProperties.Scope functions = tools.getFunctions();
 		if (functions.isEnabled()) {
 			for (MagicEntity entity : magicResourceService.<MagicEntity>files(FUNCTION_TYPE)) {
 				if (matchesFunction(functions, entity)) {
@@ -112,7 +112,7 @@ public class MagicApiToolRegistry {
 				}
 			}
 		}
-		Langchain4jToolProperties.Api api = properties.getTools().getApi();
+		Langchain4jToolProperties.Api api = tools.getApi();
 		if (api.isEnabled()) {
 			for (ApiInfo info : magicResourceService.<ApiInfo>files(API_TYPE)) {
 				if (matchesApi(api, info)) {

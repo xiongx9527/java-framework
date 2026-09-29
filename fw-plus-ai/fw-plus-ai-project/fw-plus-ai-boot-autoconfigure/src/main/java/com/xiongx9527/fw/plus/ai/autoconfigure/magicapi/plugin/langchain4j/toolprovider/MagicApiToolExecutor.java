@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.tool;
+package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider;
 
 import com.alibaba.fastjson2.JSON;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;

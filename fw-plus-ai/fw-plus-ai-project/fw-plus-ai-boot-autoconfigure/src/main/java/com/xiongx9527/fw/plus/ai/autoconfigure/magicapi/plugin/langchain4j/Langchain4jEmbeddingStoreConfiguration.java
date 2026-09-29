@@ -57,9 +57,10 @@ public class Langchain4jEmbeddingStoreConfiguration extends AbstractLangchain4jP
             Langchain4jEmbeddingStoreMagicResourceStorage storage,
             MagicDynamicLangchain4jEmbeddingStoreDataSource dataSource,
             MagicDynamicLangchain4jEmbeddingModelDataSource embeddingModelDataSource,
-            Langchain4jModelFactoryRegistry factories) {
+            Langchain4jModelFactoryRegistry factories,
+            ObjectProvider<EmbeddingStore<TextSegment>> defaultInstance) {
         return new Langchain4jEmbeddingStoreMagicDynamicRegistry(storage, dataSource, embeddingModelDataSource,
-                factories);
+                factories, defaultInstance);
     }
 
     /** 启动完成钩子：embedding-store 先于其 embedding-model 加载时，统一重试一次注册 */

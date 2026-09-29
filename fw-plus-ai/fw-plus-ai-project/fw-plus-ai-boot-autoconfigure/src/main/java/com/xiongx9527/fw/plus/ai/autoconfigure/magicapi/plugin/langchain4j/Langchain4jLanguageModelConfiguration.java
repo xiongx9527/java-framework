@@ -46,8 +46,9 @@ public class Langchain4jLanguageModelConfiguration extends AbstractLangchain4jPl
     public Langchain4jLanguageModelMagicDynamicRegistry langchain4jLanguageModelMagicDynamicRegistry(
             Langchain4jLanguageModelMagicResourceStorage storage,
             MagicDynamicLangchain4jLanguageModelDataSource dataSource,
-            Langchain4jModelFactoryRegistry factories) {
-        return new Langchain4jLanguageModelMagicDynamicRegistry(storage, dataSource, factories);
+            Langchain4jModelFactoryRegistry factories,
+            ObjectProvider<LanguageModel> defaultInstance) {
+        return new Langchain4jLanguageModelMagicDynamicRegistry(storage, dataSource, factories, defaultInstance);
     }
 
     /** 脚本模块：chatModel['key'] 按 key 取实例；不指定 key 时回落到 Spring 默认实例 */

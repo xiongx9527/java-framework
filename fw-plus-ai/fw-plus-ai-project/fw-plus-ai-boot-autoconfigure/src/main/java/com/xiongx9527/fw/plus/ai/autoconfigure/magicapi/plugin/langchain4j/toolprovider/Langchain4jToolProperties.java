@@ -1,29 +1,17 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.tool;
-
-import org.springframework.boot.context.properties.ConfigurationProperties;
+package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Magic-API → LangChain4j 本地工具提供者配置：{@code fw.plus.magicapi.langchain4j.tool.*}。
+ * LangChain4j {@code ToolProvider} 的工具范围配置（functions 与 api 两类）。
  *
- * <p>只控制本地 {@code ToolProvider} 的装配与工具范围；传输、MCP 等关注点不在此处。</p>
+ * <p>作为 {@code langchain4j-tool-provider} 数据源资源实体的 {@code tools} 字段，通过控制台
+ * 数据源工作台直接以 JSON 配置每个实例的工具范围；每个实例一份，互不影响。</p>
  */
-@ConfigurationProperties(prefix = "fw.plus.magicapi.langchain4j.tool")
 public class Langchain4jToolProperties {
 
-	private boolean enabled = true;
-
 	private Tools tools = new Tools();
-
-	public boolean isEnabled() {
-		return enabled;
-	}
-
-	public void setEnabled(boolean enabled) {
-		this.enabled = enabled;
-	}
 
 	public Tools getTools() {
 		return tools;

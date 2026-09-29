@@ -29,6 +29,14 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class Langchain4jFileEventLifecycleTest {
 
+    @SuppressWarnings("unchecked")
+    private static <T> org.springframework.beans.factory.ObjectProvider<T> providerOf(T instance) {
+        org.springframework.beans.factory.ObjectProvider<T> provider =
+                org.mockito.Mockito.mock(org.springframework.beans.factory.ObjectProvider.class);
+        org.mockito.Mockito.when(provider.getIfAvailable()).thenReturn(instance);
+        return provider;
+    }
+
     private MagicDynamicLangchain4jChatModelDataSource holder;
     private Langchain4jChatModelMagicDynamicRegistry registry;
 
@@ -39,7 +47,7 @@ class Langchain4jFileEventLifecycleTest {
         factories.register(new Langchain4jOpenAiModelFactory());
         registry = new Langchain4jChatModelMagicDynamicRegistry(
                 new Langchain4jChatModelMagicResourceStorage(factories.providers(Langchain4jModelTypes.CHAT_MODEL)),
-                holder, factories);
+                holder, factories, providerOf(null));
     }
 
     @Test

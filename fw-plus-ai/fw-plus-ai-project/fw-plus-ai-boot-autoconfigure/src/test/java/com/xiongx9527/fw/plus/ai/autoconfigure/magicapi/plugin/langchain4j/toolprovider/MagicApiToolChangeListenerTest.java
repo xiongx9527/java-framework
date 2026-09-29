@@ -1,5 +1,6 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.tool;
+package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.model.MagicDynamicLangchain4jToolProviderDataSource;
 import org.junit.jupiter.api.Test;
 import org.ssssssss.magicapi.core.event.EventAction;
 import org.ssssssss.magicapi.core.event.FileEvent;
@@ -14,22 +15,23 @@ import static org.mockito.Mockito.verify;
 
 class MagicApiToolChangeListenerTest {
 
-	private final MagicApiToolRegistry registry = mock(MagicApiToolRegistry.class);
+	private final MagicDynamicLangchain4jToolProviderDataSource dataSource =
+			mock(MagicDynamicLangchain4jToolProviderDataSource.class);
 
-	private final MagicApiToolChangeListener listener = new MagicApiToolChangeListener(registry);
+	private final MagicApiToolChangeListener listener = new MagicApiToolChangeListener(dataSource);
 
 	@Test
-	void shouldInvalidateSnapshotOnApiAndFunctionFileEvents() {
+	void shouldInvalidateAllOnApiAndFunctionFileEvents() {
 		listener.onFileEvent(new FileEvent("api", EventAction.SAVE, new ApiInfo()));
 		listener.onFileEvent(new FileEvent("function", EventAction.DELETE, new PathMagicEntity()));
 
-		verify(registry, times(2)).invalidateSnapshot();
+		verify(dataSource, times(2)).invalidateAll();
 	}
 
 	@Test
-	void shouldInvalidateSnapshotOnGroupEvent() {
+	void shouldInvalidateAllOnGroupEvent() {
 		listener.onGroupEvent(new GroupEvent("api", EventAction.DELETE, new Group()));
 
-		verify(registry).invalidateSnapshot();
+		verify(dataSource).invalidateAll();
 	}
 }

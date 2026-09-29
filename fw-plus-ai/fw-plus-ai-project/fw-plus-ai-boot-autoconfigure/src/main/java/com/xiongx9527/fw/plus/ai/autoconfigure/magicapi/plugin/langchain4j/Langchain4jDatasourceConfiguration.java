@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.Langchain4jToolProviderConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -33,7 +34,8 @@ import org.ssssssss.magicapi.core.service.MagicResourceService;
         Langchain4jStreamingLanguageModelConfiguration.class,
         Langchain4jEmbeddingModelConfiguration.class,
         Langchain4jTokenizerConfiguration.class,
-        Langchain4jEmbeddingStoreConfiguration.class
+        Langchain4jEmbeddingStoreConfiguration.class,
+        Langchain4jToolProviderConfiguration.class
 })
 public class Langchain4jDatasourceConfiguration {
 }

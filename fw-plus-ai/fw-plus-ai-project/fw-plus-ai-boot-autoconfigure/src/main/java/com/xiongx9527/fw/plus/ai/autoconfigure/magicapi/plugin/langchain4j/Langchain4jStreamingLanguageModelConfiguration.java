@@ -47,8 +47,9 @@ public class Langchain4jStreamingLanguageModelConfiguration extends AbstractLang
             langchain4jStreamingLanguageModelMagicDynamicRegistry(
                     Langchain4jStreamingLanguageModelMagicResourceStorage storage,
                     MagicDynamicLangchain4jStreamingLanguageModelDataSource dataSource,
-                    Langchain4jModelFactoryRegistry factories) {
-        return new Langchain4jStreamingLanguageModelMagicDynamicRegistry(storage, dataSource, factories);
+                    Langchain4jModelFactoryRegistry factories,
+            ObjectProvider<StreamingLanguageModel> defaultInstance) {
+        return new Langchain4jStreamingLanguageModelMagicDynamicRegistry(storage, dataSource, factories, defaultInstance);
     }
 
     /** 脚本模块：chatModel['key'] 按 key 取实例；不指定 key 时回落到 Spring 默认实例 */

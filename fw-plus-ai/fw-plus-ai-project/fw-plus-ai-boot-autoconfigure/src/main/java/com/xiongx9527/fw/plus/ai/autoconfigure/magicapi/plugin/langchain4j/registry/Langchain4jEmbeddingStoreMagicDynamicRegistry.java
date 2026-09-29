@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.registry;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Collections;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.Langchain4jModelFactoryRegistry;
@@ -11,6 +12,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resou
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import org.springframework.beans.factory.ObjectProvider;
 import org.ssssssss.magicapi.core.event.FileEvent;
 import org.ssssssss.magicapi.core.event.GroupEvent;
 import org.springframework.context.event.EventListener;
@@ -25,8 +27,9 @@ public class Langchain4jEmbeddingStoreMagicDynamicRegistry
     public Langchain4jEmbeddingStoreMagicDynamicRegistry(Langchain4jEmbeddingStoreMagicResourceStorage storage,
             MagicDynamicLangchain4jEmbeddingStoreDataSource holder,
             MagicDynamicLangchain4jEmbeddingModelDataSource embeddingModels,
-            Langchain4jModelFactoryRegistry factories) {
-        super(storage, holder, factories, Langchain4jModelTypes.EMBEDDING_STORE);
+            Langchain4jModelFactoryRegistry factories,
+            ObjectProvider<EmbeddingStore<TextSegment>> defaultInstance) {
+        super(storage, holder, factories, Langchain4jModelTypes.EMBEDDING_STORE, defaultInstance);
         this.embeddingModels = embeddingModels;
     }
 
@@ -61,9 +64,24 @@ public class Langchain4jEmbeddingStoreMagicDynamicRegistry
         safelyProcess(event);
     }
 
-    /** 本插件无静态默认数据源：实例均来自控制台保存的 datasource；保留 mongo 插件同构语义 */
+    /** 默认实例（Spring 注入，key=default）+ 控制台配置的 datasource，一并暴露给控制台与脚本 */
     @Override
     public List<Langchain4jEmbeddingStoreInfo> defaultMappings() {
-        return Collections.emptyList();
+        List<Langchain4jEmbeddingStoreInfo> result = new ArrayList<>();
+        if (defaultInstance.getIfAvailable() != null) {
+            Langchain4jEmbeddingStoreInfo info = new Langchain4jEmbeddingStoreInfo();
+            info.setKey(AbstractLangchain4jModelMagicDynamicRegistry.DEFAULT_KEY);
+            info.setName("默认数据源");
+            info.setProvider(defaultProvider());
+            info.setEnabled(true);
+            result.add(info);
+        }
+        result.addAll(mappings());
+        return result;
+    }
+
+    @Override
+    protected String defaultProvider() {
+        return "in-memory";
     }
 }

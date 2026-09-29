@@ -1,0 +1,111 @@
+package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.model;
+
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.Langchain4jToolProperties;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.MagicApiToolExecutor;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.MagicApiToolProvider;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.MagicApiToolRegistry;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.MagicToolInvoker;
+import dev.langchain4j.service.tool.ToolProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.DisposableBean;
+import org.ssssssss.magicapi.core.service.MagicResourceService;
+
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * {@code langchain4j-tool-provider} 数据源的实例持有者：按 {@code key} 持有并驱逐多个
+ * {@link MagicApiToolProvider} 实例，每个实例由各自数据源定义的工具范围独立构建。
+ *
+ * <p>同时持有每实例的 {@link MagicApiToolRegistry}，用于在 api/function 资源变更后
+ * 统一失效全部实例的工具快照（{@link #invalidateAll()}）。</p>
+ */
+public class MagicDynamicLangchain4jToolProviderDataSource implements DisposableBean {
+
+	private static final Logger logger = LoggerFactory.getLogger(MagicDynamicLangchain4jToolProviderDataSource.class);
+
+	private final MagicResourceService magicResourceService;
+
+	private final MagicToolInvoker invoker;
+
+	private final Map<String, MagicApiToolProvider> providers = new ConcurrentHashMap<>();
+
+	private final Map<String, MagicApiToolRegistry> registries = new ConcurrentHashMap<>();
+
+	public MagicDynamicLangchain4jToolProviderDataSource(MagicResourceService magicResourceService,
+			MagicToolInvoker invoker) {
+		this.magicResourceService = magicResourceService;
+		this.invoker = invoker;
+	}
+
+	/**
+	 * 按资源定义创建（或重建）一个 ToolProvider 实例。
+	 *
+	 * @param info 资源定义
+	 * @return 创建成功返回 {@code true}
+	 */
+	public boolean create(Langchain4jToolProviderInfo info) {
+		String key = info.getKey();
+		if (key == null || key.trim().isEmpty()) {
+			return false;
+		}
+		try {
+			destroy(key);
+			Langchain4jToolProperties.Tools scope = info.getTools() == null
+					? new Langchain4jToolProperties.Tools() : info.getTools();
+			MagicApiToolRegistry registry = new MagicApiToolRegistry(magicResourceService, scope);
+			MagicApiToolExecutor executor = new MagicApiToolExecutor(registry, invoker);
+			MagicApiToolProvider provider = new MagicApiToolProvider(registry, executor);
+			registries.put(key, registry);
+			providers.put(key, provider);
+			logger.info("注册 LangChain4j ToolProvider: {}", key);
+			return true;
+		} catch (Throwable e) {
+			logger.warn("构建 LangChain4j ToolProvider 失败: key={}", key, e);
+			return false;
+		}
+	}
+
+	/**
+	 * 按 key 销毁实例（连同其注册表）。
+	 */
+	public void destroy(String key) {
+		if (key == null) {
+			return;
+		}
+		registries.remove(key);
+		providers.remove(key);
+	}
+
+	/**
+	 * 按 key 取 ToolProvider，不存在时返回 {@code null}。
+	 */
+	public ToolProvider get(String key) {
+		return key == null ? null : providers.get(key);
+	}
+
+	/**
+	 * 当前已配置的 key 集合（不可修改视图）。
+	 */
+	public Set<String> keys() {
+		return Collections.unmodifiableSet(providers.keySet());
+	}
+
+	/**
+	 * api/function 资源变更后调用：使全部实例的工具快照失效，下次提供时重建。
+	 */
+	public void invalidateAll() {
+		for (MagicApiToolRegistry registry : registries.values()) {
+			registry.invalidateSnapshot();
+		}
+	}
+
+	@Override
+	public void destroy() {
+		registries.clear();
+		providers.clear();
+	}
+}

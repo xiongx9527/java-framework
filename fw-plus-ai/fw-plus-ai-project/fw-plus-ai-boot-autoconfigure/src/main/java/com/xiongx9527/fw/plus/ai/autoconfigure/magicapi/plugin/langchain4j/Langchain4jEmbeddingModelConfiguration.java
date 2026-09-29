@@ -46,8 +46,9 @@ public class Langchain4jEmbeddingModelConfiguration extends AbstractLangchain4jP
     public Langchain4jEmbeddingModelMagicDynamicRegistry langchain4jEmbeddingModelMagicDynamicRegistry(
             Langchain4jEmbeddingModelMagicResourceStorage storage,
             MagicDynamicLangchain4jEmbeddingModelDataSource dataSource,
-            Langchain4jModelFactoryRegistry factories) {
-        return new Langchain4jEmbeddingModelMagicDynamicRegistry(storage, dataSource, factories);
+            Langchain4jModelFactoryRegistry factories,
+            ObjectProvider<EmbeddingModel> defaultInstance) {
+        return new Langchain4jEmbeddingModelMagicDynamicRegistry(storage, dataSource, factories, defaultInstance);
     }
 
     /** 脚本模块：chatModel['key'] 按 key 取实例；不指定 key 时回落到 Spring 默认实例 */

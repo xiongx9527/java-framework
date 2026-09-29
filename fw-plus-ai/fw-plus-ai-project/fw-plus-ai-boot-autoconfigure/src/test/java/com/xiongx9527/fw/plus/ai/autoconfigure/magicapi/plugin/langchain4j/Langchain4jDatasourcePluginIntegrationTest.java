@@ -160,7 +160,8 @@ class Langchain4jDatasourcePluginIntegrationTest {
                             "langchain4j-language-model",
                             "langchain4j-streaming-chat-model",
                             "langchain4j-streaming-language-model",
-                            "langchain4j-tokenizer");
+                            "langchain4j-tokenizer",
+                            "langchain4j-tool-provider");
         });
     }
 
