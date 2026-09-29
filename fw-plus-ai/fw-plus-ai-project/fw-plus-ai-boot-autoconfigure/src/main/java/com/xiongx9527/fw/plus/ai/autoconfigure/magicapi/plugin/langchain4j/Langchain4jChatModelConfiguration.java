@@ -7,12 +7,17 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.registry.Langchain4jChatModelMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resource.Langchain4jChatModelMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.web.Langchain4jDatasourceController;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 
 /** chat-model 数据源的装配：实例持有者、资源存储与动态注册器；并承载连接测试 Controller。 */
+@ConditionalOnClass(name = "dev.langchain4j.model.chat.ChatLanguageModel")
+@ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.chat-model", name = "enabled",
+        havingValue = "true", matchIfMissing = true)
 @Configuration(proxyBeanMethods = false)
 public class Langchain4jChatModelConfiguration extends AbstractLangchain4jPluginConfiguration {
 

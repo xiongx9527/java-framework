@@ -24,6 +24,8 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resou
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resource.Langchain4jTokenizerMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.web.Langchain4jStartupRegistrar;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -189,5 +191,44 @@ class Langchain4jDatasourceConfigurationTest {
                 }
             }
         });
+    }
+
+    @Test
+    void shouldDeclareClassAndPropertyConditionsOnEveryTypeSubConfiguration() {
+        Class<?>[] children = Langchain4jDatasourceConfiguration.class.getAnnotation(Import.class).value();
+        for (Class<?> child : children) {
+            if (child == Langchain4jModelFactoryConfiguration.class) {
+                continue;
+            }
+            assertThat(child.getAnnotation(ConditionalOnClass.class))
+                    .as("%s 应有类型对应的 @ConditionalOnClass", child.getName()).isNotNull();
+            assertThat(child.getAnnotation(ConditionalOnProperty.class))
+                    .as("%s 应有类型对应的 @ConditionalOnProperty", child.getName()).isNotNull();
+        }
+    }
+
+    @Test
+    void shouldSkipDisabledTypeAndKeepOthersAssembled() {
+        new ApplicationContextRunner()
+                .withBean(MagicResourceService.class, () -> mock(MagicResourceService.class))
+                .withUserConfiguration(Langchain4jDatasourceConfiguration.class)
+                .withPropertyValues("fw.plus.magicapi.langchain4j.tokenizer.enabled=false")
+                .run(context -> {
+                    assertThat(context).doesNotHaveBean(Langchain4jTokenizerConfiguration.class);
+                    assertThat(context).doesNotHaveBean(Langchain4jTokenizerMagicDynamicRegistry.class);
+                    assertThat(context).doesNotHaveBean(MagicDynamicLangchain4jTokenizerDataSource.class);
+
+                    assertThat(context).hasSingleBean(Langchain4jChatModelMagicDynamicRegistry.class);
+                    assertThat(context).hasSingleBean(Langchain4jEmbeddingStoreMagicDynamicRegistry.class);
+                });
+    }
+
+    @Test
+    void shouldSkipEverythingWhenPluginRootSwitchDisabled() {
+        new ApplicationContextRunner()
+                .withBean(MagicResourceService.class, () -> mock(MagicResourceService.class))
+                .withUserConfiguration(Langchain4jDatasourceConfiguration.class)
+                .withPropertyValues("fw.plus.magicapi.langchain4j.enabled=false")
+                .run(context -> assertThat(context).doesNotHaveBean(Langchain4jChatModelMagicDynamicRegistry.class));
     }
 }

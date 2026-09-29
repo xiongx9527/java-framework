@@ -22,14 +22,12 @@ import org.ssssssss.magicapi.core.service.MagicResourceService;
  * 前端产物），Controller 由 {@link Langchain4jChatModelConfiguration} 统一承载。</p>
  *
  * <p>生效条件：magic-api starter 在 classpath、{@link MagicResourceService} bean 已注册、
- * {@code fw.plus.magicapi.langchain4j} 未关闭（默认开启）。storage 的 provider 短名表
- * 由已注册工厂的能力探测生成，与 FactoryRegistry 单一事实源一致。</p>
+ * {@code fw.plus.magicapi.langchain4j} 未关闭（默认开启）。七类资源的装配条件（各自的
+ * langchain4j 类与 {@code fw.plus.magicapi.langchain4j.{type}.enabled} 开关）在对应子配置上，
+ * 因此单类型可独立停用而不影响其它类型。</p>
  */
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnClass(name = {
-        "org.ssssssss.magicapi.spring.boot.starter.MagicAPIAutoConfiguration",
-        "dev.langchain4j.model.chat.ChatLanguageModel"
-})
+@ConditionalOnClass(name = "org.ssssssss.magicapi.spring.boot.starter.MagicAPIAutoConfiguration")
 @ConditionalOnBean(MagicResourceService.class)
 @ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j", name = "enabled", havingValue = "true",
         matchIfMissing = true)

@@ -6,7 +6,9 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jEmbeddingStoreDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.registry.Langchain4jEmbeddingStoreMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resource.Langchain4jEmbeddingStoreMagicResourceStorage;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -14,6 +16,9 @@ import org.springframework.context.annotation.Configuration;
  * embedding-store 数据源的装配：实例持有者、资源存储与动态注册器。
  * 注册器额外依赖 embedding-model 持有者，用于按 {@code embeddingModelKey} 取被引用的模型。
  */
+@ConditionalOnClass(name = "dev.langchain4j.store.embedding.EmbeddingStore")
+@ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.embedding-store", name = "enabled",
+        havingValue = "true", matchIfMissing = true)
 @Configuration(proxyBeanMethods = false)
 public class Langchain4jEmbeddingStoreConfiguration extends AbstractLangchain4jPluginConfiguration {
 
