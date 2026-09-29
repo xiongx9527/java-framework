@@ -197,6 +197,8 @@
         <datastax-java-driver.version>4.17.0</datastax-java-driver.version>
         <infinispan.version>13.0.22.Final</infinispan.version>
         <neo4j-java-driver.version>4.4.26</neo4j-java-driver.version>
+        <!--aj-mcp-server版本号-->
+        <aj-mcp-server.version>1.6</aj-mcp-server.version>
         <maven-enforcer-plugin.version>3.4.1</maven-enforcer-plugin.version>
         <exec-maven-plugin.version>3.1.0</exec-maven-plugin.version>
     </properties>
@@ -879,6 +881,11 @@
             </dependency>
             <dependency>
                 <groupId>com.github.xiaoymin</groupId>
+                <artifactId>knife4j-openapi3-webflux-spring-boot-starter</artifactId>
+                <version>${knife4j-openapi3.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.xiaoymin</groupId>
                 <artifactId>knife4j-gateway-spring-boot-starter</artifactId>
                 <version>${knife4j-gateway.version}</version>
             </dependency>
@@ -1256,18 +1263,14 @@
             </dependency>
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-mcp</artifactId>
+                <artifactId>fw-plus-ai-mcp-server</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <!--aj-mcp-server 版本统一管理-->
             <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-model</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-store-embedding</artifactId>
-                <version>${project.version}</version>
+                <groupId>com.ajaxjs</groupId>
+                <artifactId>aj-mcp-server</artifactId>
+                <version>${aj-mcp-server.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
@@ -1302,17 +1305,10 @@
                 <version>${project.version}</version>
             </dependency>
 
-
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-ai-langchain4j-core</artifactId>
                 <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-langchain4j</artifactId>
-                <version>${project.version}</version>
-                <type>pom</type>
             </dependency>
 
             <dependency>
@@ -1396,12 +1392,6 @@
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-langchain4j-adapter</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-ai-langchain4j-reactor</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -1410,6 +1400,12 @@
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-ai-langchain4j-neo4j</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-langchain4j-nebula</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

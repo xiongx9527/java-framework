@@ -22,6 +22,12 @@ public class KnowledgeBaseProperties {
 	/** 每次检索返回的最大条目数。 */
 	private int topK = 3;
 
+	/** 相关度下限：低于此分数的条目不进提示词。知识库兜底返回的无关文档靠它挡掉。 */
+	private double minScore = 0.5;
+
+	/** 元数据过滤条件，如 {@code category=travel}、{@code tag=天气}；空表示不过滤。 */
+	private java.util.Map<String, String> filters = new java.util.LinkedHashMap<>();
+
 	/** 连接超时（毫秒）。 */
 	private int connectTimeoutMillis = 2000;
 
@@ -66,5 +72,21 @@ public class KnowledgeBaseProperties {
 
 	public void setReadTimeoutMillis(int readTimeoutMillis) {
 		this.readTimeoutMillis = readTimeoutMillis;
+	}
+
+	public double getMinScore() {
+		return minScore;
+	}
+
+	public void setMinScore(double minScore) {
+		this.minScore = minScore;
+	}
+
+	public java.util.Map<String, String> getFilters() {
+		return filters;
+	}
+
+	public void setFilters(java.util.Map<String, String> filters) {
+		this.filters = filters;
 	}
 }

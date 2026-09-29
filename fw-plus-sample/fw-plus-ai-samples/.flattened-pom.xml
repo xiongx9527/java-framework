@@ -26,7 +26,6 @@
   <properties>
     <maven.test.skip>true</maven.test.skip>
     <maven.install.skip>true</maven.install.skip>
-    <revision>0.1.1-SNAPSHOT</revision>
     <maven.javadoc.skip>true</maven.javadoc.skip>
     <main.basedir>${basedir}/../..</main.basedir>
     <maven.deploy.skip>true</maven.deploy.skip>
@@ -36,14 +35,14 @@
       <dependency>
         <groupId>com.xiongx9527.fw.plus.boot</groupId>
         <artifactId>fw-plus-boot-dependencies</artifactId>
-        <version>0.1.1-SNAPSHOT</version>
+        <version>${revision}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>com.xiongx9527.fw.plus.ai</groupId>
         <artifactId>fw-plus-ai-boot-dependencies</artifactId>
-        <version>0.1.1-SNAPSHOT</version>
+        <version>${revision}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>

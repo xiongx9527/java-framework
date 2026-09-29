@@ -2,7 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.tools;
 
 import com.ajaxjs.mcp.server.McpServer;
 import com.ajaxjs.mcp.server.feature.FeatureMgr;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime.McpServerRuntime;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.config.MagicApiMcpProperties;
 import org.junit.jupiter.api.Test;
 import org.ssssssss.magicapi.core.event.EventAction;

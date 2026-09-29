@@ -31,12 +31,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-ai-langchain4j-core</artifactId>
-            <version>${revision}</version>
-        </dependency>
-
-        <dependency>
             <groupId>org.infinispan</groupId>
             <artifactId>infinispan-api</artifactId>
         </dependency>
@@ -62,12 +56,10 @@
         </dependency>
 
         <dependency>
-            <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-ai-langchain4j</artifactId>
-            <version>${revision}</version>
-            <type>pom</type>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-core</artifactId>
         </dependency>
 
-</dependencies>
+    </dependencies>
 
 </project>

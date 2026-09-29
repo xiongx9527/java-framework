@@ -1,6 +1,6 @@
 package com.xiongx9527.fw.plus.ai.sample.chat;
 
-import com.xiongx9527.fw.plus.ai.sample.chat.ai.Assistant;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.Assistant;
 import com.xiongx9527.fw.plus.ai.sample.chat.ai.WeatherTools;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,11 +10,11 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Consumer;
 
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -32,6 +32,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 class ChatControllerTest {
 
+	/** sessionId 缺失/空白时的兜底值，与 LangChain4j {@code AiServices.DEFAULT} 语义一致。 */
+	private static final String DEFAULT_SESSION_ID = "default";
+
 	@Autowired
 	private MockMvc mockMvc;
 
@@ -43,7 +46,7 @@ class ChatControllerTest {
 
 	@Test
 	void chatReturnsReplyAndToolCalls() throws Exception {
-		when(assistant.chat(anyString())).thenReturn("杭州夏天更凉快一些。");
+		when(assistant.chat(anyString(), eq(""), anyString())).thenReturn("杭州夏天更凉快一些。");
 
 		mockMvc.perform(post("/api/chat")
 						.contentType(MediaType.APPLICATION_JSON)
@@ -62,10 +65,69 @@ class ChatControllerTest {
 	}
 
 	@Test
-	void streamEmitsTokenAndDoneEvents() throws Exception {
-		when(assistant.stream(anyString())).thenAnswer(invocation -> new FakeTokenStream().complete());
+	void chatPassesSessionIdFromRequestBody() throws Exception {
+		when(assistant.chat("s-1", "", "杭州天气怎么样")).thenReturn("正在查。");
 
-		mockMvc.perform(get("/api/chat/stream").param("message", "用一句话介绍杭州"))
+		mockMvc.perform(post("/api/chat")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"message\":\"杭州天气怎么样\",\"sessionId\":\"s-1\"}"))
+				.andExpect(status().isOk());
+
+		verify(assistant).chat("s-1", "", "杭州天气怎么样");
+	}
+
+	@Test
+	void chatFallsBackToDefaultWhenSessionIdAbsent() throws Exception {
+		mockMvc.perform(post("/api/chat")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"message\":\"杭州天气怎么样\"}"))
+				.andExpect(status().isOk());
+
+		verify(assistant).chat(DEFAULT_SESSION_ID, "", "杭州天气怎么样");
+	}
+
+	@Test
+	void chatFallsBackToDefaultWhenSessionIdBlank() throws Exception {
+		mockMvc.perform(post("/api/chat")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"message\":\"杭州天气怎么样\",\"sessionId\":\"   \"}"))
+				.andExpect(status().isOk());
+
+		verify(assistant).chat(DEFAULT_SESSION_ID, "", "杭州天气怎么样");
+	}
+
+	@Test
+	void streamPassesSessionIdFromQueryParam() throws Exception {
+		when(assistant.stream("s-2", "", "用一句话介绍杭州")).thenAnswer(invocation -> new FakeTokenStream().complete());
+
+		mockMvc.perform(post("/api/chat/stream")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"message\":\"用一句话介绍杭州\",\"sessionId\":\"s-2\"}"))
+				.andExpect(status().isOk());
+
+		verify(assistant).stream("s-2", "", "用一句话介绍杭州");
+	}
+
+	@Test
+	void streamFallsBackToDefaultWhenSessionIdAbsent() throws Exception {
+		when(assistant.stream(DEFAULT_SESSION_ID, "", "用一句话介绍杭州"))
+				.thenAnswer(invocation -> new FakeTokenStream().complete());
+
+		mockMvc.perform(post("/api/chat/stream")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"message\":\"用一句话介绍杭州\"}"))
+				.andExpect(status().isOk());
+
+		verify(assistant).stream(DEFAULT_SESSION_ID, "", "用一句话介绍杭州");
+	}
+
+	@Test
+	void streamEmitsTokenAndDoneEvents() throws Exception {
+		when(assistant.stream(anyString(), eq(""), anyString())).thenAnswer(invocation -> new FakeTokenStream().complete());
+
+		mockMvc.perform(post("/api/chat/stream")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"message\":\"用一句话介绍杭州\"}"))
 				.andExpect(status().isOk())
 				.andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM));
 	}
@@ -81,13 +143,13 @@ class ChatControllerTest {
 
 	/**
 	 * 可编程的 TokenStream 替身：在 start() 时依次触发已注册的回调。
-	 * 抽象方法必须全部实现：onPartialResponse / onRetrieved / onToolExecuted /
-	 * onCompleteResponse / onError / ignoreErrors，其余为 default。
+	 * 抽象方法必须全部实现：onRetrieved /
+	 * onNext / onComplete / onError / ignoreErrors，其余为 default。
 	 */
 	private static class FakeTokenStream implements dev.langchain4j.service.TokenStream {
 
 		private Consumer<String> partialHandler;
-		private Consumer<dev.langchain4j.model.chat.response.ChatResponse> completeHandler;
+		private Consumer<dev.langchain4j.model.output.Response<dev.langchain4j.data.message.AiMessage>> completeHandler;
 		private boolean completed = false;
 
 		FakeTokenStream complete() {
@@ -96,7 +158,7 @@ class ChatControllerTest {
 		}
 
 		@Override
-		public dev.langchain4j.service.TokenStream onPartialResponse(Consumer<String> handler) {
+		public dev.langchain4j.service.TokenStream onNext(Consumer<String> handler) {
 			partialHandler = handler;
 			return this;
 		}
@@ -107,15 +169,10 @@ class ChatControllerTest {
 			return this;
 		}
 
-		@Override
-		public dev.langchain4j.service.TokenStream onToolExecuted(
-				Consumer<dev.langchain4j.service.tool.ToolExecution> handler) {
-			return this;
-		}
 
 		@Override
-		public dev.langchain4j.service.TokenStream onCompleteResponse(
-				Consumer<dev.langchain4j.model.chat.response.ChatResponse> handler) {
+		public dev.langchain4j.service.TokenStream onComplete(
+				Consumer<dev.langchain4j.model.output.Response<dev.langchain4j.data.message.AiMessage>> handler) {
 			completeHandler = handler;
 			return this;
 		}

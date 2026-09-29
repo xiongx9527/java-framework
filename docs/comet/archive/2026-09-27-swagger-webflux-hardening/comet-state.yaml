@@ -1,0 +1,255 @@
+schema: comet.native.v4
+name: swagger-webflux-hardening
+language: zh-CN
+phase: archive
+status: done
+state_version: 10
+brief: brief.md
+shape_confirmation_hash: 892e9f38b0bb0153841d91f38eafb5339a62ef4fb5d8cca5466856abc390f75f
+spec_changes:
+  - capability: magicapi-plugin-swagger
+    operation: modify
+    source: specs/magicapi-plugin-swagger/spec.md
+workspace:
+  isolation: worktree
+  change_branch: comet/swagger-webflux-hardening
+  target_branch: dev
+  finish: merge
+loop:
+  stage: done
+  goal_cycle: 1
+  iteration: 1
+  attempt: 1
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: null
+acceptance:
+  - id: A1
+    source: brief.md
+    text: A1（H1）：reactive 应用启动后 `GET /doc.html` 返回 200（或框架定义的 3xx 重定向到
+      UI），WebTestClient 断言，非类路径资源断言。
+    result: passed
+    reason:
+      text: MagicSwaggerWebFluxTest:168-176 servesKnife4jDocHtmlInReactiveApplication
+        为应用上下文级 WebTestClient 真实 HTTP 断言（GET /doc.html → 200，经资源 WebHandler 服务
+        knife4j-openapi3-ui 的 META-INF/resources/doc.html），非类路径断言；Runtime 契约回执
+        MagicSwaggerWebFluxTest 12/12、总 15/15、BUILD SUCCESS。
+      truncated: false
+  - id: A2
+    source: brief.md
+    text: A2（H2）：单测以固定 `ApiInfo`（如 path `/demo/hello`、method GET）经
+      `MagicApiRegistryView` 供给，断言 `swaggerJson().getPaths()` 含 `prefix +
+      groupPath + /demo/hello` 形态的键、`basePath` 为 contextPath、无 `/magic-api/web`
+      前缀。
+    result: passed
+    reason:
+      text: SwaggerEndpointSupportTest:35-48 以固定
+        ApiInfo（path=/hello、groupPath=demo）经函数式 MagicApiRegistryView 供给，断言 paths
+        hasSize(1)、键
+        endsWith(/demo/hello)、doesNotContain(/magic-api/web)、basePath 为空，与
+        SwaggerProvider:80 的路径构造逻辑精确对应，直接覆盖 spec「paths 包含已注册接口且无 base 前缀」场景。
+      truncated: false
+  - id: A3
+    source: brief.md
+    text: A3（H3）：两条支线的配置类在对应 runner 下均产生 `magicSwaggerUiConfigProperties` 与
+      `magicSwaggerUiConfigParameters` bean；`getConfigParameters()` 的 `urls` 含
+      `magic-api.swagger.name` 分组且指向 `magic-api.swagger.location`；servlet
+      侧既有契约不回归（端点路径/内容/时机不变）。
+    result: passed
+    reason:
+      text: 两配置类对称移除 import 与
+        @ConditionalOnMissingBean(SwaggerUiConfigParameters.class)（类型矛盾确认）；SwaggerEndpointSupportTest:50-69
+        以 WebApplicationContextRunner/ReactiveWebApplicationContextRunner 双栈断言两个
+        UI bean 存在且 getConfigParameters urls 含 magic-api.swagger.name 分组指向
+        location；servlet 端点注册/内容/时机代码零改动，magicapi 全包 397/397 无回归，H3 的 servlet
+        行为变化已在 Shape 确认。
+      truncated: false
+builder_handoff:
+  candidate_id: 1b3c80d5-776f-4ce4-8bb0-6b72ed994602
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:6fc18f3a-4f24-47d2-b838-38d2e3b08787
+  iteration: 1
+  summary:
+    text: 完成三项加固：H1 /doc.html 端到端断言——MagicSwaggerWebFluxTest 新增
+      servesKnife4jDocHtmlInReactiveApplication（WebTestClient GET /doc.html →
+      200，经 Boot 默认资源链路从 knife4j-openapi3-ui 的 META-INF/resources/doc.html
+      服务）；H2 文档 paths 反映已注册接口——新增
+      SwaggerEndpointSupportTest.documentContainsRegisteredApiPathWithoutBasePrefix（mock
+      MagicApiRegistryView 提供固定 ApiInfo，断言 swaggerJson 输出的 paths 含 /demo/hello
+      形态键、basePath 为空、无 /magic-api/web 前缀，覆盖既有 spec 场景「paths 包含当前 magic-api
+      已注册接口」）；H3 修正 @ConditionalOnMissingBean 怪癖——MagicSwaggerConfiguration 与
+      MagicSwaggerWebFluxConfiguration 的 magicSwaggerUiConfigProperties 移除类型矛盾的
+      @ConditionalOnMissingBean(SwaggerUiConfigParameters.class)（条件检查的类型与方法入参
+      SwaggerUiConfigProperties 矛盾，行为依赖 bean 注册顺序），两条支线 UI 配置 bean
+      改为确定性创建，@Primary 语义不变；SwaggerEndpointSupportTest 另含
+      servletUiConfigBeansAreInjectedDeterministically 与
+      webfluxUiConfigBeansAreInjectedDeterministically 两个双栈行为测试（断言两个 UI bean 存在且
+      getConfigParameters 的 urls 含 magic-api.swagger.name 分组指向 location）。
+    truncated: false
+  addressed_acceptance_ids:
+    - A1
+    - A2
+    - A3
+  checks:
+    - name:
+        text: mvn test
+          -Dtest=MagicSwaggerWebFluxTest,SwaggerEndpointSupportTest（fw-plus-boot-autoconfigure，-nsu）
+        truncated: false
+      result: passed
+      note:
+        text: 15/15：12 项 webflux 契约（含新增 /doc.html 200）+ 3 项栈无关核心（paths 断言 +
+          servlet/webflux UI 确定性）
+        truncated: false
+    - name:
+        text: mvn test
+          -Dtest=com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.**.*Test（fw-plus-boot-autoconfigure，-nsu）
+        truncated: false
+      result: passed
+      note:
+        text: 397/397：较上轮 393 新增 4 项（3 项 SwaggerEndpointSupportTest + 1 项
+          /doc.html），既有回归无破坏
+        truncated: false
+    - name:
+        text: mvn test（fw-plus-magicapi-plugin-swagger，-nsu）
+        truncated: false
+      result: passed
+      note:
+        text: 1/1：MagicApiSwaggerFrontendClasspathTest
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: H3 是有意改变的 servlet 行为（已在 Shape 确认）：UI 配置 bean 由顺序依赖变为确定性创建；端点行为不变，magicapi
+        全包 397/397 无回归
+      truncated: false
+    - text: H1 的 /doc.html 依赖 Boot 默认资源链路服务 classpath:/META-INF/resources/doc.html；未引入
+        springdoc webflux UI 自动配置（Verifier 备选建议），若后续需要覆盖 UI 自动配置在场时的行为再补
+      truncated: false
+    - text: H2 覆盖共享层（SwaggerProvider/SwaggerEndpointSupport），两条支线复用同一实现；未在容器内注册真实
+        ApiInfo
+      truncated: false
+    - text: 正式检查前需保证 ~/.m2 含带 knife4j webflux 条目的 core BOM（已安装）；根聚合器构建带 -nsu 防远程旧快照覆盖
+      truncated: false
+  known_limits_truncated: false
+  review: null
+  submitted_at: 2026-09-27T10:21:26.044Z
+blockers: []
+verification:
+  candidate_id: 1b3c80d5-776f-4ce4-8bb0-6b72ed994602
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:26da9521-bfc2-4873-838a-654eb736e707
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: swagger-hardening-contract-tests
+      name:
+        text: 加固契约测试（MagicSwaggerWebFluxTest + SwaggerEndpointSupportTest）
+        truncated: false
+      argv_display:
+        - text: -f
+          truncated: false
+        - text: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/pom.xml
+          truncated: false
+        - text: test
+          truncated: false
+        - text: -Dtest=MagicSwaggerWebFluxTest,SwaggerEndpointSupportTest
+          truncated: false
+        - text: -DfailIfNoTests=false
+          truncated: false
+        - text: -nsu
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 18965
+    - id: magicapi-package-regression
+      name:
+        text: magicapi 全包回归测试
+        truncated: false
+      argv_display:
+        - text: -f
+          truncated: false
+        - text: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/pom.xml
+          truncated: false
+        - text: test
+          truncated: false
+        - text: -Dtest=com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.**.*Test
+          truncated: false
+        - text: -DfailIfNoTests=false
+          truncated: false
+        - text: -nsu
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 90781
+    - id: swagger-plugin-module-tests
+      name:
+        text: swagger 插件模块测试
+        truncated: false
+      argv_display:
+        - text: -f
+          truncated: false
+        - text: fw-plus-boot/pom.xml
+          truncated: false
+        - text: test
+          truncated: false
+        - text: -pl
+          truncated: false
+        - text: fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-swagger
+          truncated: false
+        - text: -DfailIfNoTests=false
+          truncated: false
+        - text: -nsu
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 7359
+  summary:
+    text: 三项加固全部落地且证据链闭环：H1 升级为 WebTestClient HTTP 断言、H2 共享层 paths 断言精确对应 spec 场景、H3
+      双栈对称移除类型矛盾条件注解。Runtime 三项检查全部 BUILD
+      SUCCESS（15/15、397/397、1/1），回执时间戳晚于源码最后改动，版本对应；diff 无夹带。
+    truncated: false
+  risks:
+    - text: A2 键断言用 endsWith 而非 equals（hasSize(1) 且 prefix 为空实际等价，略宽松）
+      truncated: false
+    - text: servlet 侧文档端点无专属单测，不回归依赖 diff 零改动与全包回归间接证明
+      truncated: false
+    - text: H1 未覆盖 springdoc webflux UI 自动配置在场时的 /doc.html 行为（已记录 known limit）
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-09-27T10:27:33.433Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: 三项加固全部落地且证据链闭环：H1 升级为 WebTestClient HTTP 断言、H2 共享层 paths 断言精确对应 spec 场景、H3
+        双栈对称移除类型矛盾条件注解。Runtime 三项检查全部 BUILD
+        SUCCESS（15/15、397/397、1/1），回执时间戳晚于源码最后改动，版本对应；diff 无夹带。
+      truncated: false
+    completed_at: 2026-09-27T10:27:33.433Z
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pass
+verification_report: verification.md
+archived: true
+created_at: 2026-09-27T10:07:35.414Z

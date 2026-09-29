@@ -1,65 +1,28 @@
 # fw-plus-ai
 
-## 中立 AI adapter 破坏性迁移
+## 当前能力
 
-本发布线删除旧 LangChain4j model/store 坐标，不保留 POM 别名或旧配置前缀。`fw-plus-ai-model` 与 `fw-plus-ai-store-embedding` 是 Java 8 中立 API；LangChain4j 由核心 adapter 提供，Boot 自动配置由 `fw-plus-ai-boot-autoconfigure` 按 classpath 条件加载。
+本发布线只保留 LangChain4j Java 8 兼容覆盖模块与 Boot 自动配置：
 
-| 已删除坐标 | 替代坐标 | 说明 |
-| --- | --- | --- |
-| `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-model` | `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter` | 统一的模型与向量实现层 |
-| `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-store-embeding` | `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter` | 注意旧 artifact 的 `embeding` 拼写 |
-| `com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-model-spring-boot-starter` | `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter` | 统一 LangChain4j 核心适配 |
-| `com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-store-embeding-spring-boot-starter` | `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter` | 统一 LangChain4j 核心适配 |
+- `fw-plus-ai-langchain4j`、`fw-plus-ai-langchain4j-*`：LangChain4j `0.35.0` 的 Java 8 兼容 provider 覆盖模块，保持与上游相同的 `dev.langchain4j.*` 包名与类名。
+- `fw-plus-ai-boot-autoconfigure`：按 classpath 条件装配 provider 自动配置（总开关 `fw.plus.ai.langchain4j.enabled`），并提供 MCP 服务端、MCP 集群与 Magic-API MCP 插件能力。
+- `fw-plus-ai-magicapi-plugin-mcp`：Magic-API MCP 插件。
+- 聚合入口：`fw-plus-ai-boot-starter`、`fw-plus-ai-mcp-server-spring-boot-starter`。
 
-```xml
-<dependency>
-    <groupId>com.xiongx9527.fw.plus</groupId>
-    <artifactId>fw-plus-ai-langchain4j-adapter</artifactId>
-    <version>${fw-plus-ai.version}</version>
-</dependency>
-```
+各 provider 自动配置的条件与属性以 `fw-plus-ai-boot-autoconfigure` 中 `LangChain4j*AutoConfiguration` 源码为准。
 
-中立 starter `fw-plus-ai-model-spring-boot-starter` 与 `fw-plus-ai-store-embedding-spring-boot-starter` 仍可按需引入，但它们不会传递 LangChain4j 或任何 provider SDK。选择 OpenAI、Ollama、Qdrant 等 provider 时，应用仍需显式声明相应 SDK。
+## 已移除
 
-## 中立配置与自动发现
+以下构件与对应能力已从本工程删除，不保留 POM 别名、旧配置前缀或兼容兜底：
 
-删除 `fw-plus.ai.langchain4j.model` 和 `fw-plus.ai.langchain4j.embedding-store`。使用 `fw-plus.ai.model`、`fw-plus.ai.embedding-store`；单一可支持 adapter 时可省略 `framework`，安装多个 adapter 后每一个定义都必须写明 framework。
+| 已删除坐标 | 原用途 |
+| --- | --- |
+| `fw-plus-ai-model` | 中立模型 API（`AiModel` / `AiChatModel` / `AiEmbeddingModel` 等） |
+| `fw-plus-ai-store-embedding` | 中立向量存储 API（`AiEmbeddingStore` 等） |
+| `fw-plus-ai-langchain4j-adapter` | 中立 SPI 的 LangChain4j 适配层 |
+| `fw-plus-ai-model-spring-boot-starter`、`fw-plus-ai-store-embedding-spring-boot-starter` | 中立 API 的 Boot starter |
+| `fw-plus-ai-magicapi-plugin-model`、`fw-plus-ai-magicapi-plugin-vector` | Magic-API model / vector 数据源插件 |
 
-```yaml
-fw-plus:
-  ai:
-    model:
-      enabled: true
-      default-model: knowledge-chat
-      models:
-        knowledge-chat:
-          framework: langchain4j
-          provider: openai
-          type: CHAT
-          enabled: true
-          properties:
-            base-url: http://localhost:11434/v1
-            api-key: ${AI_API_KEY}
-            model-name: gpt-4o-mini
-    embedding-store:
-      enabled: true
-      default-store: knowledge
-      stores:
-        knowledge:
-          framework: langchain4j
-          provider: qdrant
-          type: VECTOR
-          enabled: true
-          properties:
-            host: localhost
-            port: 6334
-```
+随同移除的还有中立配置前缀 `fw-plus.ai.model` / `fw-plus.ai.embedding-store`、`autoconfigure.model`、`autoconfigure.store.embedding`、`autoconfigure.langchain4j.adapter`、`autoconfigure.magicapi.plugin.model`、`autoconfigure.magicapi.plugin.vector` 等包与相关自动配置。需要直接使用 LangChain4j 时，请按所选 provider 引入对应 SDK，并依赖 `fw-plus-ai-boot-autoconfigure` 完成装配。
 
-选择规则对模型和向量 store 一致：显式 `framework` 只匹配同名 adapter；省略时仅一个支持该 provider/type 的 adapter 才能自动选择；零个或多个候选都失败。诊断包含 key、framework、provider、type 与候选 framework，不得包含 apiKey、token、secret 或完整连接串。
-
-## Magic-API
-
-`model['knowledge-chat']`、`vector['knowledge']` 和默认 key 的语义保持稳定。资源定义也可给出 `framework`，并遵循同一选择规则；脚本只得到中立 facade，不能取得 `LangChain4jModel` 或 `EmbeddingStore<TextSegment>`。SDK 专有调用应留在 Java adapter/业务层。
-
-
-完整迁移、回滚限制、诊断与 Java 17 / Boot 3 蓝图见 [迁移总览](../docs/ai-framework-migration/overview.md)。
+Spring AI、Spring AI Alibaba、AgentScope 2 等适配是后续 Java 17 / Spring Boot 3 工作，不是本发布线构件。

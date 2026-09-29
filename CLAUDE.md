@@ -45,7 +45,7 @@ fw-plus/                      # 根目录（聚合项目，根 pom.xml 聚合下
 │   │   ├── fw-plus-magicapi/     # Magic-API 扩展（Mongo, Redis, ES, Nebula 等）
 │   │   ├── fw-plus-ai/           # AI 基础模块
 │   │   │   ├── fw-plus-ai-base/       # AI 基础（向量存储、向量数据库客户端等）
-│   │   │   └── fw-plus-ai-mcp/        # MCP 协议支持
+│   │   │   └── fw-plus-ai-mcp-server/        # MCP 协议支持
 │   │   ├── fw-plus-template/     # 模板引擎：Freemarker, docx4j, OpenPDF, FO
 │   │   ├── fw-plus-poi/          # EasyPoi 扩展
 │   │   │   └── fw-plus-poi-easypoi/   # EasyPoi Excel/Word 操作
@@ -131,8 +131,6 @@ fw-plus/                      # 根目录（聚合项目，根 pom.xml 聚合下
 │   │   ├── fw-plus-ai-boot-parent/        # AI 层父 POM
 │   │   └── fw-plus-ai-boot-starters/      # AI Starter
 │   │       ├── fw-plus-ai-boot-starter/                           # 通用 AI Starter（aggregator）
-│   │       ├── fw-plus-ai-langchain4j-spring-boot-starter/        # LangChain4j 集成
-│   │       ├── fw-plus-ai-langchain4j-open-ai-spring-boot-starter/ # LangChain4j OpenAI
 │   │       └── fw-plus-ai-magicapi-plugin/                        # Magic-API AI 插件（4 个）
 │   │           ├── fw-plus-ai-magicapi-plugin-langchain4j/ # LangChain4j 插件
 │   │           ├── fw-plus-ai-magicapi-plugin-milvus/      # Milvus 向量数据库
@@ -416,7 +414,7 @@ cd fw-plus-core && ./mvnw clean install -pl fw-plus-project/fw-plus-common -Dski
 
 **版本管理**：`fw-plus-core`、`fw-plus-boot`、`fw-plus-cloud`、`fw-plus-ai` 四个库层使用 `${revision}` 属性（当前值 `0.1.1-SNAPSHOT`）+ `flatten-maven-plugin` 解析版本占位符；`fw-plus-sample` 聚合器固定使用 `0.1.1-SNAPSHOT`，不使用 flatten。
 
-内部 Nexus 地址：`http://172.17.1.6:28081`，同时依赖 Jeecg 官方仓库（`https://maven.jeecg.org`）。
+依赖 Jeecg 官方仓库（`https://maven.jeecg.org`）。
 
 ## 前端控制台构建
 

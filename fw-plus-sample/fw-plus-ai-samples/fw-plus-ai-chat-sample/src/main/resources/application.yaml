@@ -6,37 +6,80 @@ spring:
     name: fw-plus-ai-chat-sample
   autoconfigure:
     # 样例只验证 LangChain4j 对话能力，需排除经 fw-plus-ai-boot-starter 传递引入、但样例用不到的自动配置：
-    # 1) Magic-API：插件装配依赖使用方按需引入的 magic-api core
+    # 1) Magic-API：插件装配依赖使用方按需引入的 magic-api core（AI 层 Base 与 Boot 层 config 插件门面）
     # 2) MCP：其路由注册器要求容器内唯一 RequestMappingHandlerMapping，而 actuator 会提供第二个，与本样例无关
     exclude:
+      # AI 层 Magic-API 装配与 MCP 装配与对话样例无关
       - com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration
-      - com.xiongx9527.fw.plus.ai.autoconfigure.mcp.McpAutoConfiguration
+      - com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.McpAutoConfiguration
+      # Boot 层 config 插件门面要求 magic-api core（样例不引入）
+      - com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.config.starter.MagicApiConfPluginAutoConfiguration
 
 langchain4j:
   ollama:
-    # 由 dev.langchain4j.ollama.spring.AutoConfig 提供 OllamaChatModel Bean
+    # 同步链路：走 Ollama 原生协议（/api/chat），模型 Bean 由样例自建以便挂 ChatModelListener
     chat-model:
       base-url: http://localhost:11434
-      model-name: qwen2.5:7b
+      model-name: gemma4:31b-cloud
       temperature: 0.3
-    # 提供 OllamaStreamingChatModel Bean，供 SSE 流式使用
+      # 打印发给 Ollama 的原始请求体/响应体（完整 messages JSON）。
+      # ChatContextLogger 已按类型拆开打印上下文，这里默认关闭，需要看原始报文时再打开
+      log-requests: false
+      log-responses: false
+  # 流式链路（SSE）用的是 OpenAI 集成（指向 Ollama 的 OpenAI 兼容端点），所以配置挂在 open-ai 下：
+  # 键名与框架侧 dev.langchain4j.openai.spring.ChatModelProperties 一致。
+  # base-url 需要 /v1（OpenAI 客户端会拼成 /v1/chat/completions），不写也会自动补。
+  # 为什么不用 langchain4j.ollama：0.35.0 的 OllamaStreamingChatModel 没有「带工具」的重载，
+  # 调用会抛 Tools are currently not supported by this model；OpenAI 集成实现了该重载。
+  # api-key 由 Ollama 侧忽略，但 OpenAI builder 要求非空，填占位值即可。
+  open-ai:
     streaming-chat-model:
-      base-url: http://localhost:11434
-      model-name: qwen2.5:7b
+      base-url: http://localhost:11434/v1
+      api-key: ollama
+      model-name: gemma4:31b-cloud
       temperature: 0.3
+      log-requests: false
+      log-responses: false
 
 fw:
   plus:
+    ai:
+      langchain4j:
+        ollama:
+          # 必须为 false：模型 Bean 由 ChatAssistantConfig 自建（为了挂 ChatModelListener）。
+          # 开着的话框架侧 AutoConfig 也会产出一个 ChatLanguageModel，assistant() 按类型注入会歧义
+          enabled: false
+        open-ai:
+          # 同上：流式模型也由样例自建（挂 ChatModelListener），关掉框架侧的 OpenAI 装配避免同类型多个 Bean
+          enabled: false
     sample:
       chat:
         knowledge-base:
           # 留空 = 不启用知识库，样例退化为纯对话（保证开箱可跑）
           # 填写形如 http://localhost:8081 后，将启用自定义 ContentRetriever 调用远程知识库接口
-          base-url:
+          base-url: http://127.0.0.1:8080
           # 检索路径，默认 /api/search
           search-path: /api/search
           # 每次检索返回的最大条目数
           top-k: 3
+          # 相关度下限：低于此分数的条目不进提示词（知识库兜底返回的无关文档靠它挡掉）
+          min-score: 0.5
+          # 元数据过滤条件，等价于 SQL where；空表示不过滤
+          # category = guide | sight；tags 支持 出行/避暑/防晒；keywords 同 tags
+          filters:
+            category: sight
           # 连接/读取超时（毫秒）
           connect-timeout-millis: 2000
           read-timeout-millis: 5000
+
+logging:
+  level:
+    # 模型上下文日志：系统提示词 / RAG 注入 / 工具清单 / tool_call / tool_response
+    com.xiongx9527.fw.plus.ai.sample.chat.ai.ChatContextLogger: INFO
+    # 天气工具执行日志（模型不调工具时不会打印，属正常）
+    com.xiongx9527.fw.plus.ai.sample.chat.ai.WeatherTools: INFO
+    # Controller 与装配过程
+    com.xiongx9527.fw.plus.ai.sample.chat.web.ChatController: INFO
+    # 原始 HTTP 报文：仅当上面的 log-requests / log-responses 置 true 后才有输出
+    dev.langchain4j.model.ollama.OllamaRequestLoggingInterceptor: DEBUG
+    dev.langchain4j.model.ollama.OllamaResponseLoggingInterceptor: DEBUG

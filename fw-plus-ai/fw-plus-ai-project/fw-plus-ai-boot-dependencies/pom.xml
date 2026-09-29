@@ -110,47 +110,13 @@
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.ai</groupId>
-                <artifactId>fw-plus-ai-model-spring-boot-starter</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus.ai</groupId>
-                <artifactId>fw-plus-ai-store-embedding-spring-boot-starter</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus.ai</groupId>
-                <artifactId>fw-plus-ai-magicapi-plugin-vector</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus.ai</groupId>
-                <artifactId>fw-plus-ai-magicapi-plugin-model</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus.ai</groupId>
-                <artifactId>fw-plus-ai-mcp-spring-boot-starter</artifactId>
+                <artifactId>fw-plus-ai-mcp-server-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-ai-langchain4j</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-langchain4j-core</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-langchain4j-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

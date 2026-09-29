@@ -1,0 +1,9 @@
+{
+  "openspec_proposal": "docs/openspec/changes/langchain4j-magicapi-model-plugins/proposal.md",
+  "openspec_design": "docs/openspec/changes/langchain4j-magicapi-model-plugins/design.md",
+  "openspec_tasks": "docs/openspec/changes/langchain4j-magicapi-model-plugins/tasks.md",
+  "openspec_delta_spec": "docs/openspec/changes/langchain4j-magicapi-model-plugins/specs/langchain4j-model-datasource-plugins/spec.md",
+  "handoff_context": "docs/openspec/changes/archive/2026-09-29-langchain4j-magicapi-model-plugins/.comet/handoff/design-context.json",
+  "handoff_markdown": "docs/openspec/changes/archive/2026-09-29-langchain4j-magicapi-model-plugins/.comet/handoff/design-context.md",
+  "archive_directory": "docs/openspec/changes/archive/2026-09-29-langchain4j-magicapi-model-plugins"
+}

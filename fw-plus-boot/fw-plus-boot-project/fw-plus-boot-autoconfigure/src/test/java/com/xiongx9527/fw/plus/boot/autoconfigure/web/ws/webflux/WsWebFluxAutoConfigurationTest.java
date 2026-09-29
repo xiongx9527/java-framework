@@ -29,6 +29,7 @@ class WsWebFluxAutoConfigurationTest {
 	@Test
 	void reactiveApplicationShouldRegisterReactiveHandlerOnConfiguredPath() {
 		new ReactiveWebApplicationContextRunner()
+				.withPropertyValues("fw.plus.ws.enabled=true")
 				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
 				.withPropertyValues("fw.plus.ws.enabled=true")
 				.withPropertyValues(
@@ -44,6 +45,7 @@ class WsWebFluxAutoConfigurationTest {
 	@Test
 	void reactiveEndpointShouldRespectBasePathProvider() {
 		new ReactiveWebApplicationContextRunner()
+				.withPropertyValues("fw.plus.ws.enabled=true")
 				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
 				.withPropertyValues("fw.plus.ws.enabled=true")
 				.withUserConfiguration(BasePathConfiguration.class)
@@ -59,6 +61,7 @@ class WsWebFluxAutoConfigurationTest {
 	@Test
 	void reactiveApplicationShouldExpandEveryPathAgainstEveryBasePath() {
 		new ReactiveWebApplicationContextRunner()
+				.withPropertyValues("fw.plus.ws.enabled=true")
 				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
 				.withPropertyValues("fw.plus.ws.enabled=true")
 				.withUserConfiguration(MultiBasePathConfiguration.class)
@@ -79,6 +82,7 @@ class WsWebFluxAutoConfigurationTest {
 	@Test
 	void reactiveBlankPrimaryPathShouldFollowBasePathOnly() {
 		new ReactiveWebApplicationContextRunner()
+				.withPropertyValues("fw.plus.ws.enabled=true")
 				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
 				.withPropertyValues("fw.plus.ws.enabled=true")
 				.withUserConfiguration(BasePathConfiguration.class)
@@ -94,6 +98,7 @@ class WsWebFluxAutoConfigurationTest {
 	@Test
 	void hostSuppliedMappingShouldCoexistWithFoundationMapping() {
 		new ReactiveWebApplicationContextRunner()
+				.withPropertyValues("fw.plus.ws.enabled=true")
 				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
 				.withPropertyValues("fw.plus.ws.enabled=true")
 				.withUserConfiguration(BasePathConfiguration.class, HostMappingConfiguration.class)
@@ -114,6 +119,7 @@ class WsWebFluxAutoConfigurationTest {
 	@Test
 	void reactiveEndpointShouldBeAbsentWhenFeatureDisabled() {
 		new ReactiveWebApplicationContextRunner()
+				.withPropertyValues("fw.plus.ws.enabled=true")
 				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
 				.withPropertyValues("fw.plus.ws.enabled=true")
 				.withPropertyValues(

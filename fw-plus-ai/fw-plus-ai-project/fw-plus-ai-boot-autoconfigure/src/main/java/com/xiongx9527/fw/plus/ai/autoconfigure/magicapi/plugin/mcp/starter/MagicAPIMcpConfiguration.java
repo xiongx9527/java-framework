@@ -1,13 +1,13 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.starter;
 
 import com.ajaxjs.mcp.server.McpServer;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpAuthService;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.cluster.McpRedisBroadcaster;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpRuntimeFactory;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerFactory;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web.webflux.McpFluxRouteRegistry;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web.webmvc.McpRoutingRegistrar;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.McpAuthService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.cluster.McpRedisBroadcaster;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime.McpRuntimeFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime.McpServerFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime.McpServerRuntime;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.web.webflux.McpFluxRouteRegistry;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.web.webmvc.McpRoutingRegistrar;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.config.MagicApiMcpProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.model.MagicDynamicMcpServer;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.notify.MagicMcpNotifier;

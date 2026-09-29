@@ -1,13 +1,11 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger;
 
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.entity.SwaggerEntity;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.entity.SwaggerProvider;
 import io.swagger.v3.oas.models.OpenAPI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springdoc.core.*;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -29,7 +27,6 @@ import org.ssssssss.magicapi.utils.Mapping;
 
 import javax.servlet.ServletContext;
 import java.lang.reflect.Method;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -112,11 +109,9 @@ public class MagicSwaggerConfiguration implements MagicPluginConfiguration {
 		}
 
 		try {
-			// 获取端点路径
-			String location = swaggerConfig.getLocation();
-			if (location == null || location.isEmpty()) {
-				location = "/v2/api-docs/magic-api/swagger2.json";
-			}
+			// 获取端点路径（与 webflux 支线共享解析逻辑）
+			SwaggerEndpointSupport support = new SwaggerEndpointSupport(swaggerConfig, magicResourceService, properties);
+			String location = support.resolveLocation();
 			logger.info("正在注册Swagger端点: {}", location);
 			// 明确指定使用requestMappingHandlerMapping这个Bean名称
 			//RequestMappingHandlerMapping requestMappingHandlerMapping =
@@ -124,46 +119,13 @@ public class MagicSwaggerConfiguration implements MagicPluginConfiguration {
 			RequestMappingHandlerMapping requestMappingHandlerMapping = applicationContext.getBeansOfType(RequestMappingHandlerMapping.class).values().stream().findFirst().get();
 			// 延迟获取依赖以避免循环依赖
 			RequestMagicDynamicRegistry registry = applicationContext.getBean(RequestMagicDynamicRegistry.class);
-			
+
 			// 使用Mapping工具注册端点
 			Mapping mapping = Mapping.create(requestMappingHandlerMapping);
 			RequestMappingInfo requestMappingInfo = mapping.paths(location).build();
 
-			// 构建文档信息
-			SwaggerEntity.License license = new SwaggerEntity.License("MIT", "https://gitee.com/ssssssss-team/magic-api/blob/master/LICENSE");
-			SwaggerEntity.Info info = new SwaggerEntity.Info(swaggerConfig.getDescription(), swaggerConfig.getVersion(), swaggerConfig.getTitle(), license, swaggerConfig.getConcat());
-
-			Map<String, Object> securityDefinitionMap = new HashMap<>();
-			Map<String, Object> securityMap = new HashMap<>();
-
-			if (swaggerConfig.getBasicAuth() != null) {
-				securityDefinitionMap.put(SwaggerEntity.BasicAuth.KEY_NAME, swaggerConfig.getBasicAuth());
-				securityMap.put(SwaggerEntity.BasicAuth.KEY_NAME, new String[]{});
-			}
-			if (swaggerConfig.getApiKeyAuth() != null) {
-				securityDefinitionMap.put(SwaggerEntity.ApiKeyAuth.KEY_NAME, swaggerConfig.getApiKeyAuth());
-				securityMap.put(SwaggerEntity.ApiKeyAuth.KEY_NAME, new String[]{});
-			}
-			if (swaggerConfig.getOauth2() != null) {
-				SwaggerEntity.OAuth2 oAuth2 = swaggerConfig.getOauth2();
-				securityDefinitionMap.put(SwaggerEntity.OAuth2.KEY_NAME, oAuth2);
-
-				Map<String, String> scopes = oAuth2.getScopes();
-				if (scopes != null) {
-					securityMap.put(SwaggerEntity.OAuth2.KEY_NAME, scopes.keySet().toArray(new String[0]));
-				}
-			}
-
-			// 创建SwaggerProvider实例
-			SwaggerProvider swaggerProvider = new SwaggerProvider(
-					registry,
-					magicResourceService,
-					servletContext.getContextPath(),
-					info,
-					properties.isPersistenceResponseBody(),
-					properties.getPrefix(),
-					securityDefinitionMap,
-					securityMap);
+			// 创建SwaggerProvider实例（栈无关构建，contextPath 取 ServletContext）
+			SwaggerProvider swaggerProvider = support.createProvider(MagicApiRegistryView.of(registry), servletContext.getContextPath());
 
 			// 获取swaggerJson方法
 			Method swaggerJsonMethod = SwaggerProvider.class.getDeclaredMethod("swaggerJson");
@@ -187,7 +149,6 @@ public class MagicSwaggerConfiguration implements MagicPluginConfiguration {
 	 */
 	@Bean
 	@Primary
-	@ConditionalOnMissingBean(SwaggerUiConfigParameters.class)
 	public SwaggerUiConfigProperties magicSwaggerUiConfigProperties(SwaggerUiConfigProperties swaggerUiConfigProperties, SpringDocConfigProperties springDocConfigProperties){
 		Set<AbstractSwaggerUiConfigProperties.SwaggerUrl> urls = swaggerUiConfigProperties.getUrls();
 		if (urls == null){
@@ -235,24 +196,8 @@ public class MagicSwaggerConfiguration implements MagicPluginConfiguration {
 	 * @return String Swagger文档的完整URL地址
 	 */
 	private String getSwaggerUrl() {
-		String contextPath = servletContext.getContextPath();
-		if (contextPath == null) {
-			contextPath = "";
-		}
-
-		String location = swaggerConfig.getLocation();
-		if (location == null || location.isEmpty()) {
-			location = "/v2/api-docs/magic-api/swagger2.json";
-		}
-
-		// 确保路径正确组合
-		if (contextPath.endsWith("/") && location.startsWith("/")) {
-			return contextPath + location.substring(1);
-		} else if (!contextPath.endsWith("/") && !location.startsWith("/")) {
-			return contextPath + "/" + location;
-		} else {
-			return contextPath + location;
-		}
+		SwaggerEndpointSupport support = new SwaggerEndpointSupport(swaggerConfig, magicResourceService, properties);
+		return support.buildSwaggerUrl(servletContext.getContextPath());
 	}
 	
 	/**

@@ -5,7 +5,7 @@ import com.ajaxjs.mcp.server.feature.annotation.Prompt;
 import com.ajaxjs.mcp.server.feature.annotation.Resource;
 import com.ajaxjs.mcp.server.feature.annotation.Tool;
 import com.ajaxjs.mcp.server.feature.annotation.ToolArg;
-import com.xiongx9527.fw.plus.ai.mcp.annotation.McpServer;
+import com.xiongx9527.fw.plus.ai.mcp.server.annotation.McpServer;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 

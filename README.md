@@ -165,17 +165,17 @@ AI 层将模型、向量存储与具体框架实现解耦。应用可先依赖�
 | Magic-API | `fw-plus-magicapi-spring-cloud-starter` |
 | 运维 | `fw-plus-admin-server-spring-cloud-starter` |
 | 注册中心 | `fw-plus-eureka-server-spring-cloud-starter` |
-| Cloud 插件 | `fw-plus-magicapi-plugin-eureka` |
+| Cloud 插件 | `fw-plus-cloud-magicapi-plugin-eureka` |
 
 ### AI Starter 与插件
 
 | 类型 | 模块 |
 | --- | --- |
 | 聚合 | `fw-plus-ai-boot-starter` |
-| 中立 API | `fw-plus-ai-model-spring-boot-starter`、`fw-plus-ai-store-embedding-spring-boot-starter` |
-| Adapter | `fw-plus-ai-langchain4j-adapter` |
+| LangChain4j | `fw-plus-ai-langchain4j`（Java 8 provider 覆盖）、`fw-plus-ai-boot-autoconfigure` |
 | 应用能力 | `fw-plus-ai-tinyflow-spring-boot-starter` |
-| Magic-API 插件 | `fw-plus-ai-magicapi-plugin-vector`、`fw-plus-ai-magicapi-plugin-model` |
+| Magic-API 插件 | `fw-plus-ai-magicapi-plugin-mcp` |
+| MCP | `fw-plus-ai-mcp-server-spring-boot-starter` |
 
 ## Magic-API 资源模型
 

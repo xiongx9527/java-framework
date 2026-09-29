@@ -2,6 +2,8 @@ package com.xiongx9527.fw.plus.ai.sample.chat.ai.knowledge;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import dev.langchain4j.data.segment.TextSegment;
+
+import java.util.Map;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.query.Query;
 import org.slf4j.Logger;
@@ -51,12 +53,14 @@ public class RemoteKnowledgeBaseContentRetriever implements dev.langchain4j.rag.
 
 	@Override
 	public List<Content> retrieve(Query query) {
+		log.info("=======================>检索知识库上下文: {}", query.text());
 		String text = query.text();
 		if (text == null || text.trim().isEmpty()) {
 			return Collections.emptyList();
 		}
 
-		KnowledgeSearchRequest request = new KnowledgeSearchRequest(text, properties.getTopK());
+		KnowledgeSearchRequest request =
+				new KnowledgeSearchRequest(text, properties.getTopK(), properties.getFilters());
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		HttpEntity<KnowledgeSearchRequest> entity = new HttpEntity<>(request, headers);
@@ -79,9 +83,26 @@ public class RemoteKnowledgeBaseContentRetriever implements dev.langchain4j.rag.
 				if (item.getContent() == null || item.getContent().trim().isEmpty()) {
 					continue;
 				}
-				TextSegment segment = item.getTitle() == null
+				dev.langchain4j.data.document.Metadata metadata =
+						new dev.langchain4j.data.document.Metadata();
+				Map<String, Object> fromServer = item.getMetadata();
+				if (fromServer != null) {
+					for (Map.Entry<String, Object> entry : fromServer.entrySet()) {
+						if (entry.getValue() != null) {
+							metadata.put(entry.getKey(), entry.getValue().toString());
+						}
+					}
+				}
+				if (!metadata.containsKey("title") && item.getTitle() != null) {
+					metadata.put("title", item.getTitle());
+				}
+				if (!metadata.containsKey("score") && item.getScore() != null) {
+					// score 也要带下来：FilteringContentRetriever 要按阈值过滤
+					metadata.put("score", item.getScore().toString());
+				}
+				TextSegment segment = metadata.toMap().isEmpty()
 						? TextSegment.from(item.getContent())
-						: TextSegment.from(item.getContent(), metadataOf("title", item.getTitle()));
+						: TextSegment.from(item.getContent(), metadata);
 				contents.add(Content.from(segment));
 			}
 			log.debug("知识库返回 {} 条上下文: query={}", contents.size(), text);
@@ -105,10 +126,16 @@ public class RemoteKnowledgeBaseContentRetriever implements dev.langchain4j.rag.
 	public static class KnowledgeSearchRequest {
 		private final String query;
 		private final int topK;
+		private final Map<String, String> filters;
 
 		public KnowledgeSearchRequest(String query, int topK) {
+			this(query, topK, null);
+		}
+
+		public KnowledgeSearchRequest(String query, int topK, Map<String, String> filters) {
 			this.query = query;
 			this.topK = topK;
+			this.filters = filters;
 		}
 
 		public String getQuery() {
@@ -117,6 +144,10 @@ public class RemoteKnowledgeBaseContentRetriever implements dev.langchain4j.rag.
 
 		public int getTopK() {
 			return topK;
+		}
+
+		public Map<String, String> getFilters() {
+			return filters;
 		}
 	}
 
@@ -138,9 +169,14 @@ public class RemoteKnowledgeBaseContentRetriever implements dev.langchain4j.rag.
 			private String title;
 			private String content;
 			private Double score;
+			private Map<String, Object> metadata;
 
 			public String getTitle() {
 				return title;
+			}
+
+			public Map<String, Object> getMetadata() {
+				return metadata;
 			}
 
 			public void setTitle(String title) {

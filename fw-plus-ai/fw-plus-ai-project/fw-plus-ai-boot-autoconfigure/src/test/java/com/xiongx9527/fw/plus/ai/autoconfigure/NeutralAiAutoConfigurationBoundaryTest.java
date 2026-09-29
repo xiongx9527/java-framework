@@ -21,12 +21,6 @@ public class NeutralAiAutoConfigurationBoundaryTest {
 			"fw-plus.ai.langchain4j",
 			"fw.plus.ai.langchain4j");
 
-	private static final String[] REMOVED_PUBLIC_REGISTRATIONS = new String[] {
-			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.openapi.Langchain4jOpenApiAutoConfiguration",
-			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model.LangChain4jModelAutoConfiguration",
-			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding.EmbeddingStoreAutoConfiguration"
-	};
-
 	@Test
 	public void shouldKeepPublicAutoConfigurationFreeOfLangChain4jImplementation() throws Exception {
 		File moduleDirectory = findModuleDirectory();
@@ -36,27 +30,6 @@ public class NeutralAiAutoConfigurationBoundaryTest {
 
 		assertTrue(violations.isEmpty(),
 				"Public neutral auto-configuration contains concrete framework references: " + violations);
-	}
-
-	@Test
-	public void shouldRegisterOnlyNeutralModelAndStoreAutoConfigurations() throws Exception {
-		File moduleDirectory = findModuleDirectory();
-		File factories = new File(moduleDirectory, "src/main/resources/META-INF/spring.factories");
-		String content = read(factories);
-
-		assertTrue(content.contains("com.xiongx9527.fw.plus.ai.autoconfigure.model.AiModelAutoConfiguration"),
-				"AiModelAutoConfiguration should be registered");
-		assertTrue(content.contains("com.xiongx9527.fw.plus.ai.autoconfigure.store.embedding.AiEmbeddingStoreAutoConfiguration"),
-				"AiEmbeddingStoreAutoConfiguration should be registered");
-		assertTrue(content.contains(
-				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter."
-						+ "LangChain4jAdapterAutoConfiguration"),
-				"LangChain4jAdapterAutoConfiguration should be registered");
-		for (String removedPublicRegistration : REMOVED_PUBLIC_REGISTRATIONS) {
-			assertTrue(!content.contains(removedPublicRegistration),
-					"Public spring.factories still registers concrete framework auto-configuration: "
-							+ removedPublicRegistration);
-		}
 	}
 
 	private void scanProductionJava(File moduleDirectory, File file, List<String> violations) throws IOException {
@@ -87,7 +60,9 @@ public class NeutralAiAutoConfigurationBoundaryTest {
 		String path = file.getPath().replace(File.separatorChar, '/');
 		return file.isDirectory() && ("target".equals(file.getName())
 				|| path.contains("/autoconfigure/langchain4j/")
-				|| path.endsWith("/autoconfigure/langchain4j"));
+				|| path.endsWith("/autoconfigure/langchain4j")
+				|| path.contains("/autoconfigure/magicapi/modules/langchain4j")
+				|| path.contains("/autoconfigure/magicapi/plugin/langchain4j"));
 	}
 
 	private String read(File file) throws IOException {
