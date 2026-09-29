@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.module;
+package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jTokenizerDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
@@ -13,7 +13,7 @@ import java.util.List;
 /**
  * 分词器脚本模块：脚本用 {@code tokenizer['key']} 直接取模型实例后调用 langchain4j 方法。
  */
-@MagicModule("tokenizer")
+@MagicModule("langchain4jTokenizer")
 public class Langchain4jTokenizerModule extends AbstractLangchain4jModelModule<Tokenizer>
         implements DynamicAttribute<Tokenizer, Langchain4jTokenizerModule>, DynamicModule<Langchain4jTokenizerModule> {
 

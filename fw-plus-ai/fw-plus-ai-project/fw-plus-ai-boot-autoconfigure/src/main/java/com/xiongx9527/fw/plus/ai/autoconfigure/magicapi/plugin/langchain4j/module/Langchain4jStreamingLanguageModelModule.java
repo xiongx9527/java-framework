@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.module;
+package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jStreamingLanguageModelDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
@@ -13,7 +13,7 @@ import java.util.List;
 /**
  * 流式语言模型脚本模块：脚本用 {@code streamingLanguageModel['key']} 直接取模型实例后调用 langchain4j 方法。
  */
-@MagicModule("streamingLanguageModel")
+@MagicModule("langchain4jStreamingLanguageModel")
 public class Langchain4jStreamingLanguageModelModule extends AbstractLangchain4jModelModule<StreamingLanguageModel>
         implements DynamicAttribute<StreamingLanguageModel, Langchain4jStreamingLanguageModelModule>, DynamicModule<Langchain4jStreamingLanguageModelModule> {
 

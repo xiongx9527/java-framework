@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.module;
+package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jEmbeddingStoreDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
@@ -14,7 +14,7 @@ import java.util.List;
 /**
  * 向量存储脚本模块：脚本用 {@code embeddingStore['key']} 直接取模型实例后调用 langchain4j 方法。
  */
-@MagicModule("embeddingStore")
+@MagicModule("langchain4jEmbeddingStore")
 public class Langchain4jEmbeddingStoreModule extends AbstractLangchain4jModelModule<EmbeddingStore<TextSegment>>
         implements DynamicAttribute<EmbeddingStore<TextSegment>, Langchain4jEmbeddingStoreModule>, DynamicModule<Langchain4jEmbeddingStoreModule> {
 

@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.module;
+package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jEmbeddingModelDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
@@ -13,7 +13,7 @@ import java.util.List;
 /**
  * 向量模型脚本模块：脚本用 {@code embeddingModel['key']} 直接取模型实例后调用 langchain4j 方法。
  */
-@MagicModule("embeddingModel")
+@MagicModule("langchain4jEmbeddingModel")
 public class Langchain4jEmbeddingModelModule extends AbstractLangchain4jModelModule<EmbeddingModel>
         implements DynamicAttribute<EmbeddingModel, Langchain4jEmbeddingModelModule>, DynamicModule<Langchain4jEmbeddingModelModule> {
 

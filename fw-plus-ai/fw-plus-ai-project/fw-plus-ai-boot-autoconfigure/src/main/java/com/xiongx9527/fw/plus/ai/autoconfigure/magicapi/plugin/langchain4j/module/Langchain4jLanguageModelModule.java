@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.module;
+package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jLanguageModelDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
@@ -13,7 +13,7 @@ import java.util.List;
 /**
  * 语言模型脚本模块：脚本用 {@code languageModel['key']} 直接取模型实例后调用 langchain4j 方法。
  */
-@MagicModule("languageModel")
+@MagicModule("langchain4jLanguageModel")
 public class Langchain4jLanguageModelModule extends AbstractLangchain4jModelModule<LanguageModel>
         implements DynamicAttribute<LanguageModel, Langchain4jLanguageModelModule>, DynamicModule<Langchain4jLanguageModelModule> {
 

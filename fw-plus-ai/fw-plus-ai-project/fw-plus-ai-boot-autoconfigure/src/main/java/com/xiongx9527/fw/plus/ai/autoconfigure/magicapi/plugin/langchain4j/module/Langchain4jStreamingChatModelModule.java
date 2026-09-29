@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.module;
+package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jStreamingChatModelDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
@@ -13,7 +13,7 @@ import java.util.List;
 /**
  * 流式对话模型脚本模块：脚本用 {@code streamingChatModel['key']} 直接取模型实例后调用 langchain4j 方法。
  */
-@MagicModule("streamingChatModel")
+@MagicModule("langchain4jStreamingChatModel")
 public class Langchain4jStreamingChatModelModule extends AbstractLangchain4jModelModule<StreamingChatLanguageModel>
         implements DynamicAttribute<StreamingChatLanguageModel, Langchain4jStreamingChatModelModule>, DynamicModule<Langchain4jStreamingChatModelModule> {
 

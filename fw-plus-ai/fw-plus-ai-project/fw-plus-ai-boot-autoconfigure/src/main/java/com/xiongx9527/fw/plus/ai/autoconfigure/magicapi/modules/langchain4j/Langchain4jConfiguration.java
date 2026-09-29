@@ -1,12 +1,12 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.module.Langchain4jChatModelModule;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.module.Langchain4jEmbeddingModelModule;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.module.Langchain4jEmbeddingStoreModule;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.module.Langchain4jLanguageModelModule;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.module.Langchain4jStreamingChatModelModule;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.module.Langchain4jStreamingLanguageModelModule;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.module.Langchain4jTokenizerModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jChatModelModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jEmbeddingModelModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jEmbeddingStoreModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jLanguageModelModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jStreamingChatModelModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jStreamingLanguageModelModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jTokenizerModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.tool.Langchain4jToolConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jChatModelDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jEmbeddingModelDataSource;

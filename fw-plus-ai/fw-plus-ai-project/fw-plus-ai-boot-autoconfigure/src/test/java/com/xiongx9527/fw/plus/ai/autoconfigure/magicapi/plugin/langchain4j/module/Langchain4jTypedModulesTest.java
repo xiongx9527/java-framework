@@ -1,12 +1,12 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.module;
+package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.module.Langchain4jChatModelModule;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.module.Langchain4jEmbeddingModelModule;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.module.Langchain4jEmbeddingStoreModule;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.module.Langchain4jLanguageModelModule;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.module.Langchain4jStreamingChatModelModule;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.module.Langchain4jStreamingLanguageModelModule;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.module.Langchain4jTokenizerModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jChatModelModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jEmbeddingModelModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jEmbeddingStoreModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jLanguageModelModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jStreamingChatModelModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jStreamingLanguageModelModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jTokenizerModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jChatModelDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jEmbeddingModelDataSource;
 import dev.langchain4j.model.chat.ChatLanguageModel;
@@ -34,13 +34,13 @@ class Langchain4jTypedModulesTest {
 
     @Test
     void shouldExposeModuleNamesPerType() {
-        assertThat(annotationValue(Langchain4jChatModelModule.class)).isEqualTo("chatModel");
-        assertThat(annotationValue(Langchain4jStreamingChatModelModule.class)).isEqualTo("streamingChatModel");
-        assertThat(annotationValue(Langchain4jLanguageModelModule.class)).isEqualTo("languageModel");
-        assertThat(annotationValue(Langchain4jStreamingLanguageModelModule.class)).isEqualTo("streamingLanguageModel");
-        assertThat(annotationValue(Langchain4jEmbeddingModelModule.class)).isEqualTo("embeddingModel");
-        assertThat(annotationValue(Langchain4jTokenizerModule.class)).isEqualTo("tokenizer");
-        assertThat(annotationValue(Langchain4jEmbeddingStoreModule.class)).isEqualTo("embeddingStore");
+        assertThat(annotationValue(Langchain4jChatModelModule.class)).isEqualTo("langchain4jChatModel");
+        assertThat(annotationValue(Langchain4jStreamingChatModelModule.class)).isEqualTo("langchain4jStreamingChatModel");
+        assertThat(annotationValue(Langchain4jLanguageModelModule.class)).isEqualTo("langchain4jLanguageModel");
+        assertThat(annotationValue(Langchain4jStreamingLanguageModelModule.class)).isEqualTo("langchain4jStreamingLanguageModel");
+        assertThat(annotationValue(Langchain4jEmbeddingModelModule.class)).isEqualTo("langchain4jEmbeddingModel");
+        assertThat(annotationValue(Langchain4jTokenizerModule.class)).isEqualTo("langchain4jTokenizer");
+        assertThat(annotationValue(Langchain4jEmbeddingStoreModule.class)).isEqualTo("langchain4jEmbeddingStore");
     }
 
     @Test
