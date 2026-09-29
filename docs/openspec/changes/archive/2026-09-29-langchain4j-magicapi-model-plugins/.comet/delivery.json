@@ -1,5 +1,6 @@
 {
-  "schemaVersion": "comet.delivery.v1",
+  "schemaVersion": 1,
   "action": "local",
-  "targetBranch": "dev"
+  "targetBranch": "dev",
+  "commit": "c79efaaec9313b73d646fad143f1bc80fc2e89cb"
 }
