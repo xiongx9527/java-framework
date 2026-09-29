@@ -1,9 +1,9 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web.webflux;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.web.webflux;
 
 import com.ajaxjs.mcp.server.model.HttpResult;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.contracts.ContractRuntime;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
-import com.xiongx9527.fw.plus.ai.mcp.spi.ServerStreamableHttpRegistry;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.contracts.ContractRuntime;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime.McpServerRuntime;
+import com.xiongx9527.fw.plus.ai.mcp.server.spi.ServerStreamableHttpRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;

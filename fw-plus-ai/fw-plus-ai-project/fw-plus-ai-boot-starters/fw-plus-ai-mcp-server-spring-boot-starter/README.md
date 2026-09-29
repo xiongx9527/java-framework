@@ -1,4 +1,4 @@
-**fw-plus-ai-mcp-spring-boot-starter**
+**fw-plus-ai-mcp-server-spring-boot-starter**
 
 本模块为 `fw-plus-ai` 提供 MCP Server 的 Spring Boot Starter。纯依赖型 POM，不包含 Java 代码；所有自动配置和 Bean 注入由 `fw-plus-ai-boot-autoconfigure` 提供。
 
@@ -9,7 +9,7 @@
 ```xml
 <dependency>
     <groupId>com.xiongx9527.fw.plus.ai</groupId>
-    <artifactId>fw-plus-ai-mcp-spring-boot-starter</artifactId>
+    <artifactId>fw-plus-ai-mcp-server-spring-boot-starter</artifactId>
 </dependency>
 ```
 

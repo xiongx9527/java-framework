@@ -20,11 +20,6 @@
 
     <dependencies>
 
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-ai-langchain4j-core</artifactId>
-        </dependency>
-
         <!-- Ollama owner 覆盖模块：提供 dev.langchain4j.ollama.spring.AutoConfig 与 Ollama*Model Bean -->
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
@@ -35,10 +30,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j</artifactId>
         </dependency>
 
         <dependency>

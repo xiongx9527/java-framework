@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.cluster;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.cluster;
 
 import com.ajaxjs.mcp.server.McpServer;
 import com.ajaxjs.mcp.server.model.SseSession;

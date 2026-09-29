@@ -7,7 +7,7 @@ This release line keeps only the LangChain4j Java 8 compatibility overlays and t
 - `fw-plus-ai-langchain4j`, `fw-plus-ai-langchain4j-*`: Java 8 compatible provider overlays for LangChain4j `0.35.0`, preserving the upstream `dev.langchain4j.*` package and class names.
 - `fw-plus-ai-boot-autoconfigure`: classpath-conditional provider auto-configurations (master switch `fw.plus.ai.langchain4j.enabled`), plus MCP server, MCP clustering and the Magic-API MCP plugin.
 - `fw-plus-ai-magicapi-plugin-mcp`: Magic-API MCP plugin.
-- Aggregators: `fw-plus-ai-boot-starter`, `fw-plus-ai-mcp-spring-boot-starter`.
+- Aggregators: `fw-plus-ai-boot-starter`, `fw-plus-ai-mcp-server-spring-boot-starter`.
 
 Refer to the `LangChain4j*AutoConfiguration` sources in `fw-plus-ai-boot-autoconfigure` for each provider's conditions and properties.
 

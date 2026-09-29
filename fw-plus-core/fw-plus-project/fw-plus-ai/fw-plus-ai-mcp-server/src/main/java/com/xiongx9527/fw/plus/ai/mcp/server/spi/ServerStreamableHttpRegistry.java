@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.mcp.spi;
+package com.xiongx9527.fw.plus.ai.mcp.server.spi;
 
 import com.ajaxjs.mcp.server.McpServer;
 import com.ajaxjs.mcp.server.ServerStreamableHttp;

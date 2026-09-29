@@ -1,10 +1,10 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime;
 
 import com.ajaxjs.mcp.server.McpServer;
 import com.ajaxjs.mcp.server.feature.FeatureMgr;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties;
-import com.xiongx9527.fw.plus.ai.mcp.spi.ServerSseRegistry;
-import com.xiongx9527.fw.plus.ai.mcp.support.DefaultServerSseRegistry;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties;
+import com.xiongx9527.fw.plus.ai.mcp.server.spi.ServerSseRegistry;
+import com.xiongx9527.fw.plus.ai.mcp.server.support.DefaultServerSseRegistry;
 import org.junit.jupiter.api.Test;
 
 import java.io.PrintWriter;

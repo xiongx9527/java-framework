@@ -1,15 +1,15 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web.webmvc;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.web.webmvc;
 
 import com.ajaxjs.mcp.server.ServerStreamableHttp;
 import com.ajaxjs.mcp.server.model.HttpResult;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpAuthService;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpCapabilities;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpPrincipal;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpRequest;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpHeaderNames;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
-import com.xiongx9527.fw.plus.ai.mcp.spi.ServerSseRegistry;
-import com.xiongx9527.fw.plus.ai.mcp.spi.ServerStreamableHttpRegistry;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.McpAuthService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.McpCapabilities;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.McpPrincipal;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.McpRequest;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpHeaderNames;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime.McpServerRuntime;
+import com.xiongx9527.fw.plus.ai.mcp.server.spi.ServerSseRegistry;
+import com.xiongx9527.fw.plus.ai.mcp.server.spi.ServerStreamableHttpRegistry;
 import org.springframework.http.MediaType;
 
 import javax.servlet.http.HttpServletRequest;
@@ -20,7 +20,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * MCP 传输控制器公共基类，只负责 HTTP 适配，JSON-RPC 分发与会话策略仍由 {@code fw-plus-ai-mcp} 内核承担。
+ * MCP 传输控制器公共基类，只负责 HTTP 适配，JSON-RPC 分发与会话策略仍由 {@code fw-plus-ai-mcp-server} 内核承担。
  * <p>
  * 具体端点由 {@link McpRoutingRegistrar} 按 runtime 编程式注册（无注解路径），因此这里持有单个
  * runtime 实例而非从上下文查找全局单例：SSE 走 {@link McpSseController}，Streamable 走

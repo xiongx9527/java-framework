@@ -1,6 +1,6 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web.webmvc;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.web.webmvc;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime.McpServerRuntime;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;

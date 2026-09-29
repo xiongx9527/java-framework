@@ -32,10 +32,10 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- fw-plus-ai-mcp 协议内核（core 层构件，经 core BOM 管理版本） -->
+        <!-- fw-plus-ai-mcp-server 协议内核（core 层构件，经 core BOM 管理版本） -->
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-ai-mcp</artifactId>
+            <artifactId>fw-plus-ai-mcp-server</artifactId>
         </dependency>
 
         <!-- Spring MVC（Servlet）传输：optional，不把 MVC 强加给 WebFlux 使用方 -->

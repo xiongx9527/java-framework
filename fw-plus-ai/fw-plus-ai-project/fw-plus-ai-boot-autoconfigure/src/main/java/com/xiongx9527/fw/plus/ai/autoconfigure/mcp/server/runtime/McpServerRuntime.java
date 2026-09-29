@@ -1,12 +1,12 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime;
 
 import com.ajaxjs.mcp.server.McpServer;
 import com.ajaxjs.mcp.server.feature.FeatureMgr;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpAuthService;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties;
-import com.xiongx9527.fw.plus.ai.mcp.spi.BaseServerRegistry;
-import com.xiongx9527.fw.plus.ai.mcp.spi.ServerSseRegistry;
-import com.xiongx9527.fw.plus.ai.mcp.spi.ServerStreamableHttpRegistry;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.McpAuthService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties;
+import com.xiongx9527.fw.plus.ai.mcp.server.spi.BaseServerRegistry;
+import com.xiongx9527.fw.plus.ai.mcp.server.spi.ServerSseRegistry;
+import com.xiongx9527.fw.plus.ai.mcp.server.spi.ServerStreamableHttpRegistry;
 
 import java.util.Collections;
 import java.util.List;

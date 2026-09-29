@@ -4,10 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Collections;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.Langchain4jModelFactoryRegistry;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.embedding.MagicDynamicEmbeddingModel;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jEmbeddingStoreInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jEmbeddingModelDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jEmbeddingStoreDataSource;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jEmbeddingModelModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resource.Langchain4jEmbeddingStoreMagicResourceStorage;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -22,21 +24,21 @@ public class Langchain4jEmbeddingStoreMagicDynamicRegistry
         extends AbstractLangchain4jModelMagicDynamicRegistry<Langchain4jEmbeddingStoreInfo,
         EmbeddingStore<TextSegment>> {
 
-    private final MagicDynamicLangchain4jEmbeddingModelDataSource embeddingModels;
+    private final Langchain4jEmbeddingModelModule embeddingModules;
 
     public Langchain4jEmbeddingStoreMagicDynamicRegistry(Langchain4jEmbeddingStoreMagicResourceStorage storage,
             MagicDynamicLangchain4jEmbeddingStoreDataSource holder,
-            MagicDynamicLangchain4jEmbeddingModelDataSource embeddingModels,
+            Langchain4jEmbeddingModelModule embeddingModules,
             Langchain4jModelFactoryRegistry factories,
             ObjectProvider<EmbeddingStore<TextSegment>> defaultInstance) {
         super(storage, holder, factories, Langchain4jModelTypes.EMBEDDING_STORE, defaultInstance);
-        this.embeddingModels = embeddingModels;
+        this.embeddingModules = embeddingModules;
     }
 
     @Override
     protected EmbeddingStore<TextSegment> buildInstance(Langchain4jEmbeddingStoreInfo entity) {
         EmbeddingModel embeddingModel = requireEmbeddingModel(entity,
-                embeddingModels.get(entity.getEmbeddingModelKey()));
+                new MagicDynamicEmbeddingModel(embeddingModules, entity.getEmbeddingModelKey()));
         return factories.buildEmbeddingStore(entity, embeddingModel);
     }
 

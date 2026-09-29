@@ -12,7 +12,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>fw-plus-ai-base</module>
-        <module>fw-plus-ai-mcp</module>
+        <module>fw-plus-ai-mcp-server</module>
         <module>fw-plus-ai-langchain4j</module>
     </modules>
     <artifactId>fw-plus-ai</artifactId>

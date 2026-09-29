@@ -1,9 +1,9 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server;
 
 import com.ajaxjs.mcp.transport.McpTransportSync;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
-import com.xiongx9527.fw.plus.ai.mcp.feature.McpFeatureScanner;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime.McpServerRuntime;
+import com.xiongx9527.fw.plus.ai.mcp.server.feature.McpFeatureScanner;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringBootConfiguration;

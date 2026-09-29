@@ -1,11 +1,11 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server;
 
 import com.ajaxjs.mcp.server.McpServer;
 import com.ajaxjs.mcp.server.feature.FeatureMgr;
 import com.ajaxjs.mcp.transport.McpTransportSync;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
-import com.xiongx9527.fw.plus.ai.mcp.spi.BaseServerRegistry;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime.McpServerRuntime;
+import com.xiongx9527.fw.plus.ai.mcp.server.spi.BaseServerRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.context.ApplicationContext;
@@ -35,7 +35,7 @@ class McpServerInitializerTest {
 		List<String> packages = McpServerInitializer.resolveBasePackages(new McpProperties(), context,
 				Collections.singletonList(runtime));
 
-		assertThat(packages).containsExactly("com.xiongx9527.fw.plus.ai.autoconfigure.mcp");
+		assertThat(packages).containsExactly("com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server");
 	}
 
 	@Test
@@ -62,13 +62,13 @@ class McpServerInitializerTest {
 		doReturn(bootClass).when(context).getType("sampleApplication");
 		McpProperties properties = new McpProperties();
 		// 第二个包即启动类所在包，与默认包取并集时应去重。
-		properties.setBasePackages("com.example.a,com.xiongx9527.fw.plus.ai.autoconfigure.mcp");
+		properties.setBasePackages("com.example.a,com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server");
 		McpServerRuntime runtime = runtime("default", properties, null);
 
 		List<String> packages = McpServerInitializer.resolveBasePackages(properties, context,
 				Collections.singletonList(runtime));
 
-		assertThat(packages).containsExactly("com.example.a", "com.xiongx9527.fw.plus.ai.autoconfigure.mcp");
+		assertThat(packages).containsExactly("com.example.a", "com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server");
 	}
 
 	@Test
@@ -133,7 +133,7 @@ class McpServerInitializerTest {
 
 		McpServer server = mock(McpServer.class);
 		FeatureMgr featureMgr = mock(FeatureMgr.class);
-		BaseServerRegistry registry = new com.xiongx9527.fw.plus.ai.mcp.support.DefaultServerSseRegistry(
+		BaseServerRegistry registry = new com.xiongx9527.fw.plus.ai.mcp.server.support.DefaultServerSseRegistry(
 				server, "server-1");
 		McpServerRuntime runtime = new McpServerRuntime("default", properties, server, featureMgr, registry,
 				null, Collections.emptyList());

@@ -10,8 +10,8 @@
         <version>${revision}</version>
     </parent>
 
-    <artifactId>fw-plus-ai-mcp-spring-boot-starter</artifactId>
-    <name>fw-plus-ai-mcp-spring-boot-starter</name>
+    <artifactId>fw-plus-ai-mcp-server-spring-boot-starter</artifactId>
+    <name>fw-plus-ai-mcp-server-spring-boot-starter</name>
     <description>MCP (Model Context Protocol) Spring Boot Starter for AI</description>
 
     <properties>
@@ -38,10 +38,10 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- fw-plus-ai-mcp 协议内核（core 层构件，坐标经 core BOM 管理） -->
+        <!-- fw-plus-ai-mcp-server 协议内核（core 层构件，坐标经 core BOM 管理） -->
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-ai-mcp</artifactId>
+            <artifactId>fw-plus-ai-mcp-server</artifactId>
         </dependency>
 
         <!-- fw-plus-ai-boot-autoconfigure -->

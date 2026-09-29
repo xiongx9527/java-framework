@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.mcp.feature;
+package com.xiongx9527.fw.plus.ai.mcp.server.feature;
 
 import com.ajaxjs.mcp.server.feature.FeatureMgr;
 import com.ajaxjs.mcp.server.feature.PackageAnnotationScanner;
@@ -9,7 +9,7 @@ import com.ajaxjs.mcp.server.feature.annotation.Prompt;
 import com.ajaxjs.mcp.server.feature.annotation.Resource;
 import com.ajaxjs.mcp.server.feature.annotation.ResourceTemplate;
 import com.ajaxjs.mcp.server.feature.annotation.Tool;
-import com.xiongx9527.fw.plus.ai.mcp.annotation.McpServer;
+import com.xiongx9527.fw.plus.ai.mcp.server.annotation.McpServer;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;

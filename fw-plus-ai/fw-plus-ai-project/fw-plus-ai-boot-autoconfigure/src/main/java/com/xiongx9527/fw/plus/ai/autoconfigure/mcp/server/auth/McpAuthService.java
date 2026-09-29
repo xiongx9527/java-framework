@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth;
 
 /**
  * MCP 认证 SPI 占位。

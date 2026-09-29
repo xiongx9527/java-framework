@@ -1,8 +1,8 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web.webmvc;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.web.webmvc;
 
 import com.ajaxjs.mcp.server.error.JsonRpcErrorException;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
-import com.xiongx9527.fw.plus.ai.mcp.spi.ServerSseRegistry;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime.McpServerRuntime;
+import com.xiongx9527.fw.plus.ai.mcp.server.spi.ServerSseRegistry;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;

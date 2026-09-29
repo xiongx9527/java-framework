@@ -8,14 +8,13 @@
         <artifactId>fw-plus-ai</artifactId>
         <version>${revision}</version>
     </parent>
-    <artifactId>fw-plus-ai-mcp</artifactId>
-    <name>fw-plus-ai-mcp</name>
+    <artifactId>fw-plus-ai-mcp-server</artifactId>
+    <name>fw-plus-ai-mcp-server</name>
     <description>MCP (Model Context Protocol) Core Implementation</description>
     <dependencies>
         <dependency>
             <groupId>com.ajaxjs</groupId>
             <artifactId>aj-mcp-server</artifactId>
-            <version>1.6</version>
         </dependency>
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>

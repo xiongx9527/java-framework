@@ -1,12 +1,12 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web.webmvc;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.web.webmvc;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpAuthService;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpPrincipal;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpRequest;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
-import com.xiongx9527.fw.plus.ai.mcp.spi.ServerSseRegistry;
-import com.xiongx9527.fw.plus.ai.mcp.spi.ServerStreamableHttpRegistry;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.McpAuthService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.McpPrincipal;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.McpRequest;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime.McpServerRuntime;
+import com.xiongx9527.fw.plus.ai.mcp.server.spi.ServerSseRegistry;
+import com.xiongx9527.fw.plus.ai.mcp.server.spi.ServerStreamableHttpRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -105,7 +105,7 @@ class McpScopeEntryMvcTest {
 		when(runtime.getProperties()).thenReturn(properties);
 		when(runtime.getTransport()).thenReturn(transport);
 		when(runtime.getEndpoint()).thenReturn("/mcp");
-		when(runtime.getRegistry()).thenReturn((com.xiongx9527.fw.plus.ai.mcp.spi.BaseServerRegistry) registry);
+		when(runtime.getRegistry()).thenReturn((com.xiongx9527.fw.plus.ai.mcp.server.spi.BaseServerRegistry) registry);
 		when(runtime.hasSession("known-uuid")).thenReturn(true);
 		when(runtime.hasSession("known-session")).thenReturn(true);
 		when(runtime.getAuthService()).thenReturn(new McpAuthService() {

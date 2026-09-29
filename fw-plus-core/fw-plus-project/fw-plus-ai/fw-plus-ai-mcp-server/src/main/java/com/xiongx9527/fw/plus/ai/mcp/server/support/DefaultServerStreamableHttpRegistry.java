@@ -1,8 +1,8 @@
-package com.xiongx9527.fw.plus.ai.mcp.support;
+package com.xiongx9527.fw.plus.ai.mcp.server.support;
 
 import com.ajaxjs.mcp.server.McpServer;
 import com.ajaxjs.mcp.server.model.StreamSession;
-import com.xiongx9527.fw.plus.ai.mcp.spi.ServerStreamableHttpRegistry;
+import com.xiongx9527.fw.plus.ai.mcp.server.spi.ServerStreamableHttpRegistry;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

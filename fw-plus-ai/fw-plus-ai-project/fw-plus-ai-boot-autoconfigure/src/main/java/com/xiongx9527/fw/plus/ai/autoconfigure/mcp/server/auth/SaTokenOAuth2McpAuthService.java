@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth;
 
 import cn.dev33.satoken.oauth2.data.model.AccessTokenModel;
 import cn.dev33.satoken.oauth2.template.SaOAuth2Util;

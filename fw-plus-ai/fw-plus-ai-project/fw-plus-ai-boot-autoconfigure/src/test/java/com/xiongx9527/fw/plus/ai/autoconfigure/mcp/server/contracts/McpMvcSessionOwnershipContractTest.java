@@ -1,11 +1,11 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.contracts;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.contracts;
 
 import com.ajaxjs.mcp.server.model.HttpResult;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web.webmvc.McpSseController;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web.webmvc.McpStreamableHttpController;
-import com.xiongx9527.fw.plus.ai.mcp.spi.ServerSseRegistry;
-import com.xiongx9527.fw.plus.ai.mcp.spi.ServerStreamableHttpRegistry;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime.McpServerRuntime;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.web.webmvc.McpSseController;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.web.webmvc.McpStreamableHttpController;
+import com.xiongx9527.fw.plus.ai.mcp.server.spi.ServerSseRegistry;
+import com.xiongx9527.fw.plus.ai.mcp.server.spi.ServerStreamableHttpRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;

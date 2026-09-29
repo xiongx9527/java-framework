@@ -4,6 +4,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.facto
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jEmbeddingModelDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jEmbeddingStoreDataSource;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jEmbeddingModelModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.registry.Langchain4jEmbeddingStoreMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resource.Langchain4jEmbeddingStoreMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.web.Langchain4jStartupRegistrar;
@@ -56,10 +57,10 @@ public class Langchain4jEmbeddingStoreConfiguration extends AbstractLangchain4jP
     public Langchain4jEmbeddingStoreMagicDynamicRegistry langchain4jEmbeddingStoreMagicDynamicRegistry(
             Langchain4jEmbeddingStoreMagicResourceStorage storage,
             MagicDynamicLangchain4jEmbeddingStoreDataSource dataSource,
-            MagicDynamicLangchain4jEmbeddingModelDataSource embeddingModelDataSource,
+            Langchain4jEmbeddingModelModule embeddingModules,
             Langchain4jModelFactoryRegistry factories,
             ObjectProvider<EmbeddingStore<TextSegment>> defaultInstance) {
-        return new Langchain4jEmbeddingStoreMagicDynamicRegistry(storage, dataSource, embeddingModelDataSource,
+        return new Langchain4jEmbeddingStoreMagicDynamicRegistry(storage, dataSource, embeddingModules,
                 factories, defaultInstance);
     }
 

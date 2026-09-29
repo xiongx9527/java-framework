@@ -1,10 +1,10 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.cluster.McpRedisBroadcaster;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.cluster.McpRedisMessageConsumer;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
-import com.xiongx9527.fw.plus.ai.mcp.spi.BaseServerRegistry;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.cluster.McpRedisBroadcaster;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.cluster.McpRedisMessageConsumer;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime.McpServerRuntime;
+import com.xiongx9527.fw.plus.ai.mcp.server.spi.BaseServerRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.connection.Message;
 

@@ -1,6 +1,6 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.cluster;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.cluster;
 
-import com.xiongx9527.fw.plus.ai.mcp.spi.BaseServerRegistry;
+import com.xiongx9527.fw.plus.ai.mcp.server.spi.BaseServerRegistry;
 
 /**
  * Redis 集群注册表契约，在 {@link BaseServerRegistry} 之上补充消费端需要的本地投递能力。

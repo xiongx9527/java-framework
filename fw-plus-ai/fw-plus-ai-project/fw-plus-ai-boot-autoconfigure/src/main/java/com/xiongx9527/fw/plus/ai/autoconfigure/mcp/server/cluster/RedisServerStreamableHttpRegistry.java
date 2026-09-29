@@ -1,7 +1,7 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.cluster;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.cluster;
 
 import com.ajaxjs.mcp.server.McpServer;
-import com.xiongx9527.fw.plus.ai.mcp.support.DefaultServerStreamableHttpRegistry;
+import com.xiongx9527.fw.plus.ai.mcp.server.support.DefaultServerStreamableHttpRegistry;
 import lombok.extern.slf4j.Slf4j;
 
 /**

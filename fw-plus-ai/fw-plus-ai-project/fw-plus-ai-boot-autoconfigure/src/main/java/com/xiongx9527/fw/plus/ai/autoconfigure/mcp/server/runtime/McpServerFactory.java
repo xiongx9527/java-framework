@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime;
 
 import com.ajaxjs.mcp.server.McpServer;
 import com.ajaxjs.mcp.server.common.ServerConfig;

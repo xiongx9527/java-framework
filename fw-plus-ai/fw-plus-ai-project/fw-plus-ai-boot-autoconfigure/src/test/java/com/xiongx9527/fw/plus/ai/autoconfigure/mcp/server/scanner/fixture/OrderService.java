@@ -1,8 +1,8 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.scanner.fixture;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.scanner.fixture;
 
 import com.ajaxjs.mcp.server.feature.annotation.McpService;
 import com.ajaxjs.mcp.server.feature.annotation.Tool;
-import com.xiongx9527.fw.plus.ai.mcp.annotation.McpServer;
+import com.xiongx9527.fw.plus.ai.mcp.server.annotation.McpServer;
 
 @McpService
 @McpServer("order")

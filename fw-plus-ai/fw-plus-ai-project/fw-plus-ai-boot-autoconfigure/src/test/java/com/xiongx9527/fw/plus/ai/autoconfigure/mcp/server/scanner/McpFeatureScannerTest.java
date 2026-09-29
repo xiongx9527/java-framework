@@ -1,8 +1,8 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.scanner;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.scanner;
 
 import com.ajaxjs.mcp.server.feature.FeatureMgr;
-import com.xiongx9527.fw.plus.ai.mcp.annotation.McpServer;
-import com.xiongx9527.fw.plus.ai.mcp.feature.McpFeatureScanner;
+import com.xiongx9527.fw.plus.ai.mcp.server.annotation.McpServer;
+import com.xiongx9527.fw.plus.ai.mcp.server.feature.McpFeatureScanner;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -21,8 +21,8 @@ class McpFeatureScannerTest {
 
 	private final McpFeatureScanner scanner = new McpFeatureScanner();
 
-	private final String fixturePackage = "com.xiongx9527.fw.plus.ai.autoconfigure.mcp.scanner.fixture";
-	private final String ghostPackage = "com.xiongx9527.fw.plus.ai.autoconfigure.mcp.scanner.ghost";
+	private final String fixturePackage = "com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.scanner.fixture";
+	private final String ghostPackage = "com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.scanner.ghost";
 
 	@Test
 	void shouldRouteAnnotatedCapabilitiesToMatchingFeatureMgr() throws Exception {

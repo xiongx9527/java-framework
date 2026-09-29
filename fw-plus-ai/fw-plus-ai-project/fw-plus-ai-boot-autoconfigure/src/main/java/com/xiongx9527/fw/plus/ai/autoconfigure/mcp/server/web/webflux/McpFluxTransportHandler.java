@@ -1,16 +1,16 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web.webflux;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.web.webflux;
 
 import com.ajaxjs.mcp.server.ServerStreamableHttp;
 import com.ajaxjs.mcp.server.error.JsonRpcErrorException;
 import com.ajaxjs.mcp.server.model.HttpResult;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpAuthService;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpCapabilities;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpPrincipal;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpRequest;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpHeaderNames;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
-import com.xiongx9527.fw.plus.ai.mcp.spi.ServerSseRegistry;
-import com.xiongx9527.fw.plus.ai.mcp.spi.ServerStreamableHttpRegistry;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.McpAuthService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.McpCapabilities;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.McpPrincipal;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.McpRequest;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpHeaderNames;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime.McpServerRuntime;
+import com.xiongx9527.fw.plus.ai.mcp.server.spi.ServerSseRegistry;
+import com.xiongx9527.fw.plus.ai.mcp.server.spi.ServerStreamableHttpRegistry;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.server.RouterFunction;

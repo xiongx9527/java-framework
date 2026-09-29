@@ -1,8 +1,8 @@
-package com.xiongx9527.fw.plus.ai.mcp.support;
+package com.xiongx9527.fw.plus.ai.mcp.server.support;
 
 import com.ajaxjs.mcp.server.McpServer;
 import com.ajaxjs.mcp.server.model.SseSession;
-import com.xiongx9527.fw.plus.ai.mcp.spi.ServerSseRegistry;
+import com.xiongx9527.fw.plus.ai.mcp.server.spi.ServerSseRegistry;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;

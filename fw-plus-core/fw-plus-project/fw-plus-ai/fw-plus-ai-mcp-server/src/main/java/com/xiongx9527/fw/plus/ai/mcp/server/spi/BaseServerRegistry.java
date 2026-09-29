@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.mcp.spi;
+package com.xiongx9527.fw.plus.ai.mcp.server.spi;
 
 public interface BaseServerRegistry {
 

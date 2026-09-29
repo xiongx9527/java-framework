@@ -17,10 +17,17 @@ import java.util.Map;
 
 /**
  * 对话入口：同步 + SSE 流式。
+ *
+ * <p>{@code sessionId} 会经 {@code Assistant} 上的 {@code @MemoryId} 参数到达
+ * {@code AiServices.systemMessageProvider}，系统提示因此可以按会话定制；留空则兜底为
+ * {@code default}（不能传 null：LangChain4j 对 {@code @MemoryId} 收到 null 会直接抛异常）。</p>
  */
 @RestController
 @RequestMapping("/api/chat")
 public class ChatController {
+
+	/** sessionId 缺失/空白时的兜底值，与 LangChain4j {@code AiServices.DEFAULT} 语义一致。 */
+	private static final String DEFAULT_SESSION_ID = "default";
 
 	private final Assistant assistant;
 	private final WeatherTools weatherTools;
@@ -46,7 +53,8 @@ public class ChatController {
 		}
 
 		int before = weatherTools.getCallCount();
-		String reply = assistant.chat(message);
+		String memoryId = resolveSessionId(request.getSessionId());
+		String reply = assistant.chat(memoryId, message);
 		int toolCalls = weatherTools.getCallCount() - before;
 
 		Map<String, Object> body = new LinkedHashMap<>();
@@ -59,14 +67,15 @@ public class ChatController {
 	 * 流式对话：SSE 逐 token 推送，最后发送 {@code done} 事件。
 	 */
 	@GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-	public SseEmitter stream(@RequestParam("message") String message) {
+	public SseEmitter stream(@RequestParam("message") String message,
+			@RequestParam(value = "sessionId", required = false) String sessionId) {
 		if (message == null || message.trim().isEmpty()) {
 			throw new IllegalArgumentException("message 不能为空");
 		}
 
 		// 0L 表示不设超时，由模型生成速度决定
 		SseEmitter emitter = new SseEmitter(0L);
-		assistant.stream(message)
+		assistant.stream(resolveSessionId(sessionId), message)
 				.onNext(token -> {
 					try {
 						emitter.send(SseEmitter.event().name("token").data(token));
@@ -87,9 +96,21 @@ public class ChatController {
 		return emitter;
 	}
 
-	/** 请求体：{@code {"message":"..."}}。 */
+	/**
+	 * sessionId 兜底：null 或纯空白一律降级为 {@value #DEFAULT_SESSION_ID}。
+	 *
+	 * <p>LangChain4j 0.35.0 的 {@code DefaultAiServices.findMemoryId} 对 {@code @MemoryId}
+	 * 参数收到 null 会抛 IllegalArgumentException，这里挡在 Controller 层，避免客户端
+	 * 漏传 sessionId 就让整条对话链路 500。</p>
+	 */
+	private static String resolveSessionId(String sessionId) {
+		return sessionId == null || sessionId.trim().isEmpty() ? DEFAULT_SESSION_ID : sessionId;
+	}
+
+	/** 请求体：{@code {"message":"...","sessionId":"可选"}}。 */
 	public static class ChatRequest {
 		private String message;
+		private String sessionId;
 
 		public String getMessage() {
 			return message;
@@ -97,6 +118,14 @@ public class ChatController {
 
 		public void setMessage(String message) {
 			this.message = message;
+		}
+
+		public String getSessionId() {
+			return sessionId;
+		}
+
+		public void setSessionId(String sessionId) {
+			this.sessionId = sessionId;
 		}
 	}
 }

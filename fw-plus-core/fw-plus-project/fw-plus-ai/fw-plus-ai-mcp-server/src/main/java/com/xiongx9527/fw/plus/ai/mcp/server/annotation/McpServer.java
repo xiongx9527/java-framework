@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.mcp.annotation;
+package com.xiongx9527.fw.plus.ai.mcp.server.annotation;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;

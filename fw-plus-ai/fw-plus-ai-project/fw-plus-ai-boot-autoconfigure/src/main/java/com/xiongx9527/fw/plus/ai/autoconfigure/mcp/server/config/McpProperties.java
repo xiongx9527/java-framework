@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

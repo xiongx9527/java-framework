@@ -1,18 +1,18 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime;
 
 import com.ajaxjs.mcp.server.McpServer;
 import com.ajaxjs.mcp.server.common.ServerConfig;
 import com.ajaxjs.mcp.server.feature.FeatureMgr;
 import com.ajaxjs.mcp.transport.McpTransportSync;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpAuthService;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.cluster.McpRedisBroadcaster;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.cluster.RedisServerSseRegistry;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.cluster.RedisServerStreamableHttpRegistry;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties;
-import com.xiongx9527.fw.plus.ai.mcp.feature.McpFeatureScanner;
-import com.xiongx9527.fw.plus.ai.mcp.spi.BaseServerRegistry;
-import com.xiongx9527.fw.plus.ai.mcp.support.DefaultServerSseRegistry;
-import com.xiongx9527.fw.plus.ai.mcp.support.DefaultServerStreamableHttpRegistry;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.McpAuthService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.cluster.McpRedisBroadcaster;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.cluster.RedisServerSseRegistry;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.cluster.RedisServerStreamableHttpRegistry;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties;
+import com.xiongx9527.fw.plus.ai.mcp.server.feature.McpFeatureScanner;
+import com.xiongx9527.fw.plus.ai.mcp.server.spi.BaseServerRegistry;
+import com.xiongx9527.fw.plus.ai.mcp.server.support.DefaultServerSseRegistry;
+import com.xiongx9527.fw.plus.ai.mcp.server.support.DefaultServerStreamableHttpRegistry;
 import org.springframework.beans.factory.ObjectProvider;
 
 import java.util.ArrayList;

@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config;
 
 import com.ajaxjs.mcp.server.ServerStreamableHttp;
 import org.springframework.util.StringUtils;

@@ -1,11 +1,11 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime;
 
 import com.ajaxjs.mcp.server.McpServer;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpAuthService;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.cluster.McpRedisBroadcaster;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.cluster.RedisServerSseRegistry;
-import com.xiongx9527.fw.plus.ai.mcp.feature.McpFeatureScanner;
-import com.xiongx9527.fw.plus.ai.mcp.support.DefaultServerSseRegistry;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.McpAuthService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.cluster.McpRedisBroadcaster;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.cluster.RedisServerSseRegistry;
+import com.xiongx9527.fw.plus.ai.mcp.server.feature.McpFeatureScanner;
+import com.xiongx9527.fw.plus.ai.mcp.server.support.DefaultServerSseRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 
@@ -24,7 +24,7 @@ class McpRuntimeFactoryTest {
 
 	@Test
 	void shouldCreateSingleDefaultRuntimeFromTopLevelConfig() {
-		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties top = top();
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties top = top();
 		top.setTransport("http-sse");
 		top.setEndpoint("/mcp");
 		top.setBasePackages("com.example.a");
@@ -42,10 +42,10 @@ class McpRuntimeFactoryTest {
 
 	@Test
 	void shouldAppendNamedRuntimesAfterTheDefault() {
-		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties top = top();
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties top = top();
 		top.setTransport("http-sse");
 		top.setEndpoint("/mcp");
-		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties weather = new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties();
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties weather = new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties();
 		weather.setKey("weather");
 		weather.setTransport("streamable-http");
 		weather.setEndpoint("/mcp/weather");
@@ -62,8 +62,8 @@ class McpRuntimeFactoryTest {
 
 	@Test
 	void shouldRejectNamedServerWithBlankKey() {
-		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties top = top();
-		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties blank = new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties();
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties top = top();
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties blank = new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties();
 		blank.setKey(" ");
 		blank.setEndpoint("/mcp/blank");
 		top.getServers().add(blank);
@@ -75,10 +75,10 @@ class McpRuntimeFactoryTest {
 
 	@Test
 	void shouldRejectDuplicateEndpointWithinSameTransport() {
-		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties top = top();
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties top = top();
 		top.setTransport("http-sse");
 		top.setEndpoint("/mcp");
-		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties weather = new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties();
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties weather = new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties();
 		weather.setKey("weather");
 		// 未配置 endpoint，继承顶层 /mcp，与 default 冲突
 		top.getServers().add(weather);
@@ -90,8 +90,8 @@ class McpRuntimeFactoryTest {
 
 	@Test
 	void shouldRejectServerKeyCollidingWithDefaultKey() {
-		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties top = top();
-		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties defaultKey = new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties();
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties top = top();
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties defaultKey = new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties();
 		defaultKey.setKey("default");
 		defaultKey.setEndpoint("/mcp/custom");
 		top.getServers().add(defaultKey);
@@ -103,12 +103,12 @@ class McpRuntimeFactoryTest {
 
 	@Test
 	void shouldRejectDuplicateKeyBetweenNamedServers() {
-		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties top = top();
-		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties weather = new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties();
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties top = top();
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties weather = new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties();
 		weather.setKey("weather");
 		weather.setEndpoint("/mcp/weather");
 		top.getServers().add(weather);
-		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties weather2 = new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties();
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties weather2 = new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties();
 		weather2.setKey("weather");
 		weather2.setEndpoint("/mcp/weather-2");
 		top.getServers().add(weather2);
@@ -120,10 +120,10 @@ class McpRuntimeFactoryTest {
 
 	@Test
 	void shouldAllowSameEndpointAcrossDifferentTransports() {
-		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties top = top();
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties top = top();
 		top.setTransport("http-sse");
 		top.setEndpoint("/mcp");
-		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties streamable = new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties();
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties streamable = new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties();
 		streamable.setKey("streamable");
 		streamable.setTransport("streamable-http");
 		streamable.setEndpoint("/mcp");
@@ -137,11 +137,11 @@ class McpRuntimeFactoryTest {
 
 	@Test
 	void shouldInheritTopLevelTransportEndpointAndBasePackagesWhenNamedServerOmitsThem() {
-		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties top = top();
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties top = top();
 		top.setTransport("streamable-http");
 		top.setBasePackages("com.example.shared");
-		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties order =
-				new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties();
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties order =
+				new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties();
 		order.setKey("order");
 		order.setEndpoint("/mcp/order");
 		top.getServers().add(order);
@@ -159,10 +159,10 @@ class McpRuntimeFactoryTest {
 
 	@Test
 	void shouldFallBackToBuiltInTransportAndEndpointWhenTopLevelAndNamedServerOmitThem() {
-		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties top = new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties();
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties top = new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties();
 		top.setEnabled(true);
-		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties order =
-				new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties();
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties order =
+				new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties();
 		order.setKey("order");
 		order.setEndpoint("/mcp/order");
 		top.getServers().add(order);
@@ -177,10 +177,10 @@ class McpRuntimeFactoryTest {
 
 	@Test
 	void shouldRejectDuplicateEndpointWhenTransportCaseDiffers() {
-		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties top = top();
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties top = top();
 		top.setTransport("http-sse");
 		top.setEndpoint("/mcp");
-		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties upper = new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties();
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties upper = new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties();
 		upper.setKey("upper");
 		// 大小写不同的同一 transport，且继承顶层 endpoint，构成冲突
 		upper.setTransport("HTTP-SSE");
@@ -193,7 +193,7 @@ class McpRuntimeFactoryTest {
 
 	@Test
 	void shouldRejectUnsupportedTransport() {
-		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties top = top();
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties top = top();
 		// 拼写错误：必须 fail-fast，而非被静默当作 http-sse 处理
 		top.setTransport("streamabla-http");
 
@@ -204,7 +204,7 @@ class McpRuntimeFactoryTest {
 
 	@Test
 	void shouldUseRedisRegistryWhenBroadcasterAvailable() {
-		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties top = top();
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties top = top();
 		top.setEndpoint("/mcp");
 
 		McpRedisBroadcaster broadcaster = new McpRedisBroadcaster(null, "server-1");
@@ -215,7 +215,7 @@ class McpRuntimeFactoryTest {
 
 	@Test
 	void shouldPickLocalRegistryWhenBroadcasterMissing() {
-		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties top = top();
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties top = top();
 		top.setEndpoint("/mcp");
 
 		List<McpServerRuntime> runtimes = factory.createRuntimes(top, authService, emptyProvider());
@@ -233,9 +233,9 @@ class McpRuntimeFactoryTest {
 
 	@Test
 	void shouldCreateDistinctServerInstancePerRuntime() {
-		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties top = top();
-		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties named =
-				new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties();
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties top = top();
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties named =
+				new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties();
 		named.setKey("report");
 		named.setTransport("http-sse");
 		named.setEndpoint("/mcp-report");
@@ -259,9 +259,9 @@ class McpRuntimeFactoryTest {
 	private static final class StubMcpServer extends McpServer {
 	}
 
-	private com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties top() {
-		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties top =
-				new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties();
+	private com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties top() {
+		com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties top =
+				new com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties();
 		top.setEnabled(true);
 		top.setTransport("http-sse");
 		top.setEndpoint("/mcp");

@@ -43,7 +43,7 @@ public class MagicMcpDiagnosticController extends MagicController implements Mag
 	@ResponseBody
 	public JsonBean<List<Map<String, Object>>> capabilities() {
 		List<Map<String, Object>> items = new ArrayList<>();
-		for (com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime runtime
+		for (com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime.McpServerRuntime runtime
 				: SpringUtils.getBean(MagicMcpNotifier.class).all()) {
 			Map<String, Object> item = new LinkedHashMap<>();
 			item.put("key", runtime.getKey());
@@ -115,7 +115,7 @@ public class MagicMcpDiagnosticController extends MagicController implements Mag
 	}
 
 	private FeatureMgr resolveFeatureMgr(String key) {
-		for (com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime runtime
+		for (com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime.McpServerRuntime runtime
 				: SpringUtils.getBean(MagicMcpNotifier.class).all()) {
 			if (key == null || key.trim().isEmpty() || key.equals(runtime.getKey())) {
 				return runtime.getFeatureMgr();

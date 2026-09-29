@@ -1,16 +1,16 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.McpAuthService;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.SaTokenOAuth2McpAuthService;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.auth.PermitAllAuthService;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.cluster.McpRedisBroadcaster;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.cluster.McpRedisMessageConsumer;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpRuntimeFactory;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerFactory;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web.webmvc.McpRoutingRegistrar;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web.webflux.McpWebfluxWebBinding;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.McpAuthService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.SaTokenOAuth2McpAuthService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.PermitAllAuthService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.cluster.McpRedisBroadcaster;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.cluster.McpRedisMessageConsumer;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime.McpRuntimeFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime.McpServerFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime.McpServerRuntime;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.web.webmvc.McpRoutingRegistrar;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.web.webflux.McpWebfluxWebBinding;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -40,7 +40,7 @@ import java.util.List;
  * </p>
  */
 @Configuration
-@ConditionalOnClass(name = "com.xiongx9527.fw.plus.ai.mcp.feature.McpFeatureScanner")
+@ConditionalOnClass(name = "com.xiongx9527.fw.plus.ai.mcp.server.feature.McpFeatureScanner")
 @EnableConfigurationProperties(McpProperties.class)
 @ConditionalOnProperty(prefix = "fw-plus.ai.mcp", name = "enabled", havingValue = "true", matchIfMissing = true)
 @AutoConfigureAfter(name = "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration")

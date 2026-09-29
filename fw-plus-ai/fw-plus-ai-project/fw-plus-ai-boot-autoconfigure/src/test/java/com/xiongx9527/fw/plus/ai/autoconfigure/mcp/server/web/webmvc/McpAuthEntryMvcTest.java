@@ -1,10 +1,10 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web.webmvc;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.web.webmvc;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.contracts.ContractRuntime;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.contracts.RejectAuthService;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
-import com.xiongx9527.fw.plus.ai.mcp.spi.ServerSseRegistry;
-import com.xiongx9527.fw.plus.ai.mcp.spi.ServerStreamableHttpRegistry;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.contracts.ContractRuntime;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.contracts.RejectAuthService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime.McpServerRuntime;
+import com.xiongx9527.fw.plus.ai.mcp.server.spi.ServerSseRegistry;
+import com.xiongx9527.fw.plus.ai.mcp.server.spi.ServerStreamableHttpRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;

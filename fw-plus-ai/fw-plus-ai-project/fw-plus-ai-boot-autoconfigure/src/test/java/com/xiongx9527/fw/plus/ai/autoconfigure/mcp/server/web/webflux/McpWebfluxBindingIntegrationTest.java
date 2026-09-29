@@ -1,8 +1,8 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.web.webflux;
+package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.web.webflux;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.contracts.ContractRuntime;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.config.McpProperties;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.contracts.ContractRuntime;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime.McpServerRuntime;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;

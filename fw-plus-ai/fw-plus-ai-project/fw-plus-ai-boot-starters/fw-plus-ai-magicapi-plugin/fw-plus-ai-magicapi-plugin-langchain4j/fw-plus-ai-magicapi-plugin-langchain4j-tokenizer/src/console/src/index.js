@@ -1,4 +1,6 @@
-import iconSymbol from './icons/langchain4j.svg?raw'
+import iconDocument from './icons/langchain4j.svg?raw'
+// icons/langchain4j.svg 是完整 SVG 文档（可直接预览）；注入时取其中的 <symbol> 片段
+const iconSymbol = iconDocument.replace(/^[\s\S]*?(<symbol[\s\S]*<\/symbol>)[\s\S]*$/, '$1')
 import localZhCN from './i18n/zh-cn.js'
 import localEn from './i18n/en.js'
 import createDatasourceService from './service/magic-langchain4j-datasource.js'
