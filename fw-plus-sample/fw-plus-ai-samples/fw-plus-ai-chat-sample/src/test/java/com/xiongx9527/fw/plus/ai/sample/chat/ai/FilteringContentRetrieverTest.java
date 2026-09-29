@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.sample.chat.ai;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.FilteringContentRetriever;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.rag.content.Content;

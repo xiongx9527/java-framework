@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever;
 
 import dev.langchain4j.data.document.Metadata;
+import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.rag.query.Query;
@@ -18,7 +19,9 @@ import java.util.Map;
  *   <li><b>score 阈值</b>——metadata 中 {@code score} 低于 {@code minScore} 的条目丢弃
  *       （向量库未命中时会把低分条目一起返回，不筛就会把无关资料喂给模型）；</li>
  *   <li><b>metadata 过滤</b>——{@code filters} 里的每个键都要在条目 metadata 中命中：
- *       {@code tags} / {@code keywords} 这类多值字段按「包含」匹配，其余按「相等」匹配。</li>
+ *       {@code tags} / {@code keywords} 这类多值字段按「包含」匹配，其余按「相等」匹配；</li>
+ *   <li><b>title 渲染</b>——metadata 里有 {@code title} 时，把标题以 {@code 《title》} 形式
+ *       渲染到文本头部，便于模型识别资料出处。</li>
  * </ul>
  *
  * <p>配置了 magic-api 过滤函数（{@link MagicApiContentFilter}）时，上面两项内置规则不再生效——
@@ -27,6 +30,8 @@ import java.util.Map;
 public class FilteringContentRetriever implements ContentRetriever {
 
 	private static final String KEY_SCORE = "score";
+
+	private static final String KEY_TITLE = "title";
 
 	/** 多值字段：按「包含」而非「相等」匹配 */
 	private static final String MULTI_VALUE_TAGS = "tags";
@@ -71,9 +76,20 @@ public class FilteringContentRetriever implements ContentRetriever {
 			if (!matchesFilters(content)) {
 				continue;
 			}
-			kept.add(content);
+			kept.add(renderTitle(content));
 		}
 		return kept;
+	}
+
+	/** metadata 里有 title 时，把标题以《title》形式渲染到文本头部，便于模型识别资料出处。 */
+	private static Content renderTitle(Content content) {
+		Metadata metadata = content.textSegment().metadata();
+		String title = metadata == null ? null : metadata.get(KEY_TITLE);
+		if (title == null || title.trim().isEmpty()
+				|| content.textSegment().text().startsWith("《" + title + "》")) {
+			return content;
+		}
+		return Content.from(TextSegment.from("《" + title + "》" + content.textSegment().text(), metadata));
 	}
 
 	/** filters 全部命中才保留；任一不满足即淘汰。 */

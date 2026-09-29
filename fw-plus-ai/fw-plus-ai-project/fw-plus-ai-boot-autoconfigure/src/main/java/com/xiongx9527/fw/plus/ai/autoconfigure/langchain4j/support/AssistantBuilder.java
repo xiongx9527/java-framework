@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j;
+package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.Assistant;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.SimpleAssistant;
@@ -170,7 +170,8 @@ public class AssistantBuilder {
 	 * 需要底层 {@link Assistant} 类型时用 {@link #toAssistant()}。
 	 */
 	public SimpleAssistant build() {
-		return new SimpleAssistant(assemble());
+		// 第 4 参是文本补全的 StreamingLanguageModel，builder 不配置（对话流式走 assistant.stream）
+		return new SimpleAssistant(assemble(), chatModel, null, null);
 	}
 
 	/** 需要底层 {@link Assistant} 类型（如继续挂 AiServices 能力）时取用 */

@@ -48,7 +48,7 @@ public class EphemeralChatMemory implements ChatMemory {
 	 * 注入结果就是「用户原话 + 本分隔串 + 检索内容」。上游若改默认模板，这里需同步，
 	 * 否则锚点失配、检索段重新流入记忆。</p>
 	 */
-	static final String RAG_SEPARATOR = "\n\nAnswer using the following information:\n";
+	public static final String RAG_SEPARATOR = "\n\nAnswer using the following information:\n";
 
 	private final ChatMemory delegate;
 	private final ChatMemoryStore store;

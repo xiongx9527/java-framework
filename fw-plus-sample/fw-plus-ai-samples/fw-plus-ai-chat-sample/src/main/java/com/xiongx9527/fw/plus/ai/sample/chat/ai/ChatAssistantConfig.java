@@ -196,13 +196,6 @@ public class ChatAssistantConfig {
 	 */
 	@Bean
 	public ChatMemoryProvider chatMemoryProvider(ChatMemoryStore chatMemoryStore) {
-
-		TokenWindowChatMemory tokenWindowChatMemory = TokenWindowChatMemory.builder()
-				.maxTokens(4096,null)
-				.chatMemoryStore(chatMemoryStore)
-				.build();
-
-
 		return memoryId -> new EphemeralChatMemory(MessageWindowChatMemory.builder()
 				.id(memoryId)
 				.maxMessages(MAX_MEMORY_MESSAGES)
