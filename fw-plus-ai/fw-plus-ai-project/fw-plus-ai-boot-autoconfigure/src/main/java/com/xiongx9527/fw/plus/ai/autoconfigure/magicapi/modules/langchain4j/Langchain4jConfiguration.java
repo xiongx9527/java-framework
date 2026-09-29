@@ -1,6 +1,12 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.core.Langchain4jModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.module.Langchain4jChatModelModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.module.Langchain4jEmbeddingModelModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.module.Langchain4jEmbeddingStoreModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.module.Langchain4jLanguageModelModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.module.Langchain4jStreamingChatModelModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.module.Langchain4jStreamingLanguageModelModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.module.Langchain4jTokenizerModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.tool.Langchain4jToolConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jChatModelDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jEmbeddingModelDataSource;
@@ -17,11 +23,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 /**
- * Magic-API → LangChain4j 集成入口：只读的脚本模块 {@link Langchain4jModule}（读用 datasource
- * 插件持有的实例）与工具装配 {@link Langchain4jToolConfiguration}。
+ * Magic-API → LangChain4j 集成入口：七类脚本模块（脚本用 {@code chatModel['key']}、
+ * {@code embeddingStore['key']} 等直接取模型实例后调用 langchain4j 方法）与工具装配
+ * {@link Langchain4jToolConfiguration}。
  *
- * <p>脚本模块依赖 datasource 插件的七类实例持有者，因此仅在插件已装配时注册；插件未启用时
- * 不注册该 bean，脚本侧不会出现半可用的模块。</p>
+ * <p>各脚本模块依赖 datasource 插件对应的实例持有者，因此各自以
+ * {@code @ConditionalOnBean(对应持有者)} 独立装配；某类型停用时仅该脚本模块缺席。</p>
  */
 @Configuration
 @ConditionalOnClass(name = "dev.langchain4j.model.chat.ChatLanguageModel")
@@ -32,14 +39,50 @@ public class Langchain4jConfiguration {
 
     @Bean
     @ConditionalOnBean(MagicDynamicLangchain4jChatModelDataSource.class)
-    public Langchain4jModule langchain4jModule(MagicDynamicLangchain4jChatModelDataSource chatModels,
-            MagicDynamicLangchain4jStreamingChatModelDataSource streamingChatModels,
-            MagicDynamicLangchain4jLanguageModelDataSource languageModels,
-            MagicDynamicLangchain4jStreamingLanguageModelDataSource streamingLanguageModels,
-            MagicDynamicLangchain4jEmbeddingModelDataSource embeddingModels,
-            MagicDynamicLangchain4jTokenizerDataSource tokenizers,
+    public Langchain4jChatModelModule langchain4jChatModelModule(
+            MagicDynamicLangchain4jChatModelDataSource chatModels) {
+        return new Langchain4jChatModelModule(chatModels);
+    }
+
+    @Bean
+    @ConditionalOnBean(MagicDynamicLangchain4jStreamingChatModelDataSource.class)
+    public Langchain4jStreamingChatModelModule langchain4jStreamingChatModelModule(
+            MagicDynamicLangchain4jStreamingChatModelDataSource streamingChatModels) {
+        return new Langchain4jStreamingChatModelModule(streamingChatModels);
+    }
+
+    @Bean
+    @ConditionalOnBean(MagicDynamicLangchain4jLanguageModelDataSource.class)
+    public Langchain4jLanguageModelModule langchain4jLanguageModelModule(
+            MagicDynamicLangchain4jLanguageModelDataSource languageModels) {
+        return new Langchain4jLanguageModelModule(languageModels);
+    }
+
+    @Bean
+    @ConditionalOnBean(MagicDynamicLangchain4jStreamingLanguageModelDataSource.class)
+    public Langchain4jStreamingLanguageModelModule langchain4jStreamingLanguageModelModule(
+            MagicDynamicLangchain4jStreamingLanguageModelDataSource streamingLanguageModels) {
+        return new Langchain4jStreamingLanguageModelModule(streamingLanguageModels);
+    }
+
+    @Bean
+    @ConditionalOnBean(MagicDynamicLangchain4jEmbeddingModelDataSource.class)
+    public Langchain4jEmbeddingModelModule langchain4jEmbeddingModelModule(
+            MagicDynamicLangchain4jEmbeddingModelDataSource embeddingModels) {
+        return new Langchain4jEmbeddingModelModule(embeddingModels);
+    }
+
+    @Bean
+    @ConditionalOnBean(MagicDynamicLangchain4jTokenizerDataSource.class)
+    public Langchain4jTokenizerModule langchain4jTokenizerModule(
+            MagicDynamicLangchain4jTokenizerDataSource tokenizers) {
+        return new Langchain4jTokenizerModule(tokenizers);
+    }
+
+    @Bean
+    @ConditionalOnBean(MagicDynamicLangchain4jEmbeddingStoreDataSource.class)
+    public Langchain4jEmbeddingStoreModule langchain4jEmbeddingStoreModule(
             MagicDynamicLangchain4jEmbeddingStoreDataSource embeddingStores) {
-        return new Langchain4jModule(chatModels, streamingChatModels, languageModels, streamingLanguageModels,
-                embeddingModels, tokenizers, embeddingStores);
+        return new Langchain4jEmbeddingStoreModule(embeddingStores);
     }
 }
