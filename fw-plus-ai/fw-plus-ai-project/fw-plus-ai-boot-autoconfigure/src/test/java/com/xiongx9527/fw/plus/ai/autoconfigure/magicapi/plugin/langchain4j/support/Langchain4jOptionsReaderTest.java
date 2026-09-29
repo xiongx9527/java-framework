@@ -109,6 +109,25 @@ class Langchain4jOptionsReaderTest {
     }
 
     @Test
+    void shouldParseStringMapFromObjectJsonAndPairs() {
+        Map<String, Object> filters = new LinkedHashMap<String, Object>();
+        filters.put("category", "faq");
+        assertThat(reader.stringMap("absent", null)).isEmpty();
+        assertThat(new Langchain4jOptionsReader("t", "k", single("filters", filters)).stringMap("filters", null))
+                .containsEntry("category", "faq");
+        assertThat(new Langchain4jOptionsReader("t", "k", single("filters", "{\"category\":\"faq\",\"score\":0.5}"))
+                .stringMap("filters", null))
+                .containsEntry("category", "faq").containsEntry("score", "0.5");
+        assertThat(new Langchain4jOptionsReader("t", "k", single("filters", "category=faq; lang=zh"))
+                .stringMap("filters", null))
+                .containsEntry("category", "faq").containsEntry("lang", "zh");
+
+        assertThatThrownBy(() -> new Langchain4jOptionsReader("t", "k", single("filters", "category"))
+                .stringMap("filters", null))
+                .hasMessageContaining("不是合法键值表");
+    }
+
+    @Test
     void shouldParseEnumCaseInsensitively() {
         Langchain4jOptionsReader enums = new Langchain4jOptionsReader("langchain4j-chat-model", "k", single("mode", "second"));
 

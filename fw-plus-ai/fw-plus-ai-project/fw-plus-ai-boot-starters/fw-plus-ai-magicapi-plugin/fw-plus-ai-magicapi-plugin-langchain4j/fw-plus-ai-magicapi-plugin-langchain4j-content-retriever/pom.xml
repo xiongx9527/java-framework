@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.xiongx9527.fw.plus.ai</groupId>
+        <artifactId>fw-plus-ai-magicapi-plugin-langchain4j</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-content-retriever</artifactId>
+
+    <properties>
+        <main.basedir>${basedir}/../../../../..</main.basedir>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-boot-autoconfigure</artifactId>
+        </dependency>
+        <!-- 图库检索 provider 的实现依赖：autoconfigure 里是 optional，由本 starter 补齐运行时 -->
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j-neo4j</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j-nebula</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j-azure-ai-search</artifactId>
+        </dependency>
+    </dependencies>
+</project>

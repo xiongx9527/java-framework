@@ -152,7 +152,7 @@ class Langchain4jDatasourcePluginIntegrationTest {
                             .sorted()
                             .collect(Collectors.toList());
 
-            assertThat(pluginNames).as("七类资源各一个插件配置，magic-api 逐个注册 controller")
+            assertThat(pluginNames).as("每类资源各一个插件配置，magic-api 逐个注册 controller")
                     .containsExactlyInAnyOrder(
                             "langchain4j-chat-model",
                             "langchain4j-embedding-model",
@@ -162,7 +162,9 @@ class Langchain4jDatasourcePluginIntegrationTest {
                             "langchain4j-streaming-language-model",
                             "langchain4j-tokenizer",
                             "langchain4j-tool-provider",
-                            "langchain4j-system-message");
+                            "langchain4j-system-message",
+                            "langchain4j-chat-memory-store",
+                            "langchain4j-content-retriever");
         });
     }
 

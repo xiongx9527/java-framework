@@ -6,6 +6,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jEmbeddingModelDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jEmbeddingStoreDataSource;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jEmbeddingModelModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resource.Langchain4jEmbeddingStoreMagicResourceStorage;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,7 +47,8 @@ class Langchain4jEmbeddingStoreMagicDynamicRegistryTest {
         registry = new Langchain4jEmbeddingStoreMagicDynamicRegistry(
                 new Langchain4jEmbeddingStoreMagicResourceStorage(
                         factories.providers(Langchain4jModelTypes.EMBEDDING_STORE)),
-                stores, embeddingModels, factories, providerOf(null));
+                stores, new Langchain4jEmbeddingModelModule(embeddingModels, providerOf(null)),
+                factories, providerOf(null));
     }
 
     @Test

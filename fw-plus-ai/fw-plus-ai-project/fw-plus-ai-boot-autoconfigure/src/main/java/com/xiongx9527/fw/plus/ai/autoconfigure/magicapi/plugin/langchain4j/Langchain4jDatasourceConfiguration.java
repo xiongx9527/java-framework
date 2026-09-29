@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.chatmemorystore.Langchain4jChatMemoryStoreConfiguration;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.Langchain4jContentRetrieverConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.systemmessage.Langchain4jSystemMessageProviderConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.Langchain4jToolProviderConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -39,7 +40,8 @@ import org.ssssssss.magicapi.core.service.MagicResourceService;
         Langchain4jEmbeddingStoreConfiguration.class,
         Langchain4jToolProviderConfiguration.class,
         Langchain4jSystemMessageProviderConfiguration.class,
-        Langchain4jChatMemoryStoreConfiguration.class
+        Langchain4jChatMemoryStoreConfiguration.class,
+        Langchain4jContentRetrieverConfiguration.class
 })
 public class Langchain4jDatasourceConfiguration {
 }

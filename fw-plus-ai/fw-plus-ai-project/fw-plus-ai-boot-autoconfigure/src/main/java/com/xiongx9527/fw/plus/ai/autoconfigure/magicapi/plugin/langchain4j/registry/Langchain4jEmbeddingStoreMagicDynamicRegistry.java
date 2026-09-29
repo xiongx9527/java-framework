@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Collections;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.Langchain4jModelFactoryRegistry;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.embedding.MagicDynamicEmbeddingModel;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jEmbeddingStoreInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jEmbeddingModelDataSource;
@@ -38,7 +37,7 @@ public class Langchain4jEmbeddingStoreMagicDynamicRegistry
     @Override
     protected EmbeddingStore<TextSegment> buildInstance(Langchain4jEmbeddingStoreInfo entity) {
         EmbeddingModel embeddingModel = requireEmbeddingModel(entity,
-                new MagicDynamicEmbeddingModel(embeddingModules, entity.getEmbeddingModelKey()));
+                embeddingModules.getDynamicAttribute(entity.getEmbeddingModelKey()));
         return factories.buildEmbeddingStore(entity, embeddingModel);
     }
 

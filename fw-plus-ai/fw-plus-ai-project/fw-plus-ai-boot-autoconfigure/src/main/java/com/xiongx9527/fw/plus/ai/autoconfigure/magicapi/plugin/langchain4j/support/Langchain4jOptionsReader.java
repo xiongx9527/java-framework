@@ -1,5 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support;
 
+import com.alibaba.fastjson2.JSON;
+
 import java.time.Duration;
 import java.util.*;
 
@@ -170,6 +172,61 @@ public class Langchain4jOptionsReader {
             return Collections.emptyList();
         }
         return new ArrayList<>(Arrays.asList(text.split("\\s*,\\s*")));
+    }
+
+    /**
+     * 读取键值表（如 metadata 过滤条件）：值统一转成字符串。
+     * 控制台的单行输入只能给出文本，故同时接受 JSON 对象文本与 {@code k=v} 逗号分隔写法。
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, String> stringMap(String name, Map<String, String> defaultValue) {
+        Object value = options.get(name);
+        if (value == null) {
+            return defaultValue == null ? Collections.<String, String>emptyMap() : defaultValue;
+        }
+        if (value instanceof Map) {
+            Map<String, String> result = new LinkedHashMap<>();
+            for (Map.Entry<String, ?> entry : ((Map<String, ?>) value).entrySet()) {
+                Object item = entry.getValue();
+                result.put(entry.getKey(), item == null ? null : String.valueOf(item));
+            }
+            return result;
+        }
+        if (value instanceof String) {
+            return parseStringMap(name, ((String) value).trim());
+        }
+        throw new IllegalArgumentException(path(name) + " 不是合法键值表: " + value);
+    }
+
+    private Map<String, String> parseStringMap(String name, String text) {
+        if (text.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        if (text.startsWith("{")) {
+            Map<String, String> result = new LinkedHashMap<>();
+            try {
+                for (Map.Entry<String, Object> entry : JSON.parseObject(text).entrySet()) {
+                    result.put(entry.getKey(), entry.getValue() == null ? null : String.valueOf(entry.getValue()));
+                }
+            } catch (RuntimeException e) {
+                throw new IllegalArgumentException(path(name) + " 不是合法键值表（JSON 对象解析失败）: " + text);
+            }
+            return result;
+        }
+        Map<String, String> result = new LinkedHashMap<>();
+        for (String pair : text.split("[,;]")) {
+            String item = pair.trim();
+            if (item.isEmpty()) {
+                continue;
+            }
+            int index = item.indexOf('=');
+            if (index <= 0) {
+                throw new IllegalArgumentException(
+                        path(name) + " 不是合法键值表（支持 JSON 对象或 k=v 逗号分隔）: " + text);
+            }
+            result.put(item.substring(0, index).trim(), item.substring(index + 1).trim());
+        }
+        return result;
     }
 
     private long toLong(String name, Object value) {

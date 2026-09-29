@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.ai.sample.chat.ai.knowledge.RemoteKnowledgeBaseCon
 import dev.langchain4j.rag.DefaultRetrievalAugmentor;
 import dev.langchain4j.rag.RetrievalAugmentor;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
+import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -36,6 +37,9 @@ public class RagAutoConfig {
 	@Bean
 	@ConditionalOnExpression("!'${fw.plus.sample.chat.knowledge-base.base-url:}'.isEmpty()")
 	public ContentRetriever contentRetriever(KnowledgeBaseProperties properties) {
+
+		EmbeddingStoreContentRetriever embeddingStoreContentRetriever ;
+		//ContentRetriever
 		return RemoteKnowledgeBaseContentRetriever.of(properties);
 	}
 
@@ -43,6 +47,7 @@ public class RagAutoConfig {
 	@ConditionalOnExpression("!'${fw.plus.sample.chat.knowledge-base.base-url:}'.isEmpty()")
 	public RetrievalAugmentor retrievalAugmentor(ContentRetriever contentRetriever,
 			KnowledgeBaseProperties properties) {
+		DefaultRetrievalAugmentor  ff;
 		return DefaultRetrievalAugmentor.builder()
 				// 过滤/渲染在 retriever 层；注入模板自声明，分隔串即 memory 的剥离锚点
 				.contentRetriever(new FilteringContentRetriever(

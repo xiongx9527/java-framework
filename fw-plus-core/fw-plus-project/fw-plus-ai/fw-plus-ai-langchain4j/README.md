@@ -23,6 +23,7 @@ fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是�
 | `fw-plus-ai-langchain4j-github-models` | `langchain4j-github-models-spring-boot-starter` | `dev.langchain4j.model.githubmodels.spring` | `AutoConfig`, `ChatModelProperties`, `EmbeddingModelProperties`, `Properties` |
 | `fw-plus-ai-langchain4j-infinispan` | `langchain4j-infinispan` | `dev.langchain4j.store.embedding.infinispan` | `InfinispanEmbeddingStore`, `InfinispanStoreConfiguration`, `LangchainSchemaCreator`, `LangChainInfinispanItem`, `LangChainMetadata`, `LangChainMetadataMarshaller`, `LangChainItemMarshaller` |
 | `fw-plus-ai-langchain4j-milvus` | `langchain4j-milvus-spring-boot-starter` | `dev.langchain4j.store.embedding.milvus.spring` | `MilvusEmbeddingStoreAutoConfiguration`, `MilvusEmbeddingStoreProperties` |
+| `fw-plus-ai-langchain4j-nebula` | 无（fw-plus 自研扩展，见下方说明） | `dev.langchain4j.store.embedding.nebula`, `dev.langchain4j.store.graph.nebula`, `dev.langchain4j.rag.content.retriever.nebula` | `NebulaEmbeddingStore`, `NebulaEmbeddingUtils`, `NebulaGraph`, `NebulaUtils`, `NebulaException`, `NebulaContentRetriever` |
 | `fw-plus-ai-langchain4j-neo4j` | `langchain4j-neo4j` | `dev.langchain4j.store.embedding.neo4j`, `dev.langchain4j.store.graph.neo4j`, `dev.langchain4j.rag.content.retriever.neo4j` | `Neo4jEmbeddingStore`, `Neo4jEmbeddingUtils`, `Neo4jGraph`, `Neo4jException`, `Neo4jContentRetriever` |
 | `fw-plus-ai-langchain4j-ollama` | `langchain4j-ollama-spring-boot-starter` | `dev.langchain4j.ollama.spring` | `AutoConfig`, `ChatModelProperties`, `EmbeddingModelProperties`, `LanguageModelProperties`, `Properties` |
 | `fw-plus-ai-langchain4j-openai` | `langchain4j-open-ai-spring-boot-starter` | `dev.langchain4j.openai.spring` | `AutoConfig`, `ChatModelProperties`, `EmbeddingModelProperties`, `ImageModelProperties`, `LanguageModelProperties`, `ModerationModelProperties`, `Properties`, `ProxyProperties` |
@@ -31,6 +32,17 @@ fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是�
 | `fw-plus-ai-langchain4j-redis` | `langchain4j-redis-spring-boot-starter` | `dev.langchain4j.store.embedding.redis.spring` | `RedisEmbeddingStoreAutoConfiguration`, `RedisEmbeddingStoreProperties` |
 | `fw-plus-ai-langchain4j-vertex-ai-gemini` | `langchain4j-vertex-ai-gemini` | `dev.langchain4j.vertexai.spring` | `AutoConfig`, `ChatModelProperties`, `Properties` |
 | `fw-plus-ai-langchain4j-voyage-ai` | `langchain4j-voyage-ai-spring-boot-starter` | `dev.langchain4j.voyageai.spring` | `AutoConfig`, `EmbeddingModelProperties`, `Properties`, `ScoringModelProperties` |
+
+> `fw-plus-ai-langchain4j-nebula` 不是上游覆盖模块。LangChain4j 没有 nebula artifact，该模块是 fw-plus 自研扩展，
+> 只沿用 `dev.langchain4j.*` 包名，并与 `fw-plus-ai-langchain4j-neo4j` 保持类结构对称（EmbeddingStore / Graph / ContentRetriever）。
+
+与 Neo4j 模块的行为差异：
+
+- NebulaGraph 没有向量索引，`NebulaEmbeddingStore` 的 `findRelevant(...)` 会扫描该 tag 的点（上限 `maxScanRows`，默认 10000），
+  在 Java 侧计算余弦相似度后排序取 topN；向量以 JSON 数组文本存成 tag 的 string 属性。数据量大时应改用专门的向量库。
+- NebulaGraph 的 DDL 需要心跳同步，`CREATE TAG` 之后会轮询 `DESCRIBE TAG` 等待生效（超时 `awaitSchemaTimeout`，默认 60 秒）。
+- 文档 id 即点 vid，默认生成 32 位不带横线的 UUID，图空间的 `vid_type` 需要容纳该长度，例如 `FIXED_STRING(32)`。
+- Nebula 的 schema 归属于图空间，`withBasicAuth(...)` 必须同时指定 `spaceName`；`NebulaGraph` 只能采样数据推断边的起点/终点 tag。
 
 ## Java 8 / Java 17 依赖版本对照
 
