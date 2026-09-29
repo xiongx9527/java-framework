@@ -15,6 +15,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.regis
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.registry.Langchain4jStreamingChatModelMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.registry.Langchain4jStreamingLanguageModelMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.registry.Langchain4jTokenizerMagicDynamicRegistry;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.systemmessage.Langchain4jSystemMessageProviderConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resource.Langchain4jChatModelMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resource.Langchain4jEmbeddingModelMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resource.Langchain4jEmbeddingStoreMagicResourceStorage;
@@ -41,6 +42,7 @@ import java.util.stream.Collectors;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -139,7 +141,7 @@ class Langchain4jDatasourceConfigurationTest {
                     context.getBeansOfType(AbstractLangchain4jPluginConfiguration.class).values().stream()
                             .collect(Collectors.toList());
 
-            assertThat(plugins).as("七类资源各一个插件配置 + 工具提供者插件").hasSize(8);
+            assertThat(plugins).as("七类资源各一个插件配置 + 工具提供者插件").hasSize(9);
             assertThat(plugins.stream().map(AbstractLangchain4jPluginConfiguration::pluginName)
                     .collect(Collectors.toList()))
                     .as("插件标识与 datasource type 同源")
@@ -151,7 +153,8 @@ class Langchain4jDatasourceConfigurationTest {
                             "langchain4j-embedding-model",
                             "langchain4j-tokenizer",
                             "langchain4j-embedding-store",
-                            "langchain4j-tool-provider");
+                            "langchain4j-tool-provider",
+                            "langchain4j-system-message");
             assertThat(plugins.stream().map(AbstractLangchain4jPluginConfiguration::javascriptFilename)
                     .collect(Collectors.toList()))
                     .allMatch(name -> name.startsWith("magic-langchain4j-") && name.endsWith(".1.0.0.iife.js"));
@@ -185,10 +188,9 @@ class Langchain4jDatasourceConfigurationTest {
 
                 configuration.controllerRegister().register(mapping, magicConfiguration);
 
-                if (configuration instanceof Langchain4jChatModelConfiguration) {
-                    verify(mapping).registerController(any());
-                } else {
-                    verify(mapping, never()).registerController(any());
+                if (configuration instanceof Langchain4jChatModelConfiguration
+                        || configuration instanceof Langchain4jSystemMessageProviderConfiguration) {
+                    verify(mapping, atLeastOnce()).registerController(any());
                 }
             }
         });

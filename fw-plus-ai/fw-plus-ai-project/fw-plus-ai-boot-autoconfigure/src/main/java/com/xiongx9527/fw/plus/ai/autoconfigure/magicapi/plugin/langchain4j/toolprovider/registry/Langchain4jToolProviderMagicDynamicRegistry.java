@@ -2,6 +2,9 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.tool
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.model.Langchain4jToolProviderInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.model.MagicDynamicLangchain4jToolProviderDataSource;
+import java.util.List;
+import org.springframework.beans.factory.ObjectProvider;
+import dev.langchain4j.service.tool.ToolProvider;
 import org.springframework.context.event.EventListener;
 import org.ssssssss.magicapi.core.event.FileEvent;
 import org.ssssssss.magicapi.core.event.GroupEvent;
@@ -16,11 +19,32 @@ public class Langchain4jToolProviderMagicDynamicRegistry
 
 	private final MagicDynamicLangchain4jToolProviderDataSource dataSource;
 
+	/** Spring 容器中的默认 ToolProvider（langchain4j 自动配置注入），可能不存在 */
+	private final ObjectProvider<ToolProvider> defaultInstance;
+
 	public Langchain4jToolProviderMagicDynamicRegistry(
 			MagicResourceStorage<Langchain4jToolProviderInfo> magicResourceStorage,
-			MagicDynamicLangchain4jToolProviderDataSource dataSource) {
+			MagicDynamicLangchain4jToolProviderDataSource dataSource,
+			ObjectProvider<ToolProvider> defaultInstance) {
 		super(magicResourceStorage);
 		this.dataSource = dataSource;
+		this.defaultInstance = defaultInstance;
+	}
+
+	/** 默认 ToolProvider（Spring 注入，key=default，只读展示）+ 控制台配置的数据源，一并暴露 */
+	@Override
+	public List<Langchain4jToolProviderInfo> defaultMappings() {
+		List<Langchain4jToolProviderInfo> result = new java.util.ArrayList<>();
+		ToolProvider springDefault = defaultInstance == null ? null : defaultInstance.getIfAvailable();
+		if (springDefault != null) {
+			Langchain4jToolProviderInfo info = new Langchain4jToolProviderInfo();
+			info.setKey("default");
+			info.setName("默认数据源");
+			info.setEnabled(true);
+			result.add(info);
+		}
+		result.addAll(mappings());
+		return result;
 	}
 
 	@EventListener(condition = "#event.type == 'langchain4j-tool-provider'")

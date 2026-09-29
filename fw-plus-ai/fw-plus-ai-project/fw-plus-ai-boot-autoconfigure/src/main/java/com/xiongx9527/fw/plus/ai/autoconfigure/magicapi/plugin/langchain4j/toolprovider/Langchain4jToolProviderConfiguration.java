@@ -6,6 +6,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolp
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.registry.Langchain4jToolProviderMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.resource.Langchain4jToolProviderMagicResourceStorage;
 import dev.langchain4j.service.tool.ToolProvider;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -59,16 +60,18 @@ public class Langchain4jToolProviderConfiguration extends AbstractLangchain4jPlu
 	@ConditionalOnMissingBean
 	public Langchain4jToolProviderMagicDynamicRegistry langchain4jToolProviderMagicDynamicRegistry(
 			Langchain4jToolProviderMagicResourceStorage storage,
-			MagicDynamicLangchain4jToolProviderDataSource dataSource) {
-		return new Langchain4jToolProviderMagicDynamicRegistry(storage, dataSource);
+			MagicDynamicLangchain4jToolProviderDataSource dataSource,
+			ObjectProvider<ToolProvider> defaultInstance) {
+		return new Langchain4jToolProviderMagicDynamicRegistry(storage, dataSource, defaultInstance);
 	}
 
 	/** 脚本模块：langchain4jToolProvider['key'] 按 key 取 ToolProvider。 */
 	@Bean
 	@ConditionalOnMissingBean
 	public Langchain4jToolProviderModule langchain4jToolProviderModule(
-			MagicDynamicLangchain4jToolProviderDataSource dataSource) {
-		return new Langchain4jToolProviderModule(dataSource);
+			MagicDynamicLangchain4jToolProviderDataSource dataSource,
+			org.springframework.beans.factory.ObjectProvider<ToolProvider> defaultInstance) {
+		return new Langchain4jToolProviderModule(dataSource, defaultInstance);
 	}
 
 	/** api/function 资源变更后失效全部实例的工具快照。 */

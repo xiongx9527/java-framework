@@ -19,7 +19,10 @@ class Langchain4jToolProviderModuleTest {
 	@BeforeEach
 	void setUp() {
 		dataSource = mock(MagicDynamicLangchain4jToolProviderDataSource.class);
-		module = new Langchain4jToolProviderModule(dataSource);
+		module = new Langchain4jToolProviderModule(dataSource,
+				org.mockito.Mockito.mock(org.springframework.beans.factory.ObjectProvider.class,
+						org.mockito.Mockito.withSettings().defaultAnswer(
+								org.mockito.Mockito.RETURNS_DEEP_STUBS)));
 	}
 
 	@Test
