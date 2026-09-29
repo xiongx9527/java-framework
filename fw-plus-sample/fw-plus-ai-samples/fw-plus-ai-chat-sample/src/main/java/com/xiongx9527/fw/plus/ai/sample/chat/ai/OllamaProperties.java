@@ -17,6 +17,10 @@ import java.util.Map;
  *       样例跨包无法复用。</li>
  * </ul>
  *
+ * <p>注意：流式模型已改用 OpenAI 集成（指向 Ollama 的 OpenAI 兼容端点），其配置在
+ * {@code OpenAiProperties}（前缀 {@code langchain4j.open-ai}）；本类现在只服务同步链路，
+ * {@code streamingChatModel} 字段保留仅为与框架侧结构对齐。</p>
+ *
  * <p>字段与框架侧对齐，yaml 键名完全兼容——恢复默认的 {@code fw.plus.ai.langchain4j.ollama.enabled}
  * 并去掉样例自建的模型 Bean，即可切回框架装配。</p>
  */

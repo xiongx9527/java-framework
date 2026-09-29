@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.sample.chat;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.Assistant;
 import com.xiongx9527.fw.plus.ai.sample.chat.ai.WeatherTools;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +13,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.function.Consumer;
 
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -44,7 +46,7 @@ class ChatControllerTest {
 
 	@Test
 	void chatReturnsReplyAndToolCalls() throws Exception {
-		when(assistant.chat(anyString(), anyString())).thenReturn("杭州夏天更凉快一些。");
+		when(assistant.chat(anyString(), eq(""), anyString())).thenReturn("杭州夏天更凉快一些。");
 
 		mockMvc.perform(post("/api/chat")
 						.contentType(MediaType.APPLICATION_JSON)
@@ -64,14 +66,14 @@ class ChatControllerTest {
 
 	@Test
 	void chatPassesSessionIdFromRequestBody() throws Exception {
-		when(assistant.chat("s-1", "杭州天气怎么样")).thenReturn("正在查。");
+		when(assistant.chat("s-1", "", "杭州天气怎么样")).thenReturn("正在查。");
 
 		mockMvc.perform(post("/api/chat")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("{\"message\":\"杭州天气怎么样\",\"sessionId\":\"s-1\"}"))
 				.andExpect(status().isOk());
 
-		verify(assistant).chat("s-1", "杭州天气怎么样");
+		verify(assistant).chat("s-1", "", "杭州天气怎么样");
 	}
 
 	@Test
@@ -81,7 +83,7 @@ class ChatControllerTest {
 						.content("{\"message\":\"杭州天气怎么样\"}"))
 				.andExpect(status().isOk());
 
-		verify(assistant).chat(DEFAULT_SESSION_ID, "杭州天气怎么样");
+		verify(assistant).chat(DEFAULT_SESSION_ID, "", "杭州天气怎么样");
 	}
 
 	@Test
@@ -91,37 +93,41 @@ class ChatControllerTest {
 						.content("{\"message\":\"杭州天气怎么样\",\"sessionId\":\"   \"}"))
 				.andExpect(status().isOk());
 
-		verify(assistant).chat(DEFAULT_SESSION_ID, "杭州天气怎么样");
+		verify(assistant).chat(DEFAULT_SESSION_ID, "", "杭州天气怎么样");
 	}
 
 	@Test
 	void streamPassesSessionIdFromQueryParam() throws Exception {
-		when(assistant.stream("s-2", "用一句话介绍杭州")).thenAnswer(invocation -> new FakeTokenStream().complete());
+		when(assistant.stream("s-2", "", "用一句话介绍杭州")).thenAnswer(invocation -> new FakeTokenStream().complete());
 
-		mockMvc.perform(get("/api/chat/stream")
-						.param("message", "用一句话介绍杭州")
-						.param("sessionId", "s-2"))
+		mockMvc.perform(post("/api/chat/stream")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"message\":\"用一句话介绍杭州\",\"sessionId\":\"s-2\"}"))
 				.andExpect(status().isOk());
 
-		verify(assistant).stream("s-2", "用一句话介绍杭州");
+		verify(assistant).stream("s-2", "", "用一句话介绍杭州");
 	}
 
 	@Test
 	void streamFallsBackToDefaultWhenSessionIdAbsent() throws Exception {
-		when(assistant.stream(DEFAULT_SESSION_ID, "用一句话介绍杭州"))
+		when(assistant.stream(DEFAULT_SESSION_ID, "", "用一句话介绍杭州"))
 				.thenAnswer(invocation -> new FakeTokenStream().complete());
 
-		mockMvc.perform(get("/api/chat/stream").param("message", "用一句话介绍杭州"))
+		mockMvc.perform(post("/api/chat/stream")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"message\":\"用一句话介绍杭州\"}"))
 				.andExpect(status().isOk());
 
-		verify(assistant).stream(DEFAULT_SESSION_ID, "用一句话介绍杭州");
+		verify(assistant).stream(DEFAULT_SESSION_ID, "", "用一句话介绍杭州");
 	}
 
 	@Test
 	void streamEmitsTokenAndDoneEvents() throws Exception {
-		when(assistant.stream(anyString(), anyString())).thenAnswer(invocation -> new FakeTokenStream().complete());
+		when(assistant.stream(anyString(), eq(""), anyString())).thenAnswer(invocation -> new FakeTokenStream().complete());
 
-		mockMvc.perform(get("/api/chat/stream").param("message", "用一句话介绍杭州"))
+		mockMvc.perform(post("/api/chat/stream")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"message\":\"用一句话介绍杭州\"}"))
 				.andExpect(status().isOk())
 				.andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM));
 	}

@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -65,17 +64,20 @@ public class ChatController {
 
 	/**
 	 * 流式对话：SSE 逐 token 推送，最后发送 {@code done} 事件。
+	 *
+	 * <p>请求体与 {@link #chat} 一致（{@code {"message":"...","sessionId":"可选"}}）；
+	 * 用 POST 是为了和同步接口同一套入参、不受 URL 长度与编码限制。</p>
 	 */
-	@GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-	public SseEmitter stream(@RequestParam("message") String message,
-			@RequestParam(value = "sessionId", required = false) String sessionId) {
+	@PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+	public SseEmitter stream(@RequestBody ChatRequest request) {
+		String message = request == null ? null : request.getMessage();
 		if (message == null || message.trim().isEmpty()) {
 			throw new IllegalArgumentException("message 不能为空");
 		}
 
 		// 0L 表示不设超时，由模型生成速度决定
 		SseEmitter emitter = new SseEmitter(0L);
-		assistant.stream(resolveSessionId(sessionId), "", message)
+		assistant.stream(resolveSessionId(request.getSessionId()), "", message)
 				.onNext(token -> {
 					try {
 						emitter.send(SseEmitter.event().name("token").data(token));

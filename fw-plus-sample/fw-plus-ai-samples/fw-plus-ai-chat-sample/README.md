@@ -40,8 +40,9 @@ curl -X POST localhost:8080/api/chat -H 'Content-Type: application/json' \
      -d '{"message":"杭州现在天气怎么样？","sessionId":"demo-1"}'
 # {"reply":"杭州当前 29℃，湿度 78%...","toolCalls":1}
 
-# SSE 流式
-curl -N 'localhost:8080/api/chat/stream?message=用一句话介绍杭州&sessionId=demo-1'
+# SSE 流式（POST，请求体与同步接口一致）
+curl -N localhost:8080/api/chat/stream -H 'Content-Type: application/json' \
+  -d '{"message":"用一句话介绍杭州","sessionId":"demo-1"}'
 # event:token
 # data:杭州
 # event:done
@@ -79,6 +80,8 @@ TokenStream stream(@MemoryId String sessionId, String message);
 排查 prompt 拼接效果（系统提示对不对、RAG 注入了什么、模型看到哪些工具、工具调用传了什么）靠日志，不靠猜。
 
 样例内置 `ai/ChatContextLogger`（实现 LangChain4j `ChatModelListener`）。框架侧的 ollama 自动配置已用 `fw.plus.ai.langchain4j.ollama.enabled=false` 关掉，改由 `ChatAssistantConfig` 自己构造 `OllamaChatModel` / `OllamaStreamingChatModel`，并在 builder 上调用**官方** `.listeners(...)` 挂载——不动任何框架文件，代价是模型参数在样例里再声明一份（`ai/OllamaProperties`，yaml 键名与框架侧完全一致）。同步与流式两条链路都会经过它。
+
+**流式模型的配置**：`/api/chat/stream` 的流式模型走的是 **Ollama 的 OpenAI 兼容端点**，因此配置在 `langchain4j.open-ai.streaming-chat-model`（OpenAI 集成的键名）而不是 `langchain4j.ollama`（`base-url` + `/v1`，装配时自动补 `/v1`），用的是 OpenAI 集成而不是 `OllamaStreamingChatModel`——langchain4j 0.35.0 的 ollama 流式实现没有「带工具」的重载，调了会抛 `Tools are currently not supported by this model`。换到 `/v1` 后流式链路是真流式且能调工具，与同步链路行为一致。
 
 一次对话按七类标签输出：
 
@@ -230,7 +233,7 @@ Content-Type: application/json
 | `ai/knowledge/RemoteKnowledgeBaseContentRetriever` | 调远程知识库接口的 `ContentRetriever` |
 | `ai/knowledge/KnowledgeBaseProperties` | 知识库配置项 |
 | `ai/RagAutoConfig` | 知识库 Bean 装配（按 `base-url` 条件启用） |
-| `web/ChatController` | `POST /api/chat` 与 `GET /api/chat/stream` |
+| `web/ChatController` | `POST /api/chat` 与 `POST /api/chat/stream`（SSE） |
 
 ## 约束
 

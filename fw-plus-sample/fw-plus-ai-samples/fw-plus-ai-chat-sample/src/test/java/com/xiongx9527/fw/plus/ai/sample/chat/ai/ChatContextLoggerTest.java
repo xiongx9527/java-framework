@@ -1,5 +1,7 @@
 package com.xiongx9527.fw.plus.ai.sample.chat.ai;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.Assistant;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.ChatContextLogger;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
@@ -22,34 +24,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * {@link ChatContextLogger} 的单元测试：RAG 拆分、截断、六类消息的日志路径。
+ * {@link ChatContextLogger} 的单元测试：六类消息的日志路径与 AiServices 参数校验。
  *
- * <p>核心价值在于 onRequest 的 instanceof 强转：任何一类消息漏判都会 ClassCastException，
- * 用构造好的六类消息清单一次性锁死。</p>
+ * <p>核心价值在于 onRequest/onResponse 的 instanceof 强转：任何一类消息漏判都会 ClassCastException，
+ * 用构造好的消息清单一次性锁死。内部截断实现（{@code abbreviate}）是私有的，不在此断言。</p>
  */
 class ChatContextLoggerTest {
 
 	private final ChatContextLogger logger = new ChatContextLogger();
-
-	@Test
-	void abbreviateHandlesNullShortAndMultilineText() {
-		assertEquals("null", ChatContextLogger.abbreviate(null));
-		assertEquals("hello", ChatContextLogger.abbreviate("hello"));
-		assertEquals("a b", ChatContextLogger.abbreviate("a\nb"));
-	}
-
-	@Test
-	void abbreviateTruncatesLongText() {
-		StringBuilder longText = new StringBuilder();
-		for (int i = 0; i < 200; i++) {
-			longText.append("长长长长");
-		}
-
-		String result = ChatContextLogger.abbreviate(longText.toString());
-
-		assertTrue(result.contains("已截断"), result);
-		assertTrue(result.length() <= ChatContextLogger.MAX_LENGTH + 40, result);
-	}
 
 	@Test
 	void onRequestLogsEveryMessageTypeWithoutClassCast() {
@@ -102,7 +84,7 @@ class ChatContextLoggerTest {
 				.chatLanguageModel(messages -> dev.langchain4j.model.output.Response.from(AiMessage.from("pong")))
 				.build();
 
-		String reply = assistant.chat("s-1", "ping");
+		String reply = assistant.chat("s-1", "", "ping");
 
 		assertEquals("pong", reply);
 	}

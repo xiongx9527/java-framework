@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.sample.chat.ai;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.Assistant;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
@@ -49,8 +50,8 @@ class EphemeralChatMemoryIntegrationTest {
 				.tools(weatherTools)
 				.build();
 
-		assistant.chat(SESSION, "北京天气怎么样");
-		assistant.chat(SESSION, "再问一次");
+		assistant.chat(SESSION, "", "北京天气怎么样");
+		assistant.chat(SESSION, "", "再问一次");
 
 		assertEquals(1, weatherTools.getCallCount(), "第一轮应触发一次工具调用");
 		assertEquals(Arrays.asList(ChatMessageType.USER, ChatMessageType.USER),

@@ -10,7 +10,7 @@ import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.ollama.OllamaChatModel;
-import dev.langchain4j.model.ollama.OllamaStreamingChatModel;
+import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import dev.langchain4j.rag.RetrievalAugmentor;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
@@ -39,7 +39,7 @@ import java.util.Collections;
  * provider 的下一条顶掉。所以这里让 memory 持有唯一的系统提示，provider 留空。</p>
  */
 @Configuration
-@EnableConfigurationProperties(OllamaProperties.class)
+@EnableConfigurationProperties({OllamaProperties.class, OpenAiProperties.class})
 public class ChatAssistantConfig {
 
 	/**
@@ -49,6 +49,10 @@ public class ChatAssistantConfig {
 	 * 短暂容纳本轮的工具往返——下一轮开始时被 {@link EphemeralChatMemory} 清掉。</p>
 	 */
 	private static final int MAX_MEMORY_MESSAGES = 20;
+
+	/** OpenAI 协议路径后缀：Ollama 的兼容端点是 {base-url}/v1/chat/completions */
+	private static final String OPENAI_COMPATIBLE_SUFFIX = "/v1";
+
 
 	private static final Logger log = LoggerFactory.getLogger(ChatAssistantConfig.class);
 
@@ -87,28 +91,47 @@ public class ChatAssistantConfig {
 				.build();
 	}
 
-	/** 流式模型：同上，供 SSE 链路使用（流式 builder 没有 maxRetries，其余参数一致）。 */
+	/**
+	 * 流式模型：OpenAI 集成，指向 Ollama 的 OpenAI 兼容端点（{@code base-url}，形如 {@code http://localhost:11434/v1}）。
+	 *
+	 * <p>配置取自 {@code langchain4j.open-ai.streaming-chat-model}（OpenAI 集成就用 OpenAI 的键）；
+	 * 不用 {@code OllamaStreamingChatModel} 的原因：langchain4j 0.35.0 的 ollama 流式实现没有「带工具」的重载，
+	 * 调用会抛 {@code Tools are currently not supported by this model}。</p>
+	 */
 	@Bean
-	public OllamaStreamingChatModel streamingChatModel(OllamaProperties properties,
+	public OpenAiStreamingChatModel streamingChatModel(OpenAiProperties properties,
 			ChatContextLogger chatContextLogger) {
-		OllamaProperties.ModelProperties p = properties.getStreamingChatModel();
-		return OllamaStreamingChatModel.builder()
-				.baseUrl(p.getBaseUrl())
+		OpenAiProperties.StreamingChatModelProperties p = properties.getStreamingChatModel();
+		return OpenAiStreamingChatModel.builder()
+				.baseUrl(openAiCompatibleBaseUrl(p.getBaseUrl()))
+				.apiKey(p.getApiKey())
 				.modelName(p.getModelName())
 				.temperature(p.getTemperature())
-				.topK(p.getTopK())
 				.topP(p.getTopP())
-				.repeatPenalty(p.getRepeatPenalty())
-				.seed(p.getSeed())
-				.numPredict(p.getNumPredict())
 				.stop(p.getStop())
-				.format(p.getFormat())
+				.maxTokens(p.getMaxTokens())
+				.seed(p.getSeed())
 				.timeout(p.getTimeout())
 				.customHeaders(p.getCustomHeaders())
 				.logRequests(p.getLogRequests())
 				.logResponses(p.getLogResponses())
 				.listeners(Collections.singletonList(chatContextLogger))
 				.build();
+	}
+
+	/**
+	 * 把基础地址补成 OpenAI 兼容端点：{@code http://host:11434} → {@code http://host:11434/v1}；
+	 * 已经是 {@code /v1} 结尾的原样返回（OpenAI 客户端会把 {@code /chat/completions} 拼在其后）。
+	 */
+	static String openAiCompatibleBaseUrl(String baseUrl) {
+		if (baseUrl == null || baseUrl.trim().isEmpty()) {
+			return baseUrl;
+		}
+		String trimmed = baseUrl.trim();
+		while (trimmed.endsWith("/")) {
+			trimmed = trimmed.substring(0, trimmed.length() - 1);
+		}
+		return trimmed.endsWith(OPENAI_COMPATIBLE_SUFFIX) ? trimmed : trimmed + OPENAI_COMPATIBLE_SUFFIX;
 	}
 
 	@Bean
