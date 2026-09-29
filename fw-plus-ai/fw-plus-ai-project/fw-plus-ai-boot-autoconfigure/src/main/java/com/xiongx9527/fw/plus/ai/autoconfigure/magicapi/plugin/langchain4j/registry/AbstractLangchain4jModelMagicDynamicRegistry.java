@@ -78,13 +78,18 @@ public abstract class AbstractLangchain4jModelMagicDynamicRegistry<T extends Lan
         if (instance == null) {
             return false;
         }
-        holder.put(entity.getKey(), instance);
+        boolean registered;
         try {
-            return super.register(node);
+            registered = super.register(node);
         } catch (Exception e) {
             logger.warn("登记 LangChain4j 资源映射失败: type={}, key={}", type.type(), entity.getKey(), e);
             return false;
         }
+        if (registered) {
+            // 登记成功后才放入实例：避免「实例已可取用但映射登记失败」的不一致状态
+            holder.put(entity.getKey(), instance);
+        }
+        return registered;
     }
 
     @Override

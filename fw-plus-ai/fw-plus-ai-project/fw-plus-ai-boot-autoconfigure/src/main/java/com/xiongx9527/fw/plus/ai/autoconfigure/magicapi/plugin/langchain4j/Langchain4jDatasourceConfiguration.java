@@ -25,6 +25,8 @@ import org.ssssssss.magicapi.core.service.MagicResourceService;
         matchIfMissing = true)
 @Import({
         Langchain4jModelFactoryConfiguration.class,
+        // 顺序敏感：embedding-model 必须先于 embedding-store——后者的类级 @ConditionalOnBean
+        // 依赖前者在本批次中先注册的 bean 定义，重排会导致 store 类型静默缺席
         Langchain4jChatModelConfiguration.class,
         Langchain4jStreamingChatModelConfiguration.class,
         Langchain4jLanguageModelConfiguration.class,
