@@ -28,6 +28,7 @@ export default {
             map: '键值表，如 category=faq,lang=zh 或 {"category":"faq"}'
         },
         provider: {
+            'aggregating': '组合检索',
             'azure-ai-search': 'Azure AI Search',
             'embedding-store': '向量库检索',
             'filtering': '过滤装饰器',
@@ -40,7 +41,9 @@ export default {
             'api-key': 'API Key',
             'chat-model-key': '关联对话模型',
             'content-retriever-key': '被包装的检索器',
+            'content-retriever-keys': '被组合的检索器',
             'create-or-update-index': '自动创建索引',
+            'deduplicate': '按正文去重',
             'dimensions': '向量维度',
             'embedding-model-key': '关联向量模型',
             'embedding-store-key': '关联向量库',

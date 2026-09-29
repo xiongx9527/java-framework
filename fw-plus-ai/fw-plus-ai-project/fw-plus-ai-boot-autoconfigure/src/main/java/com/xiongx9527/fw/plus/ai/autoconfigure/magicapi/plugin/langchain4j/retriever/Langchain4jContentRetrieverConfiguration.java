@@ -6,6 +6,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.modul
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jEmbeddingStoreModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.model.MagicDynamicLangchain4jContentRetrieverDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.module.Langchain4jContentRetrieverModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.provider.AggregatingContentRetrieverProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.provider.AzureAiSearchContentRetrieverProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.provider.EmbeddingStoreContentRetrieverProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.provider.FilteringContentRetrieverProvider;
@@ -74,6 +75,7 @@ public class Langchain4jContentRetrieverConfiguration extends AbstractLangchain4
 		registry.register(new AzureAiSearchContentRetrieverProvider());
 		registry.register(new WebSearchContentRetrieverProvider());
 		registry.register(new FilteringContentRetrieverProvider());
+		registry.register(new AggregatingContentRetrieverProvider());
 		for (ContentRetrieverProvider provider : providerProvider) {
 			if (provider != null) {
 				registry.register(provider);

@@ -28,6 +28,7 @@ export default {
             map: 'Key-value map, e.g. category=faq,lang=zh or {"category":"faq"}'
         },
         provider: {
+            'aggregating': 'Aggregating',
             'azure-ai-search': 'Azure AI Search',
             'embedding-store': 'Embedding Store',
             'filtering': 'Filtering Decorator',
@@ -40,7 +41,9 @@ export default {
             'api-key': 'API Key',
             'chat-model-key': 'Chat Model',
             'content-retriever-key': 'Wrapped Retriever',
+            'content-retriever-keys': 'Aggregated Retrievers',
             'create-or-update-index': 'Create Or Update Index',
+            'deduplicate': 'Deduplicate By Text',
             'dimensions': 'Dimensions',
             'embedding-model-key': 'Embedding Model',
             'embedding-store-key': 'Embedding Store',

@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retr
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.model.Langchain4jContentRetrieverInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.model.MagicDynamicLangchain4jContentRetrieverDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.module.Langchain4jContentRetrieverModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.provider.AggregatingContentRetrieverProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.provider.EmbeddingStoreContentRetrieverProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.provider.FilteringContentRetrieverProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.provider.Neo4jContentRetrieverProvider;
@@ -82,6 +83,39 @@ class ContentRetrieverProviderRegistryTest {
             texts.add(content.textSegment().text());
         }
         assertThat(texts).containsExactly("命中");
+    }
+
+    /** aggregating 把多个 key 组装成组合检索器：结果按声明顺序合并。 */
+    @Test
+    void shouldAggregateRetrieversByKeys() {
+        MagicDynamicLangchain4jContentRetrieverDataSource retrievers =
+                new MagicDynamicLangchain4jContentRetrieverDataSource();
+        retrievers.put("first", query -> Arrays.asList(Content.from("甲")));
+        retrievers.put("second", query -> Arrays.asList(Content.from("乙")));
+        ContentRetrieverContext context = new ContentRetrieverContext(null, null, null,
+                new Langchain4jContentRetrieverModule(retrievers, null), null, null);
+        registry.register(new AggregatingContentRetrieverProvider());
+
+        Map<String, Object> options = new LinkedHashMap<String, Object>();
+        options.put("content-retriever-keys", "first, second");
+
+        ContentRetriever retriever = registry.build(info("aggregating", options), context);
+
+        List<String> texts = new ArrayList<>();
+        for (Content content : retriever.retrieve(Query.from("问题"))) {
+            texts.add(content.textSegment().text());
+        }
+        assertThat(texts).containsExactly("甲", "乙");
+    }
+
+    /** 组合检索的 key 参数缺失时给出 options 路径 */
+    @Test
+    void shouldRejectAggregatingWithoutKeys() {
+        registry.register(new AggregatingContentRetrieverProvider());
+
+        assertThatThrownBy(() -> registry.build(info("aggregating", new LinkedHashMap<String, Object>()), null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("langchain4j-content-retriever[kb-main].options.content-retriever-keys");
     }
 
     private static Content content(String text, double score, String category) {
