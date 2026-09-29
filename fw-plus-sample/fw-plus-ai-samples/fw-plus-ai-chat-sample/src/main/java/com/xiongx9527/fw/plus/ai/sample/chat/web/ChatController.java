@@ -1,6 +1,6 @@
 package com.xiongx9527.fw.plus.ai.sample.chat.web;
 
-import com.xiongx9527.fw.plus.ai.sample.chat.ai.Assistant;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.Assistant;
 import com.xiongx9527.fw.plus.ai.sample.chat.ai.WeatherTools;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -54,7 +54,7 @@ public class ChatController {
 
 		int before = weatherTools.getCallCount();
 		String memoryId = resolveSessionId(request.getSessionId());
-		String reply = assistant.chat(memoryId, message);
+		String reply = assistant.chat(memoryId, "", message);
 		int toolCalls = weatherTools.getCallCount() - before;
 
 		Map<String, Object> body = new LinkedHashMap<>();
@@ -75,7 +75,7 @@ public class ChatController {
 
 		// 0L 表示不设超时，由模型生成速度决定
 		SseEmitter emitter = new SseEmitter(0L);
-		assistant.stream(resolveSessionId(sessionId), message)
+		assistant.stream(resolveSessionId(sessionId), "", message)
 				.onNext(token -> {
 					try {
 						emitter.send(SseEmitter.event().name("token").data(token));

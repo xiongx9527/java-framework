@@ -1,5 +1,7 @@
 package com.xiongx9527.fw.plus.ai.sample.chat.ai;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.Assistant;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.ChatContextLogger;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ChatMessageType;
 import dev.langchain4j.data.message.SystemMessage;
@@ -111,11 +113,11 @@ public class ChatAssistantConfig {
 
 	@Bean
 	public Assistant assistant(ChatLanguageModel chatModel,
-			StreamingChatLanguageModel streamingChatModel,
-			WeatherTools weatherTools,
-			SystemPromptBuilder systemPromptBuilder,
-			ChatMemoryProvider chatMemoryProvider,
-			ObjectProvider<RetrievalAugmentor> retrievalAugmentor) {
+							   StreamingChatLanguageModel streamingChatModel,
+							   WeatherTools weatherTools,
+							   SystemPromptBuilder systemPromptBuilder,
+							   ChatMemoryProvider chatMemoryProvider,
+							   ObjectProvider<RetrievalAugmentor> retrievalAugmentor) {
 
 		// 系统提示由 provider 每轮生成：人设 + profile。
 		// 注意 memory 里只容得下一条 SystemMessage——框架会把 provider 的产出写进去，
