@@ -9,7 +9,7 @@
         <version>${revision}</version>
     </parent>
 
-    <artifactId>fw-plus-ai-magicapi-plugin-mcp</artifactId>
+    <artifactId>fw-plus-ai-magicapi-plugin-mcp-server</artifactId>
 
     <properties>
         <main.basedir>${basedir}/../../..</main.basedir>

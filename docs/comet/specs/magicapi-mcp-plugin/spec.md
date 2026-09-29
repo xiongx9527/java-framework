@@ -1,6 +1,6 @@
 # Magic-API MCP 插件能力规格（magicapi-mcp-plugin）
 
-AI 层 `fw-plus-ai-magicapi-plugin-mcp` 基于 mcp starter（aj-mcp 内核）把 Magic-API 能力暴露为 MCP 能力：函数与 API 可注册为 MCP 工具，控制台维护 `mcp-resource` / `mcp-prompt` / `mcp-server` 三类资源类型，能力变更经 SSE 通知与 Redis 集群分发跨节点传播，并提供控制台诊断入口。插件不反向依赖任何 Boot 层已删除模块。
+AI 层 `fw-plus-ai-magicapi-plugin-mcp-server` 基于 mcp starter（aj-mcp 内核）把 Magic-API 能力暴露为 MCP 能力：函数与 API 可注册为 MCP 工具，控制台维护 `mcp-resource` / `mcp-prompt` / `mcp-server` 三类资源类型，能力变更经 SSE 通知与 Redis 集群分发跨节点传播，并提供控制台诊断入口。插件不反向依赖任何 Boot 层已删除模块。
 
 ## 模块结构
 
