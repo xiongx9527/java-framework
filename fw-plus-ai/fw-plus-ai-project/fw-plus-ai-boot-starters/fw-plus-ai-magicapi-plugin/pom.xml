@@ -10,9 +10,8 @@
     </parent>
     <packaging>pom</packaging>
     <modules>
-        <module>fw-plus-ai-magicapi-plugin-vector</module>
-        <module>fw-plus-ai-magicapi-plugin-model</module>
         <module>fw-plus-ai-magicapi-plugin-mcp</module>
+        <module>fw-plus-ai-magicapi-plugin-langchain4j</module>
     </modules>
     <artifactId>fw-plus-ai-magicapi-plugin</artifactId>
 

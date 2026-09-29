@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.xiongx9527.fw.plus.ai</groupId>
+        <artifactId>fw-plus-ai-boot-starters</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>fw-plus-ai-mcp-server-spring-boot-starter</artifactId>
+    <name>fw-plus-ai-mcp-server-spring-boot-starter</name>
+    <description>MCP (Model Context Protocol) Spring Boot Starter for AI</description>
+
+    <properties>
+        <main.basedir>${basedir}/../../..</main.basedir>
+    </properties>
+
+    <dependencies>
+        <!-- Spring MVC（Servlet）传输：作为默认传输，随 Starter 传递 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Spring WebSocket 传输：随 Starter 传递，支持 WebSocket JSON-RPC -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+
+        <!-- Spring WebFlux 传输：optional，由使用方按需显式引入，避免强制双栈共存 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- fw-plus-ai-mcp-server 协议内核（core 层构件，坐标经 core BOM 管理） -->
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-mcp-server</artifactId>
+        </dependency>
+
+        <!-- fw-plus-ai-boot-autoconfigure -->
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-boot-autoconfigure</artifactId>
+        </dependency>
+
+        <!-- Configuration Processor (for IDE auto-completion) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+</project>

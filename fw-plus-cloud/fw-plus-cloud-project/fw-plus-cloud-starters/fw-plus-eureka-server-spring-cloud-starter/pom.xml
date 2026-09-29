@@ -28,7 +28,7 @@
 
 		<dependency>
 			<groupId>com.xiongx9527.fw.plus.cloud</groupId>
-			<artifactId>fw-plus-magicapi-plugin-eureka</artifactId>
+			<artifactId>fw-plus-cloud-magicapi-plugin-eureka</artifactId>
 		</dependency>
 
 		<dependency>

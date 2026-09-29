@@ -8,7 +8,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  *
  * <p>演示：Ollama 本地模型 + 远程知识库接口（RAG）+ 天气工具调用 + SSE 流式。</p>
  */
-@SpringBootApplication(scanBasePackages = "com.xiongx9527.fw.plus.ai.sample.chat")
+@SpringBootApplication
 public class ChatSampleApplication {
 
 	public static void main(String[] args) {

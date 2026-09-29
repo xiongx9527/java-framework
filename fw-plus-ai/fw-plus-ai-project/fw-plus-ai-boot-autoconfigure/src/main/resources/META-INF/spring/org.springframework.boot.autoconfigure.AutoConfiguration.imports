@@ -1,7 +1,4 @@
 com.xiongx9527.fw.plus.ai.autoconfigure.BaseAutoConfiguration
-com.xiongx9527.fw.plus.ai.autoconfigure.model.AiModelAutoConfiguration
 com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration
-com.xiongx9527.fw.plus.ai.autoconfigure.store.embedding.AiEmbeddingStoreAutoConfiguration
-com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter.LangChain4jAdapterAutoConfiguration
-com.xiongx9527.fw.plus.ai.autoconfigure.spring.adapter.SpringAiAdapterAutoConfiguration
-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.McpAutoConfiguration
+com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.McpAutoConfiguration
+com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.LangChain4jSupportAutoConfiguration

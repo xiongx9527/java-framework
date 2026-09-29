@@ -7,11 +7,11 @@
 
 ### Requirement: 依赖型 Starter
 
-`fw-plus-ai-mcp-spring-boot-starter`  SHALL 为纯依赖 POM，不包含任何 Java 代码，仅聚合 `fw-plus-ai-boot-autoconfigure` 及其传递依赖。
+`fw-plus-ai-mcp-server-spring-boot-starter`  SHALL 为纯依赖 POM，不包含任何 Java 代码，仅聚合 `fw-plus-ai-boot-autoconfigure` 及其传递依赖。
 
 #### Scenario: 依赖聚合
-- **WHEN** 用户添加 `fw-plus-ai-mcp-spring-boot-starter` 依赖到 Spring Boot 应用
-- **THEN** 传递依赖自动引入 `fw-plus-ai-boot-autoconfigure`、`fw-plus-ai-mcp`、`aj-mcp-server` 等，无需额外配置
+- **WHEN** 用户添加 `fw-plus-ai-mcp-server-spring-boot-starter` 依赖到 Spring Boot 应用
+- **THEN** 传递依赖自动引入 `fw-plus-ai-boot-autoconfigure`、`fw-plus-ai-mcp-server`、`aj-mcp-server` 等，无需额外配置
 
 #### Scenario: Starter 无代码
 - **WHEN** 用户查看 starter 模块内容
@@ -22,7 +22,7 @@
 Spring Boot 应用添加 starter 依赖后，SHALL 由 `fw-plus-ai-boot-autoconfigure` 依据 `fw-plus.ai.mcp.servers` 自动配置一个或多个 MCP runtime；未配置 `servers` 时按顶层 `fw-plus.ai.mcp.*` 配置回落为单个 runtime，兼容既有单实例行为，用户无需手动编写配置类。
 
 #### Scenario: 自动配置生效
-- **WHEN** 用户添加 `fw-plus-ai-mcp-spring-boot-starter` 依赖到 Spring Boot 应用
+- **WHEN** 用户添加 `fw-plus-ai-mcp-server-spring-boot-starter` 依赖到 Spring Boot 应用
 - **THEN** 应用启动时按 `servers` 配置自动创建对应数量的 MCP runtime 并注册 `@McpService` 注解的类
 
 #### Scenario: 无配置也能运行
@@ -115,7 +115,7 @@ MCP Server SHALL 通过 AI 层 `magicapi-mcp-plugin` capability（基于 mcp sta
 
 ### Requirement: 多实例 runtime
 
-`fw-plus-ai-mcp-spring-boot-starter` SHALL 支持在同一 Spring Boot 应用中暴露多个逻辑 MCP Server，每个 runtime 独立持有 `McpServer`、特性管理器、传输注册表与认证 SPI（默认放行占位）。
+`fw-plus-ai-mcp-server-spring-boot-starter` SHALL 支持在同一 Spring Boot 应用中暴露多个逻辑 MCP Server，每个 runtime 独立持有 `McpServer`、特性管理器、传输注册表与认证 SPI（默认放行占位）。
 
 #### Scenario: servers 列表配置
 - **WHEN** 用户配置 `fw-plus.ai.mcp.servers` 列表（每项含 `key`、`endpoint`、`transport`、`base-packages`）

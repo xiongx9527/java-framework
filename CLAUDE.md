@@ -11,7 +11,7 @@
 
 ## 项目概述
 
-fw-plus 是 9527 的 Java 开发框架，基于 Spring Boot 3.5.8，提供 Spring Boot 自动化配置、Spring Cloud 扩展、MyBatis-Plus/Flex 增强、Magic-API 插件、AI（LangChain4j / Agents-Flex / Spring AI / EasyAi）集成、图数据库 JDBC 驱动等能力。四个库层当前版本为 `0.3.0-SNAPSHOT`，通过 `${revision}` + `flatten-maven-plugin` 管理；`fw-plus-sample` 样例聚合器固定使用 `0.3.0-SNAPSHOT`，不使用 `flatten-maven-plugin`。
+fw-plus 是 9527 的 Java 开发框架，基于 Spring Boot 2.7.18，提供 Spring Boot 自动化配置、Spring Cloud 扩展、MyBatis-Plus/Flex 增强、Magic-API 插件、AI（LangChain4j / Agents-Flex / Spring AI / EasyAi）集成、图数据库 JDBC 驱动等能力。四个库层当前版本为 `0.1.1-SNAPSHOT`，通过 `${revision}` + `flatten-maven-plugin` 管理；`fw-plus-sample` 样例聚合器固定使用 `0.1.1-SNAPSHOT`，不使用 `flatten-maven-plugin`。
 
 **Git 仓库结构**：当前工作区只有根目录一个 `.git` 仓库；`fw-plus-core`、`fw-plus-boot`、`fw-plus-cloud`、`fw-plus-ai` 是同一仓库内的顶层 Maven 聚合目录，非 git submodule。当前工作区不包含旧文档曾提到的 `fw-plus-product/` 和独立 `resources/` 仓库。构建产物在各层之间通过 Maven 本地仓库（`~/.m2`）传递。
 
@@ -25,7 +25,7 @@ fw-plus 是 9527 的 Java 开发框架，基于 Spring Boot 3.5.8，提供 Sprin
 
 ```
 fw-plus/                      # 根目录（聚合项目，根 pom.xml 聚合下列 5 个库层，根目录也有 mvnw）
-├── fw-plus-core/             # 核心库层（Java 17, Spring Boot 3.5.8）
+├── fw-plus-core/             # 核心库层（Java 1.8, Spring Boot 2.7.18）
 │   ├── fw-plus-project/
 │   │   ├── fw-plus-parent/       # Core 层父 POM
 │   │   ├── fw-plus-common/       # 公共工具：加密、UID、异常、序列化、SpringUtils
@@ -45,7 +45,7 @@ fw-plus/                      # 根目录（聚合项目，根 pom.xml 聚合下
 │   │   ├── fw-plus-magicapi/     # Magic-API 扩展（Mongo, Redis, ES, Nebula 等）
 │   │   ├── fw-plus-ai/           # AI 基础模块
 │   │   │   ├── fw-plus-ai-base/       # AI 基础（向量存储、向量数据库客户端等）
-│   │   │   └── fw-plus-ai-mcp/        # MCP 协议支持
+│   │   │   └── fw-plus-ai-mcp-server/        # MCP 协议支持
 │   │   ├── fw-plus-template/     # 模板引擎：Freemarker, docx4j, OpenPDF, FO
 │   │   ├── fw-plus-poi/          # EasyPoi 扩展
 │   │   │   └── fw-plus-poi-easypoi/   # EasyPoi Excel/Word 操作
@@ -125,20 +125,17 @@ fw-plus/                      # 根目录（聚合项目，根 pom.xml 聚合下
 ├── fw-plus-ai/               # AI 集成层
 │   ├── fw-plus-ai-project/
 │   │   ├── fw-plus-ai-boot/               # AI 集成（aggregator）
-│   │   ├── fw-plus-ai-boot-autoconfigure/ # AI 自动配置（LangChain4j、Spring AI/Alibaba、Tinyflow 等）
+│   │   ├── fw-plus-ai-boot-autoconfigure/ # AI 自动配置（LangChain4j, Agents-Flex, Spring AI, EasyAi）
 │   │   ├── fw-plus-ai-boot-common/        # AI 公共类
 │   │   ├── fw-plus-ai-boot-dependencies/  # AI 层 BOM
 │   │   ├── fw-plus-ai-boot-parent/        # AI 层父 POM
 │   │   └── fw-plus-ai-boot-starters/      # AI Starter
-│   │       ├── fw-plus-ai-boot-starter/                    # 通用 AI Starter（aggregator）
-│   │       ├── fw-plus-ai-model-spring-boot-starter/       # 中立模型 Starter
-│   │       ├── fw-plus-ai-store-embedding-spring-boot-starter/ # 中立向量存储 Starter
-│   │       ├── fw-plus-ai-askdata-spring-boot-starter/     # AskData
-│   │       ├── fw-plus-ai-tinyflow-spring-boot-starter/    # Tinyflow
-│   │       └── fw-plus-ai-magicapi-plugin/                 # Model/Vector/Tinyflow 插件
-│
-│   # Core AI 中另有 fw-plus-ai-spring/fw-plus-ai-spring-adapter：
-│   # framework=spring-ai 与 spring-ai-alibaba，共享 CHAT/EMBEDDING facade；首版无 VectorStore adapter
+│   │       ├── fw-plus-ai-boot-starter/                           # 通用 AI Starter（aggregator）
+│   │       └── fw-plus-ai-magicapi-plugin/                        # Magic-API AI 插件（4 个）
+│   │           ├── fw-plus-ai-magicapi-plugin-langchain4j/ # LangChain4j 插件
+│   │           ├── fw-plus-ai-magicapi-plugin-milvus/      # Milvus 向量数据库
+│   │           ├── fw-plus-ai-magicapi-plugin-qdrant/      # Qdrant 向量数据库
+│   │           └── fw-plus-ai-magicapi-plugin-weaviate/    # Weaviate 向量数据库
 │
 ├── fw-plus-sample/                    # 集中样例模块
 │   ├── fw-plus-boot-samples/          # Boot 示例项目（5 个）
@@ -368,9 +365,9 @@ if (!list) { return; }
 
 | 组件 | 版本 |
 |---|---|
-| Java | 17 |
+| Java | 1.8 |
 | Maven | 3.6.3 |
-| Spring Boot | 3.5.8 |
+| Spring Boot | 2.7.18 |
 | Spring Cloud | 2021.0.9 |
 | Spring Cloud Alibaba | 2021.0.5.0 |
 | Spring Cloud Tencent | 1.14.0-2023.0.0-RC2 |
@@ -379,10 +376,9 @@ if (!list) { return; }
 | Magic-API | 2.2.2 |
 | JimuReport | 2.3.4 |
 | Sa-Token | 1.44.0 |
-| LangChain4j | 1.18.0 |
+| LangChain4j | 0.35.0 |
 | Agents-Flex | 1.3.4 |
-| Spring AI | 1.1.2 |
-| Spring AI Alibaba / Extensions | 1.1.2.2 |
+| Spring AI | 1.0.1 |
 | EasyAi | 1.4.9 |
 | Apache Pulsar | 2.11.2 |
 | Apache Kafka | SB managed |
@@ -416,9 +412,9 @@ cd fw-plus-core && ./mvnw clean install -pl fw-plus-project/fw-plus-common -Dski
 
 **构建顺序**：必须先按 Core → Boot → Cloud / AI 顺序准备本地 Maven 依赖，下层依赖上层的 Maven 产物。根目录为聚合工程（`pom.xml` + `mvnw`，模块为 `fw-plus-core`/`fw-plus-boot`/`fw-plus-cloud`/`fw-plus-ai`/`fw-plus-sample`），可在根目录执行 `./mvnw compile` / `./mvnw test`；四个库层各自也带有 `mvnw`，用于按层增量构建（如 `cd fw-plus-core && ./mvnw clean install -DskipTests`）。`fw-plus-sample` 样例聚合目录不带 Wrapper，统一入口为 `./fw-plus-core/mvnw -f fw-plus-sample/pom.xml validate`。
 
-**版本管理**：`fw-plus-core`、`fw-plus-boot`、`fw-plus-cloud`、`fw-plus-ai` 四个库层使用 `${revision}` 属性（当前值 `0.3.0-SNAPSHOT`）+ `flatten-maven-plugin` 解析版本占位符；`fw-plus-sample` 聚合器固定使用 `0.3.0-SNAPSHOT`，不使用 flatten。
+**版本管理**：`fw-plus-core`、`fw-plus-boot`、`fw-plus-cloud`、`fw-plus-ai` 四个库层使用 `${revision}` 属性（当前值 `0.1.1-SNAPSHOT`）+ `flatten-maven-plugin` 解析版本占位符；`fw-plus-sample` 聚合器固定使用 `0.1.1-SNAPSHOT`，不使用 flatten。
 
-内部 Nexus 地址：`http://172.17.1.6:28081`，同时依赖 Jeecg 官方仓库（`https://maven.jeecg.org`）。
+依赖 Jeecg 官方仓库（`https://maven.jeecg.org`）。
 
 ## 前端控制台构建
 

@@ -1,0 +1,18 @@
+{
+  "change": "langchain4j-magicapi-model-plugins",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "task_hash_policy": "task-content-v1",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "aea9717fc3389ea18551fd6b71e86dd49222553fff8f58d9d550fadd590550f8",
+  "files": [
+    { "path": "docs/openspec/changes/langchain4j-magicapi-model-plugins/proposal.md", "sha256": "450e41e6020241859f8994d2431424a95e296c63d0a3a2624ec42ecd0b93b9c8" },
+    { "path": "docs/openspec/changes/langchain4j-magicapi-model-plugins/design.md", "sha256": "3d27a5141861406abddbc85494b48f9e9e2bd716c7bf25e70f221d718e1bfdca" },
+    { "path": "docs/openspec/changes/langchain4j-magicapi-model-plugins/tasks.md", "sha256": "3c7581e2abaa2a69d66d14ca56da527d0800d15c20657e487389a311a5b084e1" },
+    { "path": "docs/openspec/changes/langchain4j-magicapi-model-plugins/.openspec.yaml", "sha256": "d707823457f58b4f938a99bc049bddd9b937affec2d09c976c9a16a9dcd03f77" },
+    { "path": "docs/openspec/changes/langchain4j-magicapi-model-plugins/specs/langchain4j-model-datasource-plugins/spec.md", "sha256": "b1821f494e997be9edfeef24c49c73577bbaf476e23d1517ff670a8e5d849ed6" },
+    { "path": "docs/openspec/changes/langchain4j-magicapi-model-plugins/specs/langchain4j-script-module/spec.md", "sha256": "39518e896da4ab292a0cc959e1e79fba9f385e27df671f5faa72e8223f5f8a2f" },
+    { "path": "docs/openspec/changes/langchain4j-magicapi-model-plugins/specs/magicapi-langchain4j-tool-provider/spec.md", "sha256": "a2faed220d36e2c6038ccba204da3715c3d017d9ee0f2cb02018d363c8e980d3" }
+  ]
+}

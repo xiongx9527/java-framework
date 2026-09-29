@@ -22,7 +22,7 @@
     <dependencies>
         <dependency>
             <groupId>com.xiongx9527.fw.plus.ai</groupId>
-            <artifactId>fw-plus-ai-mcp-spring-boot-starter</artifactId>
+            <artifactId>fw-plus-ai-mcp-server-spring-boot-starter</artifactId>
         </dependency>
 
         <dependency>

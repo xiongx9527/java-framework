@@ -18,14 +18,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-ai-langchain4j-core</artifactId>
-            <version>${revision}</version>
-        </dependency>
-        <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-core</artifactId>
-            <version>${langchain4j.version}</version>
         </dependency>
 
         <dependency>
@@ -46,15 +40,7 @@
 
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-ai-langchain4j</artifactId>
-            <version>${revision}</version>
-            <type>pom</type>
-        </dependency>
-
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-common</artifactId>
-            <version>${revision}</version>
         </dependency>
 
     </dependencies>

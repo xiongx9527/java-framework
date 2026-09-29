@@ -1,21 +1,19 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.Langchain4jModuleConfiguration;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.Langchain4jDatasourceConfiguration;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.Langchain4jToolProviderConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.starter.MagicAPIMcpConfiguration;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.starter.MagicAPIModelConfiguration;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.starter.MagicAPIVectorConfiguration;
-import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
+/**
+ * magic-api 插件聚合：各插件自身的生效条件（classpath、资源服务、开关）由插件配置自己声明，
+ * 本类只负责把它们接入自动配置链。
+ */
 @Configuration
-@AutoConfigureAfter(name = {
-        "com.xiongx9527.fw.plus.ai.autoconfigure.model.AiModelAutoConfiguration",
-        "com.xiongx9527.fw.plus.ai.autoconfigure.store.embedding.AiEmbeddingStoreAutoConfiguration",
-        "org.ssssssss.magicapi.spring.boot.starter.MagicAPIAutoConfiguration"
-})
-@Import({MagicAPIModelConfiguration.class,
-		MagicAPIVectorConfiguration.class,
-		MagicAPIMcpConfiguration.class
-})
+@Import({MagicAPIMcpConfiguration.class, Langchain4jDatasourceConfiguration.class,
+        Langchain4jModuleConfiguration.class,
+        Langchain4jToolProviderConfiguration.class})
 public class MagicApiPluginAutoConfiguration {
 }

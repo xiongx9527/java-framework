@@ -31,30 +31,13 @@
         </dependency>
 
         <dependency>
-            <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-ai-langchain4j-core</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-community-qianfan</artifactId>
+            <artifactId>langchain4j-qianfan</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-ai-langchain4j</artifactId>
-            <version>${revision}</version>
-            <type>pom</type>
-        </dependency>
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-ai-langchain4j-core</artifactId>
-            <version>${revision}</version>
-        </dependency>
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-core</artifactId>
-            <version>${langchain4j.version}</version>
         </dependency>
 </dependencies>
 

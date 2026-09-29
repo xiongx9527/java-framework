@@ -9,7 +9,7 @@ import com.ajaxjs.mcp.protocol.tools.StructuredToolResult;
 import com.ajaxjs.mcp.common.JsonUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.tools.MagicApiMcpToolInvoker;
-import com.xiongx9527.fw.plus.ai.mcp.spi.McpServerRegistry;
+import com.xiongx9527.fw.plus.ai.mcp.server.spi.McpServerRegistry;
 
 import java.util.Collections;
 import java.util.Map;

@@ -1,7 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.notify;
 
 import com.ajaxjs.mcp.server.McpServer;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.runtime.McpServerRuntime;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime.McpServerRuntime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

@@ -17,7 +17,7 @@
     <dependencies>
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-ai-mcp</artifactId>
+            <artifactId>fw-plus-ai-mcp-server</artifactId>
         </dependency>
     </dependencies>
 

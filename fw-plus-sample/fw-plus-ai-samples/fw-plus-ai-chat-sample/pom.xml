@@ -7,7 +7,6 @@
         <groupId>com.xiongx9527.fw.plus.ai</groupId>
         <artifactId>fw-plus-ai-samples</artifactId>
         <version>${revision}</version>
-        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>fw-plus-ai-chat-sample</artifactId>
@@ -20,10 +19,17 @@
     </properties>
 
     <dependencies>
+
         <!-- Ollama owner 覆盖模块：提供 dev.langchain4j.ollama.spring.AutoConfig 与 Ollama*Model Bean -->
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-ai-langchain4j-ollama</artifactId>
+        </dependency>
+
+        <!-- 流式链路用 OpenAI 集成指到 Ollama 的 OpenAI 兼容端点（/v1）：0.35.0 的 ollama 流式不支持工具 -->
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j-openai</artifactId>
         </dependency>
 
         <dependency>
@@ -31,6 +37,15 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-    </dependencies>
 
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-boot-starter</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j</artifactId>
+        </dependency>
+    </dependencies>
 </project>

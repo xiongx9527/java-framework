@@ -9,7 +9,7 @@
 
 ## 项目概述
 
-fw-plus 是 9527 的 Java 开发框架，基于 Spring Boot 3.5.8，提供 Spring Boot 自动化配置、Spring Cloud 扩展、MyBatis-Plus/Flex 增强、Magic-API 插件、AI（LangChain4j / Agents-Flex / Spring AI / EasyAi）集成、图数据库 JDBC 驱动等能力。四个库层当前版本为 `0.3.0-SNAPSHOT`，通过 `${revision}` + `flatten-maven-plugin` 管理；`fw-plus-sample` 样例聚合器固定使用 `0.3.0-SNAPSHOT`，不使用 `flatten-maven-plugin`。
+fw-plus 是 9527 的 Java 开发框架，基于 Spring Boot 2.7.18，提供 Spring Boot 自动化配置、Spring Cloud 扩展、MyBatis-Plus/Flex 增强、Magic-API 插件、AI（LangChain4j / Agents-Flex / Spring AI / EasyAi）集成、图数据库 JDBC 驱动等能力。四个库层当前版本为 `0.1.1-SNAPSHOT`，通过 `${revision}` + `flatten-maven-plugin` 管理；`fw-plus-sample` 样例聚合器固定使用 `0.1.1-SNAPSHOT`，不使用 `flatten-maven-plugin`。
 
 **Git 仓库结构**：当前工作区只有根目录一个 `.git` 仓库；`fw-plus-core`、`fw-plus-boot`、`fw-plus-cloud`、`fw-plus-ai` 是同一仓库内的顶层 Maven 聚合目录，非 git submodule。当前工作区不包含旧文档曾提到的 `fw-plus-product/` 和独立 `resources/` 仓库。构建产物在各层之间通过 Maven 本地仓库（`~/.m2`）传递。
 
@@ -30,7 +30,7 @@ fw-plus 是 9527 的 Java 开发框架，基于 Spring Boot 3.5.8，提供 Sprin
 
 ```
 fw-plus/                      # 根目录（聚合项目，根 pom.xml 聚合下列 5 个库层，根目录也有 mvnw）
-├── fw-plus-core/             # 核心库层（Java 17, Spring Boot 3.5.8）
+├── fw-plus-core/             # 核心库层（Java 1.8, Spring Boot 2.7.18）
 │   ├── fw-plus-project/
 │   │   ├── fw-plus-parent/       # Core 层父 POM
 │   │   ├── fw-plus-common/       # 公共工具：加密、UID、异常、序列化、SpringUtils
@@ -50,7 +50,7 @@ fw-plus/                      # 根目录（聚合项目，根 pom.xml 聚合下
 │   │   ├── fw-plus-magicapi/     # Magic-API 扩展（Mongo, Redis, ES, Nebula 等）
 │   │   ├── fw-plus-ai/           # AI 基础模块
 │   │   │   ├── fw-plus-ai-base/       # AI 基础（向量存储、向量数据库客户端等）
-│   │   │   └── fw-plus-ai-mcp/        # MCP 协议支持
+│   │   │   └── fw-plus-ai-mcp-server/        # MCP 协议支持
 │   │   ├── fw-plus-template/     # 模板引擎：Freemarker, docx4j, OpenPDF, FO
 │   │   ├── fw-plus-poi/          # EasyPoi 扩展
 │   │   │   └── fw-plus-poi-easypoi/   # EasyPoi Excel/Word 操作
@@ -130,20 +130,17 @@ fw-plus/                      # 根目录（聚合项目，根 pom.xml 聚合下
 ├── fw-plus-ai/               # AI 集成层
 │   ├── fw-plus-ai-project/
 │   │   ├── fw-plus-ai-boot/               # AI 集成（aggregator）
-│   │   ├── fw-plus-ai-boot-autoconfigure/ # AI 自动配置（LangChain4j、Spring AI/Alibaba、Tinyflow 等）
+│   │   ├── fw-plus-ai-boot-autoconfigure/ # AI 自动配置（LangChain4j, Agents-Flex, Spring AI, EasyAi）
 │   │   ├── fw-plus-ai-boot-common/        # AI 公共类
 │   │   ├── fw-plus-ai-boot-dependencies/  # AI 层 BOM
 │   │   ├── fw-plus-ai-boot-parent/        # AI 层父 POM
 │   │   └── fw-plus-ai-boot-starters/      # AI Starter
-│   │       ├── fw-plus-ai-boot-starter/                    # 通用 AI Starter（aggregator）
-│   │       ├── fw-plus-ai-model-spring-boot-starter/       # 中立模型 Starter
-│   │       ├── fw-plus-ai-store-embedding-spring-boot-starter/ # 中立向量存储 Starter
-│   │       ├── fw-plus-ai-askdata-spring-boot-starter/     # AskData
-│   │       ├── fw-plus-ai-tinyflow-spring-boot-starter/    # Tinyflow
-│   │       └── fw-plus-ai-magicapi-plugin/                 # Model/Vector/Tinyflow 插件
-│
-│   # Core AI 中另有 fw-plus-ai-spring/fw-plus-ai-spring-adapter：
-│   # framework=spring-ai 与 spring-ai-alibaba，共享 CHAT/EMBEDDING facade；首版无 VectorStore adapter
+│   │       ├── fw-plus-ai-boot-starter/                           # 通用 AI Starter（aggregator）
+│   │       └── fw-plus-ai-magicapi-plugin/                        # Magic-API AI 插件（4 个）
+│   │           ├── fw-plus-ai-magicapi-plugin-langchain4j/ # LangChain4j 插件
+│   │           ├── fw-plus-ai-magicapi-plugin-milvus/      # Milvus 向量数据库
+│   │           ├── fw-plus-ai-magicapi-plugin-qdrant/      # Qdrant 向量数据库
+│   │           └── fw-plus-ai-magicapi-plugin-weaviate/    # Weaviate 向量数据库
 │
 ├── fw-plus-sample/                    # 集中样例模块
 │   ├── fw-plus-boot-samples/          # Boot 示例项目（5 个）
@@ -266,10 +263,10 @@ fw-plus/                      # 根目录（聚合项目，根 pom.xml 聚合下
 
 | 类别 | 技术 |
 |------|------|
-| 基础框架 | Spring Boot 3.5.8, Spring Cloud 2021.0.9 |
+| 基础框架 | Spring Boot 2.7.18, Spring Cloud 2021.0.9 |
 | ORM | MyBatis-Plus 3.3.2, MyBatis-Flex 1.11.4 |
 | 脚本引擎 | Magic-API 2.2.2（自行维护版本，非中央仓库版本） |
-| AI | LangChain4j 1.18.0, Agents-Flex 1.3.4, Spring AI 1.1.2, Spring AI Alibaba/Extensions 1.1.2.2, EasyAi 1.4.9 |
+| AI | LangChain4j 0.35.0, Agents-Flex 1.3.4, Spring AI 1.0.1, EasyAi 1.4.9 |
 | 消息队列 | Kafka, Pulsar 2.11.2, RocketMQ 5.1.3, RabbitMQ, Mica MQTT 2.3.9 |
 | 数据库/存储 | MySQL, InfluxDB, Redis, Elasticsearch, Nebula Graph, Minio/S3 |
 | 工具库 | Hutool 5.8.34, EasyPoi 4.5.0, DynamicTp 1.2.1（Core BOM）/ 1.2.2（Boot BOM）, Debezium 1.9.8.Final |
@@ -281,10 +278,9 @@ fw-plus/                      # 根目录（聚合项目，根 pom.xml 聚合下
 ## 重要提醒
 
 - **Maven 构建**：根目录是聚合工程（`pom.xml` + `mvnw`，模块为 `fw-plus-core`/`fw-plus-boot`/`fw-plus-cloud`/`fw-plus-ai`/`fw-plus-sample`），可用 `./mvnw compile` / `./mvnw test` 一把跑全仓；四个库层各自也带有 `mvnw`，用于按层增量构建（如 `cd fw-plus-core && ./mvnw clean install -DskipTests`）。按 Core → Boot → Cloud / AI 顺序准备本地 Maven 依赖后，使用 `./fw-plus-core/mvnw -f fw-plus-sample/pom.xml validate` 作为样例统一入口。fw-plus-core 是底层依赖，各层级均有独立的父 POM。发版按版本号统一发，不单独发某个模块。
-  - **注意（shade 与离线）**：`fw-plus-ai-langchain4j-core` 用 maven-shade-plugin 把 `langchain4j-core` 打进自己的 jar，shade 只在 `package` 阶段发生；离线环境下若 shade 插件依赖未缓存，`install` 会失败，此时依赖 `langchain4j-core` 类的模块测试需以「该模块单独 `-pl` 构建」或「已安装 jar」为前提，根 reactor 的 `test` 阶段可能因只有 `target/classes` 而报 `NoClassDefFoundError`。
-  - **根目录 `./mvnw -o compile` 要求所有模块声明齐全**：`fw-plus-ai-langchain4j-*` 各模块需显式声明 `lombok`(provided) 与 `langchain4j-core`（`fw-plus-ai-langchain4j-core` 对 core  Jar 是 optional，不传递）；但 `fw-plus-ai-langchain4j-adapter` 受架构契约约束**禁止**依赖官方 `langchain4j-core`，只能走 shaded 版。
+  - **根目录 `./mvnw -o compile` 要求所有模块声明齐全**：`fw-plus-ai-langchain4j-*` 各模块需显式声明 `lombok`(provided) 与 `langchain4j-core`（上游 `langchain4j-core` 是 optional，不传递）。
 - **Magic-API 版本**：使用自行维护的 2.2.2 版本，`org.ssssssss` 组的依赖通过 `<repositories>` 指向内部 Nexus 仓库（jugui-snapshot / jugui-release），请勿修改这些依赖的版本号。
-- **JDK 17 约束**：fw-plus-core 使用 Java 17（compiler source/target = 17）。
+- **JDK 1.8 约束**：fw-plus-core 严格约束为 Java 1.8（compiler source/target = 1.8），不要引入 Java 9+ 的 API（如 `List.of()`、`Map.copyOf()`、`Optional.orElseThrow()` 等）。
 - **源文件编码**：所有 Java 源文件、资源文件统一使用 UTF-8 编码。
 - **文件路径**：不构造硬编码的跨平台文件路径，系统路径使用 `System.getProperty()` 或 `Path` API，资源路径使用 Spring `ResourceLoader` 或 `ClassPathResource`。
 - **自定义类**：项目中包含大量自定义类和注解（如 `Algorithm`、`FieldEncrypt` 等），修改相关代码时确保充分理解其用途。
@@ -310,11 +306,11 @@ cd fw-plus-core && ./mvnw clean deploy -DskipTests
 
 ## 编码风格与命名约定
 
-- **Java**: 目标 JDK 17，遵循标准 Java 编码规范。
+- **Java**: 目标 JDK 1.8，遵循标准 Java 编码规范。
 - **缩进**: 使用 Tab（与现有 `pom.xml` 文件一致），保持与周围文件风格统一。
 - **模块命名**: kebab-case — `fw-plus-core`、`fw-plus-boot`、`fw-plus-mp`。
 - **包命名**: `com.xiongx9527.fw.plus.*` — 如 `com.xiongx9527.fw.plus.mp`、`com.xiongx9527.fw.plus.common`。
-- **POM 属性**: 四个库层使用 `${revision}` 作为版本属性（flatten-maven-plugin 负责解析）；`fw-plus-sample` 聚合器固定使用 `0.3.0-SNAPSHOT`，不使用 flatten。
+- **POM 属性**: 四个库层使用 `${revision}` 作为版本属性（flatten-maven-plugin 负责解析）；`fw-plus-sample` 聚合器固定使用 `0.1.1-SNAPSHOT`，不使用 flatten。
 - **格式化**: 未找到显式的格式化配置，保持所编辑文件的现有风格。
 - **资源文件**: 当前工作区未包含运行态 `resources/`。若单独检出该目录，JSON 数据源定义位于 `resources/datasource/`，共享配置文件位于 `resources/config/`。
 
@@ -339,7 +335,6 @@ cd fw-plus-core && ./mvnw clean deploy -DskipTests
 
 - **IDE**: IntelliJ IDEA（`.idea/` 目录已纳入版本控制）。
 - **AI 代理配置**: `AGENTS.md`（本文件）和 `CLAUDE.md` 包含项目指南和 AI 助手配置。
-- **内部 Nexus**: `http://172.17.1.6:28081/` — 仓库 `jugui-snapshot` 和 `jugui-release`。
 - **许可证**: Apache 2.0。
 
 <comet-ambient-resume>

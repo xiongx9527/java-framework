@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.sample.chat.ai;
 
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -14,6 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * 不访问任何外部天气服务。由模型自行决定何时调用、传什么参数——这正是
  * LangChain4j 工具调用的核心特征。</p>
  */
+@Slf4j
 public class WeatherTools {
 
 	/** 调用计数，用于在接口响应中回报本次是否触发了工具。 */
@@ -30,6 +32,7 @@ public class WeatherTools {
 
 	@Tool("查询指定城市的实时天气，返回温度、湿度、风力和天气描述")
 	public String queryWeather(@P("城市名，例如：北京") String city) {
+		log.info("=======================>查询天气：{}", city);
 		callCount.incrementAndGet();
 		String[] data = MOCK_WEATHER.get(city == null ? "" : city.trim());
 		if (data == null) {
