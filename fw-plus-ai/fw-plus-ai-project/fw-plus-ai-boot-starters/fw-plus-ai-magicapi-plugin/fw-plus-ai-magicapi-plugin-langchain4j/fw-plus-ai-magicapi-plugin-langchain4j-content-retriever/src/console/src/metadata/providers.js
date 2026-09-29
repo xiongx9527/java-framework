@@ -12,7 +12,7 @@ export const PROVIDER_FIELDS = {
     'nebula': [{ name: 'chat-model-key', type: 'text' }, { name: 'addresses', type: 'text' }, { name: 'username', type: 'text' }, { name: 'password', type: 'text' }, { name: 'space-name', type: 'text' }, { name: 'max-session-size', type: 'number' }, { name: 'timeout', type: 'number' }, { name: 'prompt-template', type: 'text' }],
     'azure-ai-search': [{ name: 'endpoint', type: 'text' }, { name: 'api-key', type: 'text' }, { name: 'index-name', type: 'text' }, { name: 'embedding-model-key', type: 'text' }, { name: 'dimensions', type: 'number' }, { name: 'query-type', type: 'select' }, { name: 'max-results', type: 'number' }, { name: 'min-score', type: 'number' }, { name: 'create-or-update-index', type: 'switch' }],
     'web-search': [{ name: 'search-function', type: 'text' }, { name: 'max-results', type: 'number' }],
-    'filtering': [{ name: 'content-retriever-key', type: 'text' }, { name: 'min-score', type: 'number' }, { name: 'filters', type: 'map' }],
+    'filtering': [{ name: 'content-retriever-key', type: 'text' }, { name: 'filter-function', type: 'text' }, { name: 'min-score', type: 'number' }, { name: 'filters', type: 'map' }],
     'aggregating': [{ name: 'content-retriever-keys', type: 'tags' }, { name: 'max-results', type: 'number' }, { name: 'deduplicate', type: 'switch' }],
 };
 

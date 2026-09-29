@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.sample.chat.ai;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.EphemeralChatMemory;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
@@ -76,12 +77,12 @@ class EphemeralChatMemoryTest {
 		EphemeralChatMemory memory = memory();
 
 		String firstRag = "《杭州热门景点》杭州著名景点有西湖";
-		memory.add(UserMessage.from("杭州的天气适合玩什么" + RagContentInjector.SEPARATOR + firstRag));
+		memory.add(UserMessage.from("杭州的天气适合玩什么" + EphemeralChatMemory.RAG_SEPARATOR + firstRag));
 		memory.add(AiMessage.from("适合。"));
 
 		// 第二轮：新检索内容照常带给模型
 		String secondRag = "《未来一周天气》明天有雨";
-		memory.add(UserMessage.from("那明天呢" + RagContentInjector.SEPARATOR + secondRag));
+		memory.add(UserMessage.from("那明天呢" + EphemeralChatMemory.RAG_SEPARATOR + secondRag));
 		List<ChatMessage> messages = memory.messages();
 
 		// 历史那条只剩原话，本轮那条带新检索内容

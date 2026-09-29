@@ -49,6 +49,7 @@ export default {
             'embedding-store-key': '关联向量库',
             'endpoint': '服务地址',
             'filters': '元数据过滤',
+            'filter-function': '过滤函数',
             'index-name': '索引名称',
             'max-results': '最大条数',
             'max-session-size': '最大会话数',

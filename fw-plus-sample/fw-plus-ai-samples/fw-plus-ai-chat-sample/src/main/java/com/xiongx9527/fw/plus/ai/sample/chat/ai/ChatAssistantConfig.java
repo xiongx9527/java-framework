@@ -2,11 +2,13 @@ package com.xiongx9527.fw.plus.ai.sample.chat.ai;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.Assistant;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.ChatContextLogger;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.EphemeralChatMemory;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ChatMessageType;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
+import dev.langchain4j.memory.chat.TokenWindowChatMemory;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.ollama.OllamaChatModel;
@@ -194,6 +196,13 @@ public class ChatAssistantConfig {
 	 */
 	@Bean
 	public ChatMemoryProvider chatMemoryProvider(ChatMemoryStore chatMemoryStore) {
+
+		TokenWindowChatMemory tokenWindowChatMemory = TokenWindowChatMemory.builder()
+				.maxTokens(4096,null)
+				.chatMemoryStore(chatMemoryStore)
+				.build();
+
+
 		return memoryId -> new EphemeralChatMemory(MessageWindowChatMemory.builder()
 				.id(memoryId)
 				.maxMessages(MAX_MEMORY_MESSAGES)

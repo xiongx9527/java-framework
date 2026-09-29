@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.Langchain4jModuleConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.MagicApiPluginAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -18,6 +19,6 @@ import org.springframework.context.annotation.Import;
         "org.ssssssss.magicapi.spring.boot.starter.MagicAPIAutoConfiguration"
 })
 //@ConditionalOnClass(name={"com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration"})
-@Import({MagicApiPluginAutoConfiguration.class})
+@Import({MagicApiPluginAutoConfiguration.class, Langchain4jModuleConfiguration.class})
 public class MagicAPIBaseAutoConfiguration {
 }

@@ -85,6 +85,17 @@ public class ContentRetrieverContext {
 		return engine;
 	}
 
+	/**
+	 * 过滤函数：配置了 {@code filterFunction} 时用 magic-api 函数托管过滤（保留哪些条目由脚本决定），
+	 * 否则返回 {@code null}——调用方回落到内置的 score 阈值 + metadata 过滤。
+	 */
+	public MagicApiContentFilter contentFilter(String filterFunction) {
+		if (filterFunction != null && !filterFunction.trim().isEmpty()) {
+			return new MagicApiContentFilter(invoker, filterFunction.trim());
+		}
+		return null;
+	}
+
 	private static <T> T require(ObjectProvider<T> provider, String type) {
 		T module = provider == null ? null : provider.getIfAvailable();
 		if (module == null) {

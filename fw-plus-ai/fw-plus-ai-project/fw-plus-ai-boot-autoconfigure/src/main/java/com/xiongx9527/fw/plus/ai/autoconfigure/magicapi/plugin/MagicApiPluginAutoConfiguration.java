@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j.Langchain4jModuleConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.Langchain4jDatasourceConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.Langchain4jToolProviderConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.starter.MagicAPIMcpConfiguration;
@@ -12,6 +13,7 @@ import org.springframework.context.annotation.Import;
  */
 @Configuration
 @Import({MagicAPIMcpConfiguration.class, Langchain4jDatasourceConfiguration.class,
+        Langchain4jModuleConfiguration.class,
         Langchain4jToolProviderConfiguration.class})
 public class MagicApiPluginAutoConfiguration {
 }

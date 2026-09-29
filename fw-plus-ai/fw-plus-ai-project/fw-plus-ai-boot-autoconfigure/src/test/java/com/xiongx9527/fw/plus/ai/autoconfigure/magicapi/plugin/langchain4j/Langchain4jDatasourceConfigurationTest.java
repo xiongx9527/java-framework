@@ -141,7 +141,7 @@ class Langchain4jDatasourceConfigurationTest {
                     context.getBeansOfType(AbstractLangchain4jPluginConfiguration.class).values().stream()
                             .collect(Collectors.toList());
 
-            assertThat(plugins).as("每类资源各一个插件配置 + 工具提供者插件").hasSize(11);
+            assertThat(plugins).as("每类资源各一个插件配置 + 工具提供者插件").hasSize(12);
             assertThat(plugins.stream().map(AbstractLangchain4jPluginConfiguration::pluginName)
                     .collect(Collectors.toList()))
                     .as("插件标识与 datasource type 同源")
@@ -156,7 +156,8 @@ class Langchain4jDatasourceConfigurationTest {
                             "langchain4j-tool-provider",
                             "langchain4j-system-message",
                             "langchain4j-chat-memory-store",
-                            "langchain4j-content-retriever");
+                            "langchain4j-content-retriever",
+                            "langchain4j-content-injector");
             assertThat(plugins.stream().map(AbstractLangchain4jPluginConfiguration::javascriptFilename)
                     .collect(Collectors.toList()))
                     .allMatch(name -> name.startsWith("magic-langchain4j-") && name.endsWith(".1.0.0.iife.js"));

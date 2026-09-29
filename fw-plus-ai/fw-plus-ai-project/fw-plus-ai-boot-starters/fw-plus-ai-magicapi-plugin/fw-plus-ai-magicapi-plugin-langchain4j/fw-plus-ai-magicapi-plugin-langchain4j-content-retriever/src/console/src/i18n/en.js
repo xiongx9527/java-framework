@@ -49,6 +49,7 @@ export default {
             'embedding-store-key': 'Embedding Store',
             'endpoint': 'Endpoint',
             'filters': 'Metadata Filters',
+            'filter-function': 'Filter Function',
             'index-name': 'Index Name',
             'max-results': 'Max Results',
             'max-session-size': 'Max Session Size',

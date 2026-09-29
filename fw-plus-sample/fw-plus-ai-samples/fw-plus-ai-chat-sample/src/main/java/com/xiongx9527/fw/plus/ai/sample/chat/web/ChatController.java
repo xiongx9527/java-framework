@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.sample.chat.web;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.Assistant;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.SimpleAssistant;
 import com.xiongx9527.fw.plus.ai.sample.chat.ai.WeatherTools;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -53,7 +54,7 @@ public class ChatController {
 
 		int before = weatherTools.getCallCount();
 		String memoryId = resolveSessionId(request.getSessionId());
-		String reply = assistant.chat(memoryId, "", message);
+		String reply = new SimpleAssistant(assistant).chat(memoryId, message);
 		int toolCalls = weatherTools.getCallCount() - before;
 
 		Map<String, Object> body = new LinkedHashMap<>();
@@ -76,25 +77,8 @@ public class ChatController {
 		}
 
 		// 0L 表示不设超时，由模型生成速度决定
-		SseEmitter emitter = new SseEmitter(0L);
-		assistant.stream(resolveSessionId(request.getSessionId()), "", message)
-				.onNext(token -> {
-					try {
-						emitter.send(SseEmitter.event().name("token").data(token));
-					} catch (Exception e) {
-						emitter.completeWithError(e);
-					}
-				})
-				.onComplete(response -> {
-					try {
-						emitter.send(SseEmitter.event().name("done").data("[DONE]"));
-						emitter.complete();
-					} catch (Exception e) {
-						emitter.completeWithError(e);
-					}
-				})
-				.onError(emitter::completeWithError)
-				.start();
+		SseEmitter emitter = new SimpleAssistant(assistant)
+				.streamToSse(resolveSessionId(sessionId), message);
 		return emitter;
 	}
 

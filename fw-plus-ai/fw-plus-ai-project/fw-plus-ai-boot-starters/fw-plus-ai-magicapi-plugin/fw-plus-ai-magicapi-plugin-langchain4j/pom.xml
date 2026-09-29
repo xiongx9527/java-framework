@@ -24,6 +24,7 @@
         <module>fw-plus-ai-magicapi-plugin-langchain4j-system-message</module>
         <module>fw-plus-ai-magicapi-plugin-langchain4j-chat-memory-store</module>
         <module>fw-plus-ai-magicapi-plugin-langchain4j-content-retriever</module>
+        <module>fw-plus-ai-magicapi-plugin-langchain4j-content-injector</module>
     </modules>
 
     <properties>

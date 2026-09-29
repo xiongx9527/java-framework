@@ -4,6 +4,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retri
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.model.MagicDynamicLangchain4jContentRetrieverDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.module.Langchain4jContentRetrieverModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.provider.AggregatingContentRetrieverProvider;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.MagicToolInvoker;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.provider.EmbeddingStoreContentRetrieverProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.provider.FilteringContentRetrieverProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.provider.Neo4jContentRetrieverProvider;
@@ -83,6 +84,41 @@ class ContentRetrieverProviderRegistryTest {
             texts.add(content.textSegment().text());
         }
         assertThat(texts).containsExactly("命中");
+    }
+
+    /** filtering 配置 filter-function 时，过滤交给 magic-api 函数（内置 score/metadata 让位） */
+    @Test
+    void shouldDelegateFilteringToMagicApiFunction() {
+        MagicDynamicLangchain4jContentRetrieverDataSource retrievers =
+                new MagicDynamicLangchain4jContentRetrieverDataSource();
+        retrievers.put("base", query -> Arrays.asList(Content.from("低分条目")));
+        MagicToolInvoker invoker = new MagicToolInvoker() {
+            @Override
+            public Object invokeFunction(String name, Map<String, Object> arguments) {
+                return Arrays.asList("脚本改写的正文");
+            }
+
+            @Override
+            public Object invokeApi(org.ssssssss.magicapi.core.model.ApiInfo info, Map<String, Object> arguments) {
+                return null;
+            }
+        };
+        ContentRetrieverContext context = new ContentRetrieverContext(null, null, null,
+                new Langchain4jContentRetrieverModule(retrievers, null), null, invoker);
+        registry.register(new FilteringContentRetrieverProvider());
+
+        Map<String, Object> options = new LinkedHashMap<String, Object>();
+        options.put("content-retriever-key", "base");
+        options.put("min-score", 0.9);
+        options.put("filter-function", "filterContents");
+
+        ContentRetriever retriever = registry.build(info("filtering", options), context);
+
+        List<String> texts = new ArrayList<>();
+        for (Content content : retriever.retrieve(Query.from("问题"))) {
+            texts.add(content.textSegment().text());
+        }
+        assertThat(texts).containsExactly("脚本改写的正文");
     }
 
     /** aggregating 把多个 key 组装成组合检索器：结果按声明顺序合并。 */

@@ -20,6 +20,9 @@ import java.util.Map;
  *   <li><b>metadata 过滤</b>——{@code filters} 里的每个键都要在条目 metadata 中命中：
  *       {@code tags} / {@code keywords} 这类多值字段按「包含」匹配，其余按「相等」匹配。</li>
  * </ul>
+ *
+ * <p>配置了 magic-api 过滤函数（{@link MagicApiContentFilter}）时，上面两项内置规则不再生效——
+ * 保留哪些条目完全由脚本决定，便于处理内置规则表达不了的场景。</p>
  */
 public class FilteringContentRetriever implements ContentRetriever {
 
@@ -36,10 +39,19 @@ public class FilteringContentRetriever implements ContentRetriever {
 
 	private final Map<String, String> filters;
 
+	/** 函数过滤；非空时由脚本决定保留哪些条目，内置的 score/metadata 规则不再生效 */
+	private final MagicApiContentFilter functionFilter;
+
 	public FilteringContentRetriever(ContentRetriever delegate, double minScore, Map<String, String> filters) {
+		this(delegate, minScore, filters, null);
+	}
+
+	public FilteringContentRetriever(ContentRetriever delegate, double minScore, Map<String, String> filters,
+			MagicApiContentFilter functionFilter) {
 		this.delegate = delegate;
 		this.minScore = minScore;
 		this.filters = filters == null ? Collections.<String, String>emptyMap() : filters;
+		this.functionFilter = functionFilter;
 	}
 
 	@Override
@@ -47,6 +59,9 @@ public class FilteringContentRetriever implements ContentRetriever {
 		List<Content> retrieved = delegate.retrieve(query);
 		if (retrieved == null || retrieved.isEmpty()) {
 			return Collections.emptyList();
+		}
+		if (functionFilter != null) {
+			return functionFilter.filter(retrieved, query);
 		}
 		List<Content> kept = new ArrayList<>();
 		for (Content content : retrieved) {

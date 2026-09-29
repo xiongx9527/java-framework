@@ -164,7 +164,8 @@ class Langchain4jDatasourcePluginIntegrationTest {
                             "langchain4j-tool-provider",
                             "langchain4j-system-message",
                             "langchain4j-chat-memory-store",
-                            "langchain4j-content-retriever");
+                            "langchain4j-content-retriever",
+                            "langchain4j-content-injector");
         });
     }
 

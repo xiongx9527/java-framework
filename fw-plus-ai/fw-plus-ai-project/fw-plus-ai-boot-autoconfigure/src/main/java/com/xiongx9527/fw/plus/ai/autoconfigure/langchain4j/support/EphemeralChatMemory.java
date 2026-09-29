@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.sample.chat.ai;
+package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support;
 
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
@@ -33,18 +33,27 @@ import java.util.List;
  *       原样带出；本轮的最终回答与更早的历史都不进请求——更早的部分只保留系统提示与用户原话。</li>
  * </ol>
  *
- * <p><b>RAG 靠锚点而非类型</b>：injector 产出的 {@link RagUserMessage} 会被
- * {@code DefaultAiServices.appendOutputFormatInstructions} 用 {@code UserMessage.from(text)}
- * 重建（源码 :150 与 :323-332），类型到不了这里；但文本里的分隔串还在，而它是
- * {@link RagContentInjector#SEPARATOR} 自声明的常量，不随框架默认模板变动。锚点失配时整体透传
+ * <p><b>RAG 靠锚点而非类型</b>：injector 把检索内容拼在 user message 尾部，框架随后用
+ * {@code UserMessage.from(text)} 重建消息，类型到不了这里；但文本里的分隔串仍在。
+ * {@link #RAG_SEPARATOR} 与框架默认 injector 的默认模板分隔段一致。锚点失配时整体透传
  * （退化为「RAG 也跟着进记忆」），不报错。</p>
  */
-class EphemeralChatMemory implements ChatMemory {
+public class EphemeralChatMemory implements ChatMemory {
+
+	/**
+	 * 检索内容注入 user message 的分隔串。
+	 *
+	 * <p>值与框架默认 injector（{@code DefaultContentInjector} 的
+	 * {@code DEFAULT_PROMPT_TEMPLATE}）的分隔段一致：RAG 走默认 injector 时，
+	 * 注入结果就是「用户原话 + 本分隔串 + 检索内容」。上游若改默认模板，这里需同步，
+	 * 否则锚点失配、检索段重新流入记忆。</p>
+	 */
+	static final String RAG_SEPARATOR = "\n\nAnswer using the following information:\n";
 
 	private final ChatMemory delegate;
 	private final ChatMemoryStore store;
 
-	EphemeralChatMemory(ChatMemory delegate, ChatMemoryStore store) {
+	public EphemeralChatMemory(ChatMemory delegate, ChatMemoryStore store) {
 		this.delegate = delegate;
 		this.store = store;
 	}
@@ -117,7 +126,7 @@ class EphemeralChatMemory implements ChatMemory {
 
 	/** 去掉 user message 尾部由 retrievalAugmentor 拼入的检索段。 */
 	private static UserMessage stripRag(UserMessage message) {
-		int anchor = message.text().indexOf(RagContentInjector.SEPARATOR);
+		int anchor = message.text().indexOf(RAG_SEPARATOR);
 		return anchor < 0 ? message : UserMessage.from(message.text().substring(0, anchor));
 	}
 }
