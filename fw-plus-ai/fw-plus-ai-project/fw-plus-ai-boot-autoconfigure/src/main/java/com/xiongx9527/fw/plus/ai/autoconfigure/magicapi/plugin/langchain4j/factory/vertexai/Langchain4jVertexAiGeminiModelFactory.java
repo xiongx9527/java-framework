@@ -2,8 +2,10 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.fact
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.ModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.vertexai.VertexAiGeminiChatModel;
 import dev.langchain4j.model.vertexai.VertexAiGeminiStreamingChatModel;
+import java.util.List;
 
 /**
  * Vertex AI Gemini 工厂：dev.langchain4j.model.vertexai.* builder 链（需 GCP project/location）。
@@ -17,7 +19,7 @@ public class Langchain4jVertexAiGeminiModelFactory implements ModelFactory {
     }
 
     @Override
-    public VertexAiGeminiChatModel buildChatModel(Langchain4jOptionsReader o) {
+    public VertexAiGeminiChatModel buildChatModel(Langchain4jOptionsReader o, List<ChatModelListener> listeners) {
         return VertexAiGeminiChatModel.builder()
                 .project(o.required("project"))
                 .location(o.string("location", "us-central1"))
@@ -32,11 +34,12 @@ public class Langchain4jVertexAiGeminiModelFactory implements ModelFactory {
                 .useGoogleSearch(o.bool("use-google-search", null))
                 .logRequests(o.bool("log-requests", null))
                 .logResponses(o.bool("log-responses", null))
+                .listeners(listeners)
                 .build();
     }
 
     @Override
-    public VertexAiGeminiStreamingChatModel buildStreamingChatModel(Langchain4jOptionsReader o) {
+    public VertexAiGeminiStreamingChatModel buildStreamingChatModel(Langchain4jOptionsReader o, List<ChatModelListener> listeners) {
         return VertexAiGeminiStreamingChatModel.builder()
                 .project(o.required("project"))
                 .location(o.string("location", "us-central1"))
@@ -49,6 +52,7 @@ public class Langchain4jVertexAiGeminiModelFactory implements ModelFactory {
                 .useGoogleSearch(o.bool("use-google-search", null))
                 .logRequests(o.bool("log-requests", null))
                 .logResponses(o.bool("log-responses", null))
+                .listeners(listeners)
                 .build();
     }
 

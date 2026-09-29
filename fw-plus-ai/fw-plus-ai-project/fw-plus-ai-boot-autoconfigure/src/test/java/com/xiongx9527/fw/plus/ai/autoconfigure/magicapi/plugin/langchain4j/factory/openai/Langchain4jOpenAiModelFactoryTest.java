@@ -1,15 +1,18 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.openai;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 
 /**
  * OpenAI 代表工厂测试：builder 链参数透传、缺省语义（未配置的可空参数不得被置为 0）与缺参报错。
@@ -21,7 +24,8 @@ class Langchain4jOpenAiModelFactoryTest {
     @Test
     void shouldPassThroughConfiguredParameters() throws Exception {
         OpenAiChatModel model = factory.buildChatModel(reader(options(
-                "api-key", "sk-test", "model-name", "gpt-4o", "temperature", 0.3d, "top-p", 0.5d)));
+                "api-key", "sk-test", "model-name", "gpt-4o", "temperature", 0.3d, "top-p", 0.5d)),
+                Collections.emptyList());
 
         assertThat(field(model, "temperature")).isEqualTo(0.3d);
         assertThat(field(model, "topP")).isEqualTo(0.5d);
@@ -29,7 +33,8 @@ class Langchain4jOpenAiModelFactoryTest {
 
     @Test
     void shouldKeepUnsetOptionalParametersUnset() throws Exception {
-        OpenAiChatModel model = factory.buildChatModel(reader(options("api-key", "sk-test", "model-name", "gpt-4o")));
+        OpenAiChatModel model = factory.buildChatModel(reader(options("api-key", "sk-test", "model-name", "gpt-4o")),
+                Collections.emptyList());
 
         assertThat(field(model, "topP")).as("未配置的 top-p 不应被置为 0").isNull();
         assertThat(field(model, "presencePenalty")).isNull();
@@ -38,21 +43,33 @@ class Langchain4jOpenAiModelFactoryTest {
 
     @Test
     void shouldApplyDefaultTemperatureWhenAbsent() throws Exception {
-        OpenAiChatModel model = factory.buildChatModel(reader(options("api-key", "sk-test", "model-name", "gpt-4o")));
+        OpenAiChatModel model = factory.buildChatModel(reader(options("api-key", "sk-test", "model-name", "gpt-4o")),
+                Collections.emptyList());
 
         assertThat(field(model, "temperature")).isEqualTo(0.7d);
     }
 
     @Test
+    void shouldPassListenersToBuiltModel() throws Exception {
+        ChatModelListener listener = mock(ChatModelListener.class);
+
+        OpenAiChatModel model = factory.buildChatModel(reader(options("api-key", "sk-test", "model-name", "gpt-4o")),
+                Collections.singletonList(listener));
+
+        assertThat((java.util.List<?>) field(model, "listeners")).containsExactly(listener);
+    }
+
+    @Test
     void shouldReportMissingRequiredWithFullPath() {
-        assertThatThrownBy(() -> factory.buildChatModel(reader(options("model-name", "gpt-4o"))))
+        assertThatThrownBy(() -> factory.buildChatModel(reader(options("model-name", "gpt-4o")),
+                Collections.emptyList()))
                 .hasMessageContaining("langchain4j-chat-model[openai-main].options.api-key");
     }
 
     @Test
     void shouldRejectNonNumericTemperature() {
         assertThatThrownBy(() -> factory.buildChatModel(reader(options(
-                "api-key", "sk-test", "model-name", "gpt-4o", "temperature", "abc"))))
+                "api-key", "sk-test", "model-name", "gpt-4o", "temperature", "abc")), Collections.emptyList()))
                 .hasMessageContaining(".options.temperature");
     }
 
@@ -60,8 +77,8 @@ class Langchain4jOpenAiModelFactoryTest {
     void shouldBuildEverySupportedCapability() {
         Langchain4jOptionsReader reader = reader(options("api-key", "sk-test", "model-name", "gpt-4o"));
 
-        assertThat(factory.buildChatModel(reader)).isNotNull();
-        assertThat(factory.buildStreamingChatModel(reader)).isNotNull();
+        assertThat(factory.buildChatModel(reader, Collections.emptyList())).isNotNull();
+        assertThat(factory.buildStreamingChatModel(reader, Collections.emptyList())).isNotNull();
         assertThat(factory.buildLanguageModel(reader)).isNotNull();
         assertThat(factory.buildStreamingLanguageModel(reader)).isNotNull();
         assertThat(factory.buildEmbeddingModel(reader)).isNotNull();

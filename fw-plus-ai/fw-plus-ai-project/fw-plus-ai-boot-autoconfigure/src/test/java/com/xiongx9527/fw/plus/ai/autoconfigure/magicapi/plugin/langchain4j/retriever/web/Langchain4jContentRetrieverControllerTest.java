@@ -34,8 +34,7 @@ class Langchain4jContentRetrieverControllerTest {
         ContentRetrieverProviderRegistry registry = new ContentRetrieverProviderRegistry();
         registry.register(stub);
         registry.register(strict);
-        ContentRetrieverContext context = new ContentRetrieverContext(null, null, null,
-                new MagicDynamicLangchain4jContentRetrieverDataSource(), null, null);
+        ContentRetrieverContext context = new ContentRetrieverContext(null, null, null, null, null, null);
         controller = new Langchain4jContentRetrieverController(mock(MagicConfiguration.class), registry, context);
     }
 

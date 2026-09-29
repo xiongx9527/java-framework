@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retri
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.ContentRetrieverProviderRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.model.Langchain4jContentRetrieverInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.model.MagicDynamicLangchain4jContentRetrieverDataSource;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.module.Langchain4jContentRetrieverModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.resource.Langchain4jContentRetrieverMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
@@ -89,7 +90,8 @@ class Langchain4jContentRetrieverMagicDynamicRegistryTest {
     private Langchain4jContentRetrieverMagicDynamicRegistry registry(ContentRetrieverProvider provider) {
         ContentRetrieverProviderRegistry providers = new ContentRetrieverProviderRegistry();
         providers.register(provider);
-        ContentRetrieverContext context = new ContentRetrieverContext(null, null, null, retrievers, null, null);
+        ContentRetrieverContext context = new ContentRetrieverContext(null, null, null,
+                new Langchain4jContentRetrieverModule(retrievers, null), null, null);
         return new Langchain4jContentRetrieverMagicDynamicRegistry(storage, retrievers, providers, context, null);
     }
 

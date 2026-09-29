@@ -2,9 +2,11 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.fact
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.ModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.zhipu.ZhipuAiChatModel;
 import dev.langchain4j.model.zhipu.ZhipuAiEmbeddingModel;
 import dev.langchain4j.model.zhipu.ZhipuAiStreamingChatModel;
+import java.util.List;
 
 /**
  * 智谱（zhipu-ai）工厂：dev.langchain4j.community.model.zhipu.* builder 链。
@@ -18,7 +20,7 @@ public class Langchain4jZhipuModelFactory implements ModelFactory {
     }
 
     @Override
-    public ZhipuAiChatModel buildChatModel(Langchain4jOptionsReader o) {
+    public ZhipuAiChatModel buildChatModel(Langchain4jOptionsReader o, List<ChatModelListener> listeners) {
         return ZhipuAiChatModel.builder()
                 .baseUrl(o.string("base-url", null))
                 .apiKey(o.required("api-key"))
@@ -34,11 +36,12 @@ public class Langchain4jZhipuModelFactory implements ModelFactory {
                 .writeTimeout(o.duration("write-timeout", null))
                 .logRequests(o.bool("log-requests", null))
                 .logResponses(o.bool("log-responses", null))
+                .listeners(listeners)
                 .build();
     }
 
     @Override
-    public ZhipuAiStreamingChatModel buildStreamingChatModel(Langchain4jOptionsReader o) {
+    public ZhipuAiStreamingChatModel buildStreamingChatModel(Langchain4jOptionsReader o, List<ChatModelListener> listeners) {
         return ZhipuAiStreamingChatModel.builder()
                 .baseUrl(o.string("base-url", null))
                 .apiKey(o.required("api-key"))
@@ -53,6 +56,7 @@ public class Langchain4jZhipuModelFactory implements ModelFactory {
                 .writeTimeout(o.duration("write-timeout", null))
                 .logRequests(o.bool("log-requests", null))
                 .logResponses(o.bool("log-responses", null))
+                .listeners(listeners)
                 .build();
     }
 

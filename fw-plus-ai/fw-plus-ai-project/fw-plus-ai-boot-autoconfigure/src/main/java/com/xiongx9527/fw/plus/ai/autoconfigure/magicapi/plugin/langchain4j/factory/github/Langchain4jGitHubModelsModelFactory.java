@@ -2,9 +2,11 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.fact
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.ModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.github.GitHubModelsChatModel;
 import dev.langchain4j.model.github.GitHubModelsEmbeddingModel;
 import dev.langchain4j.model.github.GitHubModelsStreamingChatModel;
+import java.util.List;
 
 /**
  * GitHub Models 工厂：dev.langchain4j.model.github.* builder 链。
@@ -18,7 +20,7 @@ public class Langchain4jGitHubModelsModelFactory implements ModelFactory {
     }
 
     @Override
-    public GitHubModelsChatModel buildChatModel(Langchain4jOptionsReader o) {
+    public GitHubModelsChatModel buildChatModel(Langchain4jOptionsReader o, List<ChatModelListener> listeners) {
         return GitHubModelsChatModel.builder()
                 .gitHubToken(o.required("github-token"))
                 .endpoint(o.string("endpoint", null))
@@ -33,11 +35,12 @@ public class Langchain4jGitHubModelsModelFactory implements ModelFactory {
                 .timeout(o.duration("timeout", null))
                 .maxRetries(nullIfZero(o.integer("max-retries", null)))
                 .logRequestsAndResponses(o.bool("log-requests-and-responses", null))
+                .listeners(listeners)
                 .build();
     }
 
     @Override
-    public GitHubModelsStreamingChatModel buildStreamingChatModel(Langchain4jOptionsReader o) {
+    public GitHubModelsStreamingChatModel buildStreamingChatModel(Langchain4jOptionsReader o, List<ChatModelListener> listeners) {
         return GitHubModelsStreamingChatModel.builder()
                 .gitHubToken(o.required("github-token"))
                 .endpoint(o.string("endpoint", null))
@@ -50,6 +53,7 @@ public class Langchain4jGitHubModelsModelFactory implements ModelFactory {
                 .frequencyPenalty(o.dbl("frequency-penalty", null))
                 .timeout(o.duration("timeout", null))
                 .logRequestsAndResponses(o.bool("log-requests-and-responses", null))
+                .listeners(listeners)
                 .build();
     }
 

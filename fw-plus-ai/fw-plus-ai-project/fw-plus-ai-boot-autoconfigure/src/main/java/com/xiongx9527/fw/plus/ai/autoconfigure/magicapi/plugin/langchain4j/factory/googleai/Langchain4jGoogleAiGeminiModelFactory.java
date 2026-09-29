@@ -2,8 +2,10 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.fact
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.ModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.googleai.GoogleAiEmbeddingModel;
 import dev.langchain4j.model.googleai.GoogleAiGeminiChatModel;
+import java.util.List;
 
 /**
  * Google AI Gemini 工厂：dev.langchain4j.model.googleai.* builder 链。
@@ -18,7 +20,7 @@ public class Langchain4jGoogleAiGeminiModelFactory implements ModelFactory {
     }
 
     @Override
-    public GoogleAiGeminiChatModel buildChatModel(Langchain4jOptionsReader o) {
+    public GoogleAiGeminiChatModel buildChatModel(Langchain4jOptionsReader o, List<ChatModelListener> listeners) {
         return GoogleAiGeminiChatModel.builder()
                 .apiKey(o.required("api-key"))
                 .modelName(o.string("model-name", "gemini-2.0-flash"))
@@ -31,6 +33,7 @@ public class Langchain4jGoogleAiGeminiModelFactory implements ModelFactory {
                 .stopSequences(o.stringList("stop-sequences", null))
                 .allowCodeExecution(o.bool("allow-code-execution", null))
                 .logRequestsAndResponses(o.bool("log-requests-and-responses", null))
+                .listeners(listeners)
                 .build();
     }
 

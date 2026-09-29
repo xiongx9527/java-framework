@@ -2,17 +2,21 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.fact
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.ModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.localai.LocalAiChatModel;
 import dev.langchain4j.model.localai.LocalAiEmbeddingModel;
 import dev.langchain4j.model.localai.LocalAiLanguageModel;
 import dev.langchain4j.model.localai.LocalAiStreamingChatModel;
 import dev.langchain4j.model.localai.LocalAiStreamingLanguageModel;
+import java.util.List;
 
 /**
  * LocalAI 工厂：OpenAI 兼容本地推理服务，无需 api-key。
  * streaming 两个 builder 无 maxRetries（0.35.0）。
  */
 public class Langchain4jLocalAiModelFactory implements ModelFactory {
+
+    // 注意：0.35.0 该 SDK builder 无 listeners(...)，本 provider 忽略 listeners
 
     private static final String DEFAULT_BASE_URL = "http://localhost:8080";
 
@@ -22,7 +26,7 @@ public class Langchain4jLocalAiModelFactory implements ModelFactory {
     }
 
     @Override
-    public LocalAiChatModel buildChatModel(Langchain4jOptionsReader o) {
+    public LocalAiChatModel buildChatModel(Langchain4jOptionsReader o, List<ChatModelListener> listeners) {
         return LocalAiChatModel.builder()
                 .baseUrl(o.string("base-url", DEFAULT_BASE_URL))
                 .modelName(o.string("model-name", "gpt-4"))
@@ -37,7 +41,7 @@ public class Langchain4jLocalAiModelFactory implements ModelFactory {
     }
 
     @Override
-    public LocalAiStreamingChatModel buildStreamingChatModel(Langchain4jOptionsReader o) {
+    public LocalAiStreamingChatModel buildStreamingChatModel(Langchain4jOptionsReader o, List<ChatModelListener> listeners) {
         return LocalAiStreamingChatModel.builder()
                 .baseUrl(o.string("base-url", DEFAULT_BASE_URL))
                 .modelName(o.string("model-name", "gpt-4"))

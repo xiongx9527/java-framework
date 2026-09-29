@@ -9,6 +9,8 @@ import dev.langchain4j.model.azure.AzureOpenAiLanguageModel;
 import dev.langchain4j.model.azure.AzureOpenAiStreamingChatModel;
 import dev.langchain4j.model.azure.AzureOpenAiStreamingLanguageModel;
 import dev.langchain4j.model.azure.AzureOpenAiTokenizer;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
+import java.util.List;
 
 /**
  * Azure OpenAI 工厂：dev.langchain4j.model.azure.* builder 链。
@@ -23,7 +25,7 @@ public class Langchain4jAzureOpenAiModelFactory implements ModelFactory {
     }
 
     @Override
-    public AzureOpenAiChatModel buildChatModel(Langchain4jOptionsReader o) {
+    public AzureOpenAiChatModel buildChatModel(Langchain4jOptionsReader o, List<ChatModelListener> listeners) {
         return AzureOpenAiChatModel.builder()
                 .endpoint(o.required("endpoint"))
                 .apiKey(o.required("api-key"))
@@ -39,11 +41,12 @@ public class Langchain4jAzureOpenAiModelFactory implements ModelFactory {
                 .timeout(o.duration("timeout", null))
                 .maxRetries(nullIfZero(o.integer("max-retries", null)))
                 .logRequestsAndResponses(o.bool("log-requests-and-responses", null))
+                .listeners(listeners)
                 .build();
     }
 
     @Override
-    public AzureOpenAiStreamingChatModel buildStreamingChatModel(Langchain4jOptionsReader o) {
+    public AzureOpenAiStreamingChatModel buildStreamingChatModel(Langchain4jOptionsReader o, List<ChatModelListener> listeners) {
         return AzureOpenAiStreamingChatModel.builder()
                 .endpoint(o.required("endpoint"))
                 .apiKey(o.required("api-key"))
@@ -57,6 +60,7 @@ public class Langchain4jAzureOpenAiModelFactory implements ModelFactory {
                 .user(o.string("user", null))
                 .timeout(o.duration("timeout", null))
                 .logRequestsAndResponses(o.bool("log-requests-and-responses", null))
+                .listeners(listeners)
                 .build();
     }
 

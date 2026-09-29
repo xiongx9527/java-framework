@@ -138,7 +138,8 @@ class Langchain4jDatasourceControllerTest {
         }
 
         @Override
-        public ChatLanguageModel buildChatModel(Langchain4jOptionsReader o) {
+        public ChatLanguageModel buildChatModel(Langchain4jOptionsReader o,
+                java.util.List<dev.langchain4j.model.chat.listener.ChatModelListener> listeners) {
             ChatLanguageModel model = mock(ChatLanguageModel.class);
             org.mockito.Mockito.when(model.generate(org.mockito.ArgumentMatchers.any(
                     dev.langchain4j.data.message.UserMessage.class)))
@@ -150,7 +151,8 @@ class Langchain4jDatasourceControllerTest {
         }
 
         @Override
-        public StreamingChatLanguageModel buildStreamingChatModel(Langchain4jOptionsReader o) {
+        public StreamingChatLanguageModel buildStreamingChatModel(Langchain4jOptionsReader o,
+                java.util.List<dev.langchain4j.model.chat.listener.ChatModelListener> listeners) {
             return mock(StreamingChatLanguageModel.class);
         }
 

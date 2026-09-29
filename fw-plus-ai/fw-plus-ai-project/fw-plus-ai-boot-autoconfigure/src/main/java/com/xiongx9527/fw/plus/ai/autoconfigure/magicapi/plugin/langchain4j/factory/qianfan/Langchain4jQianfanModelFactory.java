@@ -2,11 +2,13 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.fact
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.ModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.qianfan.QianfanChatModel;
 import dev.langchain4j.model.qianfan.QianfanEmbeddingModel;
 import dev.langchain4j.model.qianfan.QianfanLanguageModel;
 import dev.langchain4j.model.qianfan.QianfanStreamingChatModel;
 import dev.langchain4j.model.qianfan.QianfanStreamingLanguageModel;
+import java.util.List;
 
 /**
  * 百度千帆（baidu qianfan）工厂：dev.langchain4j.model.qianfan.* builder 链。
@@ -14,13 +16,15 @@ import dev.langchain4j.model.qianfan.QianfanStreamingLanguageModel;
  */
 public class Langchain4jQianfanModelFactory implements ModelFactory {
 
+    // 注意：0.35.0 该 SDK builder 无 listeners(...)，本 provider 忽略 listeners
+
     @Override
     public String provider() {
         return "qianfan";
     }
 
     @Override
-    public QianfanChatModel buildChatModel(Langchain4jOptionsReader o) {
+    public QianfanChatModel buildChatModel(Langchain4jOptionsReader o, List<ChatModelListener> listeners) {
         return QianfanChatModel.builder()
                 .baseUrl(o.string("base-url", null))
                 .apiKey(o.required("api-key"))
@@ -42,7 +46,7 @@ public class Langchain4jQianfanModelFactory implements ModelFactory {
     }
 
     @Override
-    public QianfanStreamingChatModel buildStreamingChatModel(Langchain4jOptionsReader o) {
+    public QianfanStreamingChatModel buildStreamingChatModel(Langchain4jOptionsReader o, List<ChatModelListener> listeners) {
         return QianfanStreamingChatModel.builder()
                 .baseUrl(o.string("base-url", null))
                 .apiKey(o.required("api-key"))

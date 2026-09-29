@@ -4,6 +4,9 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.facto
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
 import dev.langchain4j.model.anthropic.AnthropicStreamingChatModel;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Anthropic 工厂：dev.langchain4j.model.anthropic.* builder 链。仅 chat/streaming-chat 两类。
@@ -19,7 +22,7 @@ public class Langchain4jAnthropicModelFactory implements ModelFactory {
     }
 
     @Override
-    public AnthropicChatModel buildChatModel(Langchain4jOptionsReader o) {
+    public AnthropicChatModel buildChatModel(Langchain4jOptionsReader o, List<ChatModelListener> listeners) {
         return AnthropicChatModel.builder()
                 .apiKey(o.required("api-key"))
                 .baseUrl(o.string("base-url", null))
@@ -35,11 +38,12 @@ public class Langchain4jAnthropicModelFactory implements ModelFactory {
                 .maxRetries(nullIfZero(o.integer("max-retries", null)))
                 .logRequests(o.bool("log-requests", null))
                 .logResponses(o.bool("log-responses", null))
+                .listeners(listeners)
                 .build();
     }
 
     @Override
-    public AnthropicStreamingChatModel buildStreamingChatModel(Langchain4jOptionsReader o) {
+    public AnthropicStreamingChatModel buildStreamingChatModel(Langchain4jOptionsReader o, List<ChatModelListener> listeners) {
         // 注意：0.35.0 streaming builder 无 maxRetries 与 beta
         return AnthropicStreamingChatModel.builder()
                 .apiKey(o.required("api-key"))
@@ -54,6 +58,7 @@ public class Langchain4jAnthropicModelFactory implements ModelFactory {
                 .timeout(o.duration("timeout", null))
                 .logRequests(o.bool("log-requests", null))
                 .logResponses(o.bool("log-responses", null))
+                .listeners(listeners)
                 .build();
     }
 

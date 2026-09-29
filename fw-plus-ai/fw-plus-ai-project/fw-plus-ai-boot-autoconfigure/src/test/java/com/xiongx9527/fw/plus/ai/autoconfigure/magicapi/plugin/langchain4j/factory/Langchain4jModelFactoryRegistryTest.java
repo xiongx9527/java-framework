@@ -3,16 +3,21 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.fact
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.Langchain4jModelFactoryConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jChatModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
 import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 
 /**
  * provider 短名表与工厂分发测试：短名表由已注册工厂的能力探测生成，与存储校验同源。
@@ -81,6 +86,19 @@ class Langchain4jModelFactoryRegistryTest {
     }
 
     @Test
+    void shouldPassListenersToChatModelFactory() {
+        ChatModelListener listener = mock(ChatModelListener.class);
+        Langchain4jModelFactoryRegistry withListeners =
+                new Langchain4jModelFactoryRegistry(Collections.singletonList(listener));
+        CapturingFactory capturing = new CapturingFactory();
+        withListeners.register(capturing);
+
+        withListeners.build(Langchain4jModelTypes.CHAT_MODEL, chatInfo("capturing"));
+
+        assertThat(capturing.listeners).as("全局 ChatModelListener 应下发给 provider").containsExactly(listener);
+    }
+
+    @Test
     void shouldRejectUnbuildableValueWithTypeAndKey() {
         Langchain4jChatModelInfo info = chatInfo("openai");
         info.setKey("bad-key");
@@ -96,6 +114,23 @@ class Langchain4jModelFactoryRegistryTest {
         Method method = Langchain4jModelFactoryConfiguration.class.getDeclaredMethod("defaultFactories");
         method.setAccessible(true);
         return (ModelFactory[]) method.invoke(null);
+    }
+
+    /** 记录收到的 listeners 的测试替身工厂 */
+    private static final class CapturingFactory implements ModelFactory {
+
+        private List<ChatModelListener> listeners;
+
+        @Override
+        public String provider() {
+            return "capturing";
+        }
+
+        @Override
+        public ChatLanguageModel buildChatModel(Langchain4jOptionsReader o, List<ChatModelListener> listeners) {
+            this.listeners = listeners;
+            return mock(ChatLanguageModel.class);
+        }
     }
 
     private static Langchain4jChatModelInfo chatInfo(String provider) {

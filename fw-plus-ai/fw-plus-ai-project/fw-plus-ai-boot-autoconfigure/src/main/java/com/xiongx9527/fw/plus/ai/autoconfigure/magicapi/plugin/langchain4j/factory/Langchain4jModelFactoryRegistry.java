@@ -14,6 +14,7 @@ import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.Tokenizer;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.model.language.StreamingLanguageModel;
@@ -22,11 +23,13 @@ import dev.langchain4j.store.embedding.EmbeddingStore;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 /**
  * provider 短名 → 工厂的分发表：每类资源一张短名集合，表外短名构建期拒绝。
+ * chat-model / streaming-chat-model 构建时把全局 {@link ChatModelListener} 一并下发给 provider。
  */
 public class Langchain4jModelFactoryRegistry {
 
@@ -35,6 +38,16 @@ public class Langchain4jModelFactoryRegistry {
 
     private final Map<String, ModelFactory> factories = new LinkedHashMap<String, ModelFactory>();
 
+    /** 全局 ChatModelListener：构建 chat-model / streaming-chat-model 时统一交给 provider */
+    private final List<ChatModelListener> listeners;
+
+    public Langchain4jModelFactoryRegistry() {
+        this(Collections.<ChatModelListener>emptyList());
+    }
+
+    public Langchain4jModelFactoryRegistry(List<ChatModelListener> listeners) {
+        this.listeners = listeners == null ? Collections.<ChatModelListener>emptyList() : listeners;
+    }
     public void register(ModelFactory factory) {
         factories.put(factory.provider(), factory);
     }
@@ -69,9 +82,9 @@ public class Langchain4jModelFactoryRegistry {
                 new Langchain4jOptionsReader(type.type(), info.getKey(), info.getOptions());
         switch (type) {
             case CHAT_MODEL:
-                return factory.buildChatModel(reader);
+                return factory.buildChatModel(reader, listeners);
             case STREAMING_CHAT_MODEL:
-                return factory.buildStreamingChatModel(reader);
+                return factory.buildStreamingChatModel(reader, listeners);
             case LANGUAGE_MODEL:
                 return factory.buildLanguageModel(reader);
             case STREAMING_LANGUAGE_MODEL:
@@ -127,8 +140,8 @@ public class Langchain4jModelFactoryRegistry {
     private boolean factorySupports(Langchain4jModelTypes type, ModelFactory factory) {
         try {
             switch (type) {
-                case CHAT_MODEL: factory.buildChatModel(PROBE); break;
-                case STREAMING_CHAT_MODEL: factory.buildStreamingChatModel(PROBE); break;
+                case CHAT_MODEL: factory.buildChatModel(PROBE, Collections.<ChatModelListener>emptyList()); break;
+                case STREAMING_CHAT_MODEL: factory.buildStreamingChatModel(PROBE, Collections.<ChatModelListener>emptyList()); break;
                 case LANGUAGE_MODEL: factory.buildLanguageModel(PROBE); break;
                 case STREAMING_LANGUAGE_MODEL: factory.buildStreamingLanguageModel(PROBE); break;
                 case EMBEDDING_MODEL: factory.buildEmbeddingModel(PROBE); break;

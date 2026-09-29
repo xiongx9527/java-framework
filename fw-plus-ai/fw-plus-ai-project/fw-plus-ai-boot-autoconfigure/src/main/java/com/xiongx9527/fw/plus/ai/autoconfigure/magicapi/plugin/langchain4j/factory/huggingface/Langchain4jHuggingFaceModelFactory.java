@@ -2,9 +2,11 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.fact
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.ModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.huggingface.HuggingFaceChatModel;
 import dev.langchain4j.model.huggingface.HuggingFaceEmbeddingModel;
 import dev.langchain4j.model.huggingface.HuggingFaceLanguageModel;
+import java.util.List;
 
 /**
  * HuggingFace 工厂：chat 为 Builder，language/embedding 为多参构造（0.35.0 无 builder）。
@@ -12,13 +14,15 @@ import dev.langchain4j.model.huggingface.HuggingFaceLanguageModel;
  */
 public class Langchain4jHuggingFaceModelFactory implements ModelFactory {
 
+    // 注意：0.35.0 该 SDK builder 无 listeners(...)，本 provider 忽略 listeners
+
     @Override
     public String provider() {
         return "hugging-face";
     }
 
     @Override
-    public HuggingFaceChatModel buildChatModel(Langchain4jOptionsReader o) {
+    public HuggingFaceChatModel buildChatModel(Langchain4jOptionsReader o, List<ChatModelListener> listeners) {
         return HuggingFaceChatModel.builder()
                 .accessToken(o.required("access-token"))
                 .modelId(o.string("model-id", "mistralai/Mistral-7B-Instruct-v0.2"))

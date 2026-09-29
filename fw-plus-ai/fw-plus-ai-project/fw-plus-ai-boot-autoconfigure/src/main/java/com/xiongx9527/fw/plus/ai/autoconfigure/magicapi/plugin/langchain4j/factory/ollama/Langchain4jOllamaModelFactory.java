@@ -2,11 +2,14 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.fact
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.ModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.ollama.OllamaChatModel;
 import dev.langchain4j.model.ollama.OllamaEmbeddingModel;
 import dev.langchain4j.model.ollama.OllamaLanguageModel;
 import dev.langchain4j.model.ollama.OllamaStreamingChatModel;
 import dev.langchain4j.model.ollama.OllamaStreamingLanguageModel;
+
+import java.util.List;
 
 /**
  * Ollama 工厂：本地模型，无需 api-key。ollama jar 不含 language/tokenizer，对应能力保持默认 Unsupported。
@@ -23,7 +26,7 @@ public class Langchain4jOllamaModelFactory implements ModelFactory {
     }
 
     @Override
-    public OllamaChatModel buildChatModel(Langchain4jOptionsReader o) {
+    public OllamaChatModel buildChatModel(Langchain4jOptionsReader o, List<ChatModelListener> listeners) {
         return OllamaChatModel.builder()
                 .baseUrl(o.string("base-url", DEFAULT_BASE_URL))
                 .modelName(o.string("model-name", DEFAULT_MODEL))
@@ -38,11 +41,13 @@ public class Langchain4jOllamaModelFactory implements ModelFactory {
                 .format(o.string("format", null))
                 .timeout(o.duration("timeout", null))
                 .maxRetries(nullIfZero(o.integer("max-retries", 3)))
+                .listeners(listeners)
                 .build();
     }
 
     @Override
-    public OllamaStreamingChatModel buildStreamingChatModel(Langchain4jOptionsReader o) {
+    public OllamaStreamingChatModel buildStreamingChatModel(Langchain4jOptionsReader o,
+            List<ChatModelListener> listeners) {
         // 注意：0.35.0 streaming builder 无 maxRetries
         return OllamaStreamingChatModel.builder()
                 .baseUrl(o.string("base-url", DEFAULT_BASE_URL))
@@ -57,6 +62,7 @@ public class Langchain4jOllamaModelFactory implements ModelFactory {
                 .stop(o.stringList("stop", null))
                 .format(o.string("format", null))
                 .timeout(o.duration("timeout", null))
+                .listeners(listeners)
                 .build();
     }
 

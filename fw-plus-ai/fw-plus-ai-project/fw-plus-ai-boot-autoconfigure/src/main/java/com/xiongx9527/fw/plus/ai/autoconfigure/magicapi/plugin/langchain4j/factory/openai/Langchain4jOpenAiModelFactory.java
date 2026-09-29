@@ -3,12 +3,14 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.fact
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.ModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
 import dev.langchain4j.model.Tokenizer;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiLanguageModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import dev.langchain4j.model.openai.OpenAiStreamingLanguageModel;
 import dev.langchain4j.model.openai.OpenAiTokenizer;
+import java.util.List;
 
 /**
  * OpenAI 工厂：dev.langchain4j.model.openai.* builder 链。
@@ -25,7 +27,7 @@ public class Langchain4jOpenAiModelFactory implements ModelFactory {
     }
 
     @Override
-    public OpenAiChatModel buildChatModel(Langchain4jOptionsReader o) {
+    public OpenAiChatModel buildChatModel(Langchain4jOptionsReader o, List<ChatModelListener> listeners) {
         return OpenAiChatModel.builder()
                 .baseUrl(o.string("base-url", null))
                 .apiKey(o.required("api-key"))
@@ -43,11 +45,12 @@ public class Langchain4jOpenAiModelFactory implements ModelFactory {
                 .maxRetries(nullIfZero(o.integer("max-retries", null)))
                 .logRequests(o.bool("log-requests", null))
                 .logResponses(o.bool("log-responses", null))
+                .listeners(listeners)
                 .build();
     }
 
     @Override
-    public OpenAiStreamingChatModel buildStreamingChatModel(Langchain4jOptionsReader o) {
+    public OpenAiStreamingChatModel buildStreamingChatModel(Langchain4jOptionsReader o, List<ChatModelListener> listeners) {
         // 注意：0.35.0 streaming builder 无 maxRetries（流式请求不重试）
         return OpenAiStreamingChatModel.builder()
                 .baseUrl(o.string("base-url", null))
@@ -65,6 +68,7 @@ public class Langchain4jOpenAiModelFactory implements ModelFactory {
                 .timeout(o.duration("timeout", null))
                 .logRequests(o.bool("log-requests", null))
                 .logResponses(o.bool("log-responses", null))
+                .listeners(listeners)
                 .build();
     }
 

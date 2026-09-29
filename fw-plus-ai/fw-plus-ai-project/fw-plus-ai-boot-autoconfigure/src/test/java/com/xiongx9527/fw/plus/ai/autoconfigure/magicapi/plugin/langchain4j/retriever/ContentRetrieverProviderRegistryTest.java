@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retr
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.model.Langchain4jContentRetrieverInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.model.MagicDynamicLangchain4jContentRetrieverDataSource;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.module.Langchain4jContentRetrieverModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.provider.EmbeddingStoreContentRetrieverProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.provider.FilteringContentRetrieverProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.provider.Neo4jContentRetrieverProvider;
@@ -63,7 +64,8 @@ class ContentRetrieverProviderRegistryTest {
                         content("分类不符", 0.9, "manual"));
             }
         });
-        ContentRetrieverContext context = new ContentRetrieverContext(null, null, null, retrievers, null, null);
+        ContentRetrieverContext context = new ContentRetrieverContext(null, null, null,
+                new Langchain4jContentRetrieverModule(retrievers, null), null, null);
         registry.register(new FilteringContentRetrieverProvider());
 
         Map<String, Object> options = new LinkedHashMap<String, Object>();

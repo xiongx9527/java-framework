@@ -96,11 +96,11 @@ public class Langchain4jContentRetrieverConfiguration extends AbstractLangchain4
 			ObjectProvider<Langchain4jEmbeddingStoreModule> embeddingStores,
 			ObjectProvider<Langchain4jEmbeddingModelModule> embeddingModels,
 			ObjectProvider<Langchain4jChatModelModule> chatModels,
-			MagicDynamicLangchain4jContentRetrieverDataSource dataSource,
+			Langchain4jContentRetrieverModule retrievers,
 			ObjectProvider<WebSearchEngine> webSearchEngines,
 			ObjectProvider<MagicToolInvoker> invokerProvider) {
 		MagicToolInvoker invoker = invokerProvider.getIfAvailable(ScriptManagerMagicToolInvoker::new);
-		return new ContentRetrieverContext(embeddingStores, embeddingModels, chatModels, dataSource,
+		return new ContentRetrieverContext(embeddingStores, embeddingModels, chatModels, retrievers,
 				webSearchEngines, invoker);
 	}
 

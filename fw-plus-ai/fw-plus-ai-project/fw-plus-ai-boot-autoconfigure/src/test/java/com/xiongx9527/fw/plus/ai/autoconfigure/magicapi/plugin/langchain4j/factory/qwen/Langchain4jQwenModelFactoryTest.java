@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.fact
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -22,8 +23,8 @@ class Langchain4jQwenModelFactoryTest {
                 "api-key", "sk-test", "enable-search", true, "top-k", 20, "stops", "a, b",
                 "repetition-penalty", 1.1d, "max-tokens", 2048));
 
-        assertThat(factory.buildChatModel(reader)).isNotNull();
-        assertThat(factory.buildStreamingChatModel(reader)).isNotNull();
+        assertThat(factory.buildChatModel(reader, Collections.emptyList())).isNotNull();
+        assertThat(factory.buildStreamingChatModel(reader, Collections.emptyList())).isNotNull();
         assertThat(factory.buildLanguageModel(reader)).isNotNull();
         assertThat(factory.buildStreamingLanguageModel(reader)).isNotNull();
         assertThat(factory.buildEmbeddingModel(reader)).isNotNull();
@@ -34,25 +35,27 @@ class Langchain4jQwenModelFactoryTest {
     void shouldBuildWithRequiredOptionsOnly() {
         Langchain4jOptionsReader reader = reader(options("api-key", "sk-test"));
 
-        assertThat(factory.buildChatModel(reader)).isNotNull();
+        assertThat(factory.buildChatModel(reader, Collections.emptyList())).isNotNull();
     }
 
     @Test
     void shouldReportMissingApiKeyWithFullPath() {
-        assertThatThrownBy(() -> factory.buildChatModel(reader(options("model-name", "qwen-plus"))))
+        assertThatThrownBy(() -> factory.buildChatModel(reader(options("model-name", "qwen-plus")),
+                Collections.emptyList()))
                 .hasMessageContaining("langchain4j-chat-model[qwen-main].options.api-key");
     }
 
     @Test
     void shouldRejectNonBooleanEnableSearch() {
         assertThatThrownBy(() -> factory.buildChatModel(reader(options(
-                "api-key", "sk-test", "enable-search", "maybe"))))
+                "api-key", "sk-test", "enable-search", "maybe")), Collections.emptyList()))
                 .hasMessageContaining(".options.enable-search");
     }
 
     @Test
     void shouldRejectNonNumericTopP() {
-        assertThatThrownBy(() -> factory.buildChatModel(reader(options("api-key", "sk-test", "top-p", "abc"))))
+        assertThatThrownBy(() -> factory.buildChatModel(reader(options("api-key", "sk-test", "top-p", "abc")),
+                Collections.emptyList()))
                 .hasMessageContaining(".options.top-p");
     }
 

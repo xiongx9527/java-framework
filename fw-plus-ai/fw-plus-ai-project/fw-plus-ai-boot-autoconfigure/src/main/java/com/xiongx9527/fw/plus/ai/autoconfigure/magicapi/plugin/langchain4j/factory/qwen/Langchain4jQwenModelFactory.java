@@ -3,14 +3,15 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.fact
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.ModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
 import dev.langchain4j.model.Tokenizer;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.dashscope.QwenChatModel;
 import dev.langchain4j.model.dashscope.QwenEmbeddingModel;
 import dev.langchain4j.model.dashscope.QwenLanguageModel;
 import dev.langchain4j.model.dashscope.QwenStreamingChatModel;
 import dev.langchain4j.model.dashscope.QwenStreamingLanguageModel;
 import dev.langchain4j.model.dashscope.QwenTokenizer;
-
 import java.util.Collections;
+import java.util.List;
 
 /**
  * 通义千问（dashscope）工厂：dev.langchain4j.model.dashscope.Qwen* builder 链。
@@ -30,7 +31,7 @@ public class Langchain4jQwenModelFactory implements ModelFactory {
     }
 
     @Override
-    public QwenChatModel buildChatModel(Langchain4jOptionsReader o) {
+    public QwenChatModel buildChatModel(Langchain4jOptionsReader o, List<ChatModelListener> listeners) {
         return QwenChatModel.builder()
                 .baseUrl(o.string("base-url", DEFAULT_BASE_URL))
                 .apiKey(o.required("api-key"))
@@ -43,11 +44,12 @@ public class Langchain4jQwenModelFactory implements ModelFactory {
                 .repetitionPenalty(o.floatValue("repetition-penalty", null))
                 .stops(o.stringList("stops", Collections.<String>emptyList()))
                 .maxTokens(nullIfZero(o.integer("max-tokens", null)))
+                .listeners(listeners)
                 .build();
     }
 
     @Override
-    public QwenStreamingChatModel buildStreamingChatModel(Langchain4jOptionsReader o) {
+    public QwenStreamingChatModel buildStreamingChatModel(Langchain4jOptionsReader o, List<ChatModelListener> listeners) {
         return QwenStreamingChatModel.builder()
                 .baseUrl(o.string("base-url", DEFAULT_BASE_URL))
                 .apiKey(o.required("api-key"))
@@ -60,6 +62,7 @@ public class Langchain4jQwenModelFactory implements ModelFactory {
                 .repetitionPenalty(o.floatValue("repetition-penalty", null))
                 .stops(o.stringList("stops", Collections.<String>emptyList()))
                 .maxTokens(nullIfZero(o.integer("max-tokens", null)))
+                .listeners(listeners)
                 .build();
     }
 

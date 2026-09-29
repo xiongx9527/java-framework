@@ -24,10 +24,14 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.facto
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.vertexai.Langchain4jVertexAiGeminiModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.voyageai.Langchain4jVoyageAiModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.zhipu.Langchain4jZhipuModelFactory;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * provider 工厂注册表装配：与具体资源类型无关的共享内容，单独成配置以便被父装配构造注入。
@@ -64,11 +68,22 @@ public class Langchain4jModelFactoryConfiguration {
         };
     }
 
+    /**
+     * provider 分发表：全部 provider 工厂 + Spring 容器中的 {@link ChatModelListener}。
+     * listeners 会在构建 chat-model / streaming-chat-model 时统一下发给 provider。
+     */
     @Bean
     @ConditionalOnMissingBean
     public Langchain4jModelFactoryRegistry langchain4jModelFactoryRegistry(
-            ObjectProvider<ModelFactory> factoryProvider) {
-        Langchain4jModelFactoryRegistry registry = new Langchain4jModelFactoryRegistry();
+            ObjectProvider<ModelFactory> factoryProvider,
+            ObjectProvider<ChatModelListener> listenerProvider) {
+        List<ChatModelListener> listeners = new ArrayList<>();
+        for (ChatModelListener listener : listenerProvider) {
+            if (listener != null) {
+                listeners.add(listener);
+            }
+        }
+        Langchain4jModelFactoryRegistry registry = new Langchain4jModelFactoryRegistry(listeners);
         for (ModelFactory factory : defaultFactories()) {
             registry.register(factory);
         }
