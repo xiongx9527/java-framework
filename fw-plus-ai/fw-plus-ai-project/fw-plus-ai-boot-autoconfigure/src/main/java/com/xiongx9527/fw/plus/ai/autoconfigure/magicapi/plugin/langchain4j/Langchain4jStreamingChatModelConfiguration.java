@@ -8,6 +8,9 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resou
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jStreamingChatModelModule;
+import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -45,5 +48,12 @@ public class Langchain4jStreamingChatModelConfiguration extends AbstractLangchai
             MagicDynamicLangchain4jStreamingChatModelDataSource dataSource,
             Langchain4jModelFactoryRegistry factories) {
         return new Langchain4jStreamingChatModelMagicDynamicRegistry(storage, dataSource, factories);
+    }
+
+    /** 脚本模块：chatModel['key'] 按 key 取实例；不指定 key 时回落到 Spring 默认实例 */
+    @Bean
+    @ConditionalOnMissingBean
+    public Langchain4jStreamingChatModelModule langchain4jStreamingChatModelModule(MagicDynamicLangchain4jStreamingChatModelDataSource streamingChatModels, ObjectProvider<StreamingChatLanguageModel> defaultInstance) {
+        return new Langchain4jStreamingChatModelModule(streamingChatModels, defaultInstance);
     }
 }

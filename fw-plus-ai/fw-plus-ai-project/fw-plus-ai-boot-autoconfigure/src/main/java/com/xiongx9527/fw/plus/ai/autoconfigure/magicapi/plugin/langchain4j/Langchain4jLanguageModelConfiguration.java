@@ -8,6 +8,9 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resou
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jLanguageModelModule;
+import dev.langchain4j.model.language.LanguageModel;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -45,5 +48,12 @@ public class Langchain4jLanguageModelConfiguration extends AbstractLangchain4jPl
             MagicDynamicLangchain4jLanguageModelDataSource dataSource,
             Langchain4jModelFactoryRegistry factories) {
         return new Langchain4jLanguageModelMagicDynamicRegistry(storage, dataSource, factories);
+    }
+
+    /** 脚本模块：chatModel['key'] 按 key 取实例；不指定 key 时回落到 Spring 默认实例 */
+    @Bean
+    @ConditionalOnMissingBean
+    public Langchain4jLanguageModelModule langchain4jLanguageModelModule(MagicDynamicLangchain4jLanguageModelDataSource languageModels, ObjectProvider<LanguageModel> defaultInstance) {
+        return new Langchain4jLanguageModelModule(languageModels, defaultInstance);
     }
 }

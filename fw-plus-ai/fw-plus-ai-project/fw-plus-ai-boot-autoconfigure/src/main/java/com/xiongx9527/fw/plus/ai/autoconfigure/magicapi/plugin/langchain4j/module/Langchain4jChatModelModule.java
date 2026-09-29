@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.modu
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jChatModelDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
 import dev.langchain4j.model.chat.ChatLanguageModel;
+import org.springframework.beans.factory.ObjectProvider;
 import org.ssssssss.magicapi.core.annotation.MagicModule;
 import org.ssssssss.script.functions.DynamicAttribute;
 import org.ssssssss.magicapi.modules.DynamicModule;
@@ -15,15 +16,11 @@ import java.util.List;
  */
 @MagicModule("langchain4jChatModel")
 public class Langchain4jChatModelModule extends AbstractLangchain4jModelModule<ChatLanguageModel>
-        implements DynamicAttribute<ChatLanguageModel, Langchain4jChatModelModule>, DynamicModule<Langchain4jChatModelModule> {
+        implements DynamicAttribute<ChatLanguageModel, Langchain4jChatModelModule>, DynamicModule<ChatLanguageModel> {
 
-    public Langchain4jChatModelModule(MagicDynamicLangchain4jChatModelDataSource holder) {
-        super(holder, Langchain4jModelTypes.CHAT_MODEL);
-    }
-
-    @Override
-    public Langchain4jChatModelModule getDynamicModule(MagicScriptContext context) {
-        return this;
+    public Langchain4jChatModelModule(MagicDynamicLangchain4jChatModelDataSource holder,
+            ObjectProvider<ChatLanguageModel> defaultInstance) {
+        super(holder, Langchain4jModelTypes.CHAT_MODEL, defaultInstance);
     }
 
     @Override

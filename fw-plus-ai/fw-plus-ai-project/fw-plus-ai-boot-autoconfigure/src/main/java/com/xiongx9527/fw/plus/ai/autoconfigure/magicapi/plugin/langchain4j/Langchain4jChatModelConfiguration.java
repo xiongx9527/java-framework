@@ -7,10 +7,12 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.registry.Langchain4jChatModelMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resource.Langchain4jChatModelMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.web.Langchain4jDatasourceController;
+import dev.langchain4j.model.chat.ChatLanguageModel;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jChatModelModule;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.ssssssss.magicapi.core.web.MagicControllerRegister;
@@ -68,5 +70,12 @@ public class Langchain4jChatModelConfiguration extends AbstractLangchain4jPlugin
             MagicDynamicLangchain4jChatModelDataSource dataSource,
             Langchain4jModelFactoryRegistry factories) {
         return new Langchain4jChatModelMagicDynamicRegistry(storage, dataSource, factories);
+    }
+
+    /** 脚本模块：chatModel['key'] 按 key 取实例；不指定 key 时回落到 Spring 默认实例 */
+    @Bean
+    @ConditionalOnMissingBean
+    public Langchain4jChatModelModule langchain4jChatModelModule(MagicDynamicLangchain4jChatModelDataSource chatModels, ObjectProvider<ChatLanguageModel> defaultInstance) {
+        return new Langchain4jChatModelModule(chatModels, defaultInstance);
     }
 }

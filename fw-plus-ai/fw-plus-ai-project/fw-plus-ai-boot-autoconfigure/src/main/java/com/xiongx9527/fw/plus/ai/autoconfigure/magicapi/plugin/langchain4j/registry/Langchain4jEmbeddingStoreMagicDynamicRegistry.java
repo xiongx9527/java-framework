@@ -1,5 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.registry;
 
+import java.util.List;
+import java.util.Collections;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.Langchain4jModelFactoryRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jEmbeddingStoreInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
@@ -57,5 +59,11 @@ public class Langchain4jEmbeddingStoreMagicDynamicRegistry
     @EventListener(condition = "#event.type == 'langchain4j-embedding-store'")
     public void onGroupEvent(GroupEvent event) {
         safelyProcess(event);
+    }
+
+    /** 本插件无静态默认数据源：实例均来自控制台保存的 datasource；保留 mongo 插件同构语义 */
+    @Override
+    public List<Langchain4jEmbeddingStoreInfo> defaultMappings() {
+        return Collections.emptyList();
     }
 }

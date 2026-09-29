@@ -12,9 +12,12 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.ObjectProvider;
 import org.ssssssss.magicapi.core.annotation.MagicModule;
 import org.ssssssss.script.functions.DynamicAttribute;
 import org.ssssssss.magicapi.modules.DynamicModule;
+import org.ssssssss.magicapi.core.model.Options;
+import org.ssssssss.script.MagicScriptContext;
 
 import java.util.Arrays;
 import java.util.LinkedHashSet;
@@ -24,6 +27,7 @@ import java.util.stream.Collectors;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
 /**
@@ -31,6 +35,13 @@ import static org.mockito.Mockito.withSettings;
  * 未配置 key 时抛中文异常并列出该类型已配置的 key；无默认数据源概念，getDynamicModule 返回自身。
  */
 class Langchain4jTypedModulesTest {
+
+    @SuppressWarnings("unchecked")
+    private static <T> ObjectProvider<T> providerOf(T instance) {
+        ObjectProvider<T> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(instance);
+        return provider;
+    }
 
     @Test
     void shouldExposeModuleNamesPerType() {
@@ -60,10 +71,9 @@ class Langchain4jTypedModulesTest {
         ChatLanguageModel model = mock(ChatLanguageModel.class);
         holder.put("qwen-main", model);
 
-        Langchain4jChatModelModule module = new Langchain4jChatModelModule(holder);
+        Langchain4jChatModelModule module = new Langchain4jChatModelModule(holder, providerOf(null));
 
         assertThat(module.getDynamicAttribute("qwen-main")).isSameAs(model);
-        assertThat(module.getDynamicModule(null)).as("无默认数据源概念，返回模块自身").isSameAs(module);
     }
 
     @Test
@@ -72,7 +82,7 @@ class Langchain4jTypedModulesTest {
         holder.put("qwen-main", mock(ChatLanguageModel.class));
         holder.put("openai-backup", mock(ChatLanguageModel.class));
 
-        Langchain4jChatModelModule module = new Langchain4jChatModelModule(holder);
+        Langchain4jChatModelModule module = new Langchain4jChatModelModule(holder, providerOf(null));
 
         assertThatThrownBy(() -> module.getDynamicAttribute("absent"))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -88,7 +98,7 @@ class Langchain4jTypedModulesTest {
         EmbeddingModel model = mock(EmbeddingModel.class, withSettings());
         holder.put("qwen-embed", model);
 
-        Langchain4jEmbeddingModelModule module = new Langchain4jEmbeddingModelModule(holder);
+        Langchain4jEmbeddingModelModule module = new Langchain4jEmbeddingModelModule(holder, providerOf(model));
 
         assertThat(module.getDynamicAttribute("qwen-embed")).isSameAs(model);
         Set<String> keys = new LinkedHashSet<>(Arrays.asList("qwen-embed"));
@@ -100,7 +110,7 @@ class Langchain4jTypedModulesTest {
         MagicDynamicLangchain4jChatModelDataSource holder = new MagicDynamicLangchain4jChatModelDataSource();
         holder.put("qwen-main", mock(ChatLanguageModel.class));
 
-        Langchain4jChatModelModule module = new Langchain4jChatModelModule(holder);
+        Langchain4jChatModelModule module = new Langchain4jChatModelModule(holder, providerOf(null));
 
         assertThat(module.defaultMappings()).as("无静态默认数据源，defaultMappings 为空").isEmpty();
     }
@@ -110,7 +120,7 @@ class Langchain4jTypedModulesTest {
         MagicDynamicLangchain4jChatModelDataSource holder = new MagicDynamicLangchain4jChatModelDataSource();
         holder.put("qwen-main", mock(ChatLanguageModel.class));
 
-        Langchain4jChatModelModule module = new Langchain4jChatModelModule(holder);
+        Langchain4jChatModelModule module = new Langchain4jChatModelModule(holder, providerOf(null));
 
         assertThatThrownBy(() -> module.setDynamicAttribute("qwen-main", mock(ChatLanguageModel.class)))
                 .isInstanceOf(UnsupportedOperationException.class)
@@ -121,5 +131,45 @@ class Langchain4jTypedModulesTest {
         MagicModule annotation = type.getAnnotation(MagicModule.class);
         assertThat(annotation).as("%s 应标注 @MagicModule", type.getName()).isNotNull();
         return annotation.value();
+    }
+
+    @Test
+    void shouldFallBackToSpringDefaultInstanceWhenKeyOmitted() {
+        MagicDynamicLangchain4jEmbeddingModelDataSource holder = new MagicDynamicLangchain4jEmbeddingModelDataSource();
+        EmbeddingModel springDefault = mock(EmbeddingModel.class);
+
+        Langchain4jEmbeddingModelModule module =
+                new Langchain4jEmbeddingModelModule(holder, providerOf(springDefault));
+
+        assertThat(module.getDynamicAttribute(null)).as("无 key 时回落到 Spring 默认实例").isSameAs(springDefault);
+        assertThat(module.getDynamicAttribute("  ")).isSameAs(springDefault);
+        assertThat(module.getDynamicModule(null)).as("无 key 时 getDynamicModule 亦回落默认实例").isSameAs(springDefault);
+    }
+
+    @Test
+    void shouldExplainMissingBothPaths() {
+        MagicDynamicLangchain4jEmbeddingModelDataSource holder = new MagicDynamicLangchain4jEmbeddingModelDataSource();
+
+        Langchain4jEmbeddingModelModule module =
+                new Langchain4jEmbeddingModelModule(holder, providerOf(null));
+
+        assertThatThrownBy(() -> module.getDynamicAttribute(null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("langchain4j-embedding-model")
+                .hasMessageContaining("Spring 容器中没有默认实例");
+    }
+
+    @Test
+    void shouldRouteContextDataSourceKeyToHolderInstance() {
+        MagicDynamicLangchain4jChatModelDataSource holder = new MagicDynamicLangchain4jChatModelDataSource();
+        ChatLanguageModel holderModel = mock(ChatLanguageModel.class);
+        holder.put("qwen-main", holderModel);
+
+        Langchain4jChatModelModule module = new Langchain4jChatModelModule(holder, providerOf(null));
+
+        MagicScriptContext context = mock(MagicScriptContext.class);
+        when(context.getString(Options.DEFAULT_DATA_SOURCE.getValue())).thenReturn("qwen-main");
+
+        assertThat(module.getDynamicModule(context)).as("context 指定 key 时按 key 取用").isSameAs(holderModel);
     }
 }

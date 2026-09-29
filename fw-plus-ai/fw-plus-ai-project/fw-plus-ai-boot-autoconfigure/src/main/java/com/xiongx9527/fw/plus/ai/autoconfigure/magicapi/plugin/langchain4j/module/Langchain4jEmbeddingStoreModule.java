@@ -4,6 +4,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import org.springframework.beans.factory.ObjectProvider;
 import org.ssssssss.magicapi.core.annotation.MagicModule;
 import org.ssssssss.script.functions.DynamicAttribute;
 import org.ssssssss.magicapi.modules.DynamicModule;
@@ -16,15 +17,11 @@ import java.util.List;
  */
 @MagicModule("langchain4jEmbeddingStore")
 public class Langchain4jEmbeddingStoreModule extends AbstractLangchain4jModelModule<EmbeddingStore<TextSegment>>
-        implements DynamicAttribute<EmbeddingStore<TextSegment>, Langchain4jEmbeddingStoreModule>, DynamicModule<Langchain4jEmbeddingStoreModule> {
+        implements DynamicAttribute<EmbeddingStore<TextSegment>, Langchain4jEmbeddingStoreModule>, DynamicModule<EmbeddingStore<TextSegment>> {
 
-    public Langchain4jEmbeddingStoreModule(MagicDynamicLangchain4jEmbeddingStoreDataSource holder) {
-        super(holder, Langchain4jModelTypes.EMBEDDING_STORE);
-    }
-
-    @Override
-    public Langchain4jEmbeddingStoreModule getDynamicModule(MagicScriptContext context) {
-        return this;
+    public Langchain4jEmbeddingStoreModule(MagicDynamicLangchain4jEmbeddingStoreDataSource holder,
+            ObjectProvider<EmbeddingStore<TextSegment>> defaultInstance) {
+        super(holder, Langchain4jModelTypes.EMBEDDING_STORE, defaultInstance);
     }
 
     @Override

@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.modu
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jStreamingLanguageModelDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
 import dev.langchain4j.model.language.StreamingLanguageModel;
+import org.springframework.beans.factory.ObjectProvider;
 import org.ssssssss.magicapi.core.annotation.MagicModule;
 import org.ssssssss.script.functions.DynamicAttribute;
 import org.ssssssss.magicapi.modules.DynamicModule;
@@ -15,15 +16,11 @@ import java.util.List;
  */
 @MagicModule("langchain4jStreamingLanguageModel")
 public class Langchain4jStreamingLanguageModelModule extends AbstractLangchain4jModelModule<StreamingLanguageModel>
-        implements DynamicAttribute<StreamingLanguageModel, Langchain4jStreamingLanguageModelModule>, DynamicModule<Langchain4jStreamingLanguageModelModule> {
+        implements DynamicAttribute<StreamingLanguageModel, Langchain4jStreamingLanguageModelModule>, DynamicModule<StreamingLanguageModel> {
 
-    public Langchain4jStreamingLanguageModelModule(MagicDynamicLangchain4jStreamingLanguageModelDataSource holder) {
-        super(holder, Langchain4jModelTypes.STREAMING_LANGUAGE_MODEL);
-    }
-
-    @Override
-    public Langchain4jStreamingLanguageModelModule getDynamicModule(MagicScriptContext context) {
-        return this;
+    public Langchain4jStreamingLanguageModelModule(MagicDynamicLangchain4jStreamingLanguageModelDataSource holder,
+            ObjectProvider<StreamingLanguageModel> defaultInstance) {
+        super(holder, Langchain4jModelTypes.STREAMING_LANGUAGE_MODEL, defaultInstance);
     }
 
     @Override

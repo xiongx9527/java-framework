@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.modu
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jLanguageModelDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
 import dev.langchain4j.model.language.LanguageModel;
+import org.springframework.beans.factory.ObjectProvider;
 import org.ssssssss.magicapi.core.annotation.MagicModule;
 import org.ssssssss.script.functions.DynamicAttribute;
 import org.ssssssss.magicapi.modules.DynamicModule;
@@ -15,15 +16,11 @@ import java.util.List;
  */
 @MagicModule("langchain4jLanguageModel")
 public class Langchain4jLanguageModelModule extends AbstractLangchain4jModelModule<LanguageModel>
-        implements DynamicAttribute<LanguageModel, Langchain4jLanguageModelModule>, DynamicModule<Langchain4jLanguageModelModule> {
+        implements DynamicAttribute<LanguageModel, Langchain4jLanguageModelModule>, DynamicModule<LanguageModel> {
 
-    public Langchain4jLanguageModelModule(MagicDynamicLangchain4jLanguageModelDataSource holder) {
-        super(holder, Langchain4jModelTypes.LANGUAGE_MODEL);
-    }
-
-    @Override
-    public Langchain4jLanguageModelModule getDynamicModule(MagicScriptContext context) {
-        return this;
+    public Langchain4jLanguageModelModule(MagicDynamicLangchain4jLanguageModelDataSource holder,
+            ObjectProvider<LanguageModel> defaultInstance) {
+        super(holder, Langchain4jModelTypes.LANGUAGE_MODEL, defaultInstance);
     }
 
     @Override

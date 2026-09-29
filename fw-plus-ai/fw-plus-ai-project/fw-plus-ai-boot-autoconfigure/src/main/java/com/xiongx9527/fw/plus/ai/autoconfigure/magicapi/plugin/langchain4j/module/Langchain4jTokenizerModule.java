@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.modu
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jTokenizerDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
 import dev.langchain4j.model.Tokenizer;
+import org.springframework.beans.factory.ObjectProvider;
 import org.ssssssss.magicapi.core.annotation.MagicModule;
 import org.ssssssss.script.functions.DynamicAttribute;
 import org.ssssssss.magicapi.modules.DynamicModule;
@@ -15,15 +16,11 @@ import java.util.List;
  */
 @MagicModule("langchain4jTokenizer")
 public class Langchain4jTokenizerModule extends AbstractLangchain4jModelModule<Tokenizer>
-        implements DynamicAttribute<Tokenizer, Langchain4jTokenizerModule>, DynamicModule<Langchain4jTokenizerModule> {
+        implements DynamicAttribute<Tokenizer, Langchain4jTokenizerModule>, DynamicModule<Tokenizer> {
 
-    public Langchain4jTokenizerModule(MagicDynamicLangchain4jTokenizerDataSource holder) {
-        super(holder, Langchain4jModelTypes.TOKENIZER);
-    }
-
-    @Override
-    public Langchain4jTokenizerModule getDynamicModule(MagicScriptContext context) {
-        return this;
+    public Langchain4jTokenizerModule(MagicDynamicLangchain4jTokenizerDataSource holder,
+            ObjectProvider<Tokenizer> defaultInstance) {
+        super(holder, Langchain4jModelTypes.TOKENIZER, defaultInstance);
     }
 
     @Override

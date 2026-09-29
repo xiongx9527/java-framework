@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.modu
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jStreamingChatModelDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import org.springframework.beans.factory.ObjectProvider;
 import org.ssssssss.magicapi.core.annotation.MagicModule;
 import org.ssssssss.script.functions.DynamicAttribute;
 import org.ssssssss.magicapi.modules.DynamicModule;
@@ -15,15 +16,11 @@ import java.util.List;
  */
 @MagicModule("langchain4jStreamingChatModel")
 public class Langchain4jStreamingChatModelModule extends AbstractLangchain4jModelModule<StreamingChatLanguageModel>
-        implements DynamicAttribute<StreamingChatLanguageModel, Langchain4jStreamingChatModelModule>, DynamicModule<Langchain4jStreamingChatModelModule> {
+        implements DynamicAttribute<StreamingChatLanguageModel, Langchain4jStreamingChatModelModule>, DynamicModule<StreamingChatLanguageModel> {
 
-    public Langchain4jStreamingChatModelModule(MagicDynamicLangchain4jStreamingChatModelDataSource holder) {
-        super(holder, Langchain4jModelTypes.STREAMING_CHAT_MODEL);
-    }
-
-    @Override
-    public Langchain4jStreamingChatModelModule getDynamicModule(MagicScriptContext context) {
-        return this;
+    public Langchain4jStreamingChatModelModule(MagicDynamicLangchain4jStreamingChatModelDataSource holder,
+            ObjectProvider<StreamingChatLanguageModel> defaultInstance) {
+        super(holder, Langchain4jModelTypes.STREAMING_CHAT_MODEL, defaultInstance);
     }
 
     @Override
