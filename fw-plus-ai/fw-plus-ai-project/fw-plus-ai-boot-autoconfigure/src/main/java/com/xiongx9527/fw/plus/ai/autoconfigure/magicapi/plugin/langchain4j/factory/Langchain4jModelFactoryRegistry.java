@@ -7,6 +7,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jStreamingChatModelInfo;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jScoringModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jStreamingLanguageModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jTokenizerInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
@@ -16,6 +17,7 @@ import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.model.scoring.ScoringModel;
 import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.model.language.StreamingLanguageModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
@@ -91,8 +93,8 @@ public class Langchain4jModelFactoryRegistry {
                 return factory.buildStreamingLanguageModel(reader);
             case EMBEDDING_MODEL:
                 return factory.buildEmbeddingModel(reader);
-            case TOKENIZER:
-                return factory.buildTokenizer(reader);
+            case SCORING_MODEL:
+                return factory.buildScoringModel(reader);
             case EMBEDDING_STORE:
                 return factory.buildEmbeddingStore(reader, embeddingModel);
             default:
@@ -127,6 +129,10 @@ public class Langchain4jModelFactoryRegistry {
         return (Tokenizer) build(Langchain4jModelTypes.TOKENIZER, info);
     }
 
+    public ScoringModel buildScoringModel(Langchain4jScoringModelInfo info) {
+        return (ScoringModel) build(Langchain4jModelTypes.SCORING_MODEL, info);
+    }
+
     @SuppressWarnings("unchecked")
     public EmbeddingStore<TextSegment> buildEmbeddingStore(Langchain4jEmbeddingStoreInfo info,
             EmbeddingModel embeddingModel) {
@@ -145,7 +151,7 @@ public class Langchain4jModelFactoryRegistry {
                 case LANGUAGE_MODEL: factory.buildLanguageModel(PROBE); break;
                 case STREAMING_LANGUAGE_MODEL: factory.buildStreamingLanguageModel(PROBE); break;
                 case EMBEDDING_MODEL: factory.buildEmbeddingModel(PROBE); break;
-                case TOKENIZER: factory.buildTokenizer(PROBE); break;
+                case SCORING_MODEL: factory.buildScoringModel(PROBE); break;
                 case EMBEDDING_STORE: factory.buildEmbeddingStore(PROBE, null); break;
                 default: return false;
             }
