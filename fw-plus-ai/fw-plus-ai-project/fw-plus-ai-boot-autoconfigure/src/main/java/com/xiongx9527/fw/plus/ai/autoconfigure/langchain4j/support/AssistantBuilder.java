@@ -76,6 +76,11 @@ public class AssistantBuilder {
 
 	private Double rerankMinScore;
 
+	private Integer rerankMaxResults;
+
+	private Double similarityWeight;
+
+	private Double semanticWeight;
 	/** 对话模型（必填）：{@code langchain4jChatModel['key']} 或任意 {@link ChatModel} 实例 */
 	public AssistantBuilder chatModel(ChatModel model) {
 		this.chatModel = model;
@@ -182,6 +187,19 @@ public class AssistantBuilder {
 		return this;
 	}
 
+
+	/** 相似度分权重（0~1，默认 0；与 semanticWeight 配合启用加权混合重排，总分 = 相似度×本值 + 语义分×semanticWeight） */
+	public AssistantBuilder similarityWeight(Double weight) {
+		this.similarityWeight = weight;
+		return this;
+	}
+
+	/** 语义分权重（0~1；启用加权混合重排时使用） */
+	public AssistantBuilder semanticWeight(Double weight) {
+		this.semanticWeight = weight;
+		return this;
+	}
+
 	/**
 	 * 按当前配置装配 {@link AiServices}，返回易用封装 {@link SimpleAssistant}
 	 * （{@code chat(message)} 两参即可、{@code streamToSse(...)} 直接推流）；
@@ -270,12 +288,21 @@ public class AssistantBuilder {
 			builder.contentInjector(contentInjector);
 		}
 		if (scoringModel != null) {
-			ReRankingContentAggregator.ReRankingContentAggregatorBuilder aggregator =
-					ReRankingContentAggregator.builder().scoringModel(scoringModel);
-			if (rerankMinScore != null) {
-				aggregator.minScore(rerankMinScore);
+			if (similarityWeight != null && semanticWeight != null) {
+				// 加权混合模式：向量相似度分与 rerank 语义分按权重融合
+				builder.contentAggregator(new WeightedScoringContentAggregator(scoringModel,
+						similarityWeight, semanticWeight, rerankMinScore, rerankMaxResults));
+			} else {
+				ReRankingContentAggregator.ReRankingContentAggregatorBuilder aggregator =
+						ReRankingContentAggregator.builder().scoringModel(scoringModel);
+				if (rerankMinScore != null) {
+					aggregator.minScore(rerankMinScore);
+				}
+				if (rerankMaxResults != null) {
+					aggregator.maxResults(rerankMaxResults);
+				}
+				builder.contentAggregator(aggregator.build());
 			}
-			builder.contentAggregator(aggregator.build());
 		}
 		return builder.build();
 	}
