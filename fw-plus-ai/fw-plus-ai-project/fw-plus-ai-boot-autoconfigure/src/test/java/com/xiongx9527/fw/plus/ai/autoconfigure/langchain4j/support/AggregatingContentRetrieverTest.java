@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever;
+package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support;
 
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * 组合检索器：多路结果合并、去重、条数上限与单路失败（抛错 / 返回 null）跳过。
  */
-class MagicAggregatingContentRetrieverTest {
+class AggregatingContentRetrieverTest {
 
     private static final Query QUERY = Query.from("问题");
 
@@ -37,7 +37,7 @@ class MagicAggregatingContentRetrieverTest {
             secondSawFirst.set(awaitQuietly(firstStarted));
             return texts("b");
         };
-        MagicAggregatingContentRetriever retriever = new MagicAggregatingContentRetriever(
+        AggregatingContentRetriever retriever = new AggregatingContentRetriever(
                 Arrays.asList(first, second), Arrays.asList("first", "second"), 0, true);
 
         try {
@@ -52,7 +52,7 @@ class MagicAggregatingContentRetrieverTest {
     /** datasource 下线时释放并行线程池 */
     @Test
     void shouldShutdownExecutorOnClose() {
-        MagicAggregatingContentRetriever retriever = retriever(0, true, texts("a"), texts("b"));
+        AggregatingContentRetriever retriever = retriever(0, true, texts("a"), texts("b"));
 
         retriever.close();
 
@@ -61,7 +61,7 @@ class MagicAggregatingContentRetrieverTest {
 
     @Test
     void shouldMergeDelegatesInDeclarationOrder() {
-        MagicAggregatingContentRetriever retriever = retriever(2, true, texts("a"), texts("b"));
+        AggregatingContentRetriever retriever = retriever(2, true, texts("a"), texts("b"));
 
         assertThat(textsOf(retriever)).containsExactly("a", "b");
     }
@@ -87,8 +87,8 @@ class MagicAggregatingContentRetrieverTest {
                 },
                 query -> texts("c"));
 
-        MagicAggregatingContentRetriever retriever =
-                new MagicAggregatingContentRetriever(delegates, Arrays.asList("a", "broken", "c"), 0, true);
+        AggregatingContentRetriever retriever =
+                new AggregatingContentRetriever(delegates, Arrays.asList("a", "broken", "c"), 0, true);
 
         assertThat(textsOf(retriever)).containsExactly("a", "c");
     }
@@ -97,29 +97,29 @@ class MagicAggregatingContentRetrieverTest {
     void shouldTolerateNullResultOfDelegate() {
         List<ContentRetriever> delegates = Arrays.asList(query -> null, query -> texts("c"));
 
-        MagicAggregatingContentRetriever retriever =
-                new MagicAggregatingContentRetriever(delegates, Arrays.asList("nil", "c"), 0, true);
+        AggregatingContentRetriever retriever =
+                new AggregatingContentRetriever(delegates, Arrays.asList("nil", "c"), 0, true);
 
         assertThat(textsOf(retriever)).containsExactly("c");
     }
 
     @Test
     void shouldTolerateNullDelegateList() {
-        assertThat(new MagicAggregatingContentRetriever(null, null, 0, true).retrieve(QUERY))
+        assertThat(new AggregatingContentRetriever(null, null, 0, true).retrieve(QUERY))
                 .isEqualTo(Collections.<Content>emptyList());
     }
 
-    private static MagicAggregatingContentRetriever retriever(int maxResults, boolean deduplicate,
+    private static AggregatingContentRetriever retriever(int maxResults, boolean deduplicate,
             List<Content> first) {
         return retriever(maxResults, deduplicate, first, Collections.<Content>emptyList());
     }
 
-    private static MagicAggregatingContentRetriever retriever(int maxResults, boolean deduplicate,
+    private static AggregatingContentRetriever retriever(int maxResults, boolean deduplicate,
             List<Content> first, List<Content> second) {
         List<ContentRetriever> delegates = new ArrayList<>();
         delegates.add(query -> first);
         delegates.add(query -> second);
-        return new MagicAggregatingContentRetriever(delegates, Arrays.asList("first", "second"),
+        return new AggregatingContentRetriever(delegates, Arrays.asList("first", "second"),
                 maxResults, deduplicate);
     }
 
@@ -140,7 +140,7 @@ class MagicAggregatingContentRetrieverTest {
         return contents;
     }
 
-    private static List<String> textsOf(MagicAggregatingContentRetriever retriever) {
+    private static List<String> textsOf(AggregatingContentRetriever retriever) {
         List<String> texts = new ArrayList<>();
         for (Content content : retriever.retrieve(QUERY)) {
             texts.add(content.textSegment().text());

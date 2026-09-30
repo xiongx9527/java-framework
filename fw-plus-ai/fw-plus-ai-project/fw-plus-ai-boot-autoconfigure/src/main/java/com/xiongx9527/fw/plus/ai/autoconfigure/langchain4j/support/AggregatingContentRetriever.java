@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever;
+package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support;
 
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.rag.content.Content;
@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -35,9 +36,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <p>线程池按子检索器数量创建，并在 {@link #close()} 时释放（datasource 下线/更新时由实例持有者关闭）。
  * 注意：子检索器在检索时才解析，因此配置里不要让本实例直接或间接引用自己（会无限递归）。</p>
  */
-public class MagicAggregatingContentRetriever implements ContentRetriever, Closeable {
+public class AggregatingContentRetriever implements ContentRetriever, Closeable {
 
-	private static final Logger logger = LoggerFactory.getLogger(MagicAggregatingContentRetriever.class);
+	private static final Logger logger = LoggerFactory.getLogger(AggregatingContentRetriever.class);
 
 	private final List<ContentRetriever> delegates;
 
@@ -51,13 +52,25 @@ public class MagicAggregatingContentRetriever implements ContentRetriever, Close
 	/** 并行执行池；无子检索器或已关闭时为 null */
 	private ExecutorService executor;
 
-	public MagicAggregatingContentRetriever(List<ContentRetriever> delegates, List<String> keys,
+	public AggregatingContentRetriever(List<ContentRetriever> delegates, List<String> keys,
 			int maxResults, boolean deduplicate) {
 		this.delegates = delegates == null ? Collections.<ContentRetriever>emptyList() : delegates;
 		this.keys = keys == null ? Collections.<String>emptyList() : keys;
 		this.maxResults = maxResults;
 		this.deduplicate = deduplicate;
 		this.executor = this.delegates.isEmpty() ? null : newExecutor(this.delegates.size());
+	}
+
+	/** 数组构造：默认不限制条数、不去重（需要 keys/上限/去重用全参构造）。 */
+	public AggregatingContentRetriever(ContentRetriever... delegates) {
+		this(delegates == null ? Collections.<ContentRetriever>emptyList() : Arrays.asList(delegates),
+				null, 0, false);
+	}
+
+	/** 数组构造：带合并上限与去重开关（keys 缺省为序号）。 */
+	public AggregatingContentRetriever(int maxResults, boolean deduplicate, ContentRetriever... delegates) {
+		this(delegates == null ? Collections.<ContentRetriever>emptyList() : Arrays.asList(delegates),
+				null, maxResults, deduplicate);
 	}
 
 	@Override

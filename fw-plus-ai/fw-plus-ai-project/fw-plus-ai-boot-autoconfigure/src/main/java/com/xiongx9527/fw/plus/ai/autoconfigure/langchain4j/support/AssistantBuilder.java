@@ -86,7 +86,7 @@ public class AssistantBuilder {
 
 	private final List<Object> tools = new ArrayList<>();
 
-	private ToolProvider toolProvider;
+	private final List<ToolProvider> toolProviders = new ArrayList<>();
 
 	private RetrievalAugmentor retrievalAugmentor;
 
@@ -171,9 +171,19 @@ public class AssistantBuilder {
 		return this;
 	}
 
-	/** 工具：{@code langchain4jToolProvider['key']}（magic-api 的 api/function 暴露成 ToolProvider） */
-	public AssistantBuilder toolProvider(ToolProvider provider) {
-		this.toolProvider = provider;
+	/**
+	 * 工具提供者：可调用多次累积（如同时挂 magic-api 的 {@code langchain4jToolProvider['key']} 与
+	 * MCP 客户端等），同一实例重复添加会被忽略。0.35 的 AiServices 只接受单个 toolProvider，
+	 * 多个时由 {@link AggregatingToolProvider} 聚合成一个。
+	 */
+	public AssistantBuilder toolProvider(ToolProvider... providers) {
+		if (providers != null) {
+			for (ToolProvider provider : providers) {
+				if (provider != null && !this.toolProviders.contains(provider)) {
+					this.toolProviders.add(provider);
+				}
+			}
+		}
 		return this;
 	}
 
@@ -249,8 +259,10 @@ public class AssistantBuilder {
 		if (!tools.isEmpty()) {
 			builder.tools(tools);
 		}
-		if (toolProvider != null) {
-			builder.toolProvider(toolProvider);
+		if (toolProviders.size() == 1) {
+			builder.toolProvider(toolProviders.get(0));
+		} else if (toolProviders.size() > 1) {
+			builder.toolProvider(new AggregatingToolProvider(toolProviders));
 		}
 		RetrievalAugmentor augmentor = resolveRetrievalAugmentor();
 		if (augmentor != null) {
