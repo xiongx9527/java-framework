@@ -1,8 +1,5 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.Assistant;
-import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.SimpleAssistant;
-import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.EphemeralChatMemory;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
