@@ -157,10 +157,16 @@ public class AssistantBuilder {
 		return this;
 	}
 
-	/** 工具：带 {@code @Tool} 方法的对象，可传多个 */
+	/** 工具：带 {@code @Tool} 方法的对象，可传多个。同类型工具按“后注册覆盖先注册”去重，避免重复调用注册出多份 */
 	public AssistantBuilder tools(Object... toolObjects) {
 		if (toolObjects != null) {
-			this.tools.addAll(Arrays.asList(toolObjects));
+			for (Object tool : toolObjects) {
+				if (tool == null) {
+					continue;
+				}
+				this.tools.removeIf(tool.getClass()::isInstance);
+				this.tools.add(tool);
+			}
 		}
 		return this;
 	}
