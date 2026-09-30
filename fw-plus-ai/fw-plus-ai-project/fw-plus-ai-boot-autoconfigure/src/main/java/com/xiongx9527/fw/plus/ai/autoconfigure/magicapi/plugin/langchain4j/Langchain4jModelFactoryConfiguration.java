@@ -24,12 +24,29 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.facto
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.qianfan.Langchain4jQianfanModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.qwen.Langchain4jQwenModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.store.Langchain4jElasticsearchModelFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.store.Langchain4jAzureCosmosMongoVCoreModelFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.store.Langchain4jAzureCosmosNoSqlModelFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.store.Langchain4jChromaModelFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.store.Langchain4jClickHouseModelFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.store.Langchain4jDynamoDbModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.store.Langchain4jInMemoryModelFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.store.Langchain4jMariaDbModelFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.store.Langchain4jMemFileModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.store.Langchain4jMilvusModelFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.store.Langchain4jMongoDbAtlasModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.store.Langchain4jNebulaModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.store.Langchain4jNeo4jModelFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.store.Langchain4jOceanBaseModelFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.store.Langchain4jOpenSearchModelFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.store.Langchain4jOracleModelFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.store.Langchain4jPgVectorModelFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.store.Langchain4jPineconeModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.store.Langchain4jQdrantModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.store.Langchain4jRedisModelFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.store.Langchain4jS3VectorsModelFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.store.Langchain4jSqlServerModelFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.store.Langchain4jValkeyModelFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.store.Langchain4jVespaModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.store.Langchain4jWeaviateModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.vertexai.Langchain4jVertexAiGeminiModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.voyageai.Langchain4jVoyageAiModelFactory;
@@ -78,6 +95,24 @@ public class Langchain4jModelFactoryConfiguration {
                 new Langchain4jElasticsearchModelFactory(),
                 new Langchain4jNeo4jModelFactory(),
                 new Langchain4jNebulaModelFactory(),
+                // 向量库补充（2026-09：主线 beta 与 community 线）
+                new Langchain4jPgVectorModelFactory(),
+                new Langchain4jPineconeModelFactory(),
+                new Langchain4jMongoDbAtlasModelFactory(),
+                new Langchain4jChromaModelFactory(),
+                new Langchain4jMariaDbModelFactory(),
+                new Langchain4jOpenSearchModelFactory(),
+                new Langchain4jOracleModelFactory(),
+                new Langchain4jVespaModelFactory(),
+                new Langchain4jAzureCosmosMongoVCoreModelFactory(),
+                new Langchain4jAzureCosmosNoSqlModelFactory(),
+                new Langchain4jS3VectorsModelFactory(),
+                new Langchain4jValkeyModelFactory(),
+                new Langchain4jOceanBaseModelFactory(),
+                new Langchain4jClickHouseModelFactory(),
+                new Langchain4jDynamoDbModelFactory(),
+                new Langchain4jSqlServerModelFactory(),
+                new Langchain4jMemFileModelFactory(),
                 // 新增提供商（2026-09：主线 stable / beta 与 community 线）
                 new Langchain4jBedrockModelFactory(),
                 new Langchain4jMistralAiModelFactory(),
