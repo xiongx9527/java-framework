@@ -1,23 +1,127 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.AssistantBuilder;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.SimpleAssistant;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.chatmemorystore.MagicDynamicChatMemoryStore;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.chatmemorystore.module.Langchain4jChatMemoryStoreModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.contentinjector.MagicDynamicContentInjector;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.contentinjector.module.Langchain4jContentInjectorModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicChatModel;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicScoringModel;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicStreamingChatModel;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicTokenizer;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jChatModelModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jScoringModelModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jStreamingChatModelModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jTokenizerModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.MagicDynamicContentRetriever;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.module.Langchain4jContentRetrieverModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.systemmessage.module.Langchain4jSystemMessageProviderModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.MagicDynamicToolProvider;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.module.Langchain4jToolProviderModule;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * {@code langchain4j} 脚本模块的装配：只把模块注册成 magic-api 脚本模块。
+ * {@code langchain4j} 脚本模块的装配：注册 magic-api 脚本模块，并按配置注入一个
+ * {@link SimpleAssistant} bean。
  *
- * <p>模块本身不注入任何依赖——模型/记忆/工具/检索器都由脚本按参数传入（见 {@link AssistantBuilder}），
- * 因此这里只有一个无参 Bean，各插件类型可独立启停。</p>
+ * <p>注入条件与 key 全部走配置（{@code fw.plus.magicapi.langchain4j.simple-assistant.*}）：
+ * {@code enabled} 注入开关（缺省开启）、{@code key} 默认 key（所有资源类型共用）、
+ * {@code keys.<类型>} 分类型专属 key（没有就取默认 key）。各类型资源从对应的
+ * {@code Langchain4jXxxModule} 解析，并以 {@code MagicDynamicXxx} 动态代理包装——每次调用
+ * 实时解析，magic 实例热更新/注销后不持有失效引用。chat-model 与 streaming-chat-model
+ * 至少要有其一，其余类型 key 未配置时跳过不装配。</p>
  */
 @ConditionalOnClass(name = "dev.langchain4j.service.AiServices")
 @Configuration(proxyBeanMethods = false)
+@EnableConfigurationProperties(Langchain4jSimpleAssistantProperties.class)
 public class Langchain4jModuleConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
 	public Langchain4jModule langchain4jModule() {
 		return new Langchain4jModule();
+	}
+
+	/**
+	 * 注入按 key 装配好的 {@link SimpleAssistant}：各类型资源 key 取
+	 * {@code keys.<类型>}（专属），未配置回落 {@code key}（默认），都未配置的类型跳过。
+	 * 资源以 {@code MagicDynamicXxx} 动态代理包装，实时解析防实例失效。
+	 */
+	@Bean
+	@ConditionalOnMissingBean
+	@ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.simple-assistant", name = "enabled",
+			havingValue = "true", matchIfMissing = false)
+	public SimpleAssistant simpleAssistant(
+			ObjectProvider<Langchain4jChatModelModule> chatModelModules,
+			ObjectProvider<Langchain4jStreamingChatModelModule> streamingChatModelModules,
+			ObjectProvider<Langchain4jChatMemoryStoreModule> chatMemoryStoreModules,
+			ObjectProvider<Langchain4jToolProviderModule> toolProviderModules,
+			ObjectProvider<Langchain4jContentRetrieverModule> contentRetrieverModules,
+			ObjectProvider<Langchain4jContentInjectorModule> contentInjectorModules,
+			ObjectProvider<Langchain4jSystemMessageProviderModule> systemMessageModules,
+			ObjectProvider<Langchain4jTokenizerModule> tokenizerModules,
+			ObjectProvider<Langchain4jScoringModelModule> scoringModelModules,
+			Langchain4jSimpleAssistantProperties properties) {
+		AssistantBuilder assistantBuilder = new AssistantBuilder();
+		String chatModelKey = typeKey("chatModel", properties);
+		if (chatModelKey != null && chatModelModules.getIfAvailable() != null) {
+			assistantBuilder.chatModel(new MagicDynamicChatModel(chatModelModules.getIfAvailable(), chatModelKey));
+		}
+		String streamingModelKey = typeKey("streamingModel", properties);
+		if (streamingModelKey != null && streamingChatModelModules.getIfAvailable() != null) {
+			assistantBuilder.streamingModel(
+					new MagicDynamicStreamingChatModel(streamingChatModelModules.getIfAvailable(), streamingModelKey));
+		}
+		String memoryStoreKey = typeKey("chatMemoryStore", properties);
+		if (memoryStoreKey != null && chatMemoryStoreModules.getIfAvailable() != null) {
+			assistantBuilder.memoryStore(
+					new MagicDynamicChatMemoryStore(chatMemoryStoreModules.getIfAvailable(), memoryStoreKey));
+		}
+		String toolProviderKey = typeKey("toolProvider", properties);
+		if (toolProviderKey != null && toolProviderModules.getIfAvailable() != null) {
+			assistantBuilder.toolProvider(
+					new MagicDynamicToolProvider(toolProviderModules.getIfAvailable(), toolProviderKey));
+		}
+		String contentRetrieverKey = typeKey("contentRetriever", properties);
+		if (contentRetrieverKey != null && contentRetrieverModules.getIfAvailable() != null) {
+			assistantBuilder.contentRetriever(
+					new MagicDynamicContentRetriever(contentRetrieverModules.getIfAvailable(), contentRetrieverKey));
+		}
+		String injectorPath = typeKey("contentInjector", properties);
+		if (injectorPath != null && contentInjectorModules.getIfAvailable() != null) {
+			assistantBuilder.contentInjector(
+					new MagicDynamicContentInjector(contentInjectorModules.getIfAvailable(), injectorPath));
+		}
+		String systemMessagePath = typeKey("systemMessage", properties);
+		if (systemMessagePath != null && systemMessageModules.getIfAvailable() != null) {
+			Langchain4jSystemMessageProviderModule systemMessageModule = systemMessageModules.getIfAvailable();
+			String promptPath = systemMessagePath;
+			// systemMessage 的求值天然实时（每次对话按 path 求值），无需代理
+			assistantBuilder.systemMessageProvider(
+					memoryId -> systemMessageModule.systemMessage(memoryId, promptPath, null));
+		}
+		String tokenizerKey = typeKey("tokenizer", properties);
+		if (tokenizerKey != null && tokenizerModules.getIfAvailable() != null) {
+			assistantBuilder.tokenizer(new MagicDynamicTokenizer(tokenizerModules.getIfAvailable(), tokenizerKey));
+		}
+		String scoringModelKey = typeKey("scoringModel", properties);
+		if (scoringModelKey != null && scoringModelModules.getIfAvailable() != null) {
+			assistantBuilder.scoringModel(
+					new MagicDynamicScoringModel(scoringModelModules.getIfAvailable(), scoringModelKey));
+		}
+		return assistantBuilder.build();
+	}
+
+	/** 解析某类型的资源 key：专属 key 优先，没有就取默认 key，都没有返回 null（该类型跳过）。 */
+	private static String typeKey(String type, Langchain4jSimpleAssistantProperties properties) {
+		String own = properties.getKeys().get(type);
+		return own != null && !own.isEmpty() ? own : properties.getKey();
 	}
 }

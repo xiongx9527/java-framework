@@ -4,7 +4,6 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.chatm
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import com.xiongx9527.fw.plus.common.util.StringUtils;
 import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 
 import java.util.List;
