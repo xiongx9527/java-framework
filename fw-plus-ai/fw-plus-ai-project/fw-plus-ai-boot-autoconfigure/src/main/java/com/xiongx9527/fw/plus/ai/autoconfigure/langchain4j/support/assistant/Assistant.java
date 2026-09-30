@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support;
+package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant;
 
 import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.TokenStream;

@@ -1,4 +1,8 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support;
+package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant;
+
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.aggregate.AggregatingToolProvider;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.aggregate.WeightedScoringContentAggregator;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.EphemeralChatMemory;
 
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
