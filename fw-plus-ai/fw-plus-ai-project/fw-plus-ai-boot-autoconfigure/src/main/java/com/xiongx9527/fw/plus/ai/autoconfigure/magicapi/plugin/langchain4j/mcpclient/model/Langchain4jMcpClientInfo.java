@@ -61,4 +61,12 @@ public class Langchain4jMcpClientInfo extends MagicEntity {
 
 	/** 单个 MCP Server 失败是否让整次工具装配失败；缺省 false（跳过该路） */
 	private Boolean failIfOneServerFails;
+
+	/**
+	 * 消息监听函数（magic-api function 名）：收到服务端消息/生命周期事件时调用，
+	 * 参数 {@code {key, event, detail}}——event 取值如 initialized / initialize.error /
+	 * tool.executed / tool.error / tools.list.changed / resources.list.changed /
+	 * resource.updated / progress / cancelled / log 等，detail 为对应详情（可空）。
+	 */
+	private String listenerFunction;
 }

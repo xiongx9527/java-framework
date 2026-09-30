@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolp
 import dev.langchain4j.mcp.McpToolProvider;
 import dev.langchain4j.mcp.client.DefaultMcpClient;
 import dev.langchain4j.mcp.client.McpClient;
+import dev.langchain4j.mcp.client.McpClientListener;
 import dev.langchain4j.mcp.client.transport.McpTransport;
 import dev.langchain4j.mcp.client.transport.http.StreamableHttpMcpTransport;
 import dev.langchain4j.mcp.client.transport.stdio.StdioMcpTransport;
@@ -56,11 +57,14 @@ public class MagicDynamicLangchain4jMcpClientDataSource implements DisposableBea
 		try {
 			destroy(key);
 			McpTransport transport = buildTransport(info);
-			DefaultMcpClient client = DefaultMcpClient.builder()
+			DefaultMcpClient.Builder clientBuilder = DefaultMcpClient.builder()
 					.clientName(info.getClientName() == null || info.getClientName().trim().isEmpty()
 							? DEFAULT_CLIENT_NAME : info.getClientName())
-					.transport(transport)
-					.build();
+					.transport(transport);
+			if (info.getListenerFunction() != null && !info.getListenerFunction().trim().isEmpty()) {
+				clientBuilder.addListener(buildListener(key, info.getListenerFunction().trim()));
+			}
+			DefaultMcpClient client = clientBuilder.build();
 			McpToolProvider.Builder builder = McpToolProvider.builder()
 					.mcpClients(Collections.singletonList(client))
 					.failIfOneServerFails(info.getFailIfOneServerFails() != null
@@ -136,6 +140,85 @@ public class MagicDynamicLangchain4jMcpClientDataSource implements DisposableBea
 
 	/** 动态头函数返回 Map 中的特殊键：最新请求 URL（query 放 api-key 的服务），值变化即重建客户端 */
 	private static final String DYNAMIC_URL_KEY = "_url";
+
+	/**
+	 * 构建消息监听器：把 MCP 客户端的关键生命周期事件与服务端通知转发给
+	 * magic-api function（参数 {@code {key, event, detail}}），函数异常只记日志不影响链路。
+	 */
+	private McpClientListener buildListener(String key, String function) {
+		return new McpClientListener() {
+			@Override
+			public void afterInitialize(dev.langchain4j.mcp.client.McpCallContext context) {
+				fire("initialized", null);
+			}
+
+			@Override
+			public void onInitializeError(dev.langchain4j.mcp.client.McpCallContext context, Throwable error) {
+				fire("initialize.error", String.valueOf(error));
+			}
+
+			@Override
+			public void afterExecuteTool(dev.langchain4j.mcp.client.McpCallContext context,
+					dev.langchain4j.service.tool.ToolExecutionResult result,
+					Map<String, Object> toolArgs) {
+				fire("tool.executed", toolArgs);
+			}
+
+			@Override
+			public void onExecuteToolError(dev.langchain4j.mcp.client.McpCallContext context, Throwable error) {
+				fire("tool.error", String.valueOf(error));
+			}
+
+			@Override
+			public void onNotificationToolsListChanged() {
+				fire("tools.list.changed", null);
+			}
+
+			@Override
+			public void onNotificationResourcesListChanged() {
+				fire("resources.list.changed", null);
+			}
+
+			@Override
+			public void onNotificationPromptsListChanged() {
+				fire("prompts.list.changed", null);
+			}
+
+			@Override
+			public void onNotificationResourceUpdated(String resource) {
+				fire("resource.updated", resource);
+			}
+
+			@Override
+			public void onNotificationMessage(dev.langchain4j.mcp.client.logging.McpLogMessage message) {
+				fire("log", String.valueOf(message));
+			}
+
+			@Override
+			public void onNotificationProgress(dev.langchain4j.mcp.client.progress.McpProgressNotification progress) {
+				fire("progress", String.valueOf(progress));
+			}
+
+			@Override
+			public void onNotificationCancelled(long requestId, String reason) {
+				fire("cancelled", reason);
+			}
+
+			private void fire(String event, Object detail) {
+				try {
+					Map<String, Object> args = new java.util.HashMap<>();
+					args.put("key", key);
+					args.put("event", event);
+					if (detail != null) {
+						args.put("detail", detail);
+					}
+					invoker.invokeFunction(function, args);
+				} catch (Exception e) {
+					logger.warn("MCP 监听函数 {} 调用失败: key={}, event={}", function, key, event, e);
+				}
+			}
+		};
+	}
 
 	/**
 	 * 解析动态请求头：调 magic-api function 取最新头（如换新 api-key），
