@@ -57,14 +57,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.xiongx9527.fw.plus.ai</groupId>
-            <artifactId>fw-plus-ai-boot-starter</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.ssssssss</groupId>
-            <artifactId>magic-api</artifactId>
-        </dependency>
-        <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j</artifactId>
         </dependency>

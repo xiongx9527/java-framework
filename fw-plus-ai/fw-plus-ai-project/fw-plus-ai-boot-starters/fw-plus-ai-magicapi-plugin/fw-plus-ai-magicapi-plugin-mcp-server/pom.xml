@@ -31,8 +31,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.xiongx9527.fw.plus.ai</groupId>
-            <artifactId>fw-plus-ai-boot-autoconfigure</artifactId>
+            <groupId>com.ajaxjs</groupId>
+            <artifactId>aj-mcp-server</artifactId>
         </dependency>
     </dependencies>
 </project>

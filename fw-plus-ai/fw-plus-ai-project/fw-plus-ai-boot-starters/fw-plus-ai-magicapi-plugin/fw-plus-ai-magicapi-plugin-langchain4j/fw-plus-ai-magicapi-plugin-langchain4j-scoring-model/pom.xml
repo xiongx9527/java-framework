@@ -18,19 +18,5 @@
 
 
     <dependencies>
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus.ai</groupId>
-            <artifactId>fw-plus-ai-boot-autoconfigure</artifactId>
-        </dependency>
-
-        <!-- 重排模型仅 jina / cohere 支持 buildScoringModel -->
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-jina</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-cohere</artifactId>
-        </dependency>
     </dependencies>
 </project>
