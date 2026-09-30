@@ -11,8 +11,10 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.facto
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.googlegenai.Langchain4jGoogleGenAiModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.googleai.Langchain4jGoogleAiGeminiModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.huggingface.Langchain4jHuggingFaceModelFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.jina.Langchain4jJinaModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.localai.Langchain4jLocalAiModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.mistralai.Langchain4jMistralAiModelFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.nomic.Langchain4jNomicModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.ollama.Langchain4jOllamaModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.onnx.Langchain4jOnnxEmbeddingModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.ocigenai.Langchain4jOciGenAiModelFactory;
@@ -88,6 +90,8 @@ public class Langchain4jModelFactoryConfiguration {
                 new Langchain4jXinferenceModelFactory(),
                 new Langchain4jOciGenAiModelFactory(),
                 new Langchain4jCohereModelFactory(),
+                new Langchain4jJinaModelFactory(),
+                new Langchain4jNomicModelFactory(),
         };
     }
 
