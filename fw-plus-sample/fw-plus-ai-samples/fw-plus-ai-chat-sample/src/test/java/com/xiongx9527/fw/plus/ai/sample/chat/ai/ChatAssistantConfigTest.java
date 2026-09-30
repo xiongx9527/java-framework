@@ -1,6 +1,6 @@
 package com.xiongx9527.fw.plus.ai.sample.chat.ai;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.ChatContextLogger;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.logging.ChatContextLogger;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ChatMessageType;
 import dev.langchain4j.data.message.UserMessage;

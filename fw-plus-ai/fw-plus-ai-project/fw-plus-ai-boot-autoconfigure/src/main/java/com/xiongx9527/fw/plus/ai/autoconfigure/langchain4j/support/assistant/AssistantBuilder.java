@@ -11,6 +11,8 @@ import dev.langchain4j.memory.chat.TokenWindowChatMemory;
 import dev.langchain4j.model.TokenCountEstimator;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.model.language.LanguageModel;
+import dev.langchain4j.model.language.StreamingLanguageModel;
 import dev.langchain4j.rag.DefaultRetrievalAugmentor;
 import dev.langchain4j.model.scoring.ScoringModel;
 import dev.langchain4j.rag.RetrievalAugmentor;

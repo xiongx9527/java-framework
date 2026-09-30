@@ -1,6 +1,6 @@
 package com.xiongx9527.fw.plus.ai.sample.chat;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.Assistant;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant.Assistant;
 import com.xiongx9527.fw.plus.ai.sample.chat.ai.WeatherTools;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

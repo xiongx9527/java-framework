@@ -19,9 +19,9 @@
         <module>fw-plus-ai-magicapi-plugin-langchain4j-embedding-store</module>
         <module>fw-plus-ai-magicapi-plugin-langchain4j-tokenizer</module>
         <module>fw-plus-ai-magicapi-plugin-langchain4j-tool-provider</module>
+        <module>fw-plus-ai-magicapi-plugin-langchain4j-aj-mcp-client</module>
         <module>fw-plus-ai-magicapi-plugin-langchain4j-mcp-client</module>
         <module>fw-plus-ai-magicapi-plugin-langchain4j-scoring-model</module>
-        <module>fw-plus-ai-magicapi-plugin-langchain4j-aj-mcp-client</module>
         <module>fw-plus-ai-magicapi-plugin-langchain4j-system-message</module>
         <module>fw-plus-ai-magicapi-plugin-langchain4j-chat-memory-store</module>
         <module>fw-plus-ai-magicapi-plugin-langchain4j-content-retriever</module>
@@ -62,6 +62,10 @@
         <dependency>
             <groupId>org.ssssssss</groupId>
             <artifactId>magic-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j</artifactId>
         </dependency>
     </dependencies>
 

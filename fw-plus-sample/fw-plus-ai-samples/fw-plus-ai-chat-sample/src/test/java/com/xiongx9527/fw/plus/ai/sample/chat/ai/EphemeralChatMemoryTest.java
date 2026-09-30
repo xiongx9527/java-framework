@@ -1,6 +1,6 @@
 package com.xiongx9527.fw.plus.ai.sample.chat.ai;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.EphemeralChatMemory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.EphemeralChatMemory;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;

@@ -19,7 +19,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.redis.web.Magic
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.web.MagicRocketMqController;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.web.MagicS3Controller;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.SwaggerConfig;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.webflux.MagicSwaggerWebFluxController;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.web.MagicSwaggerController;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.vue3.modules.VueModule;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.vue3.web.MagicVueController;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.web.MagicWsController;
@@ -30,7 +30,6 @@ import org.ssssssss.magicapi.core.config.MagicAPIProperties;
 import org.ssssssss.magicapi.core.config.MagicConfiguration;
 import org.ssssssss.magicapi.core.config.MagicPluginConfiguration;
 import org.ssssssss.magicapi.core.model.Plugin;
-import org.ssssssss.magicapi.core.service.MagicResourceService;
 import org.ssssssss.magicapi.core.web.MagicResourceController;
 import org.ssssssss.magicapi.core.web.MagicWorkbenchController;
 import org.ssssssss.magicapi.datasource.web.MagicDataSourceController;
@@ -125,12 +124,10 @@ public class MagicAPIWebFluxControllerRegistrar implements SmartInitializingSing
 		} else if ("influx".equals(name)) {
 			mapping.registerController(new MagicInfluxController(configuration));
 		} else if ("swagger".equals(name)) {
-			SwaggerConfig swaggerConfig = applicationContext.getBeanProvider(SwaggerConfig.class).getIfAvailable();
-			MagicResourceService magicResourceService = applicationContext.getBeanProvider(MagicResourceService.class)
+			MagicSwaggerController controller = applicationContext.getBeanProvider(MagicSwaggerController.class)
 					.getIfAvailable();
-			if (swaggerConfig != null && magicResourceService != null) {
-				mapping.registerController(new MagicSwaggerWebFluxController(swaggerConfig, magicResourceService,
-						properties, applicationContext), "");
+			if (controller != null) {
+				mapping.registerController(controller, "");
 			}
 		}
 	}

@@ -14,7 +14,7 @@ org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
   com.xiongx9527.fw.plus.boot.autoconfigure.config.ConfigConfiguration,\
   com.xiongx9527.fw.plus.boot.autoconfigure.admin.server.AdminServerAutoConfiguration,\
   com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration,\
-  com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.webflux.MagicSwaggerWebFluxConfiguration,\
+  com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.MagicSwaggerConfiguration,\
   com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.config.starter.MagicApiConfPluginAutoConfiguration,\
   com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.starter.WsAutoConfiguration
 

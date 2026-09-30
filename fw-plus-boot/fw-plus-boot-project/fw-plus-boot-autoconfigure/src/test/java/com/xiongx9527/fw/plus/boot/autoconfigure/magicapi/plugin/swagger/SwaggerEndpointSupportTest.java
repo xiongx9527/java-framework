@@ -2,7 +2,6 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.entity.SwaggerEntity;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.entity.SwaggerProvider;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.webflux.MagicSwaggerWebFluxConfiguration;
 import org.junit.jupiter.api.Test;
 import org.ssssssss.magicapi.core.config.MagicAPIProperties;
 import org.ssssssss.magicapi.core.config.MagicConfiguration;
@@ -61,7 +60,7 @@ class SwaggerEndpointSupportTest {
 	@Test
 	void webfluxUiConfigBeansAreInjectedDeterministically() {
 		new org.springframework.boot.test.context.runner.ReactiveWebApplicationContextRunner()
-				.withConfiguration(org.springframework.boot.autoconfigure.AutoConfigurations.of(MagicSwaggerWebFluxConfiguration.class))
+				.withConfiguration(org.springframework.boot.autoconfigure.AutoConfigurations.of(MagicSwaggerConfiguration.class))
 				.withBean(MagicResourceService.class, this::mockResourceService)
 				.withBean(MagicAPIProperties.class, MagicAPIProperties::new)
 				.withUserConfiguration(SpringDocStubConfiguration.class)

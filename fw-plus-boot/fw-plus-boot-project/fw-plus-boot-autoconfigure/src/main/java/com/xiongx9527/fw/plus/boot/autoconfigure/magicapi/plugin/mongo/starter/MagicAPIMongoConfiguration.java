@@ -26,7 +26,7 @@ import org.ssssssss.magicapi.mongo.MongoFindIterableExtension;
 import org.ssssssss.magicapi.mongo.MongoFunction;
 import org.ssssssss.script.reflection.JavaReflection;
 
-@ConditionalOnProperty(prefix = "magic-api.plugin.mogno", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "magic-api.plugin.mongo", name = "enabled", havingValue = "true", matchIfMissing = true)
 @ConditionalOnClass(name = {"org.springframework.data.mongodb.core.MongoTemplate","org.ssssssss.magicapi.mongo.MongoModule"})
 @AutoConfigureBefore(MongoAutoConfiguration.class)
 @Configuration

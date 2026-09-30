@@ -1,6 +1,6 @@
 package com.xiongx9527.fw.plus.ai.sample.chat.ai;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.Assistant;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant.Assistant;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
