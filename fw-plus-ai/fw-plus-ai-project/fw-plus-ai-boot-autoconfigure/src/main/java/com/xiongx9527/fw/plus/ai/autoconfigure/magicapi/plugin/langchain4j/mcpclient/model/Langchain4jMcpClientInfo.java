@@ -34,6 +34,13 @@ public class Langchain4jMcpClientInfo extends MagicEntity {
 	/** http 传输：自定义请求头，认证用（如 Authorization: Bearer xxx） */
 	private Map<String, String> customHeaders;
 
+	/**
+	 * http 传输：动态请求头函数（magic-api function 名），每次请求调用一次拿最新头，
+	 * 适合先调 token 接口换 api-key 的场景；返回的 Map 覆盖 {@link #customHeaders} 同名 key，
+	 * 函数调用失败时回落 {@link #customHeaders}。
+	 */
+	private String customHeadersFunction;
+
 	/** stdio/docker 传输：启动命令（如 ["npx","-y","mcp-server-xx"]） */
 	private List<String> command;
 

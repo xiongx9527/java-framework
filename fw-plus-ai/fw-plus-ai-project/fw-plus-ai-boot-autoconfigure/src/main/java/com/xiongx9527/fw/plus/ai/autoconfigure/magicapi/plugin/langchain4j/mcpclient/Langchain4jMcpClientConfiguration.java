@@ -34,8 +34,11 @@ public class Langchain4jMcpClientConfiguration extends AbstractLangchain4jPlugin
 	/** 数据源实例持有者：按 key 持有多个 MCP 客户端实例。 */
 	@Bean
 	@ConditionalOnMissingBean
-	public MagicDynamicLangchain4jMcpClientDataSource langchain4jMcpClientDataSource() {
-		return new MagicDynamicLangchain4jMcpClientDataSource();
+	public MagicDynamicLangchain4jMcpClientDataSource langchain4jMcpClientDataSource(
+			org.springframework.beans.factory.ObjectProvider<com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.MagicToolInvoker> invokerProvider) {
+		return new MagicDynamicLangchain4jMcpClientDataSource(
+				invokerProvider.getIfAvailable(
+						com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.ScriptManagerMagicToolInvoker::new));
 	}
 
 	/** langchain4j-mcp-client 资源类型存储。 */

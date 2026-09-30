@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.mcpclient.model;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.mcpclient.model.Langchain4jMcpClientInfo;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.MagicToolInvoker;
 import dev.langchain4j.mcp.McpToolProvider;
 import dev.langchain4j.mcp.client.DefaultMcpClient;
 import dev.langchain4j.mcp.client.McpClient;
@@ -33,6 +34,13 @@ public class MagicDynamicLangchain4jMcpClientDataSource implements DisposableBea
 	private final Map<String, McpClient> clients = new ConcurrentHashMap<>();
 
 	private final Map<String, ToolProvider> providers = new ConcurrentHashMap<>();
+
+	/** magic-api function 执行器：动态请求头函数走它调用 */
+	private final MagicToolInvoker invoker;
+
+	public MagicDynamicLangchain4jMcpClientDataSource(MagicToolInvoker invoker) {
+		this.invoker = invoker == null ? new com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.ScriptManagerMagicToolInvoker() : invoker;
+	}
 
 	/**
 	 * 按资源定义创建（或重建）一个 MCP 客户端与其 ToolProvider。
@@ -82,7 +90,16 @@ public class MagicDynamicLangchain4jMcpClientDataSource implements DisposableBea
 				}
 				StreamableHttpMcpTransport.Builder httpBuilder = new StreamableHttpMcpTransport.Builder()
 						.url(info.getUrl());
-				if (info.getCustomHeaders() != null && !info.getCustomHeaders().isEmpty()) {
+				boolean hasStaticHeaders = info.getCustomHeaders() != null && !info.getCustomHeaders().isEmpty();
+				boolean hasDynamicHeaders = info.getCustomHeadersFunction() != null
+						&& !info.getCustomHeadersFunction().trim().isEmpty();
+				if (hasDynamicHeaders) {
+					// 每次请求动态取头（如调 token 接口换 api-key）；函数失败回落静态头
+					String functionName = info.getCustomHeadersFunction().trim();
+					Map<String, String> staticHeaders = hasStaticHeaders ? info.getCustomHeaders() : null;
+					httpBuilder.customHeaders((java.util.function.Supplier<Map<String, String>>) () ->
+							resolveHeaders(functionName, staticHeaders));
+				} else if (hasStaticHeaders) {
 					httpBuilder.customHeaders(info.getCustomHeaders());
 				}
 				return httpBuilder.build();
@@ -113,6 +130,35 @@ public class MagicDynamicLangchain4jMcpClientDataSource implements DisposableBea
 				throw new IllegalArgumentException(
 						String.format("不支持的传输类型 '%s'（可选 http / stdio / docker）", type));
 		}
+	}
+
+	/**
+	 * 解析动态请求头：调 magic-api function 取最新头（如换新 api-key），
+	 * 与静态头合并（动态覆盖同名 key）；函数失败时回落静态头并告警。
+	 */
+	private Map<String, String> resolveHeaders(String functionName, Map<String, String> staticHeaders) {
+		Map<String, String> merged = new java.util.HashMap<>();
+		if (staticHeaders != null) {
+			merged.putAll(staticHeaders);
+		}
+		try {
+			Object result = invoker.invokeFunction(functionName, Collections.<String, Object>emptyMap());
+			if (result instanceof Map) {
+				for (Object entry : ((Map<?, ?>) result).entrySet()) {
+					Object k = ((Map.Entry<?, ?>) entry).getKey();
+					Object v = ((Map.Entry<?, ?>) entry).getValue();
+					if (k != null && v != null) {
+						merged.put(String.valueOf(k), String.valueOf(v));
+					}
+				}
+			} else {
+				logger.warn("动态请求头函数 {} 返回非 Map（{}），忽略", functionName,
+						result == null ? "null" : result.getClass().getName());
+			}
+		} catch (Exception e) {
+			logger.warn("动态请求头函数 {} 调用失败，使用静态头", functionName, e);
+		}
+		return merged;
 	}
 
 	/** 按 key 销毁实例（关闭底层客户端，释放连接/子进程/容器）。 */
