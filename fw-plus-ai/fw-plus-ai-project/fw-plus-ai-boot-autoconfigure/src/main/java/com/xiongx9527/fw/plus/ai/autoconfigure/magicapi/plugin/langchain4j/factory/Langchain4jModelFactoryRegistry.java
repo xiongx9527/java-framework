@@ -7,8 +7,10 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jScoringModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jStreamingChatModelInfo;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jTokenizerInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
 import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.model.TokenCountEstimator;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
@@ -85,6 +87,8 @@ public class Langchain4jModelFactoryRegistry {
                 return factory.buildEmbeddingModel(reader);
             case SCORING_MODEL:
                 return factory.buildScoringModel(reader);
+            case TOKENIZER:
+                return factory.buildTokenizer(reader);
             case EMBEDDING_STORE:
                 return factory.buildEmbeddingStore(reader, embeddingModel);
             default:
@@ -110,6 +114,10 @@ public class Langchain4jModelFactoryRegistry {
         return (ScoringModel) build(Langchain4jModelTypes.SCORING_MODEL, info);
     }
 
+    public TokenCountEstimator buildTokenizer(Langchain4jTokenizerInfo info) {
+        return (TokenCountEstimator) build(Langchain4jModelTypes.TOKENIZER, info);
+    }
+
     @SuppressWarnings("unchecked")
     public EmbeddingStore<TextSegment> buildEmbeddingStore(Langchain4jEmbeddingStoreInfo info,
             EmbeddingModel embeddingModel) {
@@ -127,6 +135,7 @@ public class Langchain4jModelFactoryRegistry {
                 case STREAMING_CHAT_MODEL: factory.buildStreamingChatModel(PROBE, Collections.<ChatModelListener>emptyList()); break;
                 case EMBEDDING_MODEL: factory.buildEmbeddingModel(PROBE); break;
                 case SCORING_MODEL: factory.buildScoringModel(PROBE); break;
+                case TOKENIZER: factory.buildTokenizer(PROBE); break;
                 case EMBEDDING_STORE: factory.buildEmbeddingStore(PROBE, null); break;
                 default: return false;
             }

@@ -6,6 +6,7 @@ public enum Langchain4jModelTypes {
     STREAMING_CHAT_MODEL("langchain4j-streaming-chat-model"),
     EMBEDDING_MODEL("langchain4j-embedding-model"),
     SCORING_MODEL("langchain4j-scoring-model"),
+    TOKENIZER("langchain4j-tokenizer"),
     EMBEDDING_STORE("langchain4j-embedding-store");
 
     private final String type;

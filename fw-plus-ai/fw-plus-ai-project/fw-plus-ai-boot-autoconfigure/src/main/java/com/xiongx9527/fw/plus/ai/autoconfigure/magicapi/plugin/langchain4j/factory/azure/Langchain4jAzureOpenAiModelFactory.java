@@ -4,14 +4,16 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.facto
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
 import dev.langchain4j.model.azure.AzureOpenAiChatModel;
 import dev.langchain4j.model.azure.AzureOpenAiEmbeddingModel;
+import dev.langchain4j.model.azure.AzureOpenAiTokenCountEstimator;
 import dev.langchain4j.model.azure.AzureOpenAiStreamingChatModel;
+import dev.langchain4j.model.TokenCountEstimator;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import java.util.List;
 
 /**
  * Azure OpenAI 工厂：dev.langchain4j.model.azure.* builder 链。
  * 关键差异：endpoint + apiKey + deploymentName（部署名，非模型名）。
- * AzureOpenAiTokenizer 为无参构造（内部按静态默认模型估算），不要求凭证。
+ * AzureOpenAiTokenCountEstimator 按默认模型名估算，不要求凭证。
  */
 public class Langchain4jAzureOpenAiModelFactory implements ModelFactory {
 
@@ -72,6 +74,12 @@ public class Langchain4jAzureOpenAiModelFactory implements ModelFactory {
                 .maxRetries(nullIfZero(o.integer("max-retries", null)))
                 .logRequestsAndResponses(o.bool("log-requests-and-responses", null))
                 .build();
+    }
+
+    @Override
+    public TokenCountEstimator buildTokenizer(Langchain4jOptionsReader o) {
+        // 1.x 无无参构造；按默认模型名估算，token 统计为估算值
+        return new AzureOpenAiTokenCountEstimator("gpt-4o");
     }
 
     private static Integer nullIfZero(Integer value) {

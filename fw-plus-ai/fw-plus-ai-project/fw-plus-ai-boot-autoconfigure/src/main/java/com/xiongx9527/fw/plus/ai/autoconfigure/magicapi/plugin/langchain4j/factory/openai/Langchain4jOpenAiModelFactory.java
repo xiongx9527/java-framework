@@ -2,9 +2,11 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.fact
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.ModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
+import dev.langchain4j.model.TokenCountEstimator;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
+import dev.langchain4j.model.openai.OpenAiTokenCountEstimator;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import java.util.List;
 
@@ -83,6 +85,11 @@ public class Langchain4jOpenAiModelFactory implements ModelFactory {
                 .logRequests(o.bool("log-requests", null))
                 .logResponses(o.bool("log-responses", null))
                 .build();
+    }
+
+    @Override
+    public TokenCountEstimator buildTokenizer(Langchain4jOptionsReader o) {
+        return new OpenAiTokenCountEstimator(o.required("api-key"));
     }
 
     /** reader 的 integer(name,null) 键缺失返回 0；对 Integer 形参归零为 null 表示未配置 */

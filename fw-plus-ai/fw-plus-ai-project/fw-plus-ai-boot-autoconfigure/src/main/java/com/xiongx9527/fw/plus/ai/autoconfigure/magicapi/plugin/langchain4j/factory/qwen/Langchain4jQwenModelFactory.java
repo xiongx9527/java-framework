@@ -2,9 +2,11 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.fact
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.ModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
+import dev.langchain4j.model.TokenCountEstimator;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.community.model.dashscope.QwenChatModel;
 import dev.langchain4j.community.model.dashscope.QwenEmbeddingModel;
+import dev.langchain4j.community.model.dashscope.QwenTokenCountEstimator;
 import dev.langchain4j.community.model.dashscope.QwenStreamingChatModel;
 import java.util.Collections;
 import java.util.List;
@@ -70,6 +72,14 @@ public class Langchain4jQwenModelFactory implements ModelFactory {
                 .baseUrl(o.string("base-url", DEFAULT_BASE_URL))
                 .apiKey(o.required("api-key"))
                 .modelName(o.string("model-name", DEFAULT_EMBEDDING_MODEL))
+                .build();
+    }
+
+    @Override
+    public TokenCountEstimator buildTokenizer(Langchain4jOptionsReader o) {
+        return QwenTokenCountEstimator.builder()
+                .apiKey(o.required("api-key"))
+                .modelName(o.string("model-name", DEFAULT_MODEL))
                 .build();
     }
 
