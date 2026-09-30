@@ -9,6 +9,7 @@ import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.model.language.StreamingLanguageModel;
+import dev.langchain4j.model.scoring.ScoringModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import java.util.List;
 
@@ -44,6 +45,9 @@ public interface ModelFactory {
     default EmbeddingModel buildEmbeddingModel(Langchain4jOptionsReader o) { throw unsupported(); }
 
     default Tokenizer buildTokenizer(Langchain4jOptionsReader o) { throw unsupported(); }
+
+    /** rerank 重排模型：jina / cohere 支持，其余 provider 默认不支持 */
+    default ScoringModel buildScoringModel(Langchain4jOptionsReader o) { throw unsupported(); }
 
     default EmbeddingStore<TextSegment> buildEmbeddingStore(Langchain4jOptionsReader o, EmbeddingModel embeddingModel) {
         throw unsupported();

@@ -1,8 +1,5 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.Assistant;
-import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.SimpleAssistant;
-import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.EphemeralChatMemory;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
@@ -11,7 +8,9 @@ import dev.langchain4j.model.Tokenizer;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.rag.DefaultRetrievalAugmentor;
+import dev.langchain4j.model.scoring.ScoringModel;
 import dev.langchain4j.rag.RetrievalAugmentor;
+import dev.langchain4j.rag.content.aggregator.ReRankingContentAggregator;
 import dev.langchain4j.rag.content.injector.ContentInjector;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.service.AiServices;
@@ -72,6 +71,10 @@ public class AssistantBuilder {
 	private ContentRetriever contentRetriever;
 
 	private ContentInjector contentInjector;
+
+	private ScoringModel scoringModel;
+
+	private Double rerankMinScore;
 
 	/** 对话模型（必填）：{@code langchain4jChatModel['key']} 或任意 {@link ChatLanguageModel} 实例 */
 	public AssistantBuilder chatModel(ChatLanguageModel model) {
@@ -165,6 +168,21 @@ public class AssistantBuilder {
 	}
 
 	/**
+	 * rerank 重排模型：{@code langchain4jScoringModel['key']}（jina / cohere）。
+	 * 配置后用 {@link ReRankingContentAggregator} 对检索结果重排，配合 {@link #rerankMinScore(Double)} 使用。
+	 */
+	public AssistantBuilder scoringModel(ScoringModel scoringModel) {
+		this.scoringModel = scoringModel;
+		return this;
+	}
+
+	/** rerank 生效下限：低于该分数的条目丢弃（仅在配置了 scoringModel 时生效） */
+	public AssistantBuilder rerankMinScore(Double minScore) {
+		this.rerankMinScore = minScore;
+		return this;
+	}
+
+	/**
 	 * 按当前配置装配 {@link AiServices}，返回易用封装 {@link SimpleAssistant}
 	 * （{@code chat(message)} 两参即可、{@code streamToSse(...)} 直接推流）；
 	 * 需要底层 {@link Assistant} 类型时用 {@link #toAssistant()}。
@@ -250,6 +268,14 @@ public class AssistantBuilder {
 		}
 		if (contentInjector != null) {
 			builder.contentInjector(contentInjector);
+		}
+		if (scoringModel != null) {
+			ReRankingContentAggregator.ReRankingContentAggregatorBuilder aggregator =
+					ReRankingContentAggregator.builder().scoringModel(scoringModel);
+			if (rerankMinScore != null) {
+				aggregator.minScore(rerankMinScore);
+			}
+			builder.contentAggregator(aggregator.build());
 		}
 		return builder.build();
 	}

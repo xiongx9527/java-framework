@@ -31,7 +31,7 @@ class MagicApiContentFilterTest {
         new MagicApiContentFilter(invoker, "filterContents").filter(texts("甲", "乙"), QUERY);
 
         assertThat(invoker.function).isEqualTo("filterContents");
-        assertThat((List<?>) invoker.arguments.get("texts")).containsExactly("甲", "乙");
+        assertThat((java.util.List<String>) (List<?>) invoker.arguments.get("texts")).containsExactly("甲", "乙");
         assertThat((List<?>) invoker.arguments.get("contents")).hasSize(2);
         assertThat(invoker.arguments.get("query")).isEqualTo("杭州天气怎么样");
     }

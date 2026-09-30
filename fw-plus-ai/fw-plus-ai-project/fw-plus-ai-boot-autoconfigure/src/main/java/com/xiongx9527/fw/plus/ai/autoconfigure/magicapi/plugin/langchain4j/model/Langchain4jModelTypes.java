@@ -7,6 +7,7 @@ public enum Langchain4jModelTypes {
     LANGUAGE_MODEL("langchain4j-language-model"),
     STREAMING_LANGUAGE_MODEL("langchain4j-streaming-language-model"),
     EMBEDDING_MODEL("langchain4j-embedding-model"),
+    SCORING_MODEL("langchain4j-scoring-model"),
     TOKENIZER("langchain4j-tokenizer"),
     EMBEDDING_STORE("langchain4j-embedding-store");
 
