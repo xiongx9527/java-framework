@@ -6,8 +6,8 @@ import com.ajaxjs.mcp.client.transport.StreamableHttpTransport;
 import com.ajaxjs.mcp.client.transport.StdioTransport;
 import com.ajaxjs.mcp.client.transport.McpTransport;
 import com.ajaxjs.mcp.protocol.tools.ToolItem;
-import dev.langchain4j.agent.tool.ToolParameters;
 import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.service.tool.ToolProvider;
 import dev.langchain4j.service.tool.ToolProviderRequest;
 import dev.langchain4j.service.tool.ToolProviderResult;
@@ -125,7 +125,7 @@ public class MagicDynamicLangchain4jAjMcpClientDataSource implements DisposableB
 					ToolSpecification.Builder spec = ToolSpecification.builder()
 							.name(item.getName())
 							.description(item.getDescription());
-					spec.parameters(toToolParameters(item.getInputSchema()));
+					spec.parameters(toJsonObjectSchema(item.getInputSchema()));
 					result.add(spec.build(), new ToolExecutorAdapter(client));
 				}
 				return result.build();
@@ -133,9 +133,9 @@ public class MagicDynamicLangchain4jAjMcpClientDataSource implements DisposableB
 		};
 	}
 
-	/** MCP inputSchema → 0.35 ToolParameters（properties 的 type/description + required）。 */
-	private ToolParameters toToolParameters(com.ajaxjs.mcp.protocol.tools.JsonSchema schema) {
-		ToolParameters.Builder params = ToolParameters.builder();
+	/** MCP inputSchema → 1.20.2 JsonObjectSchema（properties 的 type/description + required）。 */
+	private JsonObjectSchema toJsonObjectSchema(com.ajaxjs.mcp.protocol.tools.JsonSchema schema) {
+		JsonObjectSchema.Builder params = JsonObjectSchema.builder();
 		if (schema == null) {
 			return params.build();
 		}
@@ -145,22 +145,29 @@ public class MagicDynamicLangchain4jAjMcpClientDataSource implements DisposableB
 		}
 		com.fasterxml.jackson.databind.JsonNode properties = keywords.get("properties");
 		if (properties != null && properties.isObject()) {
-			Map<String, Map<String, Object>> props = new HashMap<String, Map<String, Object>>();
 			// properties 节点形如 {"参数名": {"type": "string", "description": "..."}}
-			com.fasterxml.jackson.databind.JsonNode requiredNode = keywords.get("required");
 			for (java.util.Iterator<Map.Entry<String, com.fasterxml.jackson.databind.JsonNode>> fields =
 					properties.fields(); fields.hasNext();) {
 				Map.Entry<String, com.fasterxml.jackson.databind.JsonNode> entry = fields.next();
 				String name = entry.getKey();
 				com.fasterxml.jackson.databind.JsonNode node = entry.getValue();
-				Map<String, Object> attrs = new HashMap<String, Object>();
-				attrs.put("type", node.hasNonNull("type") ? node.get("type").asText() : "string");
-				if (node.hasNonNull("description")) {
-					attrs.put("description", node.get("description").asText());
+				String type = node.hasNonNull("type") ? node.get("type").asText() : "string";
+				String description = node.hasNonNull("description") ? node.get("description").asText() : null;
+				switch (type) {
+					case "integer":
+						params.addIntegerProperty(name, description);
+						break;
+					case "number":
+						params.addNumberProperty(name, description);
+						break;
+					case "boolean":
+						params.addBooleanProperty(name, description);
+						break;
+					default:
+						params.addStringProperty(name, description);
+						break;
 				}
-				props.put(name, attrs);
 			}
-			params.properties(props);
 		}
 		com.fasterxml.jackson.databind.JsonNode required = keywords.get("required");
 		if (required != null && required.isArray()) {
