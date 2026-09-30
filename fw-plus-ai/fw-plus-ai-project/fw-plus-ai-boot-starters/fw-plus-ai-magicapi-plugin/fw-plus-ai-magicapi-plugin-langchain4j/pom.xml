@@ -21,6 +21,7 @@
         <module>fw-plus-ai-magicapi-plugin-langchain4j-tokenizer</module>
         <module>fw-plus-ai-magicapi-plugin-langchain4j-embedding-store</module>
         <module>fw-plus-ai-magicapi-plugin-langchain4j-tool-provider</module>
+        <module>fw-plus-ai-magicapi-plugin-langchain4j-scoring-model</module>
         <module>fw-plus-ai-magicapi-plugin-langchain4j-aj-mcp-client</module>
         <module>fw-plus-ai-magicapi-plugin-langchain4j-system-message</module>
         <module>fw-plus-ai-magicapi-plugin-langchain4j-chat-memory-store</module>

@@ -13,8 +13,8 @@
 
     <properties>
         <main.basedir>${basedir}/../../../../..</main.basedir>
-        <!-- 本模块带 console 前端：覆盖聚合层的默认跳过 -->
         <langchain4j.console.skip>false</langchain4j.console.skip>
+        <!-- 本模块带 console 前端：覆盖聚合层的默认跳过 -->
     </properties>
 
     <build>
