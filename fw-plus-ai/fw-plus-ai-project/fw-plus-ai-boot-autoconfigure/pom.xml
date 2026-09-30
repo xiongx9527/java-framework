@@ -344,12 +344,6 @@
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
-        <dependency>
-            <groupId>io.milvus</groupId>
-            <artifactId>milvus-sdk-java</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
         <!-- 向量库补充（2026-09：主线 beta 与 community 线，全部 optional） -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
