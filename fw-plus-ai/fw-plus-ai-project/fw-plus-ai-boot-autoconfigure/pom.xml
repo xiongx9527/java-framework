@@ -308,6 +308,14 @@
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
+        <!-- MCP 客户端（aj-mcp，Java 8 兼容，GPL v3——仅限内部使用，随框架分发前需确认许可证） -->
+        <dependency>
+            <groupId>com.ajaxjs</groupId>
+            <artifactId>aj-mcp-client</artifactId>
+            <version>1.7</version>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
         <!-- 文档解析（RAG 入库链路用，当前仅预置依赖；入库封装待知识库管理一起做） -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
