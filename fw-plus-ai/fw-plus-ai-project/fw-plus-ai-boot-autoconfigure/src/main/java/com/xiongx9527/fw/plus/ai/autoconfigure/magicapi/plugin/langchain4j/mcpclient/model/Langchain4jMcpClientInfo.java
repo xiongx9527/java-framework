@@ -44,6 +44,12 @@ public class Langchain4jMcpClientInfo extends MagicEntity {
 	 */
 	private String customHeadersFunction;
 
+	/**
+	 * 动态头函数结果缓存秒数：token 接口不能频繁调用时设置（如 300 = 5 分钟），
+	 * TTL 内直接用缓存结果不再调函数；不设置则每次请求都调用。
+	 */
+	private Long headersCacheSeconds;
+
 	/** stdio/docker 传输：启动命令（如 ["npx","-y","mcp-server-xx"]） */
 	private List<String> command;
 
@@ -61,6 +67,12 @@ public class Langchain4jMcpClientInfo extends MagicEntity {
 
 	/** 单个 MCP Server 失败是否让整次工具装配失败；缺省 false（跳过该路） */
 	private Boolean failIfOneServerFails;
+
+	/**
+	 * 认证类失败（如 api-key 过期，401/403 等）时的自动重试次数，缺省 0（不重试）：
+	 * 重试前会作废动态头缓存并重新调 headers-function 取新 key。
+	 */
+	private Integer authRetryCount;
 
 	/**
 	 * 消息监听函数（magic-api function 名）：收到服务端消息/生命周期事件时调用，

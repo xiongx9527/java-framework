@@ -10,6 +10,7 @@ import dev.langchain4j.mcp.client.transport.McpTransport;
 import dev.langchain4j.mcp.client.transport.http.StreamableHttpMcpTransport;
 import dev.langchain4j.mcp.client.transport.stdio.StdioMcpTransport;
 import dev.langchain4j.service.tool.ToolProvider;
+import dev.langchain4j.service.tool.ToolProviderResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
@@ -35,6 +36,12 @@ public class MagicDynamicLangchain4jMcpClientDataSource implements DisposableBea
 	private final Map<String, McpClient> clients = new ConcurrentHashMap<>();
 
 	private final Map<String, ToolProvider> providers = new ConcurrentHashMap<>();
+
+	/** 各实例最近一次的资源定义，手动 refresh(key) 重建时使用 */
+	private final Map<String, Langchain4jMcpClientInfo> infos = new ConcurrentHashMap<>();
+
+	/** 动态头函数结果缓存：key → 最近一次解析结果（headers-cache-seconds 生效时使用） */
+	private final Map<String, CachedHeaders> headerCaches = new ConcurrentHashMap<>();
 
 	/** magic-api function 执行器：动态请求头函数走它调用 */
 	private final MagicToolInvoker invoker;
@@ -73,7 +80,8 @@ public class MagicDynamicLangchain4jMcpClientDataSource implements DisposableBea
 				builder.filterToolNames(info.getFilterToolNames());
 			}
 			clients.put(key, client);
-			providers.put(key, builder.build());
+			infos.put(key, info);
+			providers.put(key, wrapWithAuthRetry(builder.build(), key, info));
 			logger.info("注册 LangChain4j MCP 客户端: {} -> {}", key, info.getTransport());
 			return true;
 		} catch (Throwable e) {
@@ -155,6 +163,7 @@ public class MagicDynamicLangchain4jMcpClientDataSource implements DisposableBea
 			@Override
 			public void onInitializeError(dev.langchain4j.mcp.client.McpCallContext context, Throwable error) {
 				fire("initialize.error", String.valueOf(error));
+				invalidateCacheIfAuthError(key, error);
 			}
 
 			@Override
@@ -167,6 +176,7 @@ public class MagicDynamicLangchain4jMcpClientDataSource implements DisposableBea
 			@Override
 			public void onExecuteToolError(dev.langchain4j.mcp.client.McpCallContext context, Throwable error) {
 				fire("tool.error", String.valueOf(error));
+				invalidateCacheIfAuthError(key, error);
 			}
 
 			@Override
@@ -220,6 +230,25 @@ public class MagicDynamicLangchain4jMcpClientDataSource implements DisposableBea
 		};
 	}
 
+	/** api-key 过期的错误特征：命中即作废动态头缓存，下次请求重新调函数取新 key */
+	private static boolean isAuthError(Throwable error) {
+		if (error == null) {
+			return false;
+		}
+		String message = String.valueOf(error.getMessage()).toLowerCase();
+		return message.contains("401") || message.contains("403") || message.contains("unauthorized")
+				|| message.contains("forbidden") || message.contains("invalid api key")
+				|| message.contains("api key") || message.contains("apikey")
+				|| message.contains("token expired") || message.contains("token 已过期");
+	}
+
+	/** 认证类失败时作废动态头缓存：TTL 内的过期 key 不再拖到过期时间 */
+	private void invalidateCacheIfAuthError(String key, Throwable error) {
+		if (isAuthError(error) && headerCaches.remove(key) != null) {
+			logger.info("MCP 客户端 {} 认证失败，已作废动态头缓存，下次请求重新获取 api-key", key);
+		}
+	}
+
 	/**
 	 * 解析动态请求头：调 magic-api function 取最新头（如换新 api-key），
 	 * 与静态头合并（动态覆盖同名 key）；函数失败时回落静态头并告警。
@@ -229,6 +258,12 @@ public class MagicDynamicLangchain4jMcpClientDataSource implements DisposableBea
 	 */
 	private Map<String, String> resolveHeaders(String key, Langchain4jMcpClientInfo info,
 			String functionName, Map<String, String> staticHeaders) {
+		long ttlSeconds = info.getHeadersCacheSeconds() == null ? 0 : info.getHeadersCacheSeconds();
+		CachedHeaders cached = ttlSeconds > 0 ? headerCaches.get(key) : null;
+		long now = System.currentTimeMillis();
+		if (cached != null && now - cached.fetchedAt < ttlSeconds * 1000L) {
+			return cached.headers;
+		}
 		Map<String, String> merged = new java.util.HashMap<>();
 		if (staticHeaders != null) {
 			merged.putAll(staticHeaders);
@@ -256,10 +291,71 @@ public class MagicDynamicLangchain4jMcpClientDataSource implements DisposableBea
 		} catch (Exception e) {
 			logger.warn("动态请求头函数 {} 调用失败，使用静态头", functionName, e);
 		}
+		Map<String, String> resolved = Collections.unmodifiableMap(merged);
+		if (ttlSeconds > 0) {
+			headerCaches.put(key, new CachedHeaders(now, resolved));
+		}
 		if (newUrl != null && !newUrl.equals(info.getUrl())) {
 			rebuildWithUrl(key, info, newUrl);
 		}
-		return merged;
+		return resolved;
+	}
+
+	/** 动态头函数解析结果的缓存条目。 */
+	private static final class CachedHeaders {
+
+		private final long fetchedAt;
+
+		private final Map<String, String> headers;
+
+		private CachedHeaders(long fetchedAt, Map<String, String> headers) {
+			this.fetchedAt = fetchedAt;
+			this.headers = headers;
+		}
+	}
+
+	/**
+	 * 认证失败自动重试包装：工具执行遇到认证类异常（api-key 过期等）时，作废动态头缓存
+	 * （下次 Supplier 取新 key）并按 {@code auth-retry-count} 重试；非认证异常直接抛出。
+	 */
+	private ToolProvider wrapWithAuthRetry(ToolProvider inner, String key, Langchain4jMcpClientInfo info) {
+		int retries = info.getAuthRetryCount() == null ? 0 : Math.max(0, info.getAuthRetryCount());
+		if (retries <= 0) {
+			return inner;
+		}
+		return request -> {
+			ToolProviderResult result = inner.provideTools(request);
+			if (result == null || result.tools() == null || result.tools().isEmpty()) {
+				return result;
+			}
+			ToolProviderResult.Builder wrapped = ToolProviderResult.builder();
+			result.tools().forEach((spec, executor) -> wrapped.add(spec, (req, memoryId) -> {
+				RuntimeException last = null;
+				for (int attempt = 0; attempt <= retries; attempt++) {
+					try {
+						return executor.execute(req, memoryId);
+					} catch (RuntimeException e) {
+						if (!isAuthError(e)) {
+							throw e;
+						}
+						last = e;
+						headerCaches.remove(key);
+						logger.warn("MCP 工具 {} 认证失败（第 {}/{} 次尝试），已作废 api-key 缓存",
+								spec.name(), attempt + 1, retries + 1);
+						if (attempt < retries) {
+							try {
+								Thread.sleep(200L * (attempt + 1));
+							} catch (InterruptedException ie) {
+								Thread.currentThread().interrupt();
+								throw e;
+							}
+						}
+					}
+				}
+				throw last;
+			}));
+			return wrapped.build();
+		};
 	}
 
 	/** 检测到动态 url 变化后，异步销毁旧客户端并按新 URL 重建（避免在请求回调线程中重入）。 */
@@ -281,6 +377,8 @@ public class MagicDynamicLangchain4jMcpClientDataSource implements DisposableBea
 				copy.setCustomHeadersFunction(info.getCustomHeadersFunction());
 				copy.setFilterToolNames(info.getFilterToolNames());
 				copy.setFailIfOneServerFails(info.getFailIfOneServerFails());
+				copy.setHeadersCacheSeconds(info.getHeadersCacheSeconds());
+				copy.setAuthRetryCount(info.getAuthRetryCount());
 				create(copy);
 			} catch (Exception e) {
 				logger.warn("MCP 客户端 {} 按新 url 重建失败", key, e);
@@ -296,6 +394,7 @@ public class MagicDynamicLangchain4jMcpClientDataSource implements DisposableBea
 			return;
 		}
 		providers.remove(key);
+		headerCaches.remove(key);
 		McpClient client = clients.remove(key);
 		if (client != null) {
 			try {
@@ -309,6 +408,33 @@ public class MagicDynamicLangchain4jMcpClientDataSource implements DisposableBea
 	/** 按 key 取 ToolProvider，不存在时返回 {@code null}。 */
 	public ToolProvider get(String key) {
 		return key == null ? null : providers.get(key);
+	}
+
+	/**
+	 * 手动刷新：销毁并按最近一次资源定义重建指定实例——重新连接 MCP Server、
+	 * 重新调 headers-function 取 api-key、重新拉取工具列表。刷新失败时抛出异常。
+	 *
+	 * @return 刷新后的 ToolProvider
+	 */
+	public ToolProvider refresh(String key) {
+		Langchain4jMcpClientInfo info = key == null ? null : infos.get(key);
+		if (info == null) {
+			throw new IllegalArgumentException(String.format(
+					"未配置 LangChain4j MCP 客户端: %s，无法刷新", key));
+		}
+		destroy(key);
+		if (!create(info)) {
+			throw new IllegalStateException(String.format("刷新 LangChain4j MCP 客户端失败: %s", key));
+		}
+		return providers.get(key);
+	}
+
+	/** 仅使指定实例的工具列表缓存失效：下次提供工具时重新 listTools，不重连。 */
+	public void evictToolListCache(String key) {
+		McpClient client = key == null ? null : clients.get(key);
+		if (client instanceof DefaultMcpClient) {
+			((DefaultMcpClient) client).evictToolListCache();
+		}
 	}
 
 	/** 当前已配置的 key 集合（不可修改视图）。 */

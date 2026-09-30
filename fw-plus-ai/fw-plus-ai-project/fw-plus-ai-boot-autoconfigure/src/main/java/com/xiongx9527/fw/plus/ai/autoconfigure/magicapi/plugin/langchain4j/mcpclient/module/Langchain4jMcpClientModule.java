@@ -35,6 +35,19 @@ public class Langchain4jMcpClientModule
 		return provider;
 	}
 
+	/**
+	 * 手动刷新指定实例：重连 MCP Server、重新调 headers-function 取 api-key、重新拉工具列表。
+	 * 脚本用法：{@code langchain4jMcpClient.refresh('key')}。
+	 */
+	public ToolProvider refresh(String key) {
+		return dataSource.refresh(key);
+	}
+
+	/** 仅使指定实例的工具列表缓存失效（下次提供工具时重新 listTools，不重连）。 */
+	public void evictToolListCache(String key) {
+		dataSource.evictToolListCache(key);
+	}
+
 	@Override
 	public Langchain4jMcpClientModule setDynamicAttribute(String key, ToolProvider value) {
 		throw new UnsupportedOperationException(
