@@ -14,7 +14,7 @@ public class MagicDynamicChatMemoryStore implements ChatMemoryStore {
 
     private final String key;
 
-    public MagicDynamicChatMemoryStore(Langchain4jChatMemoryStoreModule chatMemoryStore, String key) {
+    public  MagicDynamicChatMemoryStore(Langchain4jChatMemoryStoreModule chatMemoryStore, String key) {
         this.chatMemoryStore = chatMemoryStore;
         this.key = key;
     }

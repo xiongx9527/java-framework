@@ -43,6 +43,7 @@ class Langchain4jModuleSimpleAssistantConfigurationTest {
 						() -> memoryStoreModule)
 				.withPropertyValues(
 						PREFIX + ".enabled=true",
+						PREFIX + ".use-default-key=true",
 						PREFIX + ".key=my-assistant",
 						PREFIX + ".keys.chatMemoryStore=redis-store")
 				.run(context -> {
@@ -81,6 +82,51 @@ class Langchain4jModuleSimpleAssistantConfigurationTest {
 				.withBean("chatModelModule", Langchain4jChatModelModule.class, () -> chatModelModule)
 				.withPropertyValues(
 						PREFIX + ".enabled=true",
+						PREFIX + ".key=default-key",
+						PREFIX + ".keys.chatModel=specific-key")
+				.run(context -> {
+					assertThat(context).hasSingleBean(SimpleAssistant.class);
+					assertThat(context.getBean(SimpleAssistant.class)
+							.chat("session-1", "你好")).isEqualTo("你好，我是助手");
+				});
+	}
+
+	@Test
+	void appliesTunableParametersFromProperties() {
+		// memory-max-messages / max-tokens / rerank-min-score 三个可调参数全部配置 → 装配成功
+		ChatLanguageModel chatModel = mockChatModel();
+		Langchain4jChatModelModule chatModelModule = mock(Langchain4jChatModelModule.class);
+		when(chatModelModule.getDynamicAttribute("my-assistant")).thenReturn(chatModel);
+		new ApplicationContextRunner()
+				.withConfiguration(AutoConfigurations.of(Langchain4jModuleConfiguration.class))
+				.withBean("chatModelModule", Langchain4jChatModelModule.class, () -> chatModelModule)
+				.withPropertyValues(
+						PREFIX + ".enabled=true",
+						PREFIX + ".keys.chatModel=my-assistant",
+						PREFIX + ".memory-max-messages=10",
+						PREFIX + ".max-tokens=500",
+						PREFIX + ".rerank-min-score=0.5")
+				.run(context -> {
+					assertThat(context).hasSingleBean(SimpleAssistant.class);
+					assertThat(context.getBean(SimpleAssistant.class)
+							.chat("session-1", "你好")).isEqualTo("你好，我是助手");
+				});
+	}
+
+	@Test
+	void skipsTypeWhenUseDefaultKeyDisabled() {
+		// use-default-key=false：只有专属 key 生效——chatModel 配专属 key 正常装配，
+		// 且 chatModelModule 对默认 key 返回 null 也无影响（不走默认 key）
+		ChatLanguageModel chatModel = mockChatModel();
+		Langchain4jChatModelModule chatModelModule = mock(Langchain4jChatModelModule.class);
+		when(chatModelModule.getDynamicAttribute("specific-key")).thenReturn(chatModel);
+
+		new ApplicationContextRunner()
+				.withConfiguration(AutoConfigurations.of(Langchain4jModuleConfiguration.class))
+				.withBean("chatModelModule", Langchain4jChatModelModule.class, () -> chatModelModule)
+				.withPropertyValues(
+						PREFIX + ".enabled=true",
+						PREFIX + ".use-default-key=false",
 						PREFIX + ".key=default-key",
 						PREFIX + ".keys.chatModel=specific-key")
 				.run(context -> {

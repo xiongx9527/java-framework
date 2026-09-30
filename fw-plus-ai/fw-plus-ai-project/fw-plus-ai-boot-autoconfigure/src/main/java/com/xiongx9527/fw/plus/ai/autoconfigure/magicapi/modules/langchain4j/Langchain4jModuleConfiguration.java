@@ -33,10 +33,12 @@ import org.springframework.context.annotation.Configuration;
  *
  * <p>注入条件与 key 全部走配置（{@code fw.plus.magicapi.langchain4j.simple-assistant.*}）：
  * {@code enabled} 注入开关（缺省开启）、{@code key} 默认 key（所有资源类型共用）、
- * {@code keys.<类型>} 分类型专属 key（没有就取默认 key）。各类型资源从对应的
- * {@code Langchain4jXxxModule} 解析，并以 {@code MagicDynamicXxx} 动态代理包装——每次调用
- * 实时解析，magic 实例热更新/注销后不持有失效引用。chat-model 与 streaming-chat-model
- * 至少要有其一，其余类型 key 未配置时跳过不装配。</p>
+ * {@code keys.<类型>} 分类型专属 key（没有就取默认 key）、{@code memory-max-messages} 进程内
+ * 记忆窗口、{@code max-tokens} token 记忆上限（需配 tokenizer）、{@code rerank-min-score}
+ * rerank 生效下限（需配 scoring-model）。各类型资源从对应的 {@code Langchain4jXxxModule} 解析，
+ * 并以 {@code MagicDynamicXxx} 动态代理包装——每次调用实时解析，magic 实例热更新/注销后
+ * 不持有失效引用。chat-model 与 streaming-chat-model 至少要有其一，其余类型 key 未配置时
+ * 跳过不装配。</p>
  */
 @ConditionalOnClass(name = "dev.langchain4j.service.AiServices")
 @Configuration(proxyBeanMethods = false)
@@ -116,12 +118,28 @@ public class Langchain4jModuleConfiguration {
 			assistantBuilder.scoringModel(
 					new MagicDynamicScoringModel(scoringModelModules.getIfAvailable(), scoringModelKey));
 		}
+		if (properties.getMemoryMaxMessages() != null) {
+			assistantBuilder.memory(properties.getMemoryMaxMessages());
+		}
+		if (properties.getMaxTokens() != null) {
+			assistantBuilder.maxTokens(properties.getMaxTokens());
+		}
+		if (properties.getRerankMinScore() != null) {
+			assistantBuilder.rerankMinScore(properties.getRerankMinScore());
+		}
 		return assistantBuilder.build();
 	}
 
-	/** 解析某类型的资源 key：专属 key 优先，没有就取默认 key，都没有返回 null（该类型跳过）。 */
-	private static String typeKey(String type, Langchain4jSimpleAssistantProperties properties) {
+	/** 解析某类型的资源 key：专属 key 优先；没有时按 {@code use-default-key} 开关决定是否回落默认
+	 * key（关闭则返回 null，该类型跳过）。 */
+	private String typeKey(String type, Langchain4jSimpleAssistantProperties properties) {
 		String own = properties.getKeys().get(type);
-		return own != null && !own.isEmpty() ? own : properties.getKey();
+		if (own != null && !own.isEmpty()) {
+			return own;
+		}
+		// 分类型回落开关（useDefaultKeys.<类型>）优先，未配置回落全局 use-default-key
+		boolean useDefault = properties.getUseDefaultKeys()
+				.getOrDefault(type, properties.isUseDefaultKey());
+		return useDefault ? properties.getKey() : null;
 	}
 }
