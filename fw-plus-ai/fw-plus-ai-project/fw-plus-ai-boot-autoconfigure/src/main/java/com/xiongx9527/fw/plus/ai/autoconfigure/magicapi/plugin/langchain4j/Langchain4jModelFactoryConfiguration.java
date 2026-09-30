@@ -4,8 +4,11 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.facto
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.ModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.anthropic.Langchain4jAnthropicModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.azure.Langchain4jAzureOpenAiModelFactory;
+<<<<<<< HEAD
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.bedrock.Langchain4jBedrockModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.chatglm.Langchain4jChatGlmModelFactory;
+=======
+>>>>>>> dev
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.cohere.Langchain4jCohereModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.github.Langchain4jGitHubModelsModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.googlegenai.Langchain4jGoogleGenAiModelFactory;

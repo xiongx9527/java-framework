@@ -7,12 +7,14 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jEmbeddingStoreInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jScoringModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jStreamingChatModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jEmbeddingModelDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.registry.Langchain4jEmbeddingStoreMagicDynamicRegistry;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.model.scoring.ScoringModel;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
@@ -94,6 +96,8 @@ public class Langchain4jDatasourceController extends MagicController implements 
                 return (T) JSON.parseObject(json, Langchain4jStreamingChatModelInfo.class);
             case EMBEDDING_MODEL:
                 return (T) JSON.parseObject(json, Langchain4jEmbeddingModelInfo.class);
+            case SCORING_MODEL:
+                return (T) JSON.parseObject(json, Langchain4jScoringModelInfo.class);
             case EMBEDDING_STORE:
                 return (T) JSON.parseObject(json, Langchain4jEmbeddingStoreInfo.class);
             default:
@@ -108,6 +112,9 @@ public class Langchain4jDatasourceController extends MagicController implements 
                 break;
             case EMBEDDING_MODEL:
                 ((EmbeddingModel) instance).embed("test");
+                break;
+            case SCORING_MODEL:
+                ((ScoringModel) instance).scoreAll(java.util.Collections.singletonList(TextSegment.from("test")), "test");
                 break;
             case EMBEDDING_STORE:
                 EmbeddingStore<TextSegment> store = castStore(instance);
