@@ -119,7 +119,8 @@ class Langchain4jModuleTest {
         assertThat(model.requests.get(0).get(0)).isEqualTo(UserMessage.from("参考资料后的问题"));
     }
 
-${1}    void shouldFailFastWithoutAnyModel() {
+    @Test
+    void shouldFailFastWithoutAnyModel() {
         assertThatThrownBy(() -> module.assistant().build())
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("缺少模型")
