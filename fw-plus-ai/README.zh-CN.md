@@ -7,6 +7,7 @@
 - `fw-plus-ai-langchain4j`、`fw-plus-ai-langchain4j-*`：LangChain4j `0.35.0` 的 Java 8 兼容 provider 覆盖模块，保持与上游相同的 `dev.langchain4j.*` 包名与类名。
 - `fw-plus-ai-boot-autoconfigure`：按 classpath 条件装配 provider 自动配置（总开关 `fw.plus.ai.langchain4j.enabled`），并提供 MCP 服务端、MCP 集群与 Magic-API MCP 插件能力。
 - `fw-plus-ai-magicapi-plugin-mcp-server`：Magic-API MCP 插件。
+- Magic-API 插件（langchain4j / mcp）的 web 端点支持 Servlet / WebFlux 双栈：WebFlux 应用（`spring.main.web-application-type=reactive`）下由 Boot 层 reactive 引擎装配，端点路径与 Servlet 栈一致。已知限制：WebFlux 下 magic-editor 工作台 WebSocket 在线调试不可用（控制台其余功能正常）。
 - 聚合入口：`fw-plus-ai-boot-starter`、`fw-plus-ai-mcp-server-spring-boot-starter`。
 
 各 provider 自动配置的条件与属性以 `fw-plus-ai-boot-autoconfigure` 中 `LangChain4j*AutoConfiguration` 源码为准。
