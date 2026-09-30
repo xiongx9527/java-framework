@@ -7,12 +7,16 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.chatm
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.contentinjector.MagicDynamicContentInjector;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.contentinjector.module.Langchain4jContentInjectorModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicChatModel;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLanguageModel;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicScoringModel;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicStreamingChatModel;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicStreamingLanguageModel;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicTokenizer;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jChatModelModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jLanguageModelModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jScoringModelModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jStreamingChatModelModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jStreamingLanguageModelModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jTokenizerModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.MagicDynamicContentRetriever;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.module.Langchain4jContentRetrieverModule;
@@ -63,6 +67,8 @@ public class Langchain4jModuleConfiguration {
 	public SimpleAssistant simpleAssistant(
 			ObjectProvider<Langchain4jChatModelModule> chatModelModules,
 			ObjectProvider<Langchain4jStreamingChatModelModule> streamingChatModelModules,
+			ObjectProvider<Langchain4jLanguageModelModule> languageModelModules,
+			ObjectProvider<Langchain4jStreamingLanguageModelModule> streamingLanguageModelModules,
 			ObjectProvider<Langchain4jChatMemoryStoreModule> chatMemoryStoreModules,
 			ObjectProvider<Langchain4jToolProviderModule> toolProviderModules,
 			ObjectProvider<Langchain4jContentRetrieverModule> contentRetrieverModules,
@@ -80,6 +86,16 @@ public class Langchain4jModuleConfiguration {
 		if (streamingModelKey != null && streamingChatModelModules.getIfAvailable() != null) {
 			assistantBuilder.streamingModel(
 					new MagicDynamicStreamingChatModel(streamingChatModelModules.getIfAvailable(), streamingModelKey));
+		}
+		String languageModelKey = typeKey("languageModel", properties);
+		if (languageModelKey != null && languageModelModules.getIfAvailable() != null) {
+			assistantBuilder.languageModel(
+					new MagicDynamicLanguageModel(languageModelModules.getIfAvailable(), languageModelKey));
+		}
+		String streamingLanguageModelKey = typeKey("streamingLanguageModel", properties);
+		if (streamingLanguageModelKey != null && streamingLanguageModelModules.getIfAvailable() != null) {
+			assistantBuilder.streamingLanguageModel(new MagicDynamicStreamingLanguageModel(
+					streamingLanguageModelModules.getIfAvailable(), streamingLanguageModelKey));
 		}
 		String memoryStoreKey = typeKey("chatMemoryStore", properties);
 		if (memoryStoreKey != null && chatMemoryStoreModules.getIfAvailable() != null) {
