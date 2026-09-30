@@ -3,9 +3,13 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.SimpleAssistant;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.chatmemorystore.module.Langchain4jChatMemoryStoreModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jChatModelModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.module.Langchain4jContentRetrieverModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jStreamingChatModelModule;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.output.Response;
+import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -14,6 +18,7 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -114,6 +119,17 @@ class Langchain4jModuleSimpleAssistantConfigurationTest {
 	}
 
 	@Test
+	void failsWhenRequiredButSimpleAssistantAbsent() {
+		// simple-assistant.required=true 且 enabled=false（SimpleAssistant 缺席）→ langchain4jModule 创建失败
+		new ApplicationContextRunner()
+				.withConfiguration(AutoConfigurations.of(Langchain4jModuleConfiguration.class))
+				.withPropertyValues(
+						PREFIX + ".enabled=false",
+						PREFIX + ".simple-assistant-required=true")
+				.run(context -> assertThat(context).hasFailed());
+	}
+
+	@Test
 	void skipsTypeWhenUseDefaultKeyDisabled() {
 		// use-default-key=false：只有专属 key 生效——chatModel 配专属 key 正常装配，
 		// 且 chatModelModule 对默认 key 返回 null 也无影响（不走默认 key）
@@ -133,6 +149,39 @@ class Langchain4jModuleSimpleAssistantConfigurationTest {
 					assertThat(context).hasSingleBean(SimpleAssistant.class);
 					assertThat(context.getBean(SimpleAssistant.class)
 							.chat("session-1", "你好")).isEqualTo("你好，我是助手");
+				});
+	}
+
+	@Test
+	void createsFiveSimpleAssistantObjectsInModuleConstructor() {
+		// langchain4jModule 构造里创建 5 个 SimpleAssistant：4 单能力 + 1 全能力
+		ChatLanguageModel chatModel = mockChatModel();
+		Langchain4jChatModelModule chatModelModule = mock(Langchain4jChatModelModule.class);
+		when(chatModelModule.getDynamicAttribute("my-assistant")).thenReturn(chatModel);
+		Langchain4jStreamingChatModelModule streamingModule = mock(Langchain4jStreamingChatModelModule.class);
+		when(streamingModule.getDynamicAttribute("my-assistant")).thenReturn(mock(StreamingChatLanguageModel.class));
+		Langchain4jContentRetrieverModule retrieverModule = mock(Langchain4jContentRetrieverModule.class);
+		when(retrieverModule.getDynamicAttribute("my-assistant"))
+				.thenReturn(query -> java.util.Collections.singletonList(dev.langchain4j.rag.content.Content.from("资料")));
+
+		new ApplicationContextRunner()
+				.withConfiguration(AutoConfigurations.of(Langchain4jModuleConfiguration.class))
+				.withBean("chatModelModule", Langchain4jChatModelModule.class, () -> chatModelModule)
+				.withBean("streamingModule", Langchain4jStreamingChatModelModule.class, () -> streamingModule)
+				.withBean("retrieverModule", Langchain4jContentRetrieverModule.class, () -> retrieverModule)
+				.withPropertyValues(
+						PREFIX + ".enabled=true",
+						PREFIX + ".key=my-assistant",
+						PREFIX + ".use-default-key=true")
+				.run(context -> {
+					Langchain4jModule module = context.getBean(Langchain4jModule.class);
+					assertThat(module.chatAssistant()).isNotNull();
+					assertThat(module.retrievalAssistant()).isNotNull();
+					assertThat(module.simpleAssistant()).isNotNull();
+					assertThat(module.simpleAssistant().retrieve("问题")).isNotEmpty();
+					// languageModel / streamingLanguageModel 插件缺席 → 对象为 null，方法提示
+					assertThatThrownBy(() -> module.languageAssistant())
+							.hasMessageContaining("language-model");
 				});
 	}
 

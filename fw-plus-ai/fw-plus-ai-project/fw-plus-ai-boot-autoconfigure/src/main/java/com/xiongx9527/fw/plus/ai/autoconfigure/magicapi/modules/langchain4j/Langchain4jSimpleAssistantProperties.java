@@ -39,6 +39,9 @@ public class Langchain4jSimpleAssistantProperties {
 	/** 是否回落默认 key：分类型专属 key 未配置时，取 {@link #key} 作为该类型的资源 key；缺省 false（未配置专属 key 的类型跳过） */
 	private boolean useDefaultKey = false;
 
+	/** langchain4jModule 是否必须依赖 SimpleAssistant：true 时 SimpleAssistant 缺席会导致启动失败；缺省 false（软依赖，缺席为 null） */
+	private boolean simpleAssistantRequired = false;
+
 	/** 分类型是否回落默认 key（键为类型名，值同 {@link #useDefaultKey} 语义）；未配置的类型回落 {@link #useDefaultKey} */
 	private Map<String, Boolean> useDefaultKeys = new HashMap<>();
 
@@ -73,6 +76,14 @@ public class Langchain4jSimpleAssistantProperties {
 
 	public void setUseDefaultKey(boolean useDefaultKey) {
 		this.useDefaultKey = useDefaultKey;
+	}
+
+	public boolean isSimpleAssistantRequired() {
+		return simpleAssistantRequired;
+	}
+
+	public void setSimpleAssistantRequired(boolean simpleAssistantRequired) {
+		this.simpleAssistantRequired = simpleAssistantRequired;
 	}
 
 	public Map<String, Boolean> getUseDefaultKeys() {

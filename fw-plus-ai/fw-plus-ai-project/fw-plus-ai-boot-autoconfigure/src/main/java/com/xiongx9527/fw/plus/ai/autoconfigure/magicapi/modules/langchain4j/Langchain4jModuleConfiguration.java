@@ -24,6 +24,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.syste
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.MagicDynamicToolProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.module.Langchain4jToolProviderModule;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -36,30 +37,27 @@ import org.springframework.context.annotation.Configuration;
  * {@link SimpleAssistant} bean。
  *
  * <p>注入条件与 key 全部走配置（{@code fw.plus.magicapi.langchain4j.simple-assistant.*}）：
- * {@code enabled} 注入开关（缺省开启）、{@code key} 默认 key（所有资源类型共用）、
- * {@code keys.<类型>} 分类型专属 key（没有就取默认 key）、{@code memory-max-messages} 进程内
- * 记忆窗口、{@code max-tokens} token 记忆上限（需配 tokenizer）、{@code rerank-min-score}
- * rerank 生效下限（需配 scoring-model）。各类型资源从对应的 {@code Langchain4jXxxModule} 解析，
- * 并以 {@code MagicDynamicXxx} 动态代理包装——每次调用实时解析，magic 实例热更新/注销后
- * 不持有失效引用。chat-model 与 streaming-chat-model 至少要有其一，其余类型 key 未配置时
- * 跳过不装配。</p>
+ * {@code enabled} 注入开关（显式开启才注入）、{@code key} 默认 key（所有资源类型共用）、
+ * {@code keys.<类型>} 分类型专属 key（没有就按 {@code use-default-key} / {@code use-default-keys.<类型>}
+ * 决定是否回落默认 key）、{@code memory-max-messages} 进程内记忆窗口、{@code max-tokens} token
+ * 记忆上限（需配 tokenizer）、{@code rerank-min-score} rerank 生效下限（需配 scoring-model）、
+ * {@code simple-assistant-required} langchain4jModule 是否必须依赖 SimpleAssistant。各类型资源
+ * 从对应的 {@code Langchain4jXxxModule} 解析，并以 {@code MagicDynamicXxx} 动态代理包装——
+ * 每次调用实时解析，magic 实例热更新/注销后不持有失效引用。chat-model 与 streaming-chat-model
+ * 至少要有其一，其余类型 key 未配置时跳过不装配。</p>
  */
 @ConditionalOnClass(name = "dev.langchain4j.service.AiServices")
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(Langchain4jSimpleAssistantProperties.class)
 public class Langchain4jModuleConfiguration {
 
-	@Bean
-	@ConditionalOnMissingBean
-	public Langchain4jModule langchain4jModule() {
-		return new Langchain4jModule();
+	private final Langchain4jSimpleAssistantProperties simpleAssistantProperties;
+
+	public Langchain4jModuleConfiguration(Langchain4jSimpleAssistantProperties simpleAssistantProperties) {
+		this.simpleAssistantProperties = simpleAssistantProperties;
 	}
 
-	/**
-	 * 注入按 key 装配好的 {@link SimpleAssistant}：各类型资源 key 取
-	 * {@code keys.<类型>}（专属），未配置回落 {@code key}（默认），都未配置的类型跳过。
-	 * 资源以 {@code MagicDynamicXxx} 动态代理包装，实时解析防实例失效。
-	 */
+	/** 全能力 {@code SimpleAssistant}：按配置 keys 装配，资源以 MagicDynamic 动态代理包装。 */
 	@Bean
 	@ConditionalOnMissingBean
 	@ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.simple-assistant", name = "enabled",
@@ -109,8 +107,8 @@ public class Langchain4jModuleConfiguration {
 		}
 		String contentRetrieverKey = typeKey("contentRetriever", properties);
 		if (contentRetrieverKey != null && contentRetrieverModules.getIfAvailable() != null) {
-			assistantBuilder.contentRetriever(
-					new MagicDynamicContentRetriever(contentRetrieverModules.getIfAvailable(), contentRetrieverKey));
+			assistantBuilder.contentRetriever(new MagicDynamicContentRetriever(
+					contentRetrieverModules.getIfAvailable(), contentRetrieverKey));
 		}
 		String injectorPath = typeKey("contentInjector", properties);
 		if (injectorPath != null && contentInjectorModules.getIfAvailable() != null) {
@@ -144,6 +142,22 @@ public class Langchain4jModuleConfiguration {
 			assistantBuilder.rerankMinScore(properties.getRerankMinScore());
 		}
 		return assistantBuilder.build();
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	public Langchain4jModule langchain4jModule(
+			ObjectProvider<Langchain4jChatModelModule> chatModelModules,
+			ObjectProvider<Langchain4jLanguageModelModule> languageModelModules,
+			ObjectProvider<Langchain4jStreamingLanguageModelModule> streamingLanguageModelModules,
+			ObjectProvider<Langchain4jContentRetrieverModule> contentRetrieverModules,
+			@Autowired(required = false) SimpleAssistant simpleAssistant) {
+		if (simpleAssistantProperties.isSimpleAssistantRequired() && simpleAssistant == null) {
+			throw new IllegalStateException("simple-assistant.required=true 但 SimpleAssistant 未装配："
+					+ "请检查 fw.plus.magicapi.langchain4j.simple-assistant.enabled 与 keys 配置");
+		}
+		return new Langchain4jModule(simpleAssistantProperties, chatModelModules, languageModelModules,
+				streamingLanguageModelModules, contentRetrieverModules, simpleAssistant);
 	}
 
 	/** 解析某类型的资源 key：专属 key 优先；没有时按 {@code use-default-key} 开关决定是否回落默认
