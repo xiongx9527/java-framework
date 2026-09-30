@@ -4,13 +4,21 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.facto
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.ModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.anthropic.Langchain4jAnthropicModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.azure.Langchain4jAzureOpenAiModelFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.bedrock.Langchain4jBedrockModelFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.chatglm.Langchain4jChatGlmModelFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.cohere.Langchain4jCohereModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.github.Langchain4jGitHubModelsModelFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.googlegenai.Langchain4jGoogleGenAiModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.googleai.Langchain4jGoogleAiGeminiModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.huggingface.Langchain4jHuggingFaceModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.localai.Langchain4jLocalAiModelFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.mistralai.Langchain4jMistralAiModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.ollama.Langchain4jOllamaModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.onnx.Langchain4jOnnxEmbeddingModelFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.ocigenai.Langchain4jOciGenAiModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.openai.Langchain4jOpenAiModelFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.openaiofficial.Langchain4jOpenAiOfficialModelFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.ovhai.Langchain4jOvhAiModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.qianfan.Langchain4jQianfanModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.qwen.Langchain4jQwenModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.store.Langchain4jElasticsearchModelFactory;
@@ -23,6 +31,9 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.facto
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.store.Langchain4jWeaviateModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.vertexai.Langchain4jVertexAiGeminiModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.voyageai.Langchain4jVoyageAiModelFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.watsonx.Langchain4jWatsonxModelFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.workersai.Langchain4jWorkersAiModelFactory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.xinference.Langchain4jXinferenceModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.zhipu.Langchain4jZhipuModelFactory;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import org.springframework.beans.factory.ObjectProvider;
@@ -65,6 +76,18 @@ public class Langchain4jModelFactoryConfiguration {
                 new Langchain4jElasticsearchModelFactory(),
                 new Langchain4jNeo4jModelFactory(),
                 new Langchain4jNebulaModelFactory(),
+                // 新增提供商（2026-09：主线 stable / beta 与 community 线）
+                new Langchain4jBedrockModelFactory(),
+                new Langchain4jMistralAiModelFactory(),
+                new Langchain4jOpenAiOfficialModelFactory(),
+                new Langchain4jGoogleGenAiModelFactory(),
+                new Langchain4jWatsonxModelFactory(),
+                new Langchain4jWorkersAiModelFactory(),
+                new Langchain4jOvhAiModelFactory(),
+                new Langchain4jChatGlmModelFactory(),
+                new Langchain4jXinferenceModelFactory(),
+                new Langchain4jOciGenAiModelFactory(),
+                new Langchain4jCohereModelFactory(),
         };
     }
 
