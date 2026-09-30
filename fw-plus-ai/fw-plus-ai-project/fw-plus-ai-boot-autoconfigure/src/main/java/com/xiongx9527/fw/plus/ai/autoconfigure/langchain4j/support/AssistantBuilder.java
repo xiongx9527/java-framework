@@ -7,6 +7,8 @@ import dev.langchain4j.memory.chat.TokenWindowChatMemory;
 import dev.langchain4j.model.Tokenizer;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.language.LanguageModel;
+import dev.langchain4j.model.language.StreamingLanguageModel;
 import dev.langchain4j.rag.DefaultRetrievalAugmentor;
 import dev.langchain4j.model.scoring.ScoringModel;
 import dev.langchain4j.rag.RetrievalAugmentor;
@@ -19,7 +21,6 @@ import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
@@ -70,6 +71,10 @@ public class AssistantBuilder {
 
 	private StreamingChatLanguageModel streamingModel;
 
+	private LanguageModel languageModel;
+
+	private StreamingLanguageModel streamingLanguageModel;
+
 	private Function<Object, String> systemMessageProvider;
 
 	private ChatMemoryProvider chatMemoryProvider;
@@ -107,6 +112,25 @@ public class AssistantBuilder {
 	/** 流式模型：{@code langchain4jStreamingChatModel['key']}；不配则助手不支持 {@code stream(...)} */
 	public AssistantBuilder streamingModel(StreamingChatLanguageModel model) {
 		this.streamingModel = model;
+		return this;
+	}
+
+	/**
+	 * 文本补全模型：{@code langchain4jLanguageModel['key']}；不配则助手不支持
+	 * {@code generateText(...)} 系列直连补全。经 {@code SimpleAssistant} 的
+	 * {@code languageModel} 字段直连使用，不进 AiServices、无记忆。
+	 */
+	public AssistantBuilder languageModel(LanguageModel model) {
+		this.languageModel = model;
+		return this;
+	}
+
+	/**
+	 * 流式文本补全模型：{@code langchain4jStreamingLanguageModel['key']}；不配则助手不支持
+	 * {@code generateTextToSse(...)}。直连使用，不进 AiServices。
+	 */
+	public AssistantBuilder streamingLanguageModel(StreamingLanguageModel model) {
+		this.streamingLanguageModel = model;
 		return this;
 	}
 
@@ -227,8 +251,10 @@ public class AssistantBuilder {
 	 */
 	public SimpleAssistant build() {
 		// RetrievalAugmentor 从 builder 装配结果传入：常规模式随 AiServices 一起走检索增强，
-		// 只检索模式（retrievalOnly）则产出仅支持 retrieve(...) 的 SimpleAssistant
-		return new SimpleAssistant(assemble(), chatModel, null, null, resolveRetrievalAugmentor());
+		// 只检索模式（retrievalOnly）则产出仅支持 retrieve(...) 的 SimpleAssistant；
+		// languageModel / streamingLanguageModel 透传给 SimpleAssistant 的直连补全能力
+		return new SimpleAssistant(assemble(), chatModel, languageModel, streamingLanguageModel,
+				resolveRetrievalAugmentor());
 	}
 
 	/** 需要底层 {@link Assistant} 类型（如继续挂 AiServices 能力）时取用 */
@@ -242,7 +268,13 @@ public class AssistantBuilder {
 			return null;
 		}
 		if (chatModel == null && streamingModel == null) {
-			throw new IllegalArgumentException("构建助手缺少模型：请至少调用 chatModel(...) 或 streamingModel(...) 之一指定");
+			// 无对话模型时允许只装配直连补全/检索能力：AiServices 侧不参与
+			if (languageModel == null && streamingLanguageModel == null && retrievalAugmentor == null) {
+				throw new IllegalArgumentException("构建助手缺少模型：请至少调用 chatModel(...) 或 "
+						+ "streamingModel(...) 之一指定；仅补全/检索形态请调用 languageModel(...)、"
+						+ "streamingLanguageModel(...)、retrievalAugmentor(...) 或 contentRetriever(...)");
+			}
+			return null;
 		}
 		AiServices<Assistant> builder = AiServices.builder(Assistant.class)
 				.chatMemoryProvider(resolveChatMemoryProvider());
