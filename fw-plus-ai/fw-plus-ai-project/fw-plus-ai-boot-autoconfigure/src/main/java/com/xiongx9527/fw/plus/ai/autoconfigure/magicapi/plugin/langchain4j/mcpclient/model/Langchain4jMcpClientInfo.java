@@ -31,6 +31,9 @@ public class Langchain4jMcpClientInfo extends MagicEntity {
 	/** http 传输：MCP Server 地址（如 http://host:3000/mcp） */
 	private String url;
 
+	/** http 传输：自定义请求头，认证用（如 Authorization: Bearer xxx） */
+	private Map<String, String> customHeaders;
+
 	/** stdio/docker 传输：启动命令（如 ["npx","-y","mcp-server-xx"]） */
 	private List<String> command;
 

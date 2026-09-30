@@ -80,9 +80,12 @@ public class MagicDynamicLangchain4jMcpClientDataSource implements DisposableBea
 				if (info.getUrl() == null || info.getUrl().trim().isEmpty()) {
 					throw new IllegalArgumentException("http 传输必须配置 url");
 				}
-				return new StreamableHttpMcpTransport.Builder()
-						.url(info.getUrl())
-						.build();
+				StreamableHttpMcpTransport.Builder httpBuilder = new StreamableHttpMcpTransport.Builder()
+						.url(info.getUrl());
+				if (info.getCustomHeaders() != null && !info.getCustomHeaders().isEmpty()) {
+					httpBuilder.customHeaders(info.getCustomHeaders());
+				}
+				return httpBuilder.build();
 			case "stdio":
 				if (info.getCommand() == null || info.getCommand().isEmpty()) {
 					throw new IllegalArgumentException("stdio 传输必须配置 command");
