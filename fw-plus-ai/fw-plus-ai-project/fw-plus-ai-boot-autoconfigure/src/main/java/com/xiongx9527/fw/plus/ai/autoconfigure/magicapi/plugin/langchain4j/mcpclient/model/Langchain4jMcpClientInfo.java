@@ -38,6 +38,9 @@ public class Langchain4jMcpClientInfo extends MagicEntity {
 	 * http 传输：动态请求头函数（magic-api function 名），每次请求调用一次拿最新头，
 	 * 适合先调 token 接口换 api-key 的场景；返回的 Map 覆盖 {@link #customHeaders} 同名 key，
 	 * 函数调用失败时回落 {@link #customHeaders}。
+	 *
+	 * <p>api-key 放 query 而非请求头的服务：静态 key 直接拼进 {@link #url}；
+	 * 动态轮换时在函数返回的 Map 里放特殊键 {@code _url}，值变化即异步按新 URL 重建客户端。</p>
 	 */
 	private String customHeadersFunction;
 

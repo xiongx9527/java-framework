@@ -94,11 +94,13 @@ public class MagicDynamicLangchain4jMcpClientDataSource implements DisposableBea
 				boolean hasDynamicHeaders = info.getCustomHeadersFunction() != null
 						&& !info.getCustomHeadersFunction().trim().isEmpty();
 				if (hasDynamicHeaders) {
-					// 每次请求动态取头（如调 token 接口换 api-key）；函数失败回落静态头
+					// 每次请求动态取头（如调 token 接口换 api-key）；函数失败回落静态头。
+					// 函数返回 Map 的特殊键 _url 表示最新请求 URL（query 放 api-key 的服务），
+					// 值变化即异步按新 URL 重建客户端
 					String functionName = info.getCustomHeadersFunction().trim();
 					Map<String, String> staticHeaders = hasStaticHeaders ? info.getCustomHeaders() : null;
 					httpBuilder.customHeaders((java.util.function.Supplier<Map<String, String>>) () ->
-							resolveHeaders(functionName, staticHeaders));
+							resolveHeaders(info.getKey(), info, functionName, staticHeaders));
 				} else if (hasStaticHeaders) {
 					httpBuilder.customHeaders(info.getCustomHeaders());
 				}
@@ -132,22 +134,35 @@ public class MagicDynamicLangchain4jMcpClientDataSource implements DisposableBea
 		}
 	}
 
+	/** 动态头函数返回 Map 中的特殊键：最新请求 URL（query 放 api-key 的服务），值变化即重建客户端 */
+	private static final String DYNAMIC_URL_KEY = "_url";
+
 	/**
 	 * 解析动态请求头：调 magic-api function 取最新头（如换新 api-key），
 	 * 与静态头合并（动态覆盖同名 key）；函数失败时回落静态头并告警。
+	 *
+	 * <p>返回 Map 若带 {@link #DYNAMIC_URL_KEY}，取其值与当前 url 比较，
+	 * 变化则异步重建该实例（transport 的 url 不可变，query 轮换 key 只能重建）。</p>
 	 */
-	private Map<String, String> resolveHeaders(String functionName, Map<String, String> staticHeaders) {
+	private Map<String, String> resolveHeaders(String key, Langchain4jMcpClientInfo info,
+			String functionName, Map<String, String> staticHeaders) {
 		Map<String, String> merged = new java.util.HashMap<>();
 		if (staticHeaders != null) {
 			merged.putAll(staticHeaders);
 		}
+		String newUrl = null;
 		try {
 			Object result = invoker.invokeFunction(functionName, Collections.<String, Object>emptyMap());
 			if (result instanceof Map) {
 				for (Object entry : ((Map<?, ?>) result).entrySet()) {
 					Object k = ((Map.Entry<?, ?>) entry).getKey();
 					Object v = ((Map.Entry<?, ?>) entry).getValue();
-					if (k != null && v != null) {
+					if (k == null || v == null) {
+						continue;
+					}
+					if (DYNAMIC_URL_KEY.equals(String.valueOf(k))) {
+						newUrl = String.valueOf(v);
+					} else {
 						merged.put(String.valueOf(k), String.valueOf(v));
 					}
 				}
@@ -158,7 +173,38 @@ public class MagicDynamicLangchain4jMcpClientDataSource implements DisposableBea
 		} catch (Exception e) {
 			logger.warn("动态请求头函数 {} 调用失败，使用静态头", functionName, e);
 		}
+		if (newUrl != null && !newUrl.equals(info.getUrl())) {
+			rebuildWithUrl(key, info, newUrl);
+		}
 		return merged;
+	}
+
+	/** 检测到动态 url 变化后，异步销毁旧客户端并按新 URL 重建（避免在请求回调线程中重入）。 */
+	private void rebuildWithUrl(String key, Langchain4jMcpClientInfo info, String newUrl) {
+		logger.info("MCP 客户端 {} 的动态 url 变化，异步重建: {} -> {}", key, info.getUrl(), newUrl);
+		Thread thread = new Thread(() -> {
+			try {
+				Langchain4jMcpClientInfo copy = new Langchain4jMcpClientInfo();
+				copy.setKey(info.getKey());
+				copy.setName(info.getName());
+				copy.setEnabled(true);
+				copy.setTransport(info.getTransport());
+				copy.setUrl(newUrl);
+				copy.setCommand(info.getCommand());
+				copy.setEnvironment(info.getEnvironment());
+				copy.setImage(info.getImage());
+				copy.setClientName(info.getClientName());
+				copy.setCustomHeaders(info.getCustomHeaders());
+				copy.setCustomHeadersFunction(info.getCustomHeadersFunction());
+				copy.setFilterToolNames(info.getFilterToolNames());
+				copy.setFailIfOneServerFails(info.getFailIfOneServerFails());
+				create(copy);
+			} catch (Exception e) {
+				logger.warn("MCP 客户端 {} 按新 url 重建失败", key, e);
+			}
+		}, "magic-mcp-rebuild-" + key);
+		thread.setDaemon(true);
+		thread.start();
 	}
 
 	/** 按 key 销毁实例（关闭底层客户端，释放连接/子进程/容器）。 */
