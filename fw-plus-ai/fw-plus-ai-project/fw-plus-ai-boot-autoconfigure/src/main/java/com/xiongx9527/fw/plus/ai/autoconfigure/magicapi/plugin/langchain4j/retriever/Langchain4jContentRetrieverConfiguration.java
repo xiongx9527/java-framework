@@ -21,7 +21,11 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolp
 import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.web.search.WebSearchEngine;
+import dev.langchain4j.web.search.google.customsearch.GoogleCustomWebSearchEngine;
+import dev.langchain4j.web.search.searchapi.SearchApiWebSearchEngine;
+import dev.langchain4j.web.search.tavily.TavilyWebSearchEngine;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -127,6 +131,66 @@ public class Langchain4jContentRetrieverConfiguration extends AbstractLangchain4
 	public WebSearchEngine duckDuckGoWebSearchEngine() {
 		return dev.langchain4j.community.web.search.duckduckgo.DuckDuckGoWebSearchEngine.builder()
 				.build();
+	}
+
+	/**
+	 * Tavily web 搜索引擎：{@code fw.plus.magicapi.langchain4j.web-search-engine.provider=tavily}
+	 * 时生效，必须配置 {@code ...tavily.api-key}。
+	 */
+	@Bean
+	@ConditionalOnMissingBean(WebSearchEngine.class)
+	@ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.web-search-engine", name = "provider",
+			havingValue = "tavily")
+	public WebSearchEngine tavilyWebSearchEngine(
+			@Value("${fw.plus.magicapi.langchain4j.web-search-engine.tavily.api-key}") String apiKey,
+			@Value("${fw.plus.magicapi.langchain4j.web-search-engine.tavily.base-url:}") String baseUrl,
+			@Value("${fw.plus.magicapi.langchain4j.web-search-engine.tavily.search-depth:}") String searchDepth) {
+		TavilyWebSearchEngine.TavilyWebSearchEngineBuilder builder =
+				TavilyWebSearchEngine.builder().apiKey(apiKey);
+		if (!baseUrl.isEmpty()) {
+			builder.baseUrl(baseUrl);
+		}
+		if (!searchDepth.isEmpty()) {
+			builder.searchDepth(searchDepth);
+		}
+		return builder.build();
+	}
+
+	/**
+	 * Google 自定义搜索（Programmable Search Engine）：
+	 * {@code provider=google-custom} 时生效，必须配置 {@code ...google-custom.api-key} 与
+	 * {@code ...google-custom.csi}（自定义搜索引擎 ID）。
+	 */
+	@Bean
+	@ConditionalOnMissingBean(WebSearchEngine.class)
+	@ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.web-search-engine", name = "provider",
+			havingValue = "google-custom")
+	public WebSearchEngine googleCustomWebSearchEngine(
+			@Value("${fw.plus.magicapi.langchain4j.web-search-engine.google-custom.api-key}") String apiKey,
+			@Value("${fw.plus.magicapi.langchain4j.web-search-engine.google-custom.csi}") String csi) {
+		return GoogleCustomWebSearchEngine.builder()
+				.apiKey(apiKey)
+				.csi(csi)
+				.build();
+	}
+
+	/**
+	 * SearchApi 聚合搜索：{@code provider=searchapi} 时生效，必须配置 {@code ...searchapi.api-key}，
+	 * 可选 {@code ...searchapi.engine}（默认 google）。
+	 */
+	@Bean
+	@ConditionalOnMissingBean(WebSearchEngine.class)
+	@ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.web-search-engine", name = "provider",
+			havingValue = "searchapi")
+	public WebSearchEngine searchApiWebSearchEngine(
+			@Value("${fw.plus.magicapi.langchain4j.web-search-engine.searchapi.api-key}") String apiKey,
+			@Value("${fw.plus.magicapi.langchain4j.web-search-engine.searchapi.engine:}") String engine) {
+		SearchApiWebSearchEngine.SearchApiWebSearchEngineBuilder builder =
+				SearchApiWebSearchEngine.builder().apiKey(apiKey);
+		if (!engine.isEmpty()) {
+			builder.engine(engine);
+		}
+		return builder.build();
 	}
 
 	/** langchain4j-content-retriever 动态注册器：资源变更即增删 ContentRetriever 实例。 */
