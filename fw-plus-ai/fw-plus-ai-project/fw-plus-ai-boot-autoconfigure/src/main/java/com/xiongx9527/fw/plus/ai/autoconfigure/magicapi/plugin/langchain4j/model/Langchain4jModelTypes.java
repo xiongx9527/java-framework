@@ -4,6 +4,8 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.mode
 public enum Langchain4jModelTypes {
     CHAT_MODEL("langchain4j-chat-model"),
     STREAMING_CHAT_MODEL("langchain4j-streaming-chat-model"),
+    LANGUAGE_MODEL("langchain4j-language-model"),
+    STREAMING_LANGUAGE_MODEL("langchain4j-streaming-language-model"),
     EMBEDDING_MODEL("langchain4j-embedding-model"),
     SCORING_MODEL("langchain4j-scoring-model"),
     TOKENIZER("langchain4j-tokenizer"),

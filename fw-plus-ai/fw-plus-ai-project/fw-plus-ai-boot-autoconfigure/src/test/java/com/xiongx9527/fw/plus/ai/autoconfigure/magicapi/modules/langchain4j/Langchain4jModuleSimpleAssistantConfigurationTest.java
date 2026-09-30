@@ -6,9 +6,9 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.modul
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.module.Langchain4jContentRetrieverModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jStreamingChatModelModule;
 import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
-import dev.langchain4j.model.output.Response;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import org.junit.jupiter.api.Test;
@@ -34,7 +34,7 @@ class Langchain4jModuleSimpleAssistantConfigurationTest {
 
 	@Test
 	void injectsSimpleAssistantBeanFromConfiguredKeys() {
-		ChatLanguageModel chatModel = mockChatModel();
+		ChatModel chatModel = mockChatModel();
 		ChatMemoryStore memoryStore = mock(ChatMemoryStore.class);
 		Langchain4jChatModelModule chatModelModule = mock(Langchain4jChatModelModule.class);
 		when(chatModelModule.getDynamicAttribute("my-assistant")).thenReturn(chatModel);
@@ -78,7 +78,7 @@ class Langchain4jModuleSimpleAssistantConfigurationTest {
 	@Test
 	void usesTypeSpecificKeyOverDefaultKey() {
 		// 专属 key 覆盖默认 key：chatModel 只对专属 key 返回模型，默认 key 返回 null
-		ChatLanguageModel chatModel = mockChatModel();
+		ChatModel chatModel = mockChatModel();
 		Langchain4jChatModelModule chatModelModule = mock(Langchain4jChatModelModule.class);
 		when(chatModelModule.getDynamicAttribute("specific-key")).thenReturn(chatModel);
 
@@ -99,7 +99,7 @@ class Langchain4jModuleSimpleAssistantConfigurationTest {
 	@Test
 	void appliesTunableParametersFromProperties() {
 		// memory-max-messages / max-tokens / rerank-min-score 三个可调参数全部配置 → 装配成功
-		ChatLanguageModel chatModel = mockChatModel();
+		ChatModel chatModel = mockChatModel();
 		Langchain4jChatModelModule chatModelModule = mock(Langchain4jChatModelModule.class);
 		when(chatModelModule.getDynamicAttribute("my-assistant")).thenReturn(chatModel);
 		new ApplicationContextRunner()
@@ -133,7 +133,7 @@ class Langchain4jModuleSimpleAssistantConfigurationTest {
 	void skipsTypeWhenUseDefaultKeyDisabled() {
 		// use-default-key=false：只有专属 key 生效——chatModel 配专属 key 正常装配，
 		// 且 chatModelModule 对默认 key 返回 null 也无影响（不走默认 key）
-		ChatLanguageModel chatModel = mockChatModel();
+		ChatModel chatModel = mockChatModel();
 		Langchain4jChatModelModule chatModelModule = mock(Langchain4jChatModelModule.class);
 		when(chatModelModule.getDynamicAttribute("specific-key")).thenReturn(chatModel);
 
@@ -155,11 +155,11 @@ class Langchain4jModuleSimpleAssistantConfigurationTest {
 	@Test
 	void createsFiveSimpleAssistantObjectsInModuleConstructor() {
 		// langchain4jModule 构造里创建 5 个 SimpleAssistant：4 单能力 + 1 全能力
-		ChatLanguageModel chatModel = mockChatModel();
+		ChatModel chatModel = mockChatModel();
 		Langchain4jChatModelModule chatModelModule = mock(Langchain4jChatModelModule.class);
 		when(chatModelModule.getDynamicAttribute("my-assistant")).thenReturn(chatModel);
 		Langchain4jStreamingChatModelModule streamingModule = mock(Langchain4jStreamingChatModelModule.class);
-		when(streamingModule.getDynamicAttribute("my-assistant")).thenReturn(mock(StreamingChatLanguageModel.class));
+		when(streamingModule.getDynamicAttribute("my-assistant")).thenReturn(mock(StreamingChatModel.class));
 		Langchain4jContentRetrieverModule retrieverModule = mock(Langchain4jContentRetrieverModule.class);
 		when(retrieverModule.getDynamicAttribute("my-assistant"))
 				.thenReturn(query -> java.util.Collections.singletonList(dev.langchain4j.rag.content.Content.from("资料")));
@@ -185,9 +185,10 @@ class Langchain4jModuleSimpleAssistantConfigurationTest {
 				});
 	}
 
-	private static ChatLanguageModel mockChatModel() {
-		ChatLanguageModel model = mock(ChatLanguageModel.class);
-		when(model.generate(any(List.class))).thenReturn(Response.from(AiMessage.from("你好，我是助手")));
+	private static ChatModel mockChatModel() {
+		ChatModel model = mock(ChatModel.class);
+		when(model.doChat(any(dev.langchain4j.model.chat.request.ChatRequest.class))).thenReturn(ChatResponse.builder()
+				.aiMessage(AiMessage.from("你好，我是助手")).build());
 		return model;
 	}
 }

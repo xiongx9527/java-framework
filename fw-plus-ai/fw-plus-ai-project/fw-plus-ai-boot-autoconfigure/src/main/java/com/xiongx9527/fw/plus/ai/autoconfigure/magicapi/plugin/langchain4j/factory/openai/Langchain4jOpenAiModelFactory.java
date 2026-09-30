@@ -6,6 +6,8 @@ import dev.langchain4j.model.TokenCountEstimator;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
+import dev.langchain4j.model.openai.OpenAiLanguageModel;
+import dev.langchain4j.model.openai.OpenAiStreamingLanguageModel;
 import dev.langchain4j.model.openai.OpenAiTokenCountEstimator;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import java.util.List;
@@ -82,6 +84,35 @@ public class Langchain4jOpenAiModelFactory implements ModelFactory {
                 .user(o.string("user", null))
                 .timeout(o.duration("timeout", null))
                 .maxRetries(nullIfZero(o.integer("max-retries", null)))
+                .logRequests(o.bool("log-requests", null))
+                .logResponses(o.bool("log-responses", null))
+                .build();
+    }
+
+    @Override
+    public OpenAiLanguageModel buildLanguageModel(Langchain4jOptionsReader o) {
+        return OpenAiLanguageModel.builder()
+                .baseUrl(o.string("base-url", null))
+                .apiKey(o.required("api-key"))
+                .organizationId(o.string("organization-id", null))
+                .modelName(o.required("model-name"))
+                .temperature(o.dbl("temperature", DEFAULT_TEMPERATURE))
+                .timeout(o.duration("timeout", null))
+                .maxRetries(nullIfZero(o.integer("max-retries", null)))
+                .logRequests(o.bool("log-requests", null))
+                .logResponses(o.bool("log-responses", null))
+                .build();
+    }
+
+    @Override
+    public OpenAiStreamingLanguageModel buildStreamingLanguageModel(Langchain4jOptionsReader o) {
+        return OpenAiStreamingLanguageModel.builder()
+                .baseUrl(o.string("base-url", null))
+                .apiKey(o.required("api-key"))
+                .organizationId(o.string("organization-id", null))
+                .modelName(o.required("model-name"))
+                .temperature(o.dbl("temperature", DEFAULT_TEMPERATURE))
+                .timeout(o.duration("timeout", null))
                 .logRequests(o.bool("log-requests", null))
                 .logResponses(o.bool("log-responses", null))
                 .build();

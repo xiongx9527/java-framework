@@ -8,6 +8,10 @@ import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.model.StreamingResponseHandler;
+import dev.langchain4j.model.language.LanguageModel;
+import dev.langchain4j.model.language.StreamingLanguageModel;
+import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.PartialResponse;
 import dev.langchain4j.model.chat.response.PartialResponseContext;
@@ -108,38 +112,55 @@ public class SimpleAssistant {
 
 	private final StreamingChatModel streamingTextModel;
 
+	private final LanguageModel languageModel;
+
+	private final StreamingLanguageModel streamingLanguageModel;
+
 	private final RetrievalAugmentor retrievalAugmentor;
 
 	/**
-	 * 全量构造：底层 {@link Assistant} 与两类模型、检索增强都由调用方给定（不需要的可传 null），
+	 * 全量构造：底层 {@link Assistant} 与各模型、检索增强都由调用方给定（不需要的可传 null），
 	 * 便于把外部已有的模型实例装配进同一个封装对象。
 	 */
 	public SimpleAssistant(Assistant assistant, ChatModel chatModel, StreamingChatModel streamingTextModel,
+						   LanguageModel languageModel, StreamingLanguageModel streamingLanguageModel,
 						   RetrievalAugmentor retrievalAugmentor) {
 		this.assistant = assistant;
 		this.chatModel = chatModel;
 		this.streamingTextModel = streamingTextModel;
+		this.languageModel = languageModel;
+		this.streamingLanguageModel = streamingLanguageModel;
 		this.retrievalAugmentor = retrievalAugmentor;
 	}
 
 	/** 全能来源：{@code AiServices<Assistant>}（chat / stream / 记忆 / 工具 / 检索增强） */
 	public SimpleAssistant(Assistant assistant) {
-		this(assistant, null, null, null);
+		this(assistant, null, null, null, null, null);
 	}
 
 	/** 仅同步对话：{@code ChatModel}，无记忆、无流式 */
 	public SimpleAssistant(ChatModel chatModel) {
-		this(null, chatModel, null, null);
+		this(null, chatModel, null, null, null, null);
 	}
 
 	/** 仅流式对话：{@code StreamingChatModel}，逐段推送 */
 	public SimpleAssistant(StreamingChatModel streamingTextModel) {
-		this(null, null, streamingTextModel, null);
+		this(null, null, streamingTextModel, null, null, null);
+	}
+
+	/** 仅文本补全：{@code LanguageModel} */
+	public SimpleAssistant(LanguageModel languageModel) {
+		this(null, null, null, languageModel, null, null);
+	}
+
+	/** 仅流式补全：{@code StreamingLanguageModel}，逐段推送 */
+	public SimpleAssistant(StreamingLanguageModel streamingLanguageModel) {
+		this(null, null, null, null, streamingLanguageModel, null);
 	}
 
 	/** 仅检索：{@code RetrievalAugmentor}（不聊天、不调用对话大模型） */
 	public SimpleAssistant(RetrievalAugmentor retrievalAugmentor) {
-		this(null, null, null, retrievalAugmentor);
+		this(null, null, null, null, null, retrievalAugmentor);
 	}
 
 	/** 需要底层 {@link Assistant} 类型（如再挂别的 AiServices 能力）时取用 */
@@ -224,15 +245,15 @@ public class SimpleAssistant {
 		return chatModel().chat(messages).aiMessage().text();
 	}
 
-	// -------------------------------------------------- 文本补全（直连单轮对话）
+	// -------------------------------------------------- 文本补全（语言模型直连）
 
-	/** 一次性文本生成：用构造传入的 {@code ChatModel} 直接生成文本 */
+	/** 一次性文本补全：用构造传入的 {@code LanguageModel}（非对话模型）直接生成文本 */
 	public String generateText(String prompt) {
-		return chatModel().chat(prompt);
+		return languageModel().generate(prompt).content();
 	}
 
 	/**
-	 * 流式文本生成：用构造传入的 {@code StreamingChatModel} 逐段回调 {@code onToken}，
+	 * 流式文本补全：用构造传入的 {@code StreamingLanguageModel} 逐段回调 {@code onToken}，
 	 * 阻塞等待完成后返回完整文本。
 	 *
 	 * @param onToken 每段文本回调，可为 null
@@ -241,9 +262,9 @@ public class SimpleAssistant {
 		StringBuilder full = new StringBuilder();
 		java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(1);
 		java.util.concurrent.atomic.AtomicReference<Throwable> error = new java.util.concurrent.atomic.AtomicReference<>();
-		streamingTextModel().chat(prompt, new StreamingChatResponseHandler() {
+		streamingLanguageModel().generate(prompt, new StreamingResponseHandler<String>() {
 			@Override
-			public void onPartialResponse(String token) {
+			public void onNext(String token) {
 				full.append(token);
 				if (onToken != null) {
 					onToken.accept(token);
@@ -251,7 +272,7 @@ public class SimpleAssistant {
 			}
 
 			@Override
-			public void onCompleteResponse(ChatResponse response) {
+			public void onComplete(Response<String> response) {
 				done.countDown();
 			}
 
@@ -319,28 +340,12 @@ public class SimpleAssistant {
 			java.util.function.Consumer<String> onStarted, java.util.function.Consumer<String> onDone) {
 		SseEmitter emitter = new SseEmitter(0L);
 		String requestId = java.util.UUID.randomUUID().toString().replace("-", "");
-		// 客户端断开/超时后置位：后续事件不再推送；捕获到 StreamingHandle 后同时取消模型流式调用
+		// 客户端断开/超时后置位：后续 token 不再推送也不再消费。
+		// StreamingLanguageModel 的流式 API 无取消句柄，模型侧只能放弃消费（HTTP 流会自然结束）
 		java.util.concurrent.atomic.AtomicBoolean cancelled = new java.util.concurrent.atomic.AtomicBoolean(false);
-		AtomicReference<StreamingHandle> handleRef = new AtomicReference<>();
-		Runnable cancelStreaming = () -> {
-			StreamingHandle handle = handleRef.get();
-			if (handle != null && !handle.isCancelled()) {
-				handle.cancel();
-			}
-		};
-		emitter.onCompletion(() -> {
-			cancelled.set(true);
-			cancelStreaming.run();
-		});
-		emitter.onError(t -> {
-			cancelled.set(true);
-			cancelStreaming.run();
-		});
-		emitter.onTimeout(() -> {
-			cancelled.set(true);
-			cancelStreaming.run();
-		});
-		ThinkingSseTracker thinking = new ThinkingSseTracker();
+		emitter.onCompletion(() -> cancelled.set(true));
+		emitter.onError(t -> cancelled.set(true));
+		emitter.onTimeout(() -> cancelled.set(true));
 		try {
 			// 调用模型前先告知前端「已受理」；start 事件 data 默认为 requestId，调用方提供 startData 时用调用方的
 			Object start = startData != null ? startData : requestId;
@@ -355,44 +360,20 @@ public class SimpleAssistant {
 			}
 		}
 
-		streamingTextModel().chat(prompt, new StreamingChatResponseHandler() {
+		streamingLanguageModel().generate(prompt, new StreamingResponseHandler<String>() {
 			@Override
-			public void onPartialResponse(PartialResponse partial, PartialResponseContext context) {
-				captureHandle(handleRef, context == null ? null : context.streamingHandle(), cancelled);
-				onPartialResponse(partial.text());
-			}
-
-			@Override
-			public void onPartialResponse(String token) {
+			public void onNext(String token) {
 				if (cancelled.get()) {
 					return;
 				}
-				// 从思考转入回答：先结束思考轮
-				thinking.finish(emitter, cancelled, requestId);
 				sendEvent(emitter, cancelled, EVENT_TOKEN, requestId, token);
 			}
 
 			@Override
-			public void onPartialThinking(PartialThinking partialThinking, PartialThinkingContext context) {
-				captureHandle(handleRef, context == null ? null : context.streamingHandle(), cancelled);
-				onPartialThinking(partialThinking);
-			}
-
-			@Override
-			public void onPartialThinking(PartialThinking partialThinking) {
-				if (cancelled.get()) {
-					return;
-				}
-				thinking.delta(partialThinking.text(), emitter, cancelled, requestId);
-			}
-
-			@Override
-			public void onCompleteResponse(ChatResponse response) {
+			public void onComplete(Response<String> response) {
 				// done 事件带上完整回复文本：前端流式中途丢段时可兜底
-				String text = response == null || response.aiMessage() == null
-						|| response.aiMessage().text() == null
-						|| response.aiMessage().text().isEmpty()
-						? DONE_FALLBACK : response.aiMessage().text();
+				String text = response == null || response.content() == null || response.content().isEmpty()
+						? DONE_FALLBACK : response.content();
 				try {
 					if (!cancelled.get()) {
 						Object data = doneDataMapper != null ? doneDataMapper.apply(text) : text;
@@ -719,5 +700,19 @@ public class SimpleAssistant {
 			throw new IllegalStateException("未配置 StreamingChatModel：请用构造方法传入");
 		}
 		return streamingTextModel;
+	}
+
+	private LanguageModel languageModel() {
+		if (languageModel == null) {
+			throw new IllegalStateException("未配置 LanguageModel：请用构造方法传入");
+		}
+		return languageModel;
+	}
+
+	private StreamingLanguageModel streamingLanguageModel() {
+		if (streamingLanguageModel == null) {
+			throw new IllegalStateException("未配置 StreamingLanguageModel：请用构造方法传入");
+		}
+		return streamingLanguageModel;
 	}
 }

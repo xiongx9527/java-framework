@@ -3,7 +3,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.cont
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.contentinjector.module.Langchain4jContentInjectorModule;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import com.xiongx9527.fw.plus.common.util.StringUtils;
-import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.injector.ContentInjector;
 
@@ -37,7 +37,7 @@ public class MagicDynamicContentInjector implements ContentInjector {
     }
 
     @Override
-    public UserMessage inject(List<Content> contents, UserMessage userMessage) {
-        return getContentInjector().inject(contents, userMessage);
+    public ChatMessage inject(List<Content> contents, ChatMessage chatMessage) {
+        return getContentInjector().inject(contents, chatMessage);
     }
 }

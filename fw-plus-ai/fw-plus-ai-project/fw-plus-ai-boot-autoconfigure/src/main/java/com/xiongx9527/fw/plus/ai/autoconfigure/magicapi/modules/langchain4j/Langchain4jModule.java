@@ -2,7 +2,11 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant.AssistantBuilder;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant.SimpleAssistant;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jStreamingChatModelModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicChatModel;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLanguageModel;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicStreamingLanguageModel;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jLanguageModelModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jStreamingLanguageModelModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.MagicDynamicContentRetriever;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jChatModelModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.module.Langchain4jContentRetrieverModule;
@@ -59,8 +63,8 @@ public class Langchain4jModule {
 
 	public Langchain4jModule(Langchain4jSimpleAssistantProperties properties,
 			ObjectProvider<Langchain4jChatModelModule> chatModelModules,
-			ObjectProvider<Langchain4jChatModelModule> languageModelModules,
-			ObjectProvider<Langchain4jStreamingChatModelModule> streamingLanguageModelModules,
+			ObjectProvider<Langchain4jLanguageModelModule> languageModelModules,
+			ObjectProvider<Langchain4jStreamingLanguageModelModule> streamingLanguageModelModules,
 			ObjectProvider<Langchain4jContentRetrieverModule> contentRetrieverModules,
 			SimpleAssistant simpleAssistant) {
 		String key = properties == null ? null : properties.getKey();
@@ -74,7 +78,7 @@ public class Langchain4jModule {
 				module -> new SimpleAssistant(new MagicDynamicLanguageModel(module, key)));
 		this.streamingLanguageAssistant = create(
 				module(streamingLanguageModelModules),
-				module -> new SimpleAssistant(new MagicDynamicStreamingChatModel(module, key)));
+				module -> new SimpleAssistant(new MagicDynamicStreamingLanguageModel(module, key)));
 		this.retrievalAssistant = create(
 				module(contentRetrieverModules),
 				module -> new SimpleAssistant(DefaultRetrievalAugmentor.builder()

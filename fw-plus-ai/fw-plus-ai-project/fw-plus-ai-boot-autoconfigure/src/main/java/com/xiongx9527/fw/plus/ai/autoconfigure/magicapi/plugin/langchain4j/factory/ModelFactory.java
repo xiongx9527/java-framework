@@ -2,11 +2,14 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.fact
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
 import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.model.StreamingResponseHandler;
 import dev.langchain4j.model.TokenCountEstimator;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.model.language.LanguageModel;
+import dev.langchain4j.model.language.StreamingLanguageModel;
 import dev.langchain4j.model.scoring.ScoringModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import java.util.List;
@@ -40,6 +43,12 @@ public interface ModelFactory {
 
     /** token 估算器：openai / azure-openai / qwen 支持，其余 provider 默认不支持 */
     default TokenCountEstimator buildTokenizer(Langchain4jOptionsReader o) { throw unsupported(); }
+
+    /** 文本补全模型：openai / azure-openai / qwen 支持，其余 provider 默认不支持 */
+    default LanguageModel buildLanguageModel(Langchain4jOptionsReader o) { throw unsupported(); }
+
+    /** 流式文本补全模型：openai / azure-openai / qwen 支持，其余 provider 默认不支持 */
+    default StreamingLanguageModel buildStreamingLanguageModel(Langchain4jOptionsReader o) { throw unsupported(); }
 
     /** rerank 重排模型：jina / cohere 支持，其余 provider 默认不支持 */
     default ScoringModel buildScoringModel(Langchain4jOptionsReader o) { throw unsupported(); }

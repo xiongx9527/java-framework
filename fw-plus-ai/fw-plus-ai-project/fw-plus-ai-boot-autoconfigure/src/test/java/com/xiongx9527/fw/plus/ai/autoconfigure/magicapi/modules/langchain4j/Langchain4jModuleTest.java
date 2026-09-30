@@ -149,8 +149,8 @@ class Langchain4jModuleTest {
         }
 
         @Override
-        public dev.langchain4j.model.chat.response.ChatResponse chat(java.util.List<ChatMessage> messages) {
-            requests.add(new ArrayList<>(messages));
+        public dev.langchain4j.model.chat.response.ChatResponse doChat(dev.langchain4j.model.chat.request.ChatRequest request) {
+            requests.add(new ArrayList<>(request.messages()));
             int index = Math.min(requests.size() - 1, replies.size() - 1);
             return dev.langchain4j.model.chat.response.ChatResponse.builder()
                     .aiMessage(AiMessage.from(replies.get(index)))

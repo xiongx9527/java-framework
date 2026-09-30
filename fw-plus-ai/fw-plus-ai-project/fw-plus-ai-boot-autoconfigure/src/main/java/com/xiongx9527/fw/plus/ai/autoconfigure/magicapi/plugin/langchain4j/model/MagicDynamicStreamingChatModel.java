@@ -3,19 +3,16 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.mode
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jStreamingChatModelModule;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import com.xiongx9527.fw.plus.common.util.StringUtils;
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.model.StreamingResponseHandler;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
-
-import java.util.List;
+import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 
 /**
- * {@link StreamingChatLanguageModel} 的动态代理：持有脚本模块与资源 key，每次调用实时解析
+ * {@link StreamingChatModel} 的动态代理：持有脚本模块与资源 key，每次调用实时解析
  * 当前实例，magic 资源热更新/注销后不持有失效引用。解析失败回落容器中的流式模型 bean
  * （key 空取默认、非空按 bean 名），与 {@code MagicDynamicChatMemoryStore} 的兜底语义一致。
  */
-public class MagicDynamicStreamingChatModel implements StreamingChatLanguageModel {
+public class MagicDynamicStreamingChatModel implements StreamingChatModel {
 
     private final Langchain4jStreamingChatModelModule streamingChatModelModule;
 
@@ -27,19 +24,19 @@ public class MagicDynamicStreamingChatModel implements StreamingChatLanguageMode
         this.key = key;
     }
 
-    private StreamingChatLanguageModel getStreamingChatModel() {
+    private StreamingChatModel getStreamingChatModel() {
         try {
             return streamingChatModelModule.getDynamicAttribute(key);
         } catch (Exception e) {
             if (StringUtils.isEmpty(key)) {
-                return SpringUtils.getBean(StreamingChatLanguageModel.class);
+                return SpringUtils.getBean(StreamingChatModel.class);
             }
-            return SpringUtils.getBean(key, StreamingChatLanguageModel.class);
+            return SpringUtils.getBean(key, StreamingChatModel.class);
         }
     }
 
     @Override
-    public void generate(List<ChatMessage> messages, StreamingResponseHandler<AiMessage> handler) {
-        getStreamingChatModel().generate(messages, handler);
+    public void doChat(ChatRequest request, StreamingChatResponseHandler handler) {
+        getStreamingChatModel().doChat(request, handler);
     }
 }

@@ -4,6 +4,8 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.facto
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
 import dev.langchain4j.model.azure.AzureOpenAiChatModel;
 import dev.langchain4j.model.azure.AzureOpenAiEmbeddingModel;
+import dev.langchain4j.model.azure.AzureOpenAiLanguageModel;
+import dev.langchain4j.model.azure.AzureOpenAiStreamingLanguageModel;
 import dev.langchain4j.model.azure.AzureOpenAiTokenCountEstimator;
 import dev.langchain4j.model.azure.AzureOpenAiStreamingChatModel;
 import dev.langchain4j.model.TokenCountEstimator;
@@ -72,6 +74,31 @@ public class Langchain4jAzureOpenAiModelFactory implements ModelFactory {
                 .deploymentName(o.required("deployment-name"))
                 .timeout(o.duration("timeout", null))
                 .maxRetries(nullIfZero(o.integer("max-retries", null)))
+                .logRequestsAndResponses(o.bool("log-requests-and-responses", null))
+                .build();
+    }
+
+    @Override
+    public AzureOpenAiLanguageModel buildLanguageModel(Langchain4jOptionsReader o) {
+        return AzureOpenAiLanguageModel.builder()
+                .endpoint(o.required("endpoint"))
+                .apiKey(o.required("api-key"))
+                .deploymentName(o.required("deployment-name"))
+                .temperature(o.dbl("temperature", null))
+                .timeout(o.duration("timeout", null))
+                .maxRetries(nullIfZero(o.integer("max-retries", null)))
+                .logRequestsAndResponses(o.bool("log-requests-and-responses", null))
+                .build();
+    }
+
+    @Override
+    public AzureOpenAiStreamingLanguageModel buildStreamingLanguageModel(Langchain4jOptionsReader o) {
+        return AzureOpenAiStreamingLanguageModel.builder()
+                .endpoint(o.required("endpoint"))
+                .apiKey(o.required("api-key"))
+                .deploymentName(o.required("deployment-name"))
+                .temperature(o.dbl("temperature", null))
+                .timeout(o.duration("timeout", null))
                 .logRequestsAndResponses(o.bool("log-requests-and-responses", null))
                 .build();
     }

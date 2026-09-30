@@ -3,10 +3,12 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.fact
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jChatModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jEmbeddingModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jEmbeddingStoreInfo;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jLanguageModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jScoringModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jStreamingChatModelInfo;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jStreamingLanguageModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jTokenizerInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
 import dev.langchain4j.data.segment.TextSegment;
@@ -15,6 +17,8 @@ import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.model.language.LanguageModel;
+import dev.langchain4j.model.language.StreamingLanguageModel;
 import dev.langchain4j.model.scoring.ScoringModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 
@@ -83,6 +87,10 @@ public class Langchain4jModelFactoryRegistry {
                 return factory.buildChatModel(reader, listeners);
             case STREAMING_CHAT_MODEL:
                 return factory.buildStreamingChatModel(reader, listeners);
+            case LANGUAGE_MODEL:
+                return factory.buildLanguageModel(reader);
+            case STREAMING_LANGUAGE_MODEL:
+                return factory.buildStreamingLanguageModel(reader);
             case EMBEDDING_MODEL:
                 return factory.buildEmbeddingModel(reader);
             case SCORING_MODEL:
@@ -105,6 +113,14 @@ public class Langchain4jModelFactoryRegistry {
 
     public StreamingChatModel buildStreamingChatModel(Langchain4jStreamingChatModelInfo info) {
         return (StreamingChatModel) build(Langchain4jModelTypes.STREAMING_CHAT_MODEL, info);
+    }
+
+    public LanguageModel buildLanguageModel(Langchain4jLanguageModelInfo info) {
+        return (LanguageModel) build(Langchain4jModelTypes.LANGUAGE_MODEL, info);
+    }
+
+    public StreamingLanguageModel buildStreamingLanguageModel(Langchain4jStreamingLanguageModelInfo info) {
+        return (StreamingLanguageModel) build(Langchain4jModelTypes.STREAMING_LANGUAGE_MODEL, info);
     }
     public EmbeddingModel buildEmbeddingModel(Langchain4jEmbeddingModelInfo info) {
         return (EmbeddingModel) build(Langchain4jModelTypes.EMBEDDING_MODEL, info);
@@ -133,6 +149,8 @@ public class Langchain4jModelFactoryRegistry {
             switch (type) {
                 case CHAT_MODEL: factory.buildChatModel(PROBE, Collections.<ChatModelListener>emptyList()); break;
                 case STREAMING_CHAT_MODEL: factory.buildStreamingChatModel(PROBE, Collections.<ChatModelListener>emptyList()); break;
+                case LANGUAGE_MODEL: factory.buildLanguageModel(PROBE); break;
+                case STREAMING_LANGUAGE_MODEL: factory.buildStreamingLanguageModel(PROBE); break;
                 case EMBEDDING_MODEL: factory.buildEmbeddingModel(PROBE); break;
                 case SCORING_MODEL: factory.buildScoringModel(PROBE); break;
                 case TOKENIZER: factory.buildTokenizer(PROBE); break;

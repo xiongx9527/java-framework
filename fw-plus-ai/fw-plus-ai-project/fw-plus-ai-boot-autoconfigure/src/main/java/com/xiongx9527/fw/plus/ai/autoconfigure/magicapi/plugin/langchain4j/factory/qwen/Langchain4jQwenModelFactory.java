@@ -6,6 +6,8 @@ import dev.langchain4j.model.TokenCountEstimator;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.community.model.dashscope.QwenChatModel;
 import dev.langchain4j.community.model.dashscope.QwenEmbeddingModel;
+import dev.langchain4j.community.model.dashscope.QwenLanguageModel;
+import dev.langchain4j.community.model.dashscope.QwenStreamingLanguageModel;
 import dev.langchain4j.community.model.dashscope.QwenTokenCountEstimator;
 import dev.langchain4j.community.model.dashscope.QwenStreamingChatModel;
 import java.util.Collections;
@@ -72,6 +74,40 @@ public class Langchain4jQwenModelFactory implements ModelFactory {
                 .baseUrl(o.string("base-url", DEFAULT_BASE_URL))
                 .apiKey(o.required("api-key"))
                 .modelName(o.string("model-name", DEFAULT_EMBEDDING_MODEL))
+                .build();
+    }
+
+    @Override
+    public QwenLanguageModel buildLanguageModel(Langchain4jOptionsReader o) {
+        return QwenLanguageModel.builder()
+                .baseUrl(o.string("base-url", DEFAULT_BASE_URL))
+                .apiKey(o.required("api-key"))
+                .modelName(o.string("model-name", DEFAULT_MODEL))
+                .temperature(o.floatValue("temperature", DEFAULT_TEMPERATURE))
+                .topP(o.dbl("top-p", null))
+                .topK(nullIfZero(o.integer("top-k", null)))
+                .enableSearch(o.bool("enable-search", false))
+                .seed(nullIfZero(o.integer("seed", null)))
+                .repetitionPenalty(o.floatValue("repetition-penalty", null))
+                .stops(o.stringList("stops", Collections.<String>emptyList()))
+                .maxTokens(nullIfZero(o.integer("max-tokens", null)))
+                .build();
+    }
+
+    @Override
+    public QwenStreamingLanguageModel buildStreamingLanguageModel(Langchain4jOptionsReader o) {
+        return QwenStreamingLanguageModel.builder()
+                .baseUrl(o.string("base-url", DEFAULT_BASE_URL))
+                .apiKey(o.required("api-key"))
+                .modelName(o.string("model-name", DEFAULT_MODEL))
+                .temperature(o.floatValue("temperature", DEFAULT_TEMPERATURE))
+                .topP(o.dbl("top-p", null))
+                .topK(nullIfZero(o.integer("top-k", null)))
+                .enableSearch(o.bool("enable-search", false))
+                .seed(nullIfZero(o.integer("seed", null)))
+                .repetitionPenalty(o.floatValue("repetition-penalty", null))
+                .stops(o.stringList("stops", Collections.<String>emptyList()))
+                .maxTokens(nullIfZero(o.integer("max-tokens", null)))
                 .build();
     }
 
