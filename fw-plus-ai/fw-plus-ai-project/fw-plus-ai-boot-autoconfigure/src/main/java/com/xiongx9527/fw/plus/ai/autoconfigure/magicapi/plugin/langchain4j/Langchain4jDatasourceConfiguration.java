@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.ajmcpclient.Langchain4jAjMcpClientConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.chatmemorystore.Langchain4jChatMemoryStoreConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.contentinjector.Langchain4jContentInjectorConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.Langchain4jContentRetrieverConfiguration;
@@ -40,6 +41,7 @@ import org.ssssssss.magicapi.core.service.MagicResourceService;
         Langchain4jTokenizerConfiguration.class,
         Langchain4jEmbeddingStoreConfiguration.class,
         Langchain4jToolProviderConfiguration.class,
+        Langchain4jAjMcpClientConfiguration.class,
         Langchain4jSystemMessageProviderConfiguration.class,
         Langchain4jChatMemoryStoreConfiguration.class,
         Langchain4jContentRetrieverConfiguration.class,

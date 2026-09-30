@@ -5,7 +5,7 @@
 This release line keeps only the LangChain4j Java 8 compatibility overlays and the Boot auto-configuration:
 
 - `fw-plus-ai-langchain4j`, `fw-plus-ai-langchain4j-*`: Java 8 compatible provider overlays for LangChain4j `0.35.0`, preserving the upstream `dev.langchain4j.*` package and class names.
-- `fw-plus-ai-boot-autoconfigure`: classpath-conditional provider auto-configurations (master switch `fw.plus.ai.langchain4j.enabled`), plus MCP server, MCP clustering and the Magic-API MCP plugin.
+- `fw-plus-ai-boot-autoconfigure`: classpath-conditional provider auto-configurations (master switch `fw.plus.ai.langchain4j.enabled`), plus MCP server, MCP clustering and the Magic-API MCP plugin. Also supports injecting a `SimpleAssistant` bean from configuration (`fw.plus.magicapi.langchain4j.simple-assistant.*`: `enabled` switch, `key` default key, `keys.<type>` type-specific keys; resources are wrapped in MagicDynamic dynamic proxies that resolve on each call, so magic instance hot-reloads/removals never leave stale references).
 - `fw-plus-ai-magicapi-plugin-mcp-server`: Magic-API MCP plugin.
 - Magic-API plugin (langchain4j / mcp) web endpoints support both Servlet and WebFlux: in WebFlux applications (`spring.main.web-application-type=reactive`) they are assembled by the Boot-layer reactive engine, with endpoint paths identical to the Servlet stack. Known limitation: the magic-editor workbench WebSocket live debugging is unavailable under WebFlux (the rest of the console works normally).
 - Aggregators: `fw-plus-ai-boot-starter`, `fw-plus-ai-mcp-server-spring-boot-starter`.
