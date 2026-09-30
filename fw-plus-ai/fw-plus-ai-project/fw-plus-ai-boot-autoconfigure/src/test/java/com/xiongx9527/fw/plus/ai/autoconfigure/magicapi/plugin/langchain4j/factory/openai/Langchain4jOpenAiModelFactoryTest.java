@@ -56,7 +56,8 @@ class Langchain4jOpenAiModelFactoryTest {
         OpenAiChatModel model = factory.buildChatModel(reader(options("api-key", "sk-test", "model-name", "gpt-4o")),
                 Collections.singletonList(listener));
 
-        assertThat((java.util.List<?>) field(model, "listeners")).containsExactly(listener);
+        java.util.List<?> listenersInModel = (java.util.List<?>) field(model, "listeners");
+        assertThat(listenersInModel).hasSize(1).first().isEqualTo(listener);
     }
 
     @Test
