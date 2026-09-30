@@ -114,6 +114,21 @@ public class Langchain4jContentRetrieverConfiguration extends AbstractLangchain4
 		return new Langchain4jContentRetrieverMagicResourceStorage(providers.providers());
 	}
 
+	/**
+	 * 默认 web 搜索引擎：DuckDuckGo（免费、无需 API key）。web-search 数据源 options
+	 * 未配置 {@code search-function} 且容器中没有其它 {@link WebSearchEngine} 实例时使用；
+	 * 通过 {@code fw.plus.magicapi.langchain4j.web-search-engine=none} 关闭，
+	 * 自行注册引擎实例时本 bean 自动让位。
+	 */
+	@Bean
+	@ConditionalOnMissingBean(WebSearchEngine.class)
+	@ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.web-search-engine", name = "provider",
+			havingValue = "duckduckgo", matchIfMissing = true)
+	public WebSearchEngine duckDuckGoWebSearchEngine() {
+		return dev.langchain4j.community.web.search.duckduckgo.DuckDuckGoWebSearchEngine.builder()
+				.build();
+	}
+
 	/** langchain4j-content-retriever 动态注册器：资源变更即增删 ContentRetriever 实例。 */
 	@Bean
 	@ConditionalOnMissingBean
