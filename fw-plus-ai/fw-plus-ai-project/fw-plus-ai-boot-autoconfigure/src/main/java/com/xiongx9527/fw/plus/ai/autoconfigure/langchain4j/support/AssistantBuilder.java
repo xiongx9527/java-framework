@@ -41,8 +41,30 @@ import java.util.function.Function;
  */
 public class AssistantBuilder {
 
+	/** 只检索模式：不装配对话大模型，build() 产出仅支持 retrieve(...) 的 {@link SimpleAssistant} */
+	private final boolean retrievalOnly;
+
 	/** 进程内记忆的默认窗口（条） */
 	private static final int DEFAULT_MEMORY_MAX_MESSAGES = 20;
+
+	/** 常规构建：对话 + 检索增强（默认） */
+	public AssistantBuilder() {
+		this(false);
+	}
+
+	/**
+	 * 构造方式参数：{@code retrievalOnly=true} 时为只检索模式——
+	 * 不装配对话大模型（无 AiServices），build() 产出仅支持 {@code retrieve(...)} 的 SimpleAssistant，
+	 * 必须配置 {@link #contentRetriever(ContentRetriever)} 或 {@link #retrievalAugmentor(RetrievalAugmentor)}。
+	 */
+	public AssistantBuilder(boolean retrievalOnly) {
+		this.retrievalOnly = retrievalOnly;
+	}
+
+	/** 只检索模式的便捷入口，等价于 {@code new AssistantBuilder(true)} */
+	public static AssistantBuilder retrievalOnly() {
+		return new AssistantBuilder(true);
+	}
 
 	private ChatLanguageModel chatModel;
 
@@ -64,7 +86,7 @@ public class AssistantBuilder {
 
 	private final List<Object> tools = new ArrayList<>();
 
-	private ToolProvider toolProvider;
+	private final List<ToolProvider> toolProviders = new ArrayList<>();
 
 	private RetrievalAugmentor retrievalAugmentor;
 
@@ -135,17 +157,33 @@ public class AssistantBuilder {
 		return this;
 	}
 
-	/** 工具：带 {@code @Tool} 方法的对象，可传多个 */
+	/** 工具：带 {@code @Tool} 方法的对象，可传多个。同类型工具按“后注册覆盖先注册”去重，避免重复调用注册出多份 */
 	public AssistantBuilder tools(Object... toolObjects) {
 		if (toolObjects != null) {
-			this.tools.addAll(Arrays.asList(toolObjects));
+			for (Object tool : toolObjects) {
+				if (tool == null) {
+					continue;
+				}
+				this.tools.removeIf(tool.getClass()::isInstance);
+				this.tools.add(tool);
+			}
 		}
 		return this;
 	}
 
-	/** 工具：{@code langchain4jToolProvider['key']}（magic-api 的 api/function 暴露成 ToolProvider） */
-	public AssistantBuilder toolProvider(ToolProvider provider) {
-		this.toolProvider = provider;
+	/**
+	 * 工具提供者：可调用多次累积（如同时挂 magic-api 的 {@code langchain4jToolProvider['key']} 与
+	 * MCP 客户端等），同一实例重复添加会被忽略。0.35 的 AiServices 只接受单个 toolProvider，
+	 * 多个时由 {@link AggregatingToolProvider} 聚合成一个。
+	 */
+	public AssistantBuilder toolProvider(ToolProvider... providers) {
+		if (providers != null) {
+			for (ToolProvider provider : providers) {
+				if (provider != null && !this.toolProviders.contains(provider)) {
+					this.toolProviders.add(provider);
+				}
+			}
+		}
 		return this;
 	}
 
@@ -188,8 +226,9 @@ public class AssistantBuilder {
 	 * 需要底层 {@link Assistant} 类型时用 {@link #toAssistant()}。
 	 */
 	public SimpleAssistant build() {
-		// 第 4 参是文本补全的 StreamingLanguageModel，builder 不配置（对话流式走 assistant.stream）
-		return new SimpleAssistant(assemble(), chatModel, null, null);
+		// RetrievalAugmentor 从 builder 装配结果传入：常规模式随 AiServices 一起走检索增强，
+		// 只检索模式（retrievalOnly）则产出仅支持 retrieve(...) 的 SimpleAssistant
+		return new SimpleAssistant(assemble(), chatModel, null, null, resolveRetrievalAugmentor());
 	}
 
 	/** 需要底层 {@link Assistant} 类型（如继续挂 AiServices 能力）时取用 */
@@ -198,6 +237,10 @@ public class AssistantBuilder {
 	}
 
 	private Assistant assemble() {
+		if (retrievalOnly) {
+			// 只检索模式：不装配对话大模型
+			return null;
+		}
 		if (chatModel == null && streamingModel == null) {
 			throw new IllegalArgumentException("构建助手缺少模型：请至少调用 chatModel(...) 或 streamingModel(...) 之一指定");
 		}
@@ -216,8 +259,10 @@ public class AssistantBuilder {
 		if (!tools.isEmpty()) {
 			builder.tools(tools);
 		}
-		if (toolProvider != null) {
-			builder.toolProvider(toolProvider);
+		if (toolProviders.size() == 1) {
+			builder.toolProvider(toolProviders.get(0));
+		} else if (toolProviders.size() > 1) {
+			builder.toolProvider(new AggregatingToolProvider(toolProviders));
 		}
 		RetrievalAugmentor augmentor = resolveRetrievalAugmentor();
 		if (augmentor != null) {

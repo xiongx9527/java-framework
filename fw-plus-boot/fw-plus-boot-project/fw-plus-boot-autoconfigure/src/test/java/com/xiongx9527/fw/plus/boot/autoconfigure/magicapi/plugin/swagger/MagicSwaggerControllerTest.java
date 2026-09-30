@@ -1,8 +1,7 @@
-package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.webflux;
+package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger;
 
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.MagicSwaggerConfiguration;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.SwaggerConfig;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.entity.SwaggerEntity;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.web.MagicSwaggerController;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ReactiveWebApplicationContextRunner;
@@ -27,11 +26,11 @@ import java.nio.charset.StandardCharsets;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * swagger 插件 webflux 栈支线契约测试：
+ * swagger 插件统一控制器契约测试（栈无关配置类 + {@code MagicSwaggerController}）：
  * 文档端点注册与 HTTP 访问、Swagger 2.0 文档生成、location 覆盖、开关、
- * 控制台插件清单、两条栈支线互斥、自动配置引导登记、knife4j webflux UI 依赖。
+ * 控制台插件清单、双栈装配、自动配置引导登记、knife4j webflux UI 依赖。
  */
-class MagicSwaggerWebFluxTest {
+class MagicSwaggerControllerTest {
 
 	private static final String SWAGGER_LOCATION = "/v2/api-docs/magic-api/swagger2.json";
 
@@ -44,7 +43,7 @@ class MagicSwaggerWebFluxTest {
 				.withConfiguration(AutoConfigurations.of(
 						org.springframework.boot.autoconfigure.web.reactive.WebFluxAutoConfiguration.class,
 						com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.webflux.MagicAPIWebFluxAutoConfiguration.class,
-						MagicSwaggerWebFluxConfiguration.class))
+						MagicSwaggerConfiguration.class))
 				.withUserConfiguration(SpringDocStubConfiguration.class)
 				.withPropertyValues(allProperties);
 	}
@@ -76,11 +75,7 @@ class MagicSwaggerWebFluxTest {
 	@Test
 	void buildsSwaggerDocumentFromReactiveRegistry() {
 		reactiveRunner().run(context -> {
-			MagicSwaggerWebFluxController controller = new MagicSwaggerWebFluxController(
-					context.getBean(SwaggerConfig.class),
-					context.getBean(MagicResourceService.class),
-					context.getBean(MagicAPIProperties.class),
-					context);
+			MagicSwaggerController controller = context.getBean(MagicSwaggerController.class);
 			SwaggerEntity document = controller.swaggerJson();
 			assertThat(document.getSwagger()).isEqualTo("2.0");
 			assertThat(document.getInfo()).isNotNull();
@@ -102,7 +97,7 @@ class MagicSwaggerWebFluxTest {
 	@Test
 	void registersNoSwaggerEndpointWhenPluginDisabled() {
 		reactiveRunner("magic-api.plugin.swagger.enabled=false").run(context -> {
-			assertThat(context).doesNotHaveBean(MagicSwaggerWebFluxConfiguration.class);
+			assertThat(context).doesNotHaveBean(MagicSwaggerConfiguration.class);
 			RequestMappingHandlerMapping mapping = context.getBean("requestMappingHandlerMapping",
 					RequestMappingHandlerMapping.class);
 			assertThat(mapping.getHandlerMethods().keySet())
@@ -125,35 +120,30 @@ class MagicSwaggerWebFluxTest {
 	@Test
 	void collectsSwaggerPluginDescriptorForWebfluxConsole() {
 		reactiveRunner().run(context -> assertThat(
-				context.getBean(MagicSwaggerWebFluxConfiguration.class).plugin().getName()).isEqualTo("swagger"));
+				context.getBean(MagicSwaggerConfiguration.class).plugin().getName()).isEqualTo("swagger"));
 	}
 
 	@Test
-	void keepsSwaggerWebFluxConfigurationOutOfServletApplications() {
+	void loadsUnifiedSwaggerConfigurationInBothWebStacks() {
+		reactiveRunner().run(context -> assertThat(context)
+				.hasSingleBean(MagicSwaggerConfiguration.class));
 		new WebApplicationContextRunner()
-				.withConfiguration(AutoConfigurations.of(MagicSwaggerWebFluxConfiguration.class))
-				.withUserConfiguration(SpringDocStubConfiguration.class)
-				.run(context -> assertThat(context)
-						.doesNotHaveBean(MagicSwaggerWebFluxConfiguration.class));
-	}
-
-	@Test
-	void keepsServletSwaggerConfigurationOutOfReactiveApplications() {
-		new ReactiveWebApplicationContextRunner()
 				.withConfiguration(AutoConfigurations.of(MagicSwaggerConfiguration.class))
+				.withBean(MagicResourceService.class, () -> org.mockito.Mockito.mock(MagicResourceService.class))
+				.withBean(javax.servlet.ServletContext.class, () -> org.mockito.Mockito.mock(javax.servlet.ServletContext.class))
+				.withBean(MagicAPIProperties.class, MagicAPIProperties::new)
 				.withUserConfiguration(SpringDocStubConfiguration.class)
 				.run(context -> assertThat(context)
-						.doesNotHaveBean(MagicSwaggerConfiguration.class));
+						.hasSingleBean(MagicSwaggerConfiguration.class));
 	}
 
 	@Test
-	void autoConfigurationImportsRegisterWebfluxSwaggerConfig() throws Exception {
-		ClassPathResource imports = new ClassPathResource(
-				"META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports");
-		assertThat(imports.exists()).isTrue();
-		try (InputStream in = imports.getInputStream()) {
+	void springFactoriesRegisterUnifiedSwaggerConfig() throws Exception {
+		ClassPathResource factories = new ClassPathResource("META-INF/spring.factories");
+		assertThat(factories.exists()).isTrue();
+		try (InputStream in = factories.getInputStream()) {
 			String content = new String(StreamUtils.copyToByteArray(in), StandardCharsets.UTF_8);
-			assertThat(content).contains(MagicSwaggerWebFluxConfiguration.class.getName());
+			assertThat(content).contains(MagicSwaggerConfiguration.class.getName());
 		}
 	}
 

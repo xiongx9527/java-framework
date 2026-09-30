@@ -21,7 +21,7 @@ class PluginFrontendMetadataTest {
 
 	@Test
 	void swaggerDoesNotExposeMissingFrontendResource() {
-		Plugin plugin = new MagicSwaggerConfiguration(null, null, null, null, null).plugin();
+		Plugin plugin = new MagicSwaggerConfiguration(null, null, null, null, null, null, null).plugin();
 
 		assertBackendOnlyMetadata(plugin, "swagger");
 	}

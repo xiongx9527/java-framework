@@ -8,8 +8,13 @@ import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.model.language.StreamingLanguageModel;
 import dev.langchain4j.model.output.Response;
+import dev.langchain4j.rag.AugmentationRequest;
+import dev.langchain4j.rag.AugmentationResult;
+import dev.langchain4j.rag.RetrievalAugmentor;
+import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.service.TokenStream;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -75,41 +80,79 @@ public class SimpleAssistant {
 
 	private final StreamingLanguageModel streamingLanguageModel;
 
+	private final RetrievalAugmentor retrievalAugmentor;
+
 	/**
-	 * 全量构造：底层 {@link Assistant} 与三类模型都由调用方给定（不需要的可传 null），
+	 * 全量构造：底层 {@link Assistant} 与各模型、检索增强都由调用方给定（不需要的可传 null），
 	 * 便于把外部已有的模型实例装配进同一个封装对象。
 	 */
 	public SimpleAssistant(Assistant assistant, ChatLanguageModel chatModel,
-						   LanguageModel languageModel, StreamingLanguageModel streamingLanguageModel) {
+						   LanguageModel languageModel, StreamingLanguageModel streamingLanguageModel,
+						   RetrievalAugmentor retrievalAugmentor) {
 		this.assistant = assistant;
 		this.chatModel = chatModel;
 		this.languageModel = languageModel;
 		this.streamingLanguageModel = streamingLanguageModel;
+		this.retrievalAugmentor = retrievalAugmentor;
 	}
 
 	/** 全能来源：{@code AiServices<Assistant>}（chat / stream / 记忆 / 工具 / 检索增强） */
 	public SimpleAssistant(Assistant assistant) {
-		this(assistant, null, null, null);
+		this(assistant, null, null, null, null);
 	}
 
 	/** 仅同步对话：{@code ChatLanguageModel}，无记忆、无流式 */
 	public SimpleAssistant(ChatLanguageModel chatModel) {
-		this(null, chatModel, null, null);
+		this(null, chatModel, null, null, null);
 	}
 
 	/** 仅文本补全：{@code LanguageModel} */
 	public SimpleAssistant(LanguageModel languageModel) {
-		this(null, null, languageModel, null);
+		this(null, null, languageModel, null, null);
 	}
 
 	/** 仅流式补全：{@code StreamingLanguageModel}，逐段推送 */
 	public SimpleAssistant(StreamingLanguageModel streamingLanguageModel) {
-		this(null, null, null, streamingLanguageModel);
+		this(null, null, null, streamingLanguageModel, null);
+	}
+
+	/** 仅检索：{@code RetrievalAugmentor}（不聊天、不调用对话大模型） */
+	public SimpleAssistant(RetrievalAugmentor retrievalAugmentor) {
+		this(null, null, null, null, retrievalAugmentor);
 	}
 
 	/** 需要底层 {@link Assistant} 类型（如再挂别的 AiServices 能力）时取用 */
 	public Assistant toAssistant() {
 		return assistant;
+	}
+
+	// -------------------------------------------------- 只检索（不调用对话大模型）
+
+	/**
+	 * 只检索：对问题走检索增强链（contentRetriever / 配置了 scoringModel 时含 rerank 重排），
+	 * 返回命中的内容列表；不调用对话大模型、不产生回复、不写会话记忆。
+	 * 仅检索构造（{@link #SimpleAssistant(RetrievalAugmentor)} 或
+	 * {@code AssistantBuilder.retrievalOnly()}）下可用。
+	 */
+	public List<Content> retrieve(String message) {
+		return retrieve(DEFAULT_MEMORY_ID, message);
+	}
+
+	/** 只检索：memoryId 自定（可做检索侧会话区分），返回命中的内容列表 */
+	public List<Content> retrieve(String memoryId, String message) {
+		return retrievalAugmentor().augment(new AugmentationRequest(
+				UserMessage.from(message),
+				new dev.langchain4j.rag.query.Metadata(UserMessage.from(message), memoryId,
+						Collections.<ChatMessage>emptyList()))).contents();
+	}
+
+	private RetrievalAugmentor retrievalAugmentor() {
+		if (retrievalAugmentor == null) {
+			throw new IllegalStateException(
+					"未配置检索增强：请用 contentRetriever(...) / retrievalAugmentor(...) 配置，"
+							+ "或使用 AssistantBuilder.retrievalOnly() 只检索模式构建");
+		}
+		return retrievalAugmentor;
 	}
 
 	/** 一次性对话：memoryId 取 {@value #DEFAULT_MEMORY_ID}，context 为空 */
