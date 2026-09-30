@@ -170,6 +170,42 @@ public class AssistantBuilder {
 		return this;
 	}
 
+	/**
+	 * 网页抓取工具（{@code langchain4j-community-tool-web-scraper}）：抓取 URL 并转为
+	 * Markdown 文本交给大模型。幂等：重复调用只注册一次。
+	 * 需 classpath 上有该 optional 构件，缺失时抛出可操作异常。
+	 */
+	public AssistantBuilder webScraperTool() {
+		if (hasTool(dev.langchain4j.community.tool.webscraper.WebScraperTool.class)) {
+			return this;
+		}
+		try {
+			this.tools.add(new dev.langchain4j.community.tool.webscraper.WebScraperTool());
+		} catch (NoClassDefFoundError e) {
+			throw new IllegalStateException(
+					"webScraperTool 需要 classpath 引入 dev.langchain4j:langchain4j-community-tool-web-scraper", e);
+		}
+		return this;
+	}
+
+	/**
+	 * 浏览器操作工具（{@code langchain4j-community-tool-browser-use}）：把动作下发到
+	 * browser-use 执行引擎（{@code langchain4j-community-core} 提供
+	 * {@code BrowserExecutionEngine}，通常对接外部 browser-use 服务）。幂等：重复调用只注册一次。
+	 */
+	public AssistantBuilder browserUseTool(dev.langchain4j.community.browser.use.BrowserExecutionEngine engine) {
+		if (hasTool(dev.langchain4j.community.tool.browseruse.BrowserUseTool.class)) {
+			return this;
+		}
+		this.tools.add(dev.langchain4j.community.tool.browseruse.BrowserUseTool.from(engine));
+		return this;
+	}
+
+	/** 工具列表里是否已有指定类型的工具（幂等注册用） */
+	private boolean hasTool(Class<?> toolClass) {
+		return tools.stream().anyMatch(toolClass::isInstance);
+	}
+
 	/** 工具：{@code langchain4jToolProvider['key']}（magic-api 的 api/function 暴露成 ToolProvider） */
 	public AssistantBuilder toolProvider(ToolProvider provider) {
 		this.toolProvider = provider;
