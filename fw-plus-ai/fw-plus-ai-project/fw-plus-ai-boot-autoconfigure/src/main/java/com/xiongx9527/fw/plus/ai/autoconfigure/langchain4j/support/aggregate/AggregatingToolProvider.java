@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support;
+package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.aggregate;
 
 import dev.langchain4j.service.tool.ToolProvider;
 import dev.langchain4j.service.tool.ToolProviderRequest;

@@ -1,6 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.AssistantBuilder;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant.AssistantBuilder;
 import org.ssssssss.magicapi.core.annotation.MagicModule;
 
 /**
