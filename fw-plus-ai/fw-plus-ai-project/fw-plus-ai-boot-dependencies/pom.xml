@@ -13,18 +13,6 @@
 
     <properties>
         <main.basedir>${basedir}/../..</main.basedir>
-        <!--  milvus-sdk-java版本号 -->
-        <milvus-sdk-java.version>2.6.3</milvus-sdk-java.version>
-        <!--  qdrant-sdk java版本号 -->
-        <qdrant-sdk-java.version>1.11.0</qdrant-sdk-java.version>
-        <!--  weaviate版本号 -->
-        <weaviate-sdk-java.version>4.6.0</weaviate-sdk-java.version>
-		<agents-flex.version>1.3.4</agents-flex.version>
-        <easyAi.version>1.4.9</easyAi.version>
-        <!-- Spring AI版本号 -->
-        <spring-ai.version>1.0.1</spring-ai.version>
-        <!-- Spring AI Alibaba版本号 -->
-        <spring-ai-alibaba.version>1.0.1</spring-ai-alibaba.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -45,44 +33,8 @@
                 <scope>import</scope>
             </dependency>
 
-            <!-- weaviate -->
-            <dependency>
-                <groupId>io.weaviate</groupId>
-                <artifactId>client</artifactId>
-                <version>${weaviate-sdk-java.version}</version><!-- 或者使用最新版本 -->
-            </dependency>
-            <!-- qdrant -->
-            <dependency>
-                <groupId>io.qdrant</groupId>
-                <artifactId>client</artifactId>
-                <version>${qdrant-sdk-java.version}</version>
-            </dependency>
-            <!-- milvus -->
-            <dependency>
-                <groupId>io.milvus</groupId>
-                <artifactId>milvus-sdk-java</artifactId>
-                <version>${milvus-sdk-java.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.agentsflex</groupId>
-                <artifactId>agents-flex-bom</artifactId>
-                <version>${agents-flex.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-
-            <dependency>
-                <groupId>com.agentsflex</groupId>
-                <artifactId>agents-flex-spring-boot-starter</artifactId>
-                <version>${agents-flex.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.dromara.easyai</groupId>
-                <artifactId>easyAi</artifactId>
-                <version>${easyAi.version}</version>
-            </dependency>
+            <!-- 向量库 SDK 不再单独管理版本：随 langchain4j 的 store 模块（langchain4j-milvus /
+                 langchain4j-qdrant / langchain4j-weaviate 等）传递，版本跟随 langchain4j -->
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.ai</groupId>
