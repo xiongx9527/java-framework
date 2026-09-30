@@ -43,7 +43,7 @@ class MagicAPIServletIsolationAutoConfigurationTest {
                     "magic-api.plugin.swagger.enabled=false",
                     "magic-api.plugin.elasticsearch.enabled=false",
                     "magic-api.plugin.redis.enabled=false",
-                    "magic-api.plugin.mogno.enabled=false",
+                    "magic-api.plugin.mongo.enabled=false",
                     "magic-api.plugin.rocketmq.enabled=false",
                     "magic-api.plugin.rabbitmq.enabled=false",
                     "magic-api.plugin.kafka.enabled=false",
