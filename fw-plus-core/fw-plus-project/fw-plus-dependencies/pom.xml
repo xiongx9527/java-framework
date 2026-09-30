@@ -199,6 +199,8 @@
         <neo4j-java-driver.version>4.4.26</neo4j-java-driver.version>
         <!--aj-mcp-server版本号-->
         <aj-mcp-server.version>1.6</aj-mcp-server.version>
+        <!--aj-mcp-client版本号-->
+        <aj-mcp-client.version>1.7</aj-mcp-client.version>
         <maven-enforcer-plugin.version>3.4.1</maven-enforcer-plugin.version>
         <exec-maven-plugin.version>3.1.0</exec-maven-plugin.version>
     </properties>
@@ -1271,6 +1273,12 @@
                 <groupId>com.ajaxjs</groupId>
                 <artifactId>aj-mcp-server</artifactId>
                 <version>${aj-mcp-server.version}</version>
+            </dependency>
+            <!--aj-mcp-client 版本统一管理-->
+            <dependency>
+                <groupId>com.ajaxjs</groupId>
+                <artifactId>aj-mcp-client</artifactId>
+                <version>${aj-mcp-client.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
