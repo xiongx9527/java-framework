@@ -41,8 +41,30 @@ import java.util.function.Function;
  */
 public class AssistantBuilder {
 
+	/** 只检索模式：不装配对话大模型，build() 产出仅支持 retrieve(...) 的 {@link SimpleAssistant} */
+	private final boolean retrievalOnly;
+
 	/** 进程内记忆的默认窗口（条） */
 	private static final int DEFAULT_MEMORY_MAX_MESSAGES = 20;
+
+	/** 常规构建：对话 + 检索增强（默认） */
+	public AssistantBuilder() {
+		this(false);
+	}
+
+	/**
+	 * 构造方式参数：{@code retrievalOnly=true} 时为只检索模式——
+	 * 不装配对话大模型（无 AiServices），build() 产出仅支持 {@code retrieve(...)} 的 SimpleAssistant，
+	 * 必须配置 {@link #contentRetriever(ContentRetriever)} 或 {@link #retrievalAugmentor(RetrievalAugmentor)}。
+	 */
+	public AssistantBuilder(boolean retrievalOnly) {
+		this.retrievalOnly = retrievalOnly;
+	}
+
+	/** 只检索模式的便捷入口，等价于 {@code new AssistantBuilder(true)} */
+	public static AssistantBuilder retrievalOnly() {
+		return new AssistantBuilder(true);
+	}
 
 	private ChatModel chatModel;
 
@@ -206,8 +228,9 @@ public class AssistantBuilder {
 	 * 需要底层 {@link Assistant} 类型时用 {@link #toAssistant()}。
 	 */
 	public SimpleAssistant build() {
-		// 第 4 参是文本补全的 StreamingLanguageModel，builder 不配置（对话流式走 assistant.stream）
-		return new SimpleAssistant(assemble(), chatModel, null);
+		// RetrievalAugmentor 从 builder 装配结果传入：常规模式随 AiServices 一起走检索增强，
+		// 只检索模式（retrievalOnly）则产出仅支持 retrieve(...) 的 SimpleAssistant
+		return new SimpleAssistant(assemble(), chatModel, null, resolveRetrievalAugmentor());
 	}
 
 	/** 需要底层 {@link Assistant} 类型（如继续挂 AiServices 能力）时取用 */
@@ -216,6 +239,10 @@ public class AssistantBuilder {
 	}
 
 	private Assistant assemble() {
+		if (retrievalOnly) {
+			// 只检索模式：不装配对话大模型
+			return null;
+		}
 		if (chatModel == null && streamingModel == null) {
 			throw new IllegalArgumentException("构建助手缺少模型：请至少调用 chatModel(...) 或 streamingModel(...) 之一指定");
 		}
