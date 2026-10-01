@@ -36,6 +36,8 @@
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-ai-mcp-server</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
         </dependency>
 
         <!-- Spring MVC（Servlet）传输：optional，不把 MVC 强加给 WebFlux 使用方 -->
