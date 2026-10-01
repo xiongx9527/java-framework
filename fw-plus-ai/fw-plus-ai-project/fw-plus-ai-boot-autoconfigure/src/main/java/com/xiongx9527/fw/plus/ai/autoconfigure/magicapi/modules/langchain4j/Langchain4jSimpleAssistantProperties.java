@@ -28,6 +28,7 @@ import java.util.Map;
  *   memory-max-messages: 20      # 进程内记忆窗口（条）；配置 tokenizer 后改按 token 截断
  *   max-tokens: 1000             # TokenWindowChatMemory 的 token 上限（需配置 tokenizer）
  *   rerank-min-score: 0.6        # rerank 生效下限（需配置 scoringModel）
+ *   rerank-max-results: 5        # rerank 保留上限（需配置 scoringModel；不配保留全部）
  * }</pre>
  */
 @ConfigurationProperties(prefix = "fw.plus.magicapi.langchain4j.simple-assistant")
@@ -61,6 +62,9 @@ public class Langchain4jSimpleAssistantProperties {
 
 	/** rerank 生效下限：低于该分数的检索条目丢弃（仅在配置了 scoring-model 类型 key 时生效） */
 	private Double rerankMinScore;
+
+	/** rerank 保留上限：重排后最多保留的条目数（仅在配置了 scoring-model 类型 key 时生效；null 保留全部） */
+	private Integer rerankMaxResults;
 
 	public boolean isEnabled() {
 		return enabled;
@@ -132,5 +136,13 @@ public class Langchain4jSimpleAssistantProperties {
 
 	public void setRerankMinScore(Double rerankMinScore) {
 		this.rerankMinScore = rerankMinScore;
+	}
+
+	public Integer getRerankMaxResults() {
+		return rerankMaxResults;
+	}
+
+	public void setRerankMaxResults(Integer rerankMaxResults) {
+		this.rerankMaxResults = rerankMaxResults;
 	}
 }

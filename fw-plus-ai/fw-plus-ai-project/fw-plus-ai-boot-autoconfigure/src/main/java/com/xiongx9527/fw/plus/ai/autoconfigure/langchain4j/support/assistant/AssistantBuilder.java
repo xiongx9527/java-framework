@@ -310,6 +310,12 @@ public class AssistantBuilder {
 		return this;
 	}
 
+	/** rerank 保留上限：重排后最多保留的条目数（仅在配置了 scoringModel 时生效；不配保留全部） */
+	public AssistantBuilder rerankMaxResults(Integer maxResults) {
+		this.rerankMaxResults = maxResults;
+		return this;
+	}
+
 
 	/** 相似度分权重（0~1，默认 0；与 semanticWeight 配合启用加权混合重排，总分 = 相似度×本值 + 语义分×semanticWeight） */
 	public AssistantBuilder similarityWeight(Double weight) {

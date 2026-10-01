@@ -15,6 +15,8 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jChatModelModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jLanguageModelModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jScoringModelModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.skill.module.Langchain4jSkillModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.skill.model.MagicDynamicSkill;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jStreamingChatModelModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jStreamingLanguageModelModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jTokenizerModule;
@@ -74,6 +76,7 @@ public class Langchain4jModuleConfiguration {
 			ObjectProvider<Langchain4jSystemMessageProviderModule> systemMessageModules,
 			ObjectProvider<Langchain4jTokenizerModule> tokenizerModules,
 			ObjectProvider<Langchain4jScoringModelModule> scoringModelModules,
+			ObjectProvider<Langchain4jSkillModule> skillModules,
 			Langchain4jSimpleAssistantProperties properties) {
 		AssistantBuilder assistantBuilder = new AssistantBuilder();
 		String chatModelKey = typeKey("chatModel", properties);
@@ -132,6 +135,21 @@ public class Langchain4jModuleConfiguration {
 			assistantBuilder.scoringModel(
 					new MagicDynamicScoringModel(scoringModelModules.getIfAvailable(), scoringModelKey));
 		}
+		String skillKeys = typeKey("skill", properties);
+		if (skillKeys != null && skillModules.getIfAvailable() != null) {
+			Langchain4jSkillModule skillModule = skillModules.getIfAvailable();
+			// 支持逗号分隔多个 key（每个 key 用 MagicDynamic 代理，热更新实时生效）；"all" 表示挂全部已启用技能
+			if ("all".equalsIgnoreCase(skillKeys.trim())) {
+				assistantBuilder.skills(skillModule.list());
+			} else {
+				for (String key : skillKeys.split(",")) {
+					String trimmed = key.trim();
+					if (!trimmed.isEmpty()) {
+						assistantBuilder.skills(new MagicDynamicSkill(skillModule, trimmed));
+					}
+				}
+			}
+		}
 		if (properties.getMemoryMaxMessages() != null) {
 			assistantBuilder.memory(properties.getMemoryMaxMessages());
 		}
@@ -140,6 +158,9 @@ public class Langchain4jModuleConfiguration {
 		}
 		if (properties.getRerankMinScore() != null) {
 			assistantBuilder.rerankMinScore(properties.getRerankMinScore());
+		}
+		if (properties.getRerankMaxResults() != null) {
+			assistantBuilder.rerankMaxResults(properties.getRerankMaxResults());
 		}
 		return assistantBuilder.build();
 	}
