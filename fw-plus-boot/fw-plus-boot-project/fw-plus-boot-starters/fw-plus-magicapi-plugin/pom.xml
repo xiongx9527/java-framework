@@ -110,10 +110,6 @@
             <artifactId>fw-plus-boot-starter</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.xiongx9527.fw.plus.boot</groupId>
-            <artifactId>fw-plus-boot-autoconfigure</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.ssssssss</groupId>
             <artifactId>magic-api</artifactId>
         </dependency>
