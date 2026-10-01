@@ -44,7 +44,7 @@ class EphemeralChatMemoryIntegrationTest {
 				AiMessage.from("北京当前 32℃，和刚才一样。"));
 
 		Assistant assistant = AiServices.builder(Assistant.class)
-				.chatLanguageModel(model)
+				.chatModel(model)
 				.chatMemoryProvider(new ChatAssistantConfig()
 						.chatMemoryProvider(new InMemoryChatMemoryStore()))
 				.tools(weatherTools)
