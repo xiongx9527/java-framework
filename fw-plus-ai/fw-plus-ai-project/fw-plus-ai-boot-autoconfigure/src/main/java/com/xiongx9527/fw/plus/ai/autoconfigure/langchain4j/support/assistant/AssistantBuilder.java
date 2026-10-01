@@ -16,17 +16,22 @@ import dev.langchain4j.model.language.StreamingLanguageModel;
 import dev.langchain4j.rag.DefaultRetrievalAugmentor;
 import dev.langchain4j.model.scoring.ScoringModel;
 import dev.langchain4j.rag.RetrievalAugmentor;
+import dev.langchain4j.skills.Skills;
 import dev.langchain4j.rag.content.aggregator.ReRankingContentAggregator;
 import dev.langchain4j.rag.content.injector.ContentInjector;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.service.tool.ToolProvider;
+import dev.langchain4j.skills.Skill;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 
 /**
@@ -98,6 +103,9 @@ public class AssistantBuilder {
 
 	private final List<ToolProvider> toolProviders = new ArrayList<>();
 
+	/** Agent Skills（langchain4j-skills）：提供 activate_skill / read_skill_resource 工具并注入技能目录 */
+	private final List<Skill> skills = new ArrayList<>();
+
 	private RetrievalAugmentor retrievalAugmentor;
 
 	private ContentRetriever contentRetriever;
@@ -141,6 +149,32 @@ public class AssistantBuilder {
 	 */
 	public AssistantBuilder streamingLanguageModel(StreamingLanguageModel model) {
 		this.streamingLanguageModel = model;
+		return this;
+	}
+
+	/**
+	 * Agent Skills（{@code langchain4j-skills}）：注册 {@code activate_skill} /
+	 * {@code read_skill_resource} 两个工具实现技能按需加载，并把
+	 * {@code formatAvailableSkills()} 目录追加到系统提示末尾。
+	 * 技能源：{@code langchain4jSkill['key']}（控制台维护）、
+	 * {@code langchain4jSkill.list()}（全部）或 {@code FileSystemSkillLoader} 加载。
+	 * 支持数组/集合累积，同名技能后注册覆盖先注册。
+	 */
+	public AssistantBuilder skills(Skill... items) {
+		return skills(items == null ? Collections.<Skill>emptyList() : Arrays.asList(items));
+	}
+
+	public AssistantBuilder skills(Collection<Skill> items) {
+		if (items == null) {
+			return this;
+		}
+		for (Skill item : items) {
+			if (item == null) {
+				continue;
+			}
+			this.skills.removeIf(existing -> Objects.equals(existing.name(), item.name()));
+			this.skills.add(item);
+		}
 		return this;
 	}
 
@@ -330,8 +364,21 @@ public class AssistantBuilder {
 		if (streamingModel != null) {
 			builder.streamingChatModel(streamingModel);
 		}
-		if (systemMessageProvider != null) {
-			builder.systemMessageProvider(systemMessageProvider);
+		// Agent Skills：注册 activate_skill / read_skill_resource 工具，并把技能目录追加到系统提示
+		Function<Object, String> effectiveSystemMessage = systemMessageProvider;
+		List<ToolProvider> effectiveToolProviders = toolProviders;
+		if (!skills.isEmpty()) {
+			Skills aggregated = Skills.from(skills);
+			String catalog = aggregated.formatAvailableSkills();
+			Function<Object, String> base = systemMessageProvider;
+			effectiveSystemMessage = base == null
+					? memoryId -> catalog
+					: memoryId -> base.apply(memoryId) + "\n\n" + catalog;
+			effectiveToolProviders = new ArrayList<>(toolProviders);
+			effectiveToolProviders.add(aggregated.toolProvider());
+		}
+		if (effectiveSystemMessage != null) {
+			builder.systemMessageProvider(effectiveSystemMessage);
 		}
 		if (!tools.isEmpty()) {
 			builder.tools(tools);
