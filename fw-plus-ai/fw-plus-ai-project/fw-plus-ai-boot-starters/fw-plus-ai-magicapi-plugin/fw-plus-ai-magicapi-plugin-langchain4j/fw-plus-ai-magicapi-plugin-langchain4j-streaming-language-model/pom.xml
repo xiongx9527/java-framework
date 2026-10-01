@@ -13,41 +13,11 @@
 
     <properties>
         <main.basedir>${basedir}/../../../../..</main.basedir>
+        <!-- 本模块带 console 前端：覆盖聚合层的默认跳过 -->
+        <langchain4j.console.skip>false</langchain4j.console.skip>
     </properties>
 
 
     <dependencies>
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus.ai</groupId>
-            <artifactId>fw-plus-ai-boot-autoconfigure</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-azure-open-ai</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-community-dashscope</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-ollama</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-open-ai</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-community-qianfan</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-local-ai</artifactId>
-        </dependency>
     </dependencies>
 </project>
