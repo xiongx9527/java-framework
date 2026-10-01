@@ -595,12 +595,6 @@
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.boot</groupId>
-                <artifactId>fw-plus-uid-spring-boot-starter</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-influxdb-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
