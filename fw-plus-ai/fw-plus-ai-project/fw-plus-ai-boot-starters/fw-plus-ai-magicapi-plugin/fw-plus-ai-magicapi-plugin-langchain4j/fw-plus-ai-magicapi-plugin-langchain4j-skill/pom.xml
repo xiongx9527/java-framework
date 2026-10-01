@@ -16,4 +16,11 @@
         <!-- 本模块带 console 前端：覆盖聚合层的默认跳过 -->
         <langchain4j.console.skip>false</langchain4j.console.skip>
     </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-skills</artifactId>
+        </dependency>
+    </dependencies>
 </project>
