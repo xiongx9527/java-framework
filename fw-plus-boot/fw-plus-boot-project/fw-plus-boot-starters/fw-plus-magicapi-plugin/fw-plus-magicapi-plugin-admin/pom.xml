@@ -30,4 +30,11 @@
             </plugin>
         </plugins>
     </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-admin-server-spring-boot-starter</artifactId>
+        </dependency>
+    </dependencies>
 </project>
