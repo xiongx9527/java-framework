@@ -45,14 +45,18 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 
 	private final com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService metadataFieldService;
 
+	private final com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbIndexingService indexingService;
+
 	public KbConsoleController(MagicConfiguration configuration, KbDatasetService datasetService,
 			KbDocumentService documentService, KbSegmentService segmentService,
-			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService metadataFieldService) {
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService metadataFieldService,
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbIndexingService indexingService) {
 		super(configuration);
 		this.datasetService = datasetService;
 		this.documentService = documentService;
 		this.segmentService = segmentService;
 		this.metadataFieldService = metadataFieldService;
+		this.indexingService = indexingService;
 	}
 
 	// ---------------- 元数据字段定义 ----------------

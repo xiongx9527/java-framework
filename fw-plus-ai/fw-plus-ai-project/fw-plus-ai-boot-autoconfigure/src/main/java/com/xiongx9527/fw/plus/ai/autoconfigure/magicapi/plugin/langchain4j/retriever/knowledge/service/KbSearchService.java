@@ -66,10 +66,14 @@ public class KbSearchService {
 	/** 混合检索开关（向量路 + 关键词路融合；关闭则仅向量路） */
 	private final boolean hybridSearch;
 
+	/** ES 全文检索客户端（es.enabled 关闭时内部 no-op，关键词路回落 FULLTEXT/LIKE） */
+	private final com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.es.EsSegmentSearchClient esClient;
+
 	public KbSearchService(KbDatasetMapper datasetMapper, KbDocumentMapper documentMapper,
 			KbSegmentMapper segmentMapper, ContentRetrieverContext retrieverContext,
 			ObjectProvider<Langchain4jScoringModelModule> scoringModels, KbIndexingExecutor executor,
-			KbKnowledgeState state, boolean hybridSearch) {
+			KbKnowledgeState state, boolean hybridSearch,
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.es.EsSegmentSearchClient esClient) {
 		this.datasetMapper = datasetMapper;
 		this.documentMapper = documentMapper;
 		this.segmentMapper = segmentMapper;
@@ -78,6 +82,7 @@ public class KbSearchService {
 		this.executor = executor;
 		this.state = state;
 		this.hybridSearch = hybridSearch;
+		this.esClient = esClient;
 	}
 
 	/**
@@ -524,8 +529,36 @@ public class KbSearchService {
 		return merged;
 	}
 
-	/** 关键词路 SQL 召回：优先 FULLTEXT ngram 全文（含相关度），索引缺失时回落词项 LIKE。 */
+	/** 关键词路召回：ES 优先（es.enabled）→ FULLTEXT ngram 全文 → 词项 LIKE。 */
 	private List<KbSegment> keywordRecallSegments(String datasetId, String query) {
+		// ES 优先：multi_match 相关度，写入实体非表字段 relevance；ES 无命中时不回落字面检索
+		if (esClient != null) {
+			try {
+				List<com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.es.EsSegmentSearchClient.EsHit> esHits =
+						esClient.search(datasetId, query, null, 60);
+				if (!esHits.isEmpty()) {
+					double max = 0;
+					for (com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.es.EsSegmentSearchClient.EsHit esHit : esHits) {
+						if (esHit.getScore() > max) {
+							max = esHit.getScore();
+						}
+					}
+					List<KbSegment> segments = new ArrayList<>();
+					for (com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.es.EsSegmentSearchClient.EsHit esHit : esHits) {
+						KbSegment segment = segmentMapper.selectById(esHit.getSegmentId());
+						if (segment == null) {
+							continue;
+						}
+						segment.setRelevance(max > 0 ? esHit.getScore() / max : 1.0);
+						segments.add(segment);
+					}
+					return segments;
+				}
+				return Collections.emptyList();
+			} catch (Exception e) {
+				// ES 不可用：回落 FULLTEXT/LIKE
+			}
+		}
 		// FULLTEXT 优先：MATCH AGAINST 返回相关度，写入实体非表字段 relevance
 		try {
 			List<KbSegment> recalled = segmentMapper.fulltextRecall(datasetId, query, 60);

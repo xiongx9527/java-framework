@@ -37,15 +37,20 @@ public class KbSegmentService {
 
 	private final KbKnowledgeState state;
 
+	/** ES 分段全文索引同步（es.enabled 关闭时内部 no-op） */
+	private final com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.es.EsSegmentSearchClient esClient;
+
 	public KbSegmentService(KbSegmentMapper segmentMapper, KbDocumentMapper documentMapper,
 			KbDatasetMapper datasetMapper, ContentRetrieverContext retrieverContext,
-			ObjectProvider<KbDocumentService> documentServices, KbKnowledgeState state) {
+			ObjectProvider<KbDocumentService> documentServices, KbKnowledgeState state,
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.es.EsSegmentSearchClient esClient) {
 		this.segmentMapper = segmentMapper;
 		this.documentMapper = documentMapper;
 		this.datasetMapper = datasetMapper;
 		this.retrieverContext = retrieverContext;
 		this.documentServices = documentServices;
 		this.state = state;
+		this.esClient = esClient;
 	}
 
 	/**
@@ -181,11 +186,14 @@ public class KbSegmentService {
 		return segmentMapper.selectById(segmentId);
 	}
 
-	/** 删除分段：同步删除向量（按 index_node_id，缺省按分段 id）。 */
+	/** 删除分段：同步删除向量（按 index_node_id，缺省按分段 id）与 ES 索引。 */
 	public void delete(String segmentId) {
 		state.checkReady();
 		KbSegment segment = requireSegment(segmentId);
 		removeVector(segment);
+		if (esClient != null) {
+			esClient.delete(segmentId);
+		}
 		segmentMapper.deleteById(segmentId);
 	}
 
@@ -244,6 +252,11 @@ public class KbSegmentService {
 		update.setErrorMsg(null);
 		update.setUpdateTime(new Date());
 		segmentMapper.updateById(update);
+		// ES 同步：编辑后的分段全文覆盖（es.enabled）
+		if (esClient != null) {
+			esClient.index(segment.getDatasetId(), segment.getDocumentId(), segment.getId(),
+					segment.getContent(), segment.getKeywords());
+		}
 	}
 
 	private void removeVector(KbSegment segment) {
