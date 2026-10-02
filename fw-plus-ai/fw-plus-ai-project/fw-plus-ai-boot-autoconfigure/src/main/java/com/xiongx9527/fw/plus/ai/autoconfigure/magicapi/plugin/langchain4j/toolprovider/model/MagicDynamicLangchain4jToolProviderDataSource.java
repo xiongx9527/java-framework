@@ -71,8 +71,7 @@ public class MagicDynamicLangchain4jToolProviderDataSource implements Disposable
 				}
 				providers.put(key, AgenticToolProviders.agenticToolProviderByKey(pipelineRegistry,
 						info.getAgenticKey().trim(), key,
-						info.getAgenticDescription() != null && !info.getAgenticDescription().trim().isEmpty()
-								? info.getAgenticDescription() : info.getName(),
+						info.getName(),
 						info.getAgenticOutputKey(),
 						info.getAgenticInputKeys() == null ? new String[0]
 								: info.getAgenticInputKeys().toArray(new String[0])));

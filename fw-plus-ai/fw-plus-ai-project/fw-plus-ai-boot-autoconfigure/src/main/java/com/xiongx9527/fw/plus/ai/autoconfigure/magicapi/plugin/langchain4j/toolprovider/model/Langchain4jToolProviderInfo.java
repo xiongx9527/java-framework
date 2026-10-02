@@ -40,11 +40,6 @@ public class Langchain4jToolProviderInfo extends MagicEntity {
 	private String agenticKey;
 
 	/**
-	 * agentic 来源：工具描述（供主 LLM 决策调用时机），缺省用展示名。
-	 */
-	private String agenticDescription;
-
-	/**
 	 * agentic 来源：编排产出写入的变量名（工具返回值提取），可选。
 	 */
 	private String agenticOutputKey;
