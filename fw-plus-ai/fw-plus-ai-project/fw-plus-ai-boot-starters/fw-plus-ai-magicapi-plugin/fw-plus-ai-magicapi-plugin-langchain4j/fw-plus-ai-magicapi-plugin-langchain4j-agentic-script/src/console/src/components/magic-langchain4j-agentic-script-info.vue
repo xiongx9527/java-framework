@@ -32,7 +32,8 @@ const info = inject('info')
 
 const typeOptions = [
   {text: $i('langchain4j.script-type.node'), value: 'node'},
-  {text: $i('langchain4j.script-type.tool'), value: 'tool'}
+  {text: $i('langchain4j.script-type.tool'), value: 'tool'},
+  {text: $i('langchain4j.script-type.graph'), value: 'graph'}
 ]
 
 if (!info.type) {

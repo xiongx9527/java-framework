@@ -89,8 +89,7 @@ public class MagicDynamicLangchain4jToolProviderDataSource implements Disposable
 							"agenticKey '%s' 未命中：agentic-script 脚本资源与编排注册中心中均不存在", info.getAgenticKey()));
 				}
 				providers.put(key, AgenticToolProviders.agenticToolProvider(pipeline, key,
-						info.getAgenticDescription() != null && !info.getAgenticDescription().trim().isEmpty()
-								? info.getAgenticDescription() : info.getName(),
+						info.getName(),
 						info.getAgenticOutputKey(),
 						info.getAgenticInputKeys() == null ? new String[0]
 								: info.getAgenticInputKeys().toArray(new String[0])));

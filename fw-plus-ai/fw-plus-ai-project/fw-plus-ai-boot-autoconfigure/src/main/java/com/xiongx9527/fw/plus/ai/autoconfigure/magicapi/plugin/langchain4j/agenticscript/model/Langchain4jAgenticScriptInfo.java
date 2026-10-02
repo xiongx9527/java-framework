@@ -17,7 +17,9 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 public class Langchain4jAgenticScriptInfo extends PathMagicEntity {
 
-	/** 形态：node = 编排节点（挂入 AgenticWorkflows 编排 subAgents）；tool = 编排工具（包装为 ToolProvider） */
+	/** 形态：node = 编排节点（挂入 AgenticWorkflows 编排 subAgents，或经 MagicScriptGraphNodes 嵌入 langgraph4j 图）；
+	 * tool = 编排工具（包装为 ToolProvider）；
+	 * graph = 图编排脚本（脚本构建并返回 langgraph4j StateGraph，可编译执行或包装为 ToolProvider） */
 	private String type;
 
 	/** 展示名，缺省取 path */
@@ -29,10 +31,10 @@ public class Langchain4jAgenticScriptInfo extends PathMagicEntity {
 	/** 输入变量声明（入参名列表，对应编排的 inputKeys，求值时注入脚本上下文） */
 	private List<String> inputKeys;
 
-	/** 输出 key：节点输出写回 AgenticScope 的变量名（type=node 时使用，可选） */
+	/** 输出 key：节点输出写回 AgenticScope 的变量名（type=node 时使用，可选；嵌入图时作为 state 键，缺省 output） */
 	private String outputKey;
 
-	/** 测试参数（JSON 对象字符串），控制台执行测试时解析为 Map 注入脚本上下文 */
+	/** 测试参数（JSON 对象字符串）：node/tool 求值时注入脚本上下文；graph 作为图的执行输入 */
 	private String params;
 
 	@Override

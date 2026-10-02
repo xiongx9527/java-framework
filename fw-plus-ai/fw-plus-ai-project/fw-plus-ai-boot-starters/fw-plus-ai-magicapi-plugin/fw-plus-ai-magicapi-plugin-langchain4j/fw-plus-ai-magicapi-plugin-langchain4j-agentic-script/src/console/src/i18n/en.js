@@ -14,10 +14,11 @@ export default {
         'script-type': {
             label: 'Type',
             node: 'Orchestration node',
-            tool: 'Orchestration tool'
+            tool: 'Orchestration tool',
+            graph: 'Graph orchestration'
         },
         description: 'Description',
-        'description-hint': 'Purpose of this node/tool',
+        'description-hint': 'Purpose of this node/tool/graph',
         'input-keys': 'Input variables',
         'input-keys-hint': 'Variable names injected into the script context, comma separated',
         'output-key': 'Output key',
@@ -25,7 +26,7 @@ export default {
         script: 'Script',
         'script-hint': 'magic-script body; input variables are injected into the context, return value is the output',
         params: 'Test parameters',
-        'params-hint': 'JSON object, e.g. {"question":"test"}, injected during console test runs',
+        'params-hint': 'JSON object, e.g. {"question":"test"}; injected into the script context for nodes, used as graph input for graphs',
         hint: {
             required: 'required',
             optional: 'optional'
