@@ -160,6 +160,14 @@
             <button :disabled="!hitQuery" @click="runHitTest">{{ $i('kb.hit.run') }}</button>
           </div>
           <div class="kb-form-row">
+            <label>{{ $i('kb.hit.documentId') }}</label>
+            <input v-model="hitDocumentId" :placeholder="$i('kb.hit.documentIdTip')"/>
+          </div>
+          <div class="kb-form-row">
+            <label>{{ $i('kb.hit.documentId') }}</label>
+            <input v-model="hitDocumentId" :placeholder="$i('kb.hit.documentIdTip')"/>
+          </div>
+          <div class="kb-form-row">
             <label>{{ $i('kb.hit.metadataCondition') }}</label>
             <input v-model="hitMetadata" :placeholder="$i('kb.hit.metadataTip')"/>
           </div>
@@ -314,6 +322,8 @@ const segmentFormMode = ref('edit')
 const hits = ref([])
 const hitQuery = ref('')
 const hitMetadata = ref('')
+const hitDocumentId = ref('')
+const hitDocumentId = ref('')
 const dragOver = ref(false)
 const previewItems = ref(null)
 const moveForm = ref(null)
@@ -533,7 +543,7 @@ const runHitTest = async () => {
       metadataCondition = JSON.parse(hitMetadata.value)
     }
     hits.value = (await kbApi.hitTest(selectedDatasetId.value, {
-      query: hitQuery.value, metadataCondition
+      query: hitQuery.value, metadataCondition, documentId: hitDocumentId.value || null
     })) || []
   } catch (e) {
     fail(e)

@@ -63,7 +63,9 @@ export default {
             'timeout': 'Timeout (ms)',
             'uri': 'URI',
             'username': 'Username',
-            'dataset-id': 'Knowledge Dataset'
+            'dataset-id': 'Knowledge Dataset',
+            'document-id': 'Document ID',
+            'metadata-condition': 'Metadata Condition'
         },
         kb: {
             refresh: 'Refresh',
@@ -141,6 +143,8 @@ export default {
                 run: 'Retrieve',
                 queryTip: 'Enter test query',
                 score: 'Score',
+                documentId: 'Document ID',
+                documentIdTip: 'Optional, restrict retrieval to one document',
                 metadataCondition: 'Metadata Condition',
                 metadataTip: 'JSON, e.g. {"logical_operator":"and","conditions":[{"name":"lang","value":"zh"}]}'
             }

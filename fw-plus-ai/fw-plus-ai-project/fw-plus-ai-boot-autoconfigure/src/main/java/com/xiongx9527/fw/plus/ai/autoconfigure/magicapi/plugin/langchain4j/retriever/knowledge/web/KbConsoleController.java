@@ -92,8 +92,9 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 		Integer topK = body.get("topK") == null ? null : Integer.valueOf(String.valueOf(body.get("topK")));
 		Double minScore = body.get("minScore") == null ? null : Double.valueOf(String.valueOf(body.get("minScore")));
 		Object condition = body.get("metadataCondition");
+		String documentId = body.get("documentId") == null ? null : String.valueOf(body.get("documentId"));
 		List<KbSearchHit> hits = datasetService.hitTest(id, query, topK, minScore,
-				condition instanceof Map ? JSON.parseObject(JSON.toJSONString(condition)) : null);
+				condition instanceof Map ? JSON.parseObject(JSON.toJSONString(condition)) : null, documentId);
 		return ok(hits);
 	}
 

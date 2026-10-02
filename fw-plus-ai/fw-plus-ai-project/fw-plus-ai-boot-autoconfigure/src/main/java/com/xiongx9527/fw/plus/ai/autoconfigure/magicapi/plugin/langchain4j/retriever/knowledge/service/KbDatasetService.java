@@ -197,10 +197,10 @@ public class KbDatasetService {
 
 	/** 召回测试（设计 §3.1）：query → 嵌入 → 向量检索 → 过滤 → rerank → 命中分段与 score。 */
 	public List<KbSearchHit> hitTest(String id, String query, Integer topK, Double minScore,
-			JSONObject metadataCondition) {
+			JSONObject metadataCondition, String documentId) {
 		state.checkReady();
 		requireDataset(id);
-		return searchService.search(id, query, topK, minScore, metadataCondition);
+		return searchService.search(id, query, topK, minScore, metadataCondition, documentId);
 	}
 
 	/**

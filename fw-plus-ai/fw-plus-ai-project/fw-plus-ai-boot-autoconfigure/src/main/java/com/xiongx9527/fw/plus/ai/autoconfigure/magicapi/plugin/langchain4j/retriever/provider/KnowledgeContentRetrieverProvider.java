@@ -13,7 +13,9 @@ import org.springframework.beans.factory.ObjectProvider;
  * {@code ContentRetrieverProvider} bean 由 {@code ContentRetrieverProviderRegistry} 收集注册。
  *
  * <p>options：{@code dataset-id}（必填，指向 kb_dataset.id）、{@code max-results}、{@code min-score}
- * （可覆盖数据集默认）。多实例：每个 content-retriever 资源 key 指向不同数据集，互不影响。</p>
+ * （可覆盖数据集默认）、{@code document-id}（选填，限定在该文档范围内检索）、
+ * {@code metadata-condition}（选填，Dify metadata_condition 格式的固定过滤条件 JSON）。
+ * 多实例：每个 content-retriever 资源 key 指向不同数据集，互不影响。</p>
  */
 public class KnowledgeContentRetrieverProvider implements ContentRetrieverProvider {
 
@@ -33,6 +35,17 @@ public class KnowledgeContentRetrieverProvider implements ContentRetrieverProvid
 		String datasetId = o.required("dataset-id");
 		Integer maxResults = o.has("max-results") ? o.integer("max-results", null) : null;
 		Double minScore = o.has("min-score") ? o.dbl("min-score", null) : null;
-		return new KnowledgeContentRetriever(searchServices, datasetId, maxResults, minScore);
+		String documentId = o.has("document-id") ? o.string("document-id", null) : null;
+		String conditionJson = o.has("metadata-condition") ? o.string("metadata-condition", null) : null;
+		com.alibaba.fastjson2.JSONObject metadataCondition = null;
+		if (conditionJson != null && !conditionJson.trim().isEmpty()) {
+			try {
+				metadataCondition = com.alibaba.fastjson2.JSON.parseObject(conditionJson);
+			} catch (Exception e) {
+				throw new IllegalArgumentException("metadata-condition 不是合法的 JSON 对象: " + e.getMessage());
+			}
+		}
+		return new KnowledgeContentRetriever(searchServices, datasetId, maxResults, minScore, documentId,
+				metadataCondition);
 	}
 }

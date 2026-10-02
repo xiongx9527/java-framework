@@ -28,12 +28,26 @@ public class KnowledgeContentRetriever implements ContentRetriever {
 
 	private final Double minScore;
 
+	/** 固定文档限定（选填） */
+	private final String documentId;
+
+	/** 固定元数据过滤条件（选填，Dify metadata_condition 格式） */
+	private final com.alibaba.fastjson2.JSONObject metadataCondition;
+
 	public KnowledgeContentRetriever(ObjectProvider<KbSearchService> searchServices, String datasetId,
 			Integer maxResults, Double minScore) {
+		this(searchServices, datasetId, maxResults, minScore, null, null);
+	}
+
+	public KnowledgeContentRetriever(ObjectProvider<KbSearchService> searchServices, String datasetId,
+			Integer maxResults, Double minScore, String documentId,
+			com.alibaba.fastjson2.JSONObject metadataCondition) {
 		this.searchServices = searchServices;
 		this.datasetId = datasetId;
 		this.maxResults = maxResults;
 		this.minScore = minScore;
+		this.documentId = documentId;
+		this.metadataCondition = metadataCondition;
 	}
 
 	@Override
@@ -42,7 +56,8 @@ public class KnowledgeContentRetriever implements ContentRetriever {
 		if (searchService == null) {
 			throw new IllegalStateException("知识库检索服务未装配，无法构建 knowledge 类型检索器");
 		}
-		List<KbSearchHit> hits = searchService.search(datasetId, query.text(), maxResults, minScore, null);
+		List<KbSearchHit> hits = searchService.search(datasetId, query.text(), maxResults, minScore,
+				metadataCondition, documentId);
 		List<Content> contents = new ArrayList<>(hits.size());
 		for (KbSearchHit hit : hits) {
 			Metadata metadata = new Metadata();

@@ -63,7 +63,9 @@ export default {
             'timeout': '超时（毫秒）',
             'uri': '连接 URI',
             'username': '用户名',
-            'dataset-id': '知识库数据集'
+            'dataset-id': '知识库数据集',
+            'document-id': '限定文档 ID',
+            'metadata-condition': '元数据过滤条件'
         },
         kb: {
             refresh: '刷新',
@@ -141,6 +143,8 @@ export default {
                 run: '检索',
                 queryTip: '输入测试 query',
                 score: '分数',
+                documentId: '文档 ID',
+                documentIdTip: '选填，限定在该文档范围内检索',
                 metadataCondition: 'Metadata 条件',
                 metadataTip: 'JSON，如 {"logical_operator":"and","conditions":[{"name":"lang","value":"zh"}]}'
             }

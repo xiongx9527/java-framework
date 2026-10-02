@@ -339,7 +339,9 @@ public class KbOpenApiController {
 			Object condition = body.get("metadataCondition");
 			JSONObject metadataCondition = condition instanceof Map
 					? JSON.parseObject(JSON.toJSONString(condition)) : null;
-			List<KbSearchHit> hits = searchService.search(datasetId, query, topK, minScore, metadataCondition);
+			String documentId = body.get("documentId") == null ? null : String.valueOf(body.get("documentId"));
+			List<KbSearchHit> hits = searchService.search(datasetId, query, topK, minScore, metadataCondition,
+					documentId);
 			List<Map<String, Object>> records = new ArrayList<>();
 			for (KbSearchHit hit : hits) {
 				Map<String, Object> record = new LinkedHashMap<>();
