@@ -14,6 +14,7 @@ export const PROVIDER_FIELDS = {
     'web-search': [{ name: 'search-function', type: 'text' }, { name: 'max-results', type: 'number' }],
     'filtering': [{ name: 'content-retriever-key', type: 'text' }, { name: 'filter-function', type: 'text' }, { name: 'min-score', type: 'number' }, { name: 'filters', type: 'map' }],
     'aggregating': [{ name: 'content-retriever-keys', type: 'tags' }, { name: 'max-results', type: 'number' }, { name: 'deduplicate', type: 'switch' }],
+    'knowledge': [{ name: 'dataset-id', type: 'text' }, { name: 'max-results', type: 'number' }, { name: 'min-score', type: 'number' }],
 };
 
 /**
@@ -30,6 +31,8 @@ export const REFERENCE_FIELDS = {
     'filtering': [{ name: 'content-retriever-key', resource: 'langchain4j-content-retriever', required: true }],
     // 组合检索引用的是多个 key（逗号分隔），用文本输入而非单个下拉，故不列入引用字段
     'aggregating': [],
+    // knowledge 检索器引用知识库数据集（kb_dataset.id），候选来自管理端数据集列表接口
+    'knowledge': [{ name: 'dataset-id', resource: 'kb-dataset', required: true }],
 };
 
 /** 取某 provider 的 options 字段定义；未知 provider 返回空数组 */
