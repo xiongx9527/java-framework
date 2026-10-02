@@ -1,0 +1,199 @@
+schema: comet.native.v4
+name: easy-rag-knowledge
+language: zh-CN
+phase: archive
+status: done
+state_version: 18
+brief: brief.md
+shape_confirmation_hash: a8fce4471d19ec144694520dfd3a606df6e889e6ef9050a6f7dc8cdd7d7c010b
+spec_changes:
+  - capability: ai-knowledge-rag
+    operation: create
+    source: specs/ai-knowledge-rag/spec.md
+workspace:
+  isolation: worktree
+  change_branch: comet/easy-rag-knowledge
+  target_branch: dev
+  finish: merge
+loop:
+  stage: done
+  goal_cycle: 3
+  iteration: 1
+  attempt: 1
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: null
+acceptance:
+  - id: A1
+    source: brief.md
+    text: A1 设计文档完整：specs/ai-knowledge-rag/spec.md 覆盖全部已确认设计——模块与包结构、三表数据模型（含
+      archived/metadata/keywords/embedding_model_active/segment
+      切分参数等全部字段）、索引管道（入库与执行解耦/CAS 认领/父子分段/QA
+      模式/嵌入一致性）、管理端接口清单（数据集/文档/归档/批量/下载/metadata/分段/召回测试）、knowledge
+      检索器（多实例/类型边界/过滤链）、对外 API 与认证授权（§3.3）、前端 UI（toolbars 页面与 knowledge
+      类型表单）、配置项与约束；用户审查确认通过
+    result: passed
+    reason:
+      text: spec §1–§6 逐行核对：包结构含 web/KbOpenApiController 与
+        auth/KbSaTokenAuthChecker；三表字段（archived/metadata/keywords/embedding_model_active/segment_*）全在
+        DDL；管道含入库与执行解耦/CAS/父子分段/QA/嵌入一致性/KbTokenCounter；管理端八类接口齐备；knowledge
+        检索器过滤链显式含 archived；前端/配置/约束齐备；Shape 已确认。
+      truncated: false
+  - id: A2
+    source: brief.md
+    text: A2 DDL 设计稿定稿：三表完整 CREATE TABLE 语句（字段/类型/索引/唯一约束）内嵌 spec §2.2，可直接作为实现
+      change 的 `META-INF/sql/fw-plus-ai-knowledge.sql`，字段语义说明完备
+    result: passed
+    reason:
+      text: §2.2 三张完整 CREATE TABLE（字段/类型/注释/主键/索引/唯一约束/ENGINE/CHARSET），落地路径三处一致，对外 API
+        字段契约（语义冻结）逐字段列举。
+      truncated: false
+  - id: A3
+    source: brief.md
+    text: A3 对外 API 设计完整：§3.3 成文——对外 REST
+      接口（upload-by-file/create-by-text/状态查询/retrieve，由 content-retriever
+      插件同一服务提供）、Sa-Token 认证授权（校验点、未认证拒绝、复用 satoken 插件凭证管理）、Dify External
+      Knowledge API 兼容（POST /retrieval、knowledge_id 路由、records 响应格式、错误码
+      1002/2001）
+    result: passed
+    reason:
+      text: §3.3/§3.4 成文：REST 接口清单、Sa-Token 认证授权（复用 satoken 插件凭证管理）、Dify /retrieval
+        协议（records 响应、错误码 1002/2001）；"同一服务、API 不单独成服务"四处表述一致；metadata_condition
+        格式 §3.1 与 §3.4 互相引用无冲突。
+      truncated: false
+  - id: A4
+    source: brief.md
+    text: A4 需求共识完备：brief 无 [blocking]，S1–S21 全部来源条目 covered（superseded
+      条目有替代说明），全部关键决策（D1–D17）有记录
+    result: passed
+    reason:
+      text: brief 无实际 [blocking]；S1–S21 齐全且 S16 superseded 有替代说明、S7/S8/S14/S20/S21
+        指向正确；D1–D17 编号连续无断档（上轮缺陷无回归）；Scenario A1–A4 与 brief 验收一致。
+      truncated: false
+builder_handoff:
+  candidate_id: d6d82a11-e748-416c-837c-d22f5c0d73aa
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:99784445-5a8d-4816-8f88-65112205b91f
+  iteration: 1
+  summary:
+    text: 本轮交付架构修订后的设计文档定稿（用户 S20/S21：API 不单独成服务，由 content-retriever 插件同一服务直接提供，API
+      实现 Sa-Token 认证授权）：1) spec §3.3 恢复完整对外 API 设计（KbOpenApiController
+      接口清单：upload-by-file/create-by-text/状态查询/retrieve 含
+      metadataCondition；Sa-Token 认证授权 KbSaTokenAuthChecker、复用 satoken
+      插件凭证管理、业务方凭证发放不在范围）；2) spec 新增 §3.4 Dify External Knowledge API 兼容（POST
+      /retrieval、knowledge_id=dataset.id 路由、records 响应格式、错误码 1002/2001，协议对齐 S-C
+      官方规范）；3) spec §1 包结构恢复 web/KbOpenApiController 与
+      auth/KbSaTokenAuthChecker；4) spec §2.3 入库与索引执行解耦改为同服务描述（入库置 waiting + 即时触发
+      + 轮询兜底 + CAS 认领）；5) spec §2.2 契约字段说明改为对外 API 字段契约；6) brief 来源表新增
+      S20/S21，S16 标记 superseded（由 S20/S21 替代），S7/S8/S14 恢复 covered 至本 spec；7) 决策
+      D8 改写为单一服务交付（一个实现 change），D10 改为入库与索引执行解耦；8) Scenario A1–A4 对齐（A3 改为对外 API
+      设计完整）。处理的验收项：A1–A4 全部。开发期检查：grep 核对 spec/brief 无 easy-rag-api
+      残留引用（superseded 历史记录除外）、章节编号自洽；未运行命令级检查（纯 Markdown）。已知限制：DDL 设计稿未经真实 MySQL
+      执行验证；Dify 协议实现属后续实现 change。
+    truncated: false
+  addressed_acceptance_ids:
+    - A1
+    - A2
+    - A3
+    - A4
+  checks:
+    - name:
+        text: 残留引用与编号自洽 grep 核对（人工）
+        truncated: false
+      result: not-run
+      note:
+        text: 纯 Markdown 交付物，无命令级检查可执行；由 Verifier 独立审查
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: DDL 设计稿未经真实 MySQL 执行验证
+      truncated: false
+    - text: Dify 协议与 Sa-Token 校验的具体实现属后续实现 change
+      truncated: false
+  known_limits_truncated: false
+  review: null
+  submitted_at: 2026-10-02T04:26:39.491Z
+blockers: []
+verification:
+  candidate_id: d6d82a11-e748-416c-837c-d22f5c0d73aa
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:ec9a5552-31a2-4556-a43f-2925b1f11465
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks: []
+  summary:
+    text: 架构修订后的设计文档定稿四项验收全部独立核实通过："同一服务"架构完整落地（KbOpenApiController/KbSaTokenAuthChecker
+      入包结构、§3.3/§3.4 成文、S16 superseded 且 S20/S21 指向正确）；三表 DDL
+      含全部修订字段且索引/唯一约束齐备；上轮 D8/D9 断档已修复无回归；无旧范围表述与旧编号残留。仅存三条低风险观察，不阻塞验收。
+    truncated: false
+  risks:
+    - text: 低：brief S8 的 Spec 位置仅写 §3.3，Dify 协议细节在 §3.4（已有桥接表述，可追溯，非阻塞）
+      truncated: false
+    - text: 低：非 Dify 的通用 REST 路径未显式定义未认证响应格式，建议实现 change 在 KbSaTokenAuthChecker
+        中统一拦截响应
+      truncated: false
+    - text: 极低：brief A3 与 spec Scenario A3 章节粒度略有差异（§3.3 vs §3.3/§3.4），实质一致
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-10-02T04:29:27.678Z
+history:
+  - goal_cycle: 1
+    iteration: 0
+    attempt: 0
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: Native confirmed acceptance criteria changed
+      truncated: false
+    completed_at: 2026-10-02T03:29:28.657Z
+  - goal_cycle: 2
+    iteration: 1
+    attempt: 1
+    outcome: fail
+    unresolved_ids:
+      - A4
+    summary:
+      text: spec §1–§6 结构完整，A1/A2/A3 全部要求点有落地证据，DDL
+        三表字段/索引/约束齐备且契约冻结到位，拆分边界成文，无旧范围残留。唯一实质缺陷是 brief 决策编号 D8/D9 断档，与三处 D1–D19
+        完整自述矛盾，修复成本低（重编号或补录），修复后复验即可。
+      truncated: false
+    completed_at: 2026-10-02T03:36:01.530Z
+  - goal_cycle: 2
+    iteration: 2
+    attempt: 0
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: Native confirmed acceptance criteria changed
+      truncated: false
+    completed_at: 2026-10-02T03:37:43.482Z
+  - goal_cycle: 3
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: 架构修订后的设计文档定稿四项验收全部独立核实通过："同一服务"架构完整落地（KbOpenApiController/KbSaTokenAuthChecker
+        入包结构、§3.3/§3.4 成文、S16 superseded 且 S20/S21 指向正确）；三表 DDL
+        含全部修订字段且索引/唯一约束齐备；上轮 D8/D9 断档已修复无回归；无旧范围表述与旧编号残留。仅存三条低风险观察，不阻塞验收。
+      truncated: false
+    completed_at: 2026-10-02T04:29:27.678Z
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pass
+verification_report: verification.md
+archived: true
+created_at: 2026-10-02T02:53:38.436Z
