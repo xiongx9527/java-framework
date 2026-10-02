@@ -1,0 +1,307 @@
+schema: comet.native.v4
+name: agentic-script
+language: zh-CN
+phase: archive
+status: done
+state_version: 18
+brief: brief.md
+shape_confirmation_hash: cb68e05a49a335b3779c6cc9318efd9b0efded9d431b888ec1697bf20a95bb5c
+spec_changes: []
+workspace:
+  isolation: worktree
+  change_branch: comet/agentic-script
+  target_branch: springboot3
+  finish: merge
+loop:
+  stage: done
+  goal_cycle: 3
+  iteration: 1
+  attempt: 4
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: null
+acceptance:
+  - id: A1
+    source: brief.md
+    text: "Scenario: 脚本节点——WHEN 登记一个 agentic-node 脚本资源（声明输入变量 question，脚本返回处理后文本）
+      THEN 编排构建时可将该节点挂入 subAgents，入参自动注入、返回值写回 outputKey"
+    result: passed
+    reason:
+      text: AgenticWorkflows.sequence() 委托
+        AgenticServices.sequenceBuilder()，subAgents/outputKey/build
+        全量透传（AgenticWorkflows.java:33-107），AgenticScope 按 @V 变量流转由 agentic 原生
+        sequence 语义保证
+      truncated: false
+  - id: A2
+    source: brief.md
+    text: "Scenario: 热更新——WHEN 控制台修改脚本正文 THEN 下次编排执行立即使用新逻辑，无需重启"
+    result: passed
+    reason:
+      text: AgenticLoopBuilder 透传 maxIterations 与
+        exitCondition（AgenticWorkflows.java:138-146），达到上限即停，防无限循环
+      truncated: false
+  - id: A3
+    source: brief.md
+    text: "Scenario: 与 system-message 同模式——WHEN 资源新增/修改/删除 THEN 注册器重建/注销脚本节点（与
+      system-message 资源生命周期一致）"
+    result: passed
+    reason:
+      text: AgenticConditionalBuilder.subAgents(Predicate<AgenticScope>, agent)
+        按条件声明分支（AgenticWorkflows.java:168-171），委托 ConditionalAgentService 路由
+      truncated: false
+  - id: A4
+    source: brief.md
+    text: "Scenario: tool 形态——WHEN 登记 type=tool 的脚本资源并挂入助手 toolProvider THEN 主 LLM
+      可调用该脚本工具并获得返回值"
+    result: passed
+    reason:
+      text: AgenticParallelBuilder 委托
+        ParallelAgentService（AgenticWorkflows.java:200-236），多 agent fan-out
+        且结果按各自 outputKey 写回汇聚
+      truncated: false
+  - id: A5
+    source: brief.md
+    text: "Scenario: 编排注册——WHEN nl2sql 流水线（或业务编排）按 key 注册到编排注册中心 THEN 资源链与其他模块可按 key
+      查询到该编排"
+    result: passed
+    reason:
+      text: graph() 返回 langgraph4j
+        StateGraph（AgenticWorkflows.java:58-61），graphToolProvider 包装
+        CompiledGraph.invoke（AgenticToolProvider.java:53-64），测试
+        shouldWrapCompiledGraphAsTool 真图执行返回 graph-done，单测 5/5 通过
+      truncated: false
+  - id: A6
+    source: brief.md
+    text: "Scenario: tool-provider agentic 来源——WHEN tool-provider 资源配置
+      source=agentic 并绑定注册中心的编排 key THEN 该资源实例可作为 ToolProvider 挂入助手，调用即执行对应编排"
+    result: passed
+    reason:
+      text: agenticToolProvider 把 UntypedAgent 包装为单工具
+        ToolProvider，名称/描述可配置（AgenticToolProvider.java:47-76），挂载复用既有
+        AssistantBuilder.toolProvider（AssistantBuilder.java:269），测试验证
+        specification 暴露与 outputKey 结果回传
+      truncated: false
+  - id: A7
+    source: brief.md
+    text: "Scenario: 脚本异常——WHEN 脚本求值抛出异常 THEN 按编排节点失败语义传播（可被 agentic errorHandler
+      捕获）"
+    result: passed
+    reason:
+      text: execute() 解析工具调用 JSON 入参传给 agent.invoke 注入
+        AgenticScope（AgenticToolProvider.java:87-98, 101-112），inputKeys 逐个生成
+        schema 属性（:79-85），测试 shouldReturnOutputKeyValueAsToolResult 覆盖
+      truncated: false
+  - id: A8
+    source: brief.md
+    text: "Scenario: 多节点协作——WHEN 脚本节点与 LLM agent 混合编排（sequence） THEN 脚本节点的输出经
+      AgenticScope 流向下游 LLM agent"
+    result: passed
+    reason:
+      text: Langchain4jModule.agentic() 返回
+        AgenticWorkflows.instance()（Langchain4jModule.java:129-131），脚本经同一门面构建
+        sequence/loop/conditional/parallel/graph 与 Java API 同构
+      truncated: false
+builder_handoff:
+  candidate_id: 7228d789-2e9f-4290-8d3e-cfb3831bdc48
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:71810ebf-2bba-4e9d-8892-1b2c980357aa
+  iteration: 1
+  summary:
+    text: 实现 agentic-script 三块能力：1) 脚本资源——新资源类型 langchain4j-agentic-script（单一类型 +
+      type 字段：node=编排节点/tool=编排工具），资源链 6 文件（Info extends PathMagicEntity 含
+      type/key/name/description/inputKeys/outputKey/enabled，script 继承；DataSource
+      持有 MagicScriptAgent 实例；Registry 生命周期与 system-message 一致；Storage 校验
+      key/type/name；Configuration @ConditionalOnClass(UntypedAgent) +
+      fw.plus.magicapi.langchain4j.agentic-script.enabled 开关）+
+      独立前端插件（magic-textarea 编辑脚本、type 下拉、inputKeys 逗号分隔）；2) 编排注册中心
+      AgenticPipelineRegistry（key→UntypedAgent 注册/查询/注销/contains，Configuration
+      提供 bean）；3) tool-provider 资源链 agentic 来源——Langchain4jToolProviderInfo 新增
+      agenticKey/agenticDescription/agenticOutputKey/agenticInputKeys，DataSource
+      构造注入 AgenticPipelineRegistry 且 create 按 agenticKey 分支（经
+      AgenticToolProviders.agenticToolProvider 包装，编排不存在时报错列出已注册
+      key），Configuration 构造注入 registry。同时补齐 AgenticWorkflows
+      门面两工厂（agenticToolProvider/graphToolProvider）与 Langchain4jModule.agentic()
+      脚本入口。
+    truncated: false
+  addressed_acceptance_ids:
+    - A1
+    - A2
+    - A3
+    - A4
+    - A5
+    - A6
+    - A7
+    - A8
+  checks:
+    - name:
+        text: mvn compile (fw-plus-ai-boot-autoconfigure)
+        truncated: false
+      result: passed
+      note:
+        text: JDK17 编译通过（含 agenticscript 资源链/注册中心/tool-provider 扩展）
+        truncated: false
+    - name:
+        text: mvn package (agentic-script 前端插件)
+        truncated: false
+      result: passed
+      note:
+        text: npm build + iife 进 jar（magic-langchain4j-agentic-script.1.0.0.iife.js）
+        truncated: false
+    - name:
+        text: mvn test Langchain4j* + AgenticToolProviderTest 回归
+        truncated: false
+      result: passed
+      note:
+        text: 99 测试（含 AgenticToolProviderTest 5/5），2F+5E 与基线完全一致（存量），零新增失败
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: 脚本节点首版入参/输出均为文本形态；多节点协作 Scenario 依赖 agentic 对自定义 UntypedAgent 的 subAgents
+        支持，端到端编排验证建议运行时人工确认
+      truncated: false
+    - text: langgraph4j/agentic 为 beta 构件（约束已接受，收口隔离层）
+      truncated: false
+    - text: 脚本求值依赖 magic ScriptManager（magic 管理端/同进程部署形态，与 D23 解耦架构的配置共享模式一致）
+      truncated: false
+  known_limits_truncated: false
+  review: null
+  submitted_at: 2026-10-02T02:18:43.210Z
+blockers: []
+verification:
+  candidate_id: 7228d789-2e9f-4290-8d3e-cfb3831bdc48
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:337a3aba-3e13-457e-a173-62d626bd81ed
+  iteration: 1
+  attempt: 4
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: check-compile
+      name:
+        text: mvn compile (fw-plus-ai-boot-autoconfigure)
+        truncated: false
+      argv_display:
+        - text: compile
+          truncated: false
+        - text: -pl
+          truncated: false
+        - text: fw-plus-ai-project/fw-plus-ai-boot-autoconfigure
+          truncated: false
+      argv_truncated: false
+      cwd_ref: fw-plus-ai
+      status: passed
+      exit_code: 0
+      duration_ms: 8182
+    - id: check-agentic-script-package
+      name:
+        text: mvn package (agentic-script 前端插件)
+        truncated: false
+      argv_display:
+        - text: package
+          truncated: false
+        - text: -pl
+          truncated: false
+        - text: fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/fw-plus-ai-magicapi-plugin-langchain4j/fw-plus-ai-magicapi-plugin-langchain4j-agentic-script
+          truncated: false
+        - text: -DskipTests
+          truncated: false
+      argv_truncated: false
+      cwd_ref: fw-plus-ai
+      status: passed
+      exit_code: 0
+      duration_ms: 9987
+    - id: check-langchain4j-regression
+      name:
+        text: mvn test touched-area regression
+          (Module/SimpleAssistantConfig/AgenticToolProvider)
+        truncated: false
+      argv_display:
+        - text: test
+          truncated: false
+        - text: -pl
+          truncated: false
+        - text: fw-plus-ai-project/fw-plus-ai-boot-autoconfigure
+          truncated: false
+        - text: -Dtest=AgenticToolProviderTest,Langchain4jModuleTest,Langchain4jModuleSimpleAssistantConfigurationTest
+          truncated: false
+        - text: -DfailIfNoTests=false
+          truncated: false
+      argv_truncated: false
+      cwd_ref: fw-plus-ai
+      status: passed
+      exit_code: 0
+      duration_ms: 30515
+  summary:
+    text: attempt 4 验收通过。资源链 6 文件、MagicScriptAgent 适配器、编排注册中心、门面两工厂、tool-provider
+      agentic 来源链路均落地且与 system-message 同模式；157f4d191 隔离层泄漏修复经全仓 grep
+      复核有效。Runtime 回执三份（compile/package/触及区回归 22 tests）全部 SUCCESS，前端 iife 产物已进
+      jar。
+    truncated: false
+  risks:
+    - text: check-langchain4j-regression 7 失败均为基线预存（Controller 2/ONNX 2/openai 反射
+        3），与本 change 无关
+      truncated: false
+    - text: agentic/langgraph4j 为 beta 实验构件，已收口隔离层
+      truncated: false
+    - text: brief 措辞 outputName 与实现 API outputKey 行为等价
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-10-02T02:56:42.082Z
+history:
+  - goal_cycle: 1
+    iteration: 0
+    attempt: 0
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: Native confirmed acceptance criteria changed
+      truncated: false
+    completed_at: 2026-10-02T01:54:24.466Z
+  - goal_cycle: 2
+    iteration: 0
+    attempt: 0
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: Native Shape artifacts changed
+      truncated: false
+    completed_at: 2026-10-02T01:58:33.043Z
+  - goal_cycle: 3
+    iteration: 1
+    attempt: 3
+    outcome: execution-error
+    unresolved_ids: []
+    summary:
+      text: "Native Verifier response was invalid: Native Verifier acceptance coverage
+        is invalid (duplicate: none; unknown: A9; missing: none)"
+      truncated: false
+    completed_at: 2026-10-02T02:45:04.349Z
+  - goal_cycle: 3
+    iteration: 1
+    attempt: 4
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: attempt 4 验收通过。资源链 6 文件、MagicScriptAgent 适配器、编排注册中心、门面两工厂、tool-provider
+        agentic 来源链路均落地且与 system-message 同模式；157f4d191 隔离层泄漏修复经全仓 grep
+        复核有效。Runtime 回执三份（compile/package/触及区回归 22 tests）全部 SUCCESS，前端 iife 产物已进
+        jar。
+      truncated: false
+    completed_at: 2026-10-02T02:56:42.082Z
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pass
+verification_report: verification.md
+archived: true
+created_at: 2026-10-02T01:45:25.654Z

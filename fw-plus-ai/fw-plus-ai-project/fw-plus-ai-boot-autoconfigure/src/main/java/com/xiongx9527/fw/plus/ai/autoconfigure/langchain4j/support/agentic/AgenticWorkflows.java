@@ -60,6 +60,18 @@ public final class AgenticWorkflows {
         return new org.bsc.langgraph4j.StateGraph<>(stateFactory);
     }
 
+    /** 把 agentic 编排产物包装为 ToolProvider（agent-as-tool），挂入助手 toolProvider。 */
+    public static dev.langchain4j.service.tool.ToolProvider agenticToolProvider(UntypedAgent pipeline,
+            String toolName, String toolDescription, String outputKey, String... inputKeys) {
+        return AgenticToolProviders.agenticToolProvider(pipeline, toolName, toolDescription, outputKey, inputKeys);
+    }
+
+    /** 把 langgraph4j 编译图包装为 ToolProvider（agent-as-tool）。 */
+    public static <T extends org.bsc.langgraph4j.state.AgentState> dev.langchain4j.service.tool.ToolProvider graphToolProvider(
+            org.bsc.langgraph4j.CompiledGraph<T> compiledGraph, String toolName, String toolDescription) {
+        return AgenticToolProviders.graphToolProvider(compiledGraph, toolName, toolDescription);
+    }
+
     /** 顺序编排构建器（隔离层）。 */
     public static final class AgenticSequenceBuilder {
 

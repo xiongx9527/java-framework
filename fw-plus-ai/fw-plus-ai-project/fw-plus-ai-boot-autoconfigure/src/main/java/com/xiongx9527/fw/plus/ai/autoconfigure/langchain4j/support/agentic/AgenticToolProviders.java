@@ -37,4 +37,18 @@ public final class AgenticToolProviders {
             String toolName, String toolDescription) {
         return AgenticToolProvider.graph(compiledGraph, toolName, toolDescription);
     }
+
+    /**
+     * 按注册中心 key 把编排包装为 ToolProvider（隔离层：调用方无需接触 agentic 类型）。
+     * 编排未注册时抛出 IllegalArgumentException（错误信息列出已注册 key）。
+     */
+    public static ToolProvider agenticToolProviderByKey(AgenticPipelineRegistry registry, String agenticKey,
+            String toolName, String toolDescription, String outputKey, String... inputKeys) {
+        UntypedAgent pipeline = registry.get(agenticKey);
+        if (pipeline == null) {
+            throw new IllegalArgumentException(String.format(
+                    "编排注册中心中不存在 agenticKey '%s'，已注册: %s", agenticKey, registry.keys()));
+        }
+        return agenticToolProvider(pipeline, toolName, toolDescription, outputKey, inputKeys);
+    }
 }
