@@ -138,13 +138,13 @@ public class KbIndexingService {
 			embedAndStore(dataset, segments);
 			// 4. 完成
 			documentMapper.casTransit(documentId, "indexing", "completed");
-			KbDocument update = new KbDocument();
-			update.setId(documentId);
-			update.setLatencyMs(System.currentTimeMillis() - start);
-			update.setErrorMsg(null);
-			update.setWordCount(approxWordCount(text));
-			update.setUpdateTime(new Date());
-			documentMapper.updateById(update);
+			// error_msg 用 UpdateWrapper 显式置 null（updateById 忽略 null 字段，旧错误信息会残留）
+			documentMapper.update(null, new com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<KbDocument>()
+					.eq("id", documentId)
+					.set("error_msg", null)
+					.set("latency_ms", System.currentTimeMillis() - start)
+					.set("word_count", approxWordCount(text))
+					.set("update_time", new Date()));
 			return true;
 		} catch (Throwable e) {
 			logger.error("文档索引失败: {}", documentId, e);
@@ -258,7 +258,23 @@ public class KbIndexingService {
 				segments.add(child);
 			}
 		} else if ("qa".equals(mode)) {
-			throw new IllegalStateException("QA 分段模式为预留能力，当前版本请使用 general 或 parent-child");
+			// QA 模式（设计 §2.3）：切父段 → 每父段 prompt 抽取 {question, answer} 生成 QA 分段（嵌入 question）
+			if (dataset.getChatModelKey() == null || dataset.getChatModelKey().isEmpty()) {
+				throw new IllegalStateException("QA 分段模式需要在数据集配置 chat_model_key（对话模型资源 key）");
+			}
+			dev.langchain4j.model.chat.ChatLanguageModel chatModel =
+					retrieverContext.chatModel(dataset.getChatModelKey());
+			List<String> parentChunks = documentPipeline.splitGeneral(text, maxLen, overlap, delimiter);
+			int qaPosition = 0;
+			for (String parent : parentChunks) {
+				for (String[] qa : com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j
+						.retriever.knowledge.pipeline.QaExtractor.extract(chatModel, parent)) {
+					KbSegment segment = newSegment(dataset, document, qaPosition++, qa[0], now);
+					segment.setAnswer(qa[1]);
+					segmentMapper.insert(segment);
+					segments.add(segment);
+				}
+			}
 		} else {
 			List<String> chunks = documentPipeline.splitGeneral(text, maxLen, overlap, delimiter);
 			for (int i = 0; i < chunks.size(); i++) {
@@ -268,9 +284,6 @@ public class KbIndexingService {
 			}
 		}
 		return segments;
-	}
-
-	private static class LinkedHashMap<K, V> extends HashMap<K, V> {
 	}
 
 	private KbSegment newSegment(KbDataset dataset, KbDocument document, int position, String content, Date now) {
@@ -296,6 +309,17 @@ public class KbIndexingService {
 	 */
 	private void embedAndStore(KbDataset dataset, List<KbSegment> segments) {
 		if (segments.isEmpty()) {
+			return;
+		}
+		// economy 经济模式：不入向量库，分段直接 completed（检索走关键词路，设计 §2.3 预留项）
+		if ("economy".equalsIgnoreCase(dataset.getIndexingTechnique())) {
+			for (KbSegment segment : segments) {
+				KbSegment update = new KbSegment();
+				update.setId(segment.getId());
+				update.setStatus("completed");
+				update.setUpdateTime(new Date());
+				segmentMapper.updateById(update);
+			}
 			return;
 		}
 		String effectiveModel = dataset.getEmbeddingModelActive() != null

@@ -39,6 +39,9 @@ public class KbDataset extends MpBaseEntity<String> {
     /** rerank 模型资源 key（scoring-model），空则不重排 */
     private String scoringModelKey;
 
+    /** QA 分段抽取用对话模型资源 key（langchain4j chat-model），segment_mode=qa 时必填 */
+    private String chatModelKey;
+
     /** 向量库 collection 名，按数据集隔离；空则按约定生成 */
     private String collectionName;
 

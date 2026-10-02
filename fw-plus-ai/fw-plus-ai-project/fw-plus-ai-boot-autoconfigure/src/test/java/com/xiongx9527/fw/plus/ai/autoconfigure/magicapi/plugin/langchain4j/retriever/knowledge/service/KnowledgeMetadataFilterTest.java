@@ -6,6 +6,7 @@ import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
 import dev.langchain4j.store.embedding.filter.comparison.IsNotEqualTo;
 import dev.langchain4j.store.embedding.filter.logical.And;
 import dev.langchain4j.store.embedding.filter.logical.Or;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.ContainsStringFilter;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -15,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class KnowledgeMetadataFilterTest {
 
-    private final KbSearchService service = new KbSearchService(null, null, null, null, null, null, null);
+    private final KbSearchService service = new KbSearchService(null, null, null, null, null, null, null, true);
 
     @Test
     void 空条件返回null() {
@@ -65,6 +66,57 @@ class KnowledgeMetadataFilterTest {
         Or or = (Or) filter;
         assertThat(or.left()).isInstanceOf(IsNotEqualTo.class);
         assertThat(or.right()).isInstanceOf(IsEqualTo.class);
+    }
+
+    private static JSONObject condition(String logical, String name, String operator, String value) {
+        JSONObject item = new JSONObject();
+        item.put("name", name);
+        item.put("comparison_operator", operator);
+        item.put("value", value);
+        JSONObject condition = new JSONObject();
+        condition.put("logical_operator", logical);
+        condition.put("conditions", new JSONObject[]{item});
+        return condition;
+    }
+
+    @Test
+    void in操作符构造IsIn() {
+        JSONObject condition = condition("and", "lang", "in", "zh,en");
+        Filter filter = service.buildMetadataCondition(condition);
+        assertThat(filter).isInstanceOf(dev.langchain4j.store.embedding.filter.comparison.IsIn.class);
+        assertThat(((dev.langchain4j.store.embedding.filter.comparison.IsIn) filter).key()).isEqualTo("lang");
+    }
+
+    @Test
+    void 数值比较操作符构造IsGreaterThan() {
+        Filter filter = service.buildMetadataCondition(condition("and", "views", "gt", "100"));
+        assertThat(filter).isInstanceOf(dev.langchain4j.store.embedding.filter.comparison.IsGreaterThan.class);
+    }
+
+    @Test
+    void contains构造自定义Filter并支持内存测试() {
+        Filter filter = service.buildMetadataCondition(condition("and", "category", "contains", "faq"));
+        assertThat(filter).isInstanceOf(ContainsStringFilter.class);
+        java.util.Map<String, Object> metadata = new java.util.LinkedHashMap<>();
+        metadata.put("category", "faq-001");
+        assertThat(filter.test(new dev.langchain4j.data.document.Metadata(metadata))).isTrue();
+        java.util.Map<String, Object> miss = new java.util.LinkedHashMap<>();
+        miss.put("category", "news");
+        assertThat(filter.test(new dev.langchain4j.data.document.Metadata(miss))).isFalse();
+    }
+
+    @Test
+    void not_contains构造Not包装() {
+        Filter filter = service.buildMetadataCondition(condition("and", "category", "not contains", "faq"));
+        assertThat(filter).isInstanceOf(dev.langchain4j.store.embedding.filter.logical.Not.class);
+    }
+
+    @Test
+    void is_empty按空串近似() {
+        Filter filter = service.buildMetadataCondition(condition("and", "remark", "is empty", null));
+        assertThat(filter).isInstanceOf(dev.langchain4j.store.embedding.filter.comparison.IsEqualTo.class);
+        assertThat(((dev.langchain4j.store.embedding.filter.comparison.IsEqualTo) filter).comparisonValue())
+                .isEqualTo("");
     }
 
     @Test

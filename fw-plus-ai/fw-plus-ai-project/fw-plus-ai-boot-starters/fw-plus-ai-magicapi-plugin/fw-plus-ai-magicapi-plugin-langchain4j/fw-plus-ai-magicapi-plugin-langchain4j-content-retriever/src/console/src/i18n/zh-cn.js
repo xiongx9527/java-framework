@@ -93,6 +93,12 @@ export default {
                 segmentOverlap: '分段重叠',
                 segmentDelimiter: '自定义分隔符',
                 topK: '召回数量/分数阈值',
+                import: '导入',
+                export: '导出',
+                preview: '切分预览',
+                importDone: '导入成功，新数据集 id：',
+                chatModel: 'QA 对话模型',
+                chatModelTip: 'qa 分段模式必填（langchain4j chat-model key）',
                 scoreThreshold: '分数阈值',
                 errorMsg: '提示',
                 retrievers: '引用的检索器'
@@ -109,6 +115,8 @@ export default {
                 metadata: 'Metadata',
                 metadataJson: 'Metadata JSON',
                 download: '下载',
+                move: '迁移',
+                dropHere: '松开鼠标上传文件',
                 enable: '启用',
                 disable: '禁用',
                 archive: '归档',
@@ -126,7 +134,13 @@ export default {
                 selectDocumentTip: '请先选择文档',
                 edit: '编辑分段'
             },
-            hit: { run: '检索', queryTip: '输入测试 query', score: '分数' }
+            hit: {
+                run: '检索',
+                queryTip: '输入测试 query',
+                score: '分数',
+                metadataCondition: 'Metadata 条件',
+                metadataTip: 'JSON，如 {"logical_operator":"and","conditions":[{"name":"lang","value":"zh"}]}'
+            }
         }
     }
 }

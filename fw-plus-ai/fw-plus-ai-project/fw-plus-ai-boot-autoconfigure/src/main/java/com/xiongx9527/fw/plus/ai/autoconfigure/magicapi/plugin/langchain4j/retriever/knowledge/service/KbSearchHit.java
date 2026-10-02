@@ -31,6 +31,9 @@ public class KbSearchHit {
 
 	private final Map<String, Object> metadata;
 
+	/** 重排分数（scoring_model_key 启用时由重排模型打分；score 保留向量相似度分，两者量纲不同） */
+	private Double rerankScore;
+
 	public KbSearchHit(String datasetId, String documentId, String documentName, String segmentId,
 			int position, String content, String answer, String keywords, Double score,
 			String parentContent, Map<String, Object> metadata) {
@@ -96,5 +99,13 @@ public class KbSearchHit {
 
 	public Map<String, Object> getMetadata() {
 		return metadata;
+	}
+
+	public Double getRerankScore() {
+		return rerankScore;
+	}
+
+	public void setRerankScore(Double rerankScore) {
+		this.rerankScore = rerankScore;
 	}
 }

@@ -1,11 +1,14 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service;
 
+import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.entity.KbDataset;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.entity.KbDocument;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.entity.KbSegment;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.mapper.KbDatasetMapper;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.mapper.KbDocumentMapper;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.mapper.KbSegmentMapper;
 import org.springframework.beans.factory.ObjectProvider;
 import org.ssssssss.magicapi.core.service.MagicResourceService;
 
@@ -26,6 +29,10 @@ public class KbDatasetService {
 
 	private final KbDocumentMapper documentMapper;
 
+	private final KbSegmentMapper segmentMapper;
+
+	private final com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.pipeline.DocumentPipeline documentPipeline;
+
 	private final KbSearchService searchService;
 
 	private final KbIndexingService indexingService;
@@ -37,12 +44,16 @@ public class KbDatasetService {
 	private final KbKnowledgeState state;
 
 	public KbDatasetService(KbDatasetMapper datasetMapper, KbDocumentMapper documentMapper,
+			KbSegmentMapper segmentMapper,
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.pipeline.DocumentPipeline documentPipeline,
 			KbSearchService searchService, KbIndexingService indexingService,
 			ObjectProvider<MagicResourceService> resourceServices,
 			ObjectProvider<com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.resource.Langchain4jContentRetrieverMagicResourceStorage> retrieverStorages,
 			KbKnowledgeState state) {
 		this.datasetMapper = datasetMapper;
 		this.documentMapper = documentMapper;
+		this.segmentMapper = segmentMapper;
+		this.documentPipeline = documentPipeline;
 		this.searchService = searchService;
 		this.indexingService = indexingService;
 		this.resourceServices = resourceServices;
@@ -112,6 +123,8 @@ public class KbDatasetService {
 				? dataset.getEmbeddingStoreKey() : existing.getEmbeddingStoreKey());
 		update.setScoringModelKey(dataset.getScoringModelKey() != null
 				? dataset.getScoringModelKey() : existing.getScoringModelKey());
+		update.setChatModelKey(dataset.getChatModelKey() != null
+				? dataset.getChatModelKey() : existing.getChatModelKey());
 		update.setCollectionName(dataset.getCollectionName() != null
 				? dataset.getCollectionName() : existing.getCollectionName());
 		update.setRetrievalTopK(dataset.getRetrievalTopK() != null
@@ -238,6 +251,9 @@ public class KbDatasetService {
 				&& !"qa".equals(mode)) {
 			throw new IllegalArgumentException("不支持的分段模式: " + mode + "（general / parent-child / qa）");
 		}
+		if ("qa".equals(mode) && (dataset.getChatModelKey() == null || dataset.getChatModelKey().isEmpty())) {
+			throw new IllegalArgumentException("QA 分段模式需要配置对话模型资源 key（chat-model-key）");
+		}
 	}
 
 	private KbDataset requireDataset(String id) {
@@ -246,5 +262,153 @@ public class KbDatasetService {
 			throw new IllegalArgumentException("知识库数据集不存在: " + id);
 		}
 		return dataset;
+	}
+
+	// ---------------- 切分预览 / 导出 / 导入 ----------------
+
+	/**
+	 * 切分预览（Dry-run）：按数据集配置（或显式参数）执行切分器，返回分段文本与 token 估计，
+	 * 不落库、不嵌入。QA 模式需调用对话模型生成，不做预览。
+	 */
+	public List<Map<String, Object>> previewSplit(String text, String segmentMode, Integer segmentMaxLength,
+			Integer segmentOverlap, String segmentDelimiter) {
+		state.checkReady();
+		int maxLen = segmentMaxLength != null && segmentMaxLength > 0 ? segmentMaxLength : 1000;
+		int overlap = segmentOverlap != null && segmentOverlap >= 0 ? segmentOverlap : 200;
+		String mode = segmentMode == null || segmentMode.isEmpty() ? "general" : segmentMode;
+		List<Map<String, Object>> preview = new ArrayList<>();
+		if ("parent-child".equals(mode)) {
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.pipeline.ParentChildSplitter
+					splitter = new com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.pipeline.ParentChildSplitter(
+					maxLen, overlap);
+			int parentPosition = -1;
+			String lastParent = null;
+			for (com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.pipeline.ParentChildSplitter.Piece
+					piece : splitter.split(text, segmentDelimiter)) {
+				if (!piece.getParentContent().equals(lastParent)) {
+					parentPosition++;
+					lastParent = piece.getParentContent();
+					// 父段预览（父段落表不嵌入）
+					Map<String, Object> parent = new LinkedHashMap<>();
+					parent.put("position", parentPosition);
+					parent.put("content", piece.getParentContent());
+					parent.put("tokens", com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.pipeline.KbTokenCounter
+							.estimate(piece.getParentContent()));
+					parent.put("parent", true);
+					preview.add(parent);
+				}
+				Map<String, Object> item = new LinkedHashMap<>();
+				item.put("position", piece.getChildPosition());
+				item.put("content", piece.getChildContent());
+				item.put("tokens", com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.pipeline.KbTokenCounter
+						.estimate(piece.getChildContent()));
+				item.put("parent", false);
+				item.put("parentId", parentPosition);
+				preview.add(item);
+			}
+			return preview;
+		}
+		List<String> chunks = documentPipeline.splitGeneral(text, maxLen, overlap, segmentDelimiter);
+		for (int i = 0; i < chunks.size(); i++) {
+			Map<String, Object> item = new LinkedHashMap<>();
+			item.put("position", i);
+			item.put("content", chunks.get(i));
+			item.put("tokens", com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.pipeline.KbTokenCounter
+					.estimate(chunks.get(i)));
+			preview.add(item);
+		}
+		return preview;
+	}
+
+	/**
+	 * 导出数据集（不含向量）：JSON {dataset, documents:[{...document, segments:[...]}]}，
+	 * 导入方按文档 doc_hash 与分段内容重建索引（重新嵌入）。
+	 */
+	public com.alibaba.fastjson2.JSONObject export(String datasetId) {
+		state.checkReady();
+		KbDataset dataset = requireDataset(datasetId);
+		com.alibaba.fastjson2.JSONObject payload = new com.alibaba.fastjson2.JSONObject();
+		payload.put("version", 1);
+		payload.put("dataset", JSON.parseObject(JSON.toJSONString(dataset)));
+		com.alibaba.fastjson2.JSONArray documents = new com.alibaba.fastjson2.JSONArray();
+		for (KbDocument document : documentMapper.selectList(new QueryWrapper<KbDocument>()
+				.eq("dataset_id", datasetId).orderByAsc("create_time"))) {
+			com.alibaba.fastjson2.JSONObject docJson = JSON.parseObject(JSON.toJSONString(document));
+			com.alibaba.fastjson2.JSONArray segments = new com.alibaba.fastjson2.JSONArray();
+			for (KbSegment segment : segmentMapper.selectList(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<KbSegment>()
+					.eq("document_id", document.getId()).orderByAsc("position"))) {
+				segments.add(JSON.parseObject(JSON.toJSONString(segment)));
+			}
+			docJson.put("segments", segments);
+			documents.add(docJson);
+		}
+		payload.put("documents", documents);
+		return payload;
+	}
+
+	/**
+	 * 导入数据集：按导出 JSON 重建数据集/文档/分段（数据集与文档 id 重新生成，分段保留内容与
+	 * keywords/answer），全部文档置 waiting 入队重新嵌入。indexing_status 重置为 waiting。
+	 *
+	 * @return 新数据集 id
+	 */
+	public String importDataset(com.alibaba.fastjson2.JSONObject payload) {
+		state.checkReady();
+		if (payload == null || payload.getJSONObject("dataset") == null) {
+			throw new IllegalArgumentException("导入内容缺少 dataset 配置");
+		}
+		KbDataset dataset = payload.getJSONObject("dataset").toJavaObject(KbDataset.class);
+		String sourceName = dataset.getName();
+		dataset.setId(UUID.randomUUID().toString().replace("-", ""));
+		dataset.setName(sourceName == null ? "导入数据集" : sourceName + "-导入");
+		// 重新嵌入后回填，导入时清空运行态字段
+		dataset.setEmbeddingModelActive(null);
+		dataset.setErrorMsg(null);
+		Date now = new Date();
+		dataset.setCreateTime(now);
+		dataset.setUpdateTime(now);
+		dataset.setDelFlag("0");
+		validate(dataset);
+		datasetMapper.insert(dataset);
+
+		com.alibaba.fastjson2.JSONArray documents = payload.getJSONArray("documents");
+		if (documents != null) {
+			for (int i = 0; i < documents.size(); i++) {
+				com.alibaba.fastjson2.JSONObject docJson = documents.getJSONObject(i);
+				KbDocument document = docJson.toJavaObject(KbDocument.class);
+				String sourceDocumentId = document.getId();
+				document.setId(UUID.randomUUID().toString().replace("-", ""));
+				document.setDatasetId(dataset.getId());
+				document.setIndexingStatus("waiting");
+				document.setLatencyMs(null);
+				document.setErrorMsg(null);
+				document.setCreateTime(now);
+				document.setUpdateTime(now);
+				documentMapper.insert(document);
+				com.alibaba.fastjson2.JSONArray segments = docJson.getJSONArray("segments");
+				if (segments == null) {
+					continue;
+				}
+				for (int j = 0; j < segments.size(); j++) {
+					com.alibaba.fastjson2.JSONObject segmentJson = segments.getJSONObject(j);
+					segmentJson.put("id", java.util.UUID.randomUUID().toString().replace("-", ""));
+					segmentJson.put("datasetId", dataset.getId());
+					segmentJson.put("documentId", document.getId());
+					segmentJson.put("status", "waiting");
+					segmentJson.put("indexNodeId", null);
+					segmentJson.put("indexNodeHash", null);
+					segmentJson.put("hitCount", 0);
+					segmentJson.put("createTime", now.getTime());
+					segmentJson.put("updateTime", now.getTime());
+					KbSegment segment = segmentJson.toJavaObject(KbSegment.class);
+					segment.setCreateTime(now);
+					segment.setUpdateTime(now);
+					segmentMapper.insert(segment);
+				}
+				// 重新入队嵌入（导入的向量不在导出内容内）
+				indexingService.trigger(document);
+			}
+		}
+		return dataset.getId();
 	}
 }

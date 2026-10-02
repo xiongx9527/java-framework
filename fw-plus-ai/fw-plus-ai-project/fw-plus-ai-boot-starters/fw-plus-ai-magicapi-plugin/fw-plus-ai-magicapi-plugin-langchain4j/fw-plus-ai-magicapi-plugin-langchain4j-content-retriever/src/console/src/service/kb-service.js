@@ -42,6 +42,30 @@ export const kbApi = {
     hitTest: (id, body) => new Promise((resolve, reject) => {
         requireRequest().sendJson('/kb/dataset/' + id + '/hitTest', body).success(unwrap(resolve, reject));
     }),
+    previewSplit: (body) => new Promise((resolve, reject) => {
+        requireRequest().sendJson('/kb/dataset/preview-split', body).success(unwrap(resolve, reject));
+    }),
+    exportDataset: (id, name) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', '/kb/dataset/' + id + '/export');
+        xhr.responseType = 'blob';
+        xhr.onload = () => {
+            const url = URL.createObjectURL(xhr.response);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'kb-dataset-' + (name || id) + '.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+        xhr.send();
+    },
+    importDataset: (jsonText) => new Promise((resolve, reject) => {
+        requireRequest().sendJson('/kb/dataset/import', JSON.parse(jsonText)).success(unwrap(resolve, reject));
+    }),
+    moveDocument: (id, datasetId) => new Promise((resolve, reject) => {
+        requireRequest().sendJson('/kb/document/' + id + '/move', {datasetId})
+            .success(unwrap(resolve, reject));
+    }),
     retrievers: (id) => new Promise((resolve, reject) => {
         requireRequest().sendGet('/kb/dataset/' + id + '/retrievers').success(unwrap(resolve, reject));
     }),

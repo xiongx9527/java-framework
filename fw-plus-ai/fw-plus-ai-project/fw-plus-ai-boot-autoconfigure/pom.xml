@@ -40,6 +40,14 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- knowledge 原始文件存储（storage-type=s3 时复用 fw-plus-boot magicapi s3 插件的 FileInfo 类型） -->
+        <dependency>
+            <groupId>org.dromara.x-file-storage</groupId>
+            <artifactId>x-file-storage-core</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
         <!-- knowledge 知识库实体注解/Mapper 基类编译依赖（fw-plus-mp-base 中为 optional 不传递；仅知识库装配使用） -->
         <dependency>
             <groupId>com.baomidou</groupId>

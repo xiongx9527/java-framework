@@ -5,6 +5,8 @@
         <strong>{{ $i('kb.dataset.title') }}</strong>
         <button @click="loadDatasets">{{ $i('kb.refresh') }}</button>
         <button @click="openDatasetForm()">{{ $i('kb.dataset.create') }}</button>
+        <input ref="importInput" type="file" accept=".json" style="display:none" @change="onImportFile"/>
+        <button @click="$refs.importInput.click()">{{ $i('kb.dataset.import') }}</button>
       </div>
       <div v-if="loading.datasets" class="kb-state">{{ $i('kb.loading') }}</div>
       <div v-else-if="!datasets.length" class="kb-state">{{ $i('kb.empty') }}</div>
@@ -45,6 +47,8 @@
           </table>
           <div class="kb-actions">
             <button @click="openDatasetForm(selectedDataset)">{{ $i('kb.edit') }}</button>
+            <button @click="exportDataset">{{ $i('kb.dataset.export') }}</button>
+            <button @click="openPreview">{{ $i('kb.dataset.preview') }}</button>
             <button class="danger" @click="removeDataset">{{ $i('kb.delete') }}</button>
           </div>
         </section>
@@ -52,8 +56,9 @@
         <!-- 文档视图 -->
         <section v-else-if="activeView === 'document'" class="kb-view">
           <div class="kb-actions">
-            <input ref="fileInput" type="file" style="display:none" @change="onUpload"/>
+            <input ref="fileInput" type="file" multiple style="display:none" @change="onUpload"/>
             <button @click="$refs.fileInput.click()">{{ $i('kb.document.upload') }}</button>
+            <button @click="openMoveForm" :disabled="!checkedDocuments.length">{{ $i('kb.document.move') }}</button>
             <button @click="loadDocuments">{{ $i('kb.refresh') }}</button>
             <button :disabled="!checkedDocuments.length" @click="batchDocuments('enable')">{{ $i('kb.document.enable') }}</button>
             <button :disabled="!checkedDocuments.length" @click="batchDocuments('disable')">{{ $i('kb.document.disable') }}</button>
@@ -61,7 +66,8 @@
             <button :disabled="!checkedDocuments.length" @click="batchDocuments('unarchive')">{{ $i('kb.document.unarchive') }}</button>
             <button class="danger" :disabled="!checkedDocuments.length" @click="batchDocuments('delete')">{{ $i('kb.delete') }}</button>
           </div>
-          <div v-if="loading.documents" class="kb-state">{{ $i('kb.loading') }}</div>
+          <div v-if="dragOver" class="kb-dragover" @dragover.prevent @dragleave="dragOver=false" @drop.prevent="onDrop">{{ $i('kb.document.dropHere') }}</div>
+          <div v-else-if="loading.documents" class="kb-state" @dragover.prevent="dragOver=true" @dragleave="dragOver=false" @drop.prevent="onDrop">{{ $i('kb.loading') }}</div>
           <div v-else-if="!documents.length" class="kb-state">{{ $i('kb.empty') }}</div>
           <table v-else class="kb-table">
             <thead>
@@ -145,6 +151,10 @@
             <input v-model="hitQuery" style="flex:1" :placeholder="$i('kb.hit.queryTip')" @keyup.enter="runHitTest"/>
             <button :disabled="!hitQuery" @click="runHitTest">{{ $i('kb.hit.run') }}</button>
           </div>
+          <div class="kb-form-row">
+            <label>{{ $i('kb.hit.metadataCondition') }}</label>
+            <input v-model="hitMetadata" :placeholder="$i('kb.hit.metadataTip')"/>
+          </div>
           <div v-if="!hits.length" class="kb-state">{{ $i('kb.empty') }}</div>
           <table v-else class="kb-table">
             <thead>
@@ -177,10 +187,12 @@
         <div class="kb-form-row"><label>{{ $i('kb.dataset.embeddingModel') }} *</label><input v-model="datasetForm.embeddingModelKey"/></div>
         <div class="kb-form-row"><label>{{ $i('kb.dataset.embeddingStore') }} *</label><input v-model="datasetForm.embeddingStoreKey"/></div>
         <div class="kb-form-row"><label>{{ $i('kb.dataset.scoringModel') }}</label><input v-model="datasetForm.scoringModelKey"/></div>
+        <div class="kb-form-row"><label>{{ $i('kb.dataset.chatModel') }}</label><input v-model="datasetForm.chatModelKey" :placeholder="$i('kb.dataset.chatModelTip')"/></div>
         <div class="kb-form-row"><label>{{ $i('kb.dataset.segmentMode') }}</label>
           <select v-model="datasetForm.segmentMode">
             <option value="general">general</option>
             <option value="parent-child">parent-child</option>
+            <option value="qa">qa</option>
           </select>
         </div>
         <div class="kb-form-row"><label>{{ $i('kb.dataset.segmentMaxLength') }}</label><input v-model="datasetForm.segmentMaxLength" type="number"/></div>
@@ -205,6 +217,43 @@
         <div class="kb-modal-actions">
           <button @click="saveSegment">{{ $i('kb.save') }}</button>
           <button @click="segmentForm = null">{{ $i('kb.cancel') }}</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 切分预览 -->
+    <div v-if="previewItems" class="kb-modal-mask" @click.self="previewItems = null">
+      <div class="kb-modal">
+        <h4>{{ $i('kb.dataset.preview') }}</h4>
+        <div v-if="!previewItems.length" class="kb-state">{{ $i('kb.empty') }}</div>
+        <table v-else class="kb-table">
+          <thead><tr><th>#</th><th>{{ $i('kb.segment.content') }}</th><th>{{ $i('kb.segment.tokens') }}</th><th>{{ $i('kb.segment.parent') }}</th></tr></thead>
+          <tbody>
+            <tr v-for="(item, index) in previewItems" :key="index">
+              <td>{{ item.position }}</td>
+              <td class="kb-content" :title="item.content">{{ item.content }}</td>
+              <td>{{ item.tokens }}</td>
+              <td>{{ item.parent ? $i('kb.option.yes') : '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="kb-modal-actions"><button @click="previewItems = null">{{ $i('kb.cancel') }}</button></div>
+      </div>
+    </div>
+
+    <!-- 文档迁移 -->
+    <div v-if="moveForm" class="kb-modal-mask" @click.self="moveForm = null">
+      <div class="kb-modal">
+        <h4>{{ $i('kb.document.move') }}</h4>
+        <div class="kb-form-row">
+          <label>{{ $i('kb.dataset.title') }}</label>
+          <select v-model="moveForm.targetDatasetId">
+            <option v-for="ds in datasets" :key="ds.id" :value="ds.id" v-if="ds.id !== selectedDatasetId">{{ ds.name }}</option>
+          </select>
+        </div>
+        <div class="kb-modal-actions">
+          <button @click="doMove">{{ $i('kb.save') }}</button>
+          <button @click="moveForm = null">{{ $i('kb.cancel') }}</button>
         </div>
       </div>
     </div>
@@ -239,6 +288,10 @@ const segments = ref([])
 const segmentDocumentId = ref('')
 const hits = ref([])
 const hitQuery = ref('')
+const hitMetadata = ref('')
+const dragOver = ref(false)
+const previewItems = ref(null)
+const moveForm = ref(null)
 const referencers = ref([])
 const activeView = ref('dataset')
 const datasetForm = ref(null)
@@ -459,7 +512,89 @@ const removeSegment = async (seg) => {
 
 const runHitTest = async () => {
   try {
-    hits.value = (await kbApi.hitTest(selectedDatasetId.value, { query: hitQuery.value })) || []
+    let metadataCondition = null
+    if (hitMetadata.value && hitMetadata.value.trim()) {
+      metadataCondition = JSON.parse(hitMetadata.value)
+    }
+    hits.value = (await kbApi.hitTest(selectedDatasetId.value, {
+      query: hitQuery.value, metadataCondition
+    })) || []
+  } catch (e) {
+    fail(e)
+  }
+}
+
+// ---------------- 批量/拖拽上传 ----------------
+
+const uploadFiles = async (files) => {
+  if (!files || !files.length || !selectedDatasetId.value) return
+  try {
+    for (const file of files) {
+      await kbApi.upload(selectedDatasetId.value, file)
+    }
+    await loadDocuments()
+  } catch (e) {
+    fail(e)
+  }
+}
+
+const onDrop = (event) => {
+  dragOver.value = false
+  if (event.dataTransfer && event.dataTransfer.files) {
+    uploadFiles(event.dataTransfer.files)
+  }
+}
+
+// ---------------- 导入/导出/迁移/切分预览 ----------------
+
+const onImportFile = async (event) => {
+  const file = event.target.files && event.target.files[0]
+  event.target.value = ''
+  if (!file) return
+  try {
+    const text = await file.text()
+    const datasetId = await kbApi.importDataset(text)
+    modal && modal.alert ? modal.alert($i('kb.dataset.importDone') + datasetId) : null
+    await loadDatasets()
+  } catch (e) {
+    fail(e)
+  }
+}
+
+const exportDataset = () => {
+  if (!selectedDataset.value) return
+  kbApi.exportDataset(selectedDataset.value.id, selectedDataset.value.name)
+}
+
+const openPreview = async () => {
+  const ds = selectedDataset.value
+  if (!ds) return
+  try {
+    previewItems.value = (await kbApi.previewSplit({
+      text: 'This is a sample text for split preview. '.repeat(10),
+      segmentMode: ds.segmentMode,
+      segmentMaxLength: ds.segmentMaxLength,
+      segmentOverlap: ds.segmentOverlap,
+      segmentDelimiter: ds.segmentDelimiter
+    })) || []
+  } catch (e) {
+    fail(e)
+  }
+}
+
+const openMoveForm = () => {
+  if (!checkedDocuments.value.length) return
+  moveForm.value = { targetDatasetId: '' }
+}
+
+const doMove = async () => {
+  if (!moveForm.value.targetDatasetId) return
+  try {
+    for (const id of checkedDocuments.value) {
+      await kbApi.moveDocument(id, moveForm.value.targetDatasetId)
+    }
+    moveForm.value = null
+    await loadDocuments()
   } catch (e) {
     fail(e)
   }
@@ -500,4 +635,5 @@ loadDatasets()
 .kb-form-row label { width: 150px; text-align: right; padding-right: 8px; padding-top: 4px; font-size: 12px; }
 .kb-form-row input, .kb-form-row select, .kb-form-row textarea { flex: 1; box-sizing: border-box; padding: 4px 6px; border: 1px solid var(--magic-border-color, #ddd); border-radius: 4px; background: transparent; color: inherit; }
 .kb-modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.kb-dragover { border: 2px dashed var(--magic-primary-color, #409eff); border-radius: 6px; padding: 20px; text-align: center; color: var(--magic-primary-color, #409eff); }
 </style>

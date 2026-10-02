@@ -24,6 +24,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retri
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.web.KbConsoleController;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.web.KbOpenApiController;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.resource.Langchain4jContentRetrieverMagicResourceStorage;
+import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.mapper.MapperFactoryBean;
 import org.ssssssss.magicapi.core.config.MagicPluginConfiguration;
@@ -50,13 +51,18 @@ import org.springframework.context.annotation.Configuration;
  *
  * <p>knowledge 检索器工厂以 {@code ContentRetrieverProvider} bean 注册，经
  * {@code Langchain4jContentRetrieverConfiguration} 的分发表收集进入短名 {@code knowledge}。</p>
+ *
+ * <p>管理端 UI 为独立插件产物（magic-kb-browser iife.js）：本装配生效（知识库启动）时才声明
+ * {@code langchain4j-knowledge} 插件并注册 {@code /kb/**} Controller；控制台入口按
+ * {@code magic-api.plugin.knowledge.admin.enabled} 开关激活（默认关闭，与 s3/kafka/db 等插件
+ * 的 admin.enabled 惯例一致——不启动，不激活）。</p>
  */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnClass(SqlSessionFactory.class)
 @ConditionalOnBean(SqlSessionFactory.class)
 @ConditionalOnProperty(prefix = "fw.plus.ai.knowledge", name = "enabled", havingValue = "true",
 		matchIfMissing = true)
-public class KnowledgePluginConfiguration implements MagicPluginConfiguration {
+public class KnowledgeConfiguration {
 
 	@Autowired
 	private ObjectProvider<KbDatasetService> datasetServices;
@@ -67,24 +73,37 @@ public class KnowledgePluginConfiguration implements MagicPluginConfiguration {
 	@Autowired
 	private ObjectProvider<KbSegmentService> segmentServices;
 
-	/** 插件标识（管理端 UI 产物复用 content-retriever 插件 iife.js，此处不重复声明前端产物）。 */
-	@Override
-	public Plugin plugin() {
-		return new Plugin("langchain4j-knowledge");
-	}
+	/**
+	 * knowledge 管理端插件：声明专属前端产物（magic-kb-browser iife.js，toolbars 四视图入口）
+	 * 并注册 {@code /kb/**} Controller。控制台入口经 {@code magic-api.plugin.knowledge.admin.enabled}
+	 * 激活（默认关闭）；仅知识库装配成功时本 bean 存在，插件声明随之生效。
+	 */
+	@Bean
+	public MagicPluginConfiguration kbBrowserPluginConfiguration() {
+		return new MagicPluginConfiguration() {
 
-	/** 管理端 Controller 注册：路径 /kb/**（magic 统一挂 /magic/web 前缀）。 */
-	@Override
-	public MagicControllerRegister controllerRegister() {
-		return (mapping, configuration) -> {
-			KbDatasetService datasetService = datasetServices.getIfAvailable();
-			KbDocumentService documentService = documentServices.getIfAvailable();
-			KbSegmentService segmentService = segmentServices.getIfAvailable();
-			if (datasetService == null || documentService == null || segmentService == null) {
-				return;
+			@Override
+			public Plugin plugin() {
+				Plugin plugin = new Plugin("langchain4j-knowledge", "MagicKbBrowser",
+						"magic-kb-browser.1.0.0.iife.js");
+				String adminEnabled = SpringUtils.getAppConfig("magic-api.plugin.knowledge.admin.enabled", "false");
+				plugin.setAdminEnabled(Boolean.parseBoolean(adminEnabled));
+				return plugin;
 			}
-			mapping.registerController(new KbConsoleController(configuration, datasetService, documentService,
-					segmentService));
+
+			@Override
+			public MagicControllerRegister controllerRegister() {
+				return (mapping, configuration) -> {
+					KbDatasetService datasetService = datasetServices.getIfAvailable();
+					KbDocumentService documentService = documentServices.getIfAvailable();
+					KbSegmentService segmentService = segmentServices.getIfAvailable();
+					if (datasetService == null || documentService == null || segmentService == null) {
+						return;
+					}
+					mapping.registerController(new KbConsoleController(configuration, datasetService,
+							documentService, segmentService));
+				};
+			}
 		};
 	}
 
@@ -92,13 +111,18 @@ public class KnowledgePluginConfiguration implements MagicPluginConfiguration {
 
 	@Bean
 	@ConfigurationProperties(prefix = "fw.plus.ai.knowledge")
-	public KnowledgePluginConfiguration.KnowledgeProperties knowledgeProperties() {
-		return new KnowledgePluginConfiguration.KnowledgeProperties();
+	public KnowledgeConfiguration.KnowledgeProperties knowledgeProperties() {
+		return new KnowledgeConfiguration.KnowledgeProperties();
 	}
 
 	@Bean
-	@ConditionalOnMissingBean(KbOriginalFileStore.class)
-	public LocalKbOriginalFileStore kbOriginalFileStore(KnowledgePluginConfiguration.KnowledgeProperties properties) {
+	public KbOriginalFileStore kbOriginalFileStore(KnowledgeConfiguration.KnowledgeProperties properties,
+			ObjectProvider<com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.module.S3Module> s3Modules) {
+		// 文件存储介质可配置：local 本地目录 / s3 复用 fw-plus-boot magicapi s3 插件（s3 数据源）
+		if ("s3".equalsIgnoreCase(properties.getStorageType())) {
+			return new com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.store.PluginS3KbOriginalFileStore(
+					s3Modules, properties.getS3Key(), "kb");
+		}
 		return new LocalKbOriginalFileStore(properties.getStoragePath());
 	}
 
@@ -172,15 +196,15 @@ public class KnowledgePluginConfiguration implements MagicPluginConfiguration {
 	public KbSearchService kbSearchService(KbDatasetMapper datasetMapper, KbDocumentMapper documentMapper,
 			KbSegmentMapper segmentMapper, ContentRetrieverContext retrieverContext,
 			ObjectProvider<Langchain4jScoringModelModule> scoringModels, KbIndexingExecutor executor,
-			KbKnowledgeState state) {
+			KbKnowledgeState state, KnowledgeConfiguration.KnowledgeProperties properties) {
 		return new KbSearchService(datasetMapper, documentMapper, segmentMapper, retrieverContext, scoringModels,
-				executor, state);
+				executor, state, properties.isHybridSearch());
 	}
 
 	@Bean
-	public KbDocumentService kbDocumentService(KbDocumentMapper documentMapper, KbIndexingService indexingService,
-			KbOriginalFileStore fileStore, KbKnowledgeState state) {
-		return new KbDocumentService(documentMapper, indexingService, fileStore, state);
+	public KbDocumentService kbDocumentService(KbDocumentMapper documentMapper, KbDatasetMapper datasetMapper,
+			KbIndexingService indexingService, KbOriginalFileStore fileStore, KbKnowledgeState state) {
+		return new KbDocumentService(documentMapper, datasetMapper, indexingService, fileStore, state);
 	}
 
 	@Bean
@@ -193,12 +217,12 @@ public class KnowledgePluginConfiguration implements MagicPluginConfiguration {
 
 	@Bean
 	public KbDatasetService kbDatasetService(KbDatasetMapper datasetMapper, KbDocumentMapper documentMapper,
-			KbSearchService searchService, KbIndexingService indexingService,
-			ObjectProvider<MagicResourceService> resourceServices,
+			KbSegmentMapper segmentMapper, DocumentPipeline documentPipeline, KbSearchService searchService,
+			KbIndexingService indexingService, ObjectProvider<MagicResourceService> resourceServices,
 			ObjectProvider<Langchain4jContentRetrieverMagicResourceStorage> retrieverStorages,
 			KbKnowledgeState state) {
-		return new KbDatasetService(datasetMapper, documentMapper, searchService, indexingService,
-				resourceServices, retrieverStorages, state);
+		return new KbDatasetService(datasetMapper, documentMapper, segmentMapper, documentPipeline,
+				searchService, indexingService, resourceServices, retrieverStorages, state);
 	}
 
 	// ---------------- 检索器与脚本入口 ----------------
@@ -236,8 +260,25 @@ public class KnowledgePluginConfiguration implements MagicPluginConfiguration {
 		/** 总开关（由 @ConditionalOnProperty 读取，此处保留绑定供扩展） */
 		private boolean enabled = true;
 
-		/** 原始文件目录，默认 ${user.home}/.fw-plus/kb */
+		/** 原始文件目录（storage-type=local 时生效），默认 ${user.home}/.fw-plus/kb */
 		private String storagePath;
+
+		/** 文件存储介质：local 本地目录（默认）/ s3 复用 fw-plus-boot magicapi s3 插件（s3 数据源） */
+		private String storageType = "local";
+
+		/** s3 数据源资源 key（storage-type=s3 时生效；空则取 Spring 默认 s3 数据源） */
+		private String s3Key;
+
+		/** 混合检索开关：向量路 + 关键词路融合（默认开启；关闭则仅向量路） */
+		private boolean hybridSearch = true;
+
+		public boolean isHybridSearch() {
+			return hybridSearch;
+		}
+
+		public void setHybridSearch(boolean hybridSearch) {
+			this.hybridSearch = hybridSearch;
+		}
 
 		public boolean isEnabled() {
 			return enabled;
@@ -254,5 +295,27 @@ public class KnowledgePluginConfiguration implements MagicPluginConfiguration {
 		public void setStoragePath(String storagePath) {
 			this.storagePath = storagePath;
 		}
+
+		public String getStorageType() {
+			return storageType;
+		}
+
+		public void setStorageType(String storageType) {
+			this.storageType = storageType;
+		}
+
+		public String getS3Key() {
+			return s3Key;
+		}
+
+		public void setS3Key(String s3Key) {
+			this.s3Key = s3Key;
+		}
+
+
+
+
+
+
 	}
 }

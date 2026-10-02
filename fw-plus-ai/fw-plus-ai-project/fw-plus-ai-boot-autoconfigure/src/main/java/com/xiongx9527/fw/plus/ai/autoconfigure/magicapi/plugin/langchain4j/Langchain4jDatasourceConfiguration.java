@@ -8,6 +8,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.mcpcl
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.agenticscript.Langchain4jAgenticScriptConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.skill.Langchain4jSkillConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.KnowledgePluginConfiguration;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.KnowledgeConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.systemmessage.Langchain4jSystemMessageProviderConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.Langchain4jToolProviderConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -55,8 +56,9 @@ import org.ssssssss.magicapi.core.service.MagicResourceService;
         Langchain4jContentRetrieverConfiguration.class,
         Langchain4jContentInjectorConfiguration.class,
         // knowledge 知识库（content-retriever 插件后端）：其 ContentRetrieverProvider bean
-        // 经上方分发表的 provider 收集机制注册；依赖 SqlSessionFactory，无数据源时整体不装配
-        KnowledgePluginConfiguration.class
+        // 经上方分发表的 provider 收集机制注册，管理端 Controller 由 content-retriever 插件的
+        // controllerRegister 统一承载；依赖 SqlSessionFactory，无数据源时整体不装配
+        KnowledgeConfiguration.class
 })
 public class Langchain4jDatasourceConfiguration {
 }
