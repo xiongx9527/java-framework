@@ -24,10 +24,15 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retri
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.web.KbConsoleController;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.web.KbOpenApiController;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.resource.Langchain4jContentRetrieverMagicResourceStorage;
+import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.mapper.MapperFactoryBean;
+import org.ssssssss.magicapi.core.config.MagicPluginConfiguration;
+import org.ssssssss.magicapi.core.model.Plugin;
 import org.ssssssss.magicapi.core.service.MagicResourceService;
+import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -45,9 +50,12 @@ import org.springframework.context.annotation.Configuration;
  * 整体不装配，不影响其余 langchain4j 功能。启动时校验三张元数据表存在性，缺失时警告并禁用。</p>
  *
  * <p>knowledge 检索器工厂以 {@code ContentRetrieverProvider} bean 注册，经
- * {@code Langchain4jContentRetrieverConfiguration} 的分发表收集进入短名 {@code knowledge}；
- * 管理端 Controller 由 {@code Langchain4jContentRetrieverConfiguration.controllerRegister()}
- * 统一挂到 content-retriever 插件（UI 与插件标识均复用，本类不声明独立插件）。</p>
+ * {@code Langchain4jContentRetrieverConfiguration} 的分发表收集进入短名 {@code knowledge}。</p>
+ *
+ * <p>管理端 UI 为独立插件产物（magic-kb-browser iife.js）：本装配生效（知识库启动）时才声明
+ * {@code langchain4j-knowledge} 插件并注册 {@code /kb/**} Controller；控制台入口按
+ * {@code magic-api.plugin.knowledge.admin.enabled} 开关激活（默认关闭，与 s3/kafka/db 等插件
+ * 的 admin.enabled 惯例一致——不启动，不激活）。</p>
  */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnClass(SqlSessionFactory.class)
@@ -55,6 +63,49 @@ import org.springframework.context.annotation.Configuration;
 @ConditionalOnProperty(prefix = "fw.plus.ai.knowledge", name = "enabled", havingValue = "true",
 		matchIfMissing = true)
 public class KnowledgeConfiguration {
+
+	@Autowired
+	private ObjectProvider<KbDatasetService> datasetServices;
+
+	@Autowired
+	private ObjectProvider<KbDocumentService> documentServices;
+
+	@Autowired
+	private ObjectProvider<KbSegmentService> segmentServices;
+
+	/**
+	 * knowledge 管理端插件：声明专属前端产物（magic-kb-browser iife.js，toolbars 四视图入口）
+	 * 并注册 {@code /kb/**} Controller。控制台入口经 {@code magic-api.plugin.knowledge.admin.enabled}
+	 * 激活（默认关闭）；仅知识库装配成功时本 bean 存在，插件声明随之生效。
+	 */
+	@Bean
+	public MagicPluginConfiguration kbBrowserPluginConfiguration() {
+		return new MagicPluginConfiguration() {
+
+			@Override
+			public Plugin plugin() {
+				Plugin plugin = new Plugin("langchain4j-knowledge", "MagicKbBrowser",
+						"magic-kb-browser.1.0.0.iife.js");
+				String adminEnabled = SpringUtils.getAppConfig("magic-api.plugin.knowledge.admin.enabled", "false");
+				plugin.setAdminEnabled(Boolean.parseBoolean(adminEnabled));
+				return plugin;
+			}
+
+			@Override
+			public MagicControllerRegister controllerRegister() {
+				return (mapping, configuration) -> {
+					KbDatasetService datasetService = datasetServices.getIfAvailable();
+					KbDocumentService documentService = documentServices.getIfAvailable();
+					KbSegmentService segmentService = segmentServices.getIfAvailable();
+					if (datasetService == null || documentService == null || segmentService == null) {
+						return;
+					}
+					mapping.registerController(new KbConsoleController(configuration, datasetService,
+							documentService, segmentService));
+				};
+			}
+		};
+	}
 
 	// ---------------- 配置与存储 ----------------
 
