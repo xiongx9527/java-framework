@@ -7,7 +7,6 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolp
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.MagicApiToolProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.MagicApiToolRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.MagicToolInvoker;
-import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.service.tool.ToolProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,14 +65,12 @@ public class MagicDynamicLangchain4jToolProviderDataSource implements Disposable
 		try {
 			destroy(key);
 			if (info.getAgenticKey() != null && !info.getAgenticKey().trim().isEmpty()) {
-				// agentic 来源：工具即编排注册中心中 agenticKey 对应的编排（agent-as-tool）
-				UntypedAgent pipeline = pipelineRegistry == null ? null : pipelineRegistry.get(info.getAgenticKey().trim());
-				if (pipeline == null) {
-					throw new IllegalArgumentException(String.format(
-							"编排注册中心中不存在 agenticKey '%s'，已注册: %s",
-							info.getAgenticKey(), pipelineRegistry == null ? java.util.Set.of() : pipelineRegistry.keys()));
+				// agentic 来源：工具即编排注册中心中 agenticKey 对应的编排（agent-as-tool，包装收口在隔离层）
+				if (pipelineRegistry == null) {
+					throw new IllegalArgumentException("未装配编排注册中心，无法使用 agentic 来源");
 				}
-				providers.put(key, AgenticToolProviders.agenticToolProvider(pipeline, key,
+				providers.put(key, AgenticToolProviders.agenticToolProviderByKey(pipelineRegistry,
+						info.getAgenticKey().trim(), key,
 						info.getAgenticDescription() != null && !info.getAgenticDescription().trim().isEmpty()
 								? info.getAgenticDescription() : info.getName(),
 						info.getAgenticOutputKey(),
