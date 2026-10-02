@@ -96,6 +96,7 @@ export default {
                 segmentDelimiter: '自定义分隔符',
                 topK: '召回数量/分数阈值',
                 import: '导入',
+                metadataFields: '元数据字段',
                 export: '导出',
                 preview: '切分预览',
                 importDone: '导入成功，新数据集 id：',
@@ -126,6 +127,7 @@ export default {
                 unarchive: '取消归档',
                 deleteConfirm: '确认删除该文档（级联删除分段/向量/原始文件）？'
             },
+            fieldType: '字段类型',
             pagination: { total: '共 ', prev: '上一页', next: '下一页' },
             segment: {
                 create: '新增分段',

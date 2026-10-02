@@ -62,6 +62,17 @@ export const kbApi = {
     importDataset: (jsonText) => new Promise((resolve, reject) => {
         requireRequest().sendJson('/kb/dataset/import', JSON.parse(jsonText)).success(unwrap(resolve, reject));
     }),
+    metadataFields: (datasetId) => new Promise((resolve, reject) => {
+        requireRequest().sendGet('/kb/dataset/' + datasetId + '/metadata-fields').success(unwrap(resolve, reject));
+    }),
+    createMetadataField: (datasetId, body) => new Promise((resolve, reject) => {
+        requireRequest().sendJson('/kb/dataset/' + datasetId + '/metadata-fields', body)
+            .success(unwrap(resolve, reject));
+    }),
+    deleteMetadataField: (fieldId) => new Promise((resolve, reject) => {
+        requireRequest().sendJson('/kb/metadata-fields/' + fieldId + '/delete', {})
+            .success(unwrap(resolve, reject));
+    }),
     moveDocument: (id, datasetId) => new Promise((resolve, reject) => {
         requireRequest().sendJson('/kb/document/' + id + '/move', {datasetId})
             .success(unwrap(resolve, reject));

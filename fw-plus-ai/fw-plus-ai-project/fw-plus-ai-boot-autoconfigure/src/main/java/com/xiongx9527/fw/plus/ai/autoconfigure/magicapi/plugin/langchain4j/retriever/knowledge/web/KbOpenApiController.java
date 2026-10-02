@@ -40,16 +40,20 @@ public class KbOpenApiController {
 
 	private final com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSegmentService segmentService;
 
+	private final com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService metadataFieldService;
+
 	private final KbSaTokenAuthChecker authChecker;
 
 	public KbOpenApiController(KbDocumentService documentService, KbSearchService searchService,
 			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbDatasetService datasetService,
 			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSegmentService segmentService,
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService metadataFieldService,
 			KbSaTokenAuthChecker authChecker) {
 		this.documentService = documentService;
 		this.searchService = searchService;
 		this.datasetService = datasetService;
 		this.segmentService = segmentService;
+		this.metadataFieldService = metadataFieldService;
 		this.authChecker = authChecker;
 	}
 
@@ -59,13 +63,16 @@ public class KbOpenApiController {
 			consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public Object uploadByFile(@PathVariable("datasetId") String datasetId,
 			@RequestParam("file") MultipartFile file,
+			@RequestParam(value = "metadata", required = false) String metadataJson,
 			@RequestHeader(value = "Authorization", required = false) String authorization,
 			@RequestHeader(value = "kb-token", required = false) String kbToken) {
 		if (!auth(authorization, kbToken)) {
 			return error(1002, "认证失败");
 		}
 		try {
-			return ok(documentService.createByFile(datasetId, file));
+			return ok(documentService.createByFile(datasetId, file,
+					com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.web.KbConsoleController
+							.parseStaticMetadataJson(metadataJson)));
 		} catch (IllegalArgumentException e) {
 			return error(2001, e.getMessage());
 		}
@@ -82,7 +89,9 @@ public class KbOpenApiController {
 		try {
 			String name = body.get("name") == null ? null : String.valueOf(body.get("name"));
 			String text = body.get("text") == null ? null : String.valueOf(body.get("text"));
-			return ok(documentService.createByText(datasetId, name, text));
+			Object metadata = body.get("metadata");
+			return ok(documentService.createByText(datasetId, name, text,
+					metadata instanceof Map ? (Map<String, Object>) metadata : null));
 		} catch (IllegalArgumentException e) {
 			return error(2001, e.getMessage());
 		}
@@ -119,6 +128,24 @@ public class KbOpenApiController {
 		return ok(segmentService.listSegments(documentId, page, pageSize));
 	}
 
+	/** 业务方单独更新文档 metadata：body 为键值对 JSON；向量快照在重建索引后同步。 */
+	@PostMapping("/v1/datasets/{datasetId}/documents/{documentId}/metadata")
+	public Object updateDocumentMetadata(@PathVariable("datasetId") String datasetId,
+			@PathVariable("documentId") String documentId,
+			@RequestBody Map<String, Object> metadata,
+			@RequestHeader(value = "Authorization", required = false) String authorization,
+			@RequestHeader(value = "kb-token", required = false) String kbToken) {
+		if (!auth(authorization, kbToken)) {
+			return error(1002, "认证失败");
+		}
+		try {
+			requireDocumentInDataset(datasetId, documentId);
+			return ok(documentService.setMetadata(documentId, metadata));
+		} catch (IllegalArgumentException e) {
+			return error(2001, e.getMessage());
+		}
+	}
+
 	/** 业务方文本更新（create-by-text 类型）：body {text}，重算 hash 并重新入队索引。 */
 	@PostMapping("/v1/datasets/{datasetId}/document/{documentId}/text")
 	public Object updateDocumentText(@PathVariable("datasetId") String datasetId,
@@ -132,7 +159,9 @@ public class KbOpenApiController {
 		try {
 			requireDocumentInDataset(datasetId, documentId);
 			String text = body.get("text") == null ? "" : String.valueOf(body.get("text"));
-			return ok(documentService.updateText(documentId, text));
+			Object metadata = body.get("metadata");
+			return ok(documentService.updateText(documentId, text,
+					metadata instanceof Map ? (Map<String, Object>) metadata : null));
 		} catch (IllegalArgumentException e) {
 			return error(2001, e.getMessage());
 		}
@@ -241,6 +270,17 @@ public class KbOpenApiController {
 		if (!datasetId.equals(segment.getDatasetId())) {
 			throw new IllegalArgumentException("分段不属于该数据集: " + segmentId);
 		}
+	}
+
+	/** 业务方数据集元数据字段定义列表（赋值前先了解可用字段）。 */
+	@GetMapping("/v1/datasets/{datasetId}/metadata-fields")
+	public Object listMetadataFields(@PathVariable("datasetId") String datasetId,
+			@RequestHeader(value = "Authorization", required = false) String authorization,
+			@RequestHeader(value = "kb-token", required = false) String kbToken) {
+		if (!auth(authorization, kbToken)) {
+			return error(1002, "认证失败");
+		}
+		return ok(metadataFieldService.list(datasetId));
 	}
 
 	/** 业务方文档启禁（body {enabled}）：禁用文档不参与检索。 */

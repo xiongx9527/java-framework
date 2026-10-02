@@ -20,13 +20,17 @@ public class KbKnowledgeState implements InitializingBean {
 
 	private final KbSegmentMapper segmentMapper;
 
+	private final com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.mapper.KbMetadataFieldMapper metadataFieldMapper;
+
 	private volatile boolean tablesReady;
 
 	public KbKnowledgeState(KbDatasetMapper datasetMapper, KbDocumentMapper documentMapper,
-			KbSegmentMapper segmentMapper) {
+			KbSegmentMapper segmentMapper,
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.mapper.KbMetadataFieldMapper metadataFieldMapper) {
 		this.datasetMapper = datasetMapper;
 		this.documentMapper = documentMapper;
 		this.segmentMapper = segmentMapper;
+		this.metadataFieldMapper = metadataFieldMapper;
 	}
 
 	@Override
@@ -45,6 +49,7 @@ public class KbKnowledgeState implements InitializingBean {
 			datasetMapper.selectCount(null);
 			documentMapper.selectCount(null);
 			segmentMapper.selectCount(null);
+			metadataFieldMapper.selectCount(null);
 			return true;
 		} catch (Throwable e) {
 			logger.warn("知识库表存在性校验失败: {}", e.getMessage());

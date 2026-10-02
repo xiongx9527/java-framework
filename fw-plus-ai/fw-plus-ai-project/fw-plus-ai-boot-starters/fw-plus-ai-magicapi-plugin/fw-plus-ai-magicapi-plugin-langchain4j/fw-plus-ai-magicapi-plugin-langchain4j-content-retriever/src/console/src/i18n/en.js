@@ -96,6 +96,7 @@ export default {
                 segmentDelimiter: 'Custom Delimiter',
                 topK: 'TopK / Score Threshold',
                 import: 'Import',
+                metadataFields: 'Metadata Fields',
                 export: 'Export',
                 preview: 'Split Preview',
                 importDone: 'Imported, new dataset id: ',
@@ -126,6 +127,7 @@ export default {
                 unarchive: 'Unarchive',
                 deleteConfirm: 'Delete this document (cascades to segments/vectors/original file)?'
             },
+            fieldType: 'Field Type',
             pagination: { total: 'Total ', prev: 'Prev', next: 'Next' },
             segment: {
                 create: 'New Segment',

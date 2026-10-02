@@ -73,6 +73,9 @@ public class KnowledgeConfiguration {
 	@Autowired
 	private ObjectProvider<KbSegmentService> segmentServices;
 
+	@Autowired
+	private ObjectProvider<com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService> metadataFieldServices;
+
 	/**
 	 * knowledge 管理端插件：声明专属前端产物（magic-kb-browser iife.js，toolbars 四视图入口）
 	 * 并注册 {@code /kb/**} Controller。控制台入口经 {@code magic-api.plugin.knowledge.admin.enabled}
@@ -97,11 +100,14 @@ public class KnowledgeConfiguration {
 					KbDatasetService datasetService = datasetServices.getIfAvailable();
 					KbDocumentService documentService = documentServices.getIfAvailable();
 					KbSegmentService segmentService = segmentServices.getIfAvailable();
-					if (datasetService == null || documentService == null || segmentService == null) {
+					com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService metadataFieldService =
+							metadataFieldServices.getIfAvailable();
+					if (datasetService == null || documentService == null || segmentService == null
+							|| metadataFieldService == null) {
 						return;
 					}
 					mapping.registerController(new KbConsoleController(configuration, datasetService,
-							documentService, segmentService));
+							documentService, segmentService, metadataFieldService));
 				};
 			}
 		};
@@ -143,6 +149,13 @@ public class KnowledgeConfiguration {
 		return mapper(KbSegmentMapper.class, sqlSessionFactory);
 	}
 
+	@Bean
+	public MapperFactoryBean<com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.mapper.KbMetadataFieldMapper> kbMetadataFieldMapper(
+			SqlSessionFactory sqlSessionFactory) {
+		return mapper(com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.mapper.KbMetadataFieldMapper.class,
+				sqlSessionFactory);
+	}
+
 	private static <T> MapperFactoryBean<T> mapper(Class<T> type, SqlSessionFactory sqlSessionFactory) {
 		MapperFactoryBean<T> factoryBean = new MapperFactoryBean<>(type);
 		factoryBean.setSqlSessionFactory(sqlSessionFactory);
@@ -166,8 +179,9 @@ public class KnowledgeConfiguration {
 
 	@Bean
 	public KbKnowledgeState kbKnowledgeState(KbDatasetMapper datasetMapper, KbDocumentMapper documentMapper,
-			KbSegmentMapper segmentMapper) {
-		return new KbKnowledgeState(datasetMapper, documentMapper, segmentMapper);
+			KbSegmentMapper segmentMapper,
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.mapper.KbMetadataFieldMapper metadataFieldMapper) {
+		return new KbKnowledgeState(datasetMapper, documentMapper, segmentMapper, metadataFieldMapper);
 	}
 
 	/** 全部单例就绪后启动 waiting 轮询兜底（设计 §2.3：入库即时触发 + 定时轮询）。 */
@@ -203,8 +217,19 @@ public class KnowledgeConfiguration {
 
 	@Bean
 	public KbDocumentService kbDocumentService(KbDocumentMapper documentMapper, KbDatasetMapper datasetMapper,
-			KbIndexingService indexingService, KbOriginalFileStore fileStore, KbKnowledgeState state) {
-		return new KbDocumentService(documentMapper, datasetMapper, indexingService, fileStore, state);
+			KbIndexingService indexingService, KbOriginalFileStore fileStore,
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService metadataFieldService,
+			KbKnowledgeState state) {
+		return new KbDocumentService(documentMapper, datasetMapper, indexingService, fileStore,
+				metadataFieldService, state);
+	}
+
+	@Bean
+	public com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService kbMetadataFieldService(
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.mapper.KbMetadataFieldMapper fieldMapper,
+			KbDocumentMapper documentMapper, KbKnowledgeState state) {
+		return new com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService(
+				fieldMapper, documentMapper, state);
 	}
 
 	@Bean
@@ -250,8 +275,11 @@ public class KnowledgeConfiguration {
 
 	@Bean
 	public KbOpenApiController kbOpenApiController(KbDocumentService documentService, KbSearchService searchService,
-			KbDatasetService datasetService, KbSegmentService segmentService, KbSaTokenAuthChecker authChecker) {
-		return new KbOpenApiController(documentService, searchService, datasetService, segmentService, authChecker);
+			KbDatasetService datasetService, KbSegmentService segmentService,
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService metadataFieldService,
+			KbSaTokenAuthChecker authChecker) {
+		return new KbOpenApiController(documentService, searchService, datasetService, segmentService,
+				metadataFieldService, authChecker);
 	}
 
 	/** 知识库配置项（设计 §5）：总开关与原始文件目录。 */

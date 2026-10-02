@@ -14,6 +14,7 @@ import org.ssssssss.magicapi.core.web.MagicController;
 import org.ssssssss.magicapi.core.web.MagicExceptionHandler;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -42,12 +43,56 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 
 	private final KbSegmentService segmentService;
 
+	private final com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService metadataFieldService;
+
 	public KbConsoleController(MagicConfiguration configuration, KbDatasetService datasetService,
-			KbDocumentService documentService, KbSegmentService segmentService) {
+			KbDocumentService documentService, KbSegmentService segmentService,
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService metadataFieldService) {
 		super(configuration);
 		this.datasetService = datasetService;
 		this.documentService = documentService;
 		this.segmentService = segmentService;
+		this.metadataFieldService = metadataFieldService;
+	}
+
+	// ---------------- 元数据字段定义 ----------------
+
+	@GetMapping("/dataset/{id}/metadata-fields")
+	@ResponseBody
+	public Object listMetadataFields(@PathVariable("id") String id) {
+		return ok(metadataFieldService.list(id));
+	}
+
+	@PostMapping("/dataset/{id}/metadata-fields")
+	@ResponseBody
+	public Object createMetadataField(@PathVariable("id") String id, @RequestBody Map<String, Object> body) {
+		String name = body.get("name") == null ? null : String.valueOf(body.get("name"));
+		String type = body.get("type") == null ? null : String.valueOf(body.get("type"));
+		String description = body.get("description") == null ? null : String.valueOf(body.get("description"));
+		return ok(metadataFieldService.create(id, name, type, description));
+	}
+
+	@RequestMapping(value = "/metadata-fields/{fieldId}", method = {RequestMethod.PUT, RequestMethod.POST})
+	@ResponseBody
+	public Object updateMetadataField(@PathVariable("fieldId") String fieldId,
+			@RequestBody Map<String, Object> body) {
+		String type = body.get("type") == null ? null : String.valueOf(body.get("type"));
+		String description = body.get("description") == null ? null : String.valueOf(body.get("description"));
+		return ok(metadataFieldService.update(fieldId, type, description));
+	}
+
+	@DeleteMapping("/metadata-fields/{fieldId}")
+	@ResponseBody
+	public Object deleteMetadataField(@PathVariable("fieldId") String fieldId) {
+		metadataFieldService.delete(fieldId);
+		return ok(null);
+	}
+
+	@PostMapping("/metadata-fields/{fieldId}/delete")
+	@ResponseBody
+	public Object deleteMetadataFieldPost(@PathVariable("fieldId") String fieldId) {
+		metadataFieldService.delete(fieldId);
+		return ok(null);
 	}
 
 	// ---------------- 数据集 ----------------
@@ -153,8 +198,9 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 	@PostMapping(value = "/document/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@ResponseBody
 	public Object upload(@RequestParam("datasetId") String datasetId,
-			@RequestParam("file") MultipartFile file) {
-		return ok(documentService.createByFile(datasetId, file));
+			@RequestParam("file") MultipartFile file,
+			@RequestParam(value = "metadata", required = false) String metadataJson) {
+		return ok(documentService.createByFile(datasetId, file, parseStaticMetadataJson(metadataJson)));
 	}
 
 	/** 文档详情。 */
@@ -233,14 +279,6 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 		return ok(segmentService.create(id, content, keywords, answer));
 	}
 
-	/** 更新文档文本（create-by-text 类型）：body {text}，重算 hash 并重新入队索引。 */
-	@RequestMapping(value = "/document/{id}/text", method = {RequestMethod.PUT, RequestMethod.POST})
-	@ResponseBody
-	public Object updateText(@PathVariable("id") String id, @RequestBody Map<String, Object> body) {
-		String text = body.get("text") == null ? "" : String.valueOf(body.get("text"));
-		return ok(documentService.updateText(id, text));
-	}
-
 	@GetMapping("/document/{id}/segment")
 	@ResponseBody
 	public Object listSegments(@PathVariable("id") String id,
@@ -269,6 +307,20 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 	public Object deleteSegment(@PathVariable("id") String id) {
 		segmentService.delete(id);
 		return ok(null);
+	}
+
+	/** multipart 上传的 metadata JSON 字符串解析；空/非法返回 null（不入库）。 */
+	@SuppressWarnings("unchecked")
+	public static java.util.Map<String, Object> parseStaticMetadataJson(String metadataJson) {
+		if (metadataJson == null || metadataJson.trim().isEmpty()) {
+			return null;
+		}
+		try {
+			Object parsed = com.alibaba.fastjson2.JSON.parse(metadataJson);
+			return parsed instanceof Map ? (Map<String, Object>) parsed : null;
+		} catch (Exception e) {
+			throw new IllegalArgumentException("metadata 不是合法的 JSON 对象: " + e.getMessage());
+		}
 	}
 
 	// ---------------- 统一响应 ----------------

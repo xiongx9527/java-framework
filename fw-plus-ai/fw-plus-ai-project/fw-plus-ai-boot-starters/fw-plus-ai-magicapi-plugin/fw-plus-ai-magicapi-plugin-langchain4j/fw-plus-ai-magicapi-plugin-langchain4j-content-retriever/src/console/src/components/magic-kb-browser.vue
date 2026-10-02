@@ -47,6 +47,7 @@
           </table>
           <div class="kb-actions">
             <button @click="openDatasetForm(selectedDataset)">{{ $i('kb.edit') }}</button>
+            <button @click="openFieldsModal">{{ $i('kb.dataset.metadataFields') }}</button>
             <button @click="exportDataset">{{ $i('kb.dataset.export') }}</button>
             <button @click="openPreview">{{ $i('kb.dataset.preview') }}</button>
             <button class="danger" @click="removeDataset">{{ $i('kb.delete') }}</button>
@@ -274,6 +275,37 @@
       </div>
     </div>
 
+    <!-- 元数据字段管理 -->
+    <div v-if="fieldsModal" class="kb-modal-mask" @click.self="fieldsModal = null">
+      <div class="kb-modal">
+        <h4>{{ $i('kb.dataset.metadataFields') }}</h4>
+        <table v-if="metadataFields.length" class="kb-table">
+          <thead><tr><th>{{ $i('kb.common.name') }}</th><th>{{ $i('kb.fieldType') }}</th><th>{{ $i('kb.common.description') }}</th><th>{{ $i('kb.common.actions') }}</th></tr></thead>
+          <tbody>
+            <tr v-for="field in metadataFields" :key="field.id">
+              <td>{{ field.name }}</td>
+              <td>{{ field.type }}</td>
+              <td>{{ field.description || '-' }}</td>
+              <td><button class="danger" @click="removeField(field)">{{ $i('kb.delete') }}</button></td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-else class="kb-state">{{ $i('kb.empty') }}</div>
+        <div class="kb-form-row" style="margin-top:8px">
+          <label>{{ $i('kb.common.name') }}</label><input v-model="newField.name"/>
+        </div>
+        <div class="kb-form-row">
+          <label>{{ $i('kb.fieldType') }}</label>
+          <select v-model="newField.type"><option value="string">string</option><option value="number">number</option><option value="time">time</option></select>
+        </div>
+        <div class="kb-form-row">
+          <label>{{ $i('kb.common.description') }}</label><input v-model="newField.description"/>
+        </div>
+        <div class="kb-modal-actions"><button @click="addField">{{ $i('kb.save') }}</button></div>
+        <div class="kb-modal-actions"><button @click="fieldsModal = null">{{ $i('kb.cancel') }}</button></div>
+      </div>
+    </div>
+
     <!-- 编辑文档文本 -->
     <div v-if="textForm" class="kb-modal-mask" @click.self="textForm = null">
       <div class="kb-modal">
@@ -290,6 +322,10 @@
     <div v-if="metadataForm" class="kb-modal-mask" @click.self="metadataForm = null">
       <div class="kb-modal">
         <h4>{{ $i('kb.document.metadata') }}</h4>
+        <div v-if="metadataFields.length" class="kb-form-row">
+          <label>{{ $i('kb.dataset.metadataFields') }}</label>
+          <code v-for="field in metadataFields" :key="field.id" class="kb-tag">{{ field.name }}({{ field.type }})</code>
+        </div>
         <div class="kb-form-row"><label>{{ $i('kb.document.metadataJson') }}</label><textarea v-model="metadataForm.json" rows="6"/></div>
         <div class="kb-modal-actions">
           <button @click="saveMetadata">{{ $i('kb.save') }}</button>
@@ -328,6 +364,9 @@ const dragOver = ref(false)
 const previewItems = ref(null)
 const moveForm = ref(null)
 const textForm = ref(null)
+const metadataFields = ref([])
+const fieldsModal = ref(false)
+const newField = ref({ name: '', type: 'string', description: '' })
 const referencers = ref([])
 const activeView = ref('dataset')
 const datasetForm = ref(null)
@@ -685,6 +724,36 @@ const saveText = async () => {
     await kbApi.updateText(textForm.value.id, textForm.value.text)
     textForm.value = null
     await loadDocuments()
+  } catch (e) {
+    fail(e)
+  }
+}
+
+// ---------------- 元数据字段管理 ----------------
+
+const openFieldsModal = async () => {
+  fieldsModal.value = true
+  try {
+    metadataFields.value = (await kbApi.metadataFields(selectedDatasetId.value)) || []
+  } catch (e) {
+    fail(e)
+  }
+}
+
+const addField = async () => {
+  try {
+    await kbApi.createMetadataField(selectedDatasetId.value, newField.value)
+    newField.value = { name: '', type: 'string', description: '' }
+    metadataFields.value = (await kbApi.metadataFields(selectedDatasetId.value)) || []
+  } catch (e) {
+    fail(e)
+  }
+}
+
+const removeField = async (field) => {
+  try {
+    await kbApi.deleteMetadataField(field.id)
+    metadataFields.value = (await kbApi.metadataFields(selectedDatasetId.value)) || []
   } catch (e) {
     fail(e)
   }
