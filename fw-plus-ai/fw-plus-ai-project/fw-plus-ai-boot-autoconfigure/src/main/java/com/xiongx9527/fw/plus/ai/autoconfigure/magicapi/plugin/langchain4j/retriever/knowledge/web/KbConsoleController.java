@@ -283,6 +283,45 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 		return ok(segmentService.create(id, content, keywords, answer));
 	}
 
+	/** 文档文本更新（create-by-text 类型）：body {text, metadata?}，重算 hash 并重新入队索引。 */
+	@RequestMapping(value = "/document/{id}/text", method = {RequestMethod.PUT, RequestMethod.POST})
+	@ResponseBody
+	public Object updateText(@PathVariable("id") String id, @RequestBody Map<String, Object> body) {
+		String text = body.get("text") == null ? "" : String.valueOf(body.get("text"));
+		Object metadata = body.get("metadata");
+		return ok(documentService.updateText(id, text,
+				metadata instanceof Map ? (Map<String, Object>) metadata : null));
+	}
+
+	/** 跨数据集迁移：body {datasetId}，触发重建索引（目标数据集嵌入模型/向量库可能不同）。 */
+	@PostMapping("/document/{id}/move")
+	@ResponseBody
+	public Object moveDocument(@PathVariable("id") String id, @RequestBody Map<String, Object> body) {
+		String targetDatasetId = body.get("datasetId") == null ? null : String.valueOf(body.get("datasetId"));
+		return ok(documentService.move(id, targetDatasetId));
+	}
+
+	/** 数据集批量同步到 ES（异步执行，中途启用 ES 的补数据场景）。 */
+	@PostMapping("/dataset/{id}/sync-es")
+	@ResponseBody
+	public Object syncDatasetToEs(@PathVariable("id") String id) {
+		return ok(indexingService.syncDatasetToEs(id));
+	}
+
+	/** 数据集批量补向量（异步执行）：对 completed 且无向量的分段补嵌入（economy 切 high_quality 等场景）。 */
+	@PostMapping("/dataset/{id}/sync-vectors")
+	@ResponseBody
+	public Object syncDatasetVectors(@PathVariable("id") String id) {
+		return ok(indexingService.syncDatasetVectors(id));
+	}
+
+	/** 文档级同步到 ES（同步执行）。 */
+	@PostMapping("/document/{id}/sync-es")
+	@ResponseBody
+	public Object syncDocumentToEs(@PathVariable("id") String id) {
+		return ok(indexingService.syncDocumentToEs(id));
+	}
+
 	@GetMapping("/document/{id}/segment")
 	@ResponseBody
 	public Object listSegments(@PathVariable("id") String id,
