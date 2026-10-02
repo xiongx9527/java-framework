@@ -30,6 +30,13 @@ public class Langchain4jAgenticScriptConfiguration extends AbstractLangchain4jPl
 		super("langchain4j-agentic-script", "MagicLangchain4jAgenticScript", JAVASCRIPT_FILENAME);
 	}
 
+	/** 执行测试 Controller：POST /langchain4j/agentic-script/execute 返回脚本节点输出。 */
+	@Override
+	public org.ssssssss.magicapi.core.web.MagicControllerRegister controllerRegister() {
+		return (mapping, configuration) -> mapping.registerController(
+				new com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.agenticscript.web.Langchain4jAgenticScriptController(configuration));
+	}
+
 	/** 编排注册中心：key → 编排句柄（UntypedAgent），nl2sql 等提供方注册，资源链与脚本按 key 引用。 */
 	@Bean
 	@ConditionalOnMissingBean

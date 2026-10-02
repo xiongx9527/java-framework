@@ -1,5 +1,8 @@
 export default {
     langchain4j: {
+        form: {
+            title: 'Agentic 脚本',
+        },
         type: {
             'agentic-script': 'Agentic 脚本'
         },
@@ -21,6 +24,8 @@ export default {
         'output-key-hint': '节点输出写回的变量名（编排节点形态，选填）',
         script: '脚本',
         'script-hint': 'magic-script 正文；输入变量注入上下文，返回值即输出',
+        params: '测试参数',
+        'params-hint': 'JSON 对象，如 {"question":"测试问题"}，控制台测试执行时注入',
         hint: {
             required: '必填',
             optional: '选填'

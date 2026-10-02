@@ -32,6 +32,9 @@ public class Langchain4jAgenticScriptInfo extends PathMagicEntity {
 	/** 输出 key：节点输出写回 AgenticScope 的变量名（type=node 时使用，可选） */
 	private String outputKey;
 
+	/** 测试参数（JSON 对象字符串），控制台执行测试时解析为 Map 注入脚本上下文 */
+	private String params;
+
 	@Override
 	public Langchain4jAgenticScriptInfo simple() {
 		Langchain4jAgenticScriptInfo info = new Langchain4jAgenticScriptInfo();
@@ -41,6 +44,7 @@ public class Langchain4jAgenticScriptInfo extends PathMagicEntity {
 		info.setDescription(this.description);
 		info.setInputKeys(this.inputKeys);
 		info.setOutputKey(this.outputKey);
+		info.setParams(this.params);
 		return info;
 	}
 
@@ -53,6 +57,7 @@ public class Langchain4jAgenticScriptInfo extends PathMagicEntity {
 		info.setDescription(this.description);
 		info.setInputKeys(this.inputKeys);
 		info.setOutputKey(this.outputKey);
+		info.setParams(this.params);
 		return info;
 	}
 }

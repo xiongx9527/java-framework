@@ -3,6 +3,7 @@ import iconDocument from './icons/langchain4j.svg?raw'
 const iconSymbol = iconDocument.replace(/^[\s\S]*?(<symbol[\s\S]*<\/symbol>)[\s\S]*$/, '$1')
 import localZhCN from './i18n/zh-cn.js'
 import localEn from './i18n/en.js'
+import createService from './service/magic-langchain4j-agentic-script.js'
 import MagicLangchain4jAgenticScriptInfo from './components/magic-langchain4j-agentic-script-info.vue'
 
 const ICON_ID = 'magic-langchain4j'
@@ -30,12 +31,19 @@ export default (opt) => {
     i18n.add('zh-cn', localZhCN)
     i18n.add('en', localEn)
     return {
-        datasources: [{
-            // 完整 datasource type，与后端 Langchain4jAgenticScriptMagicResourceStorage.folder() 一致
+        // 左侧资源：路径型 .ms 资源，与后端 Langchain4jAgenticScriptMagicResourceStorage.folder() 一致
+        resource: [{
             type: 'langchain4j-agentic-script',
             icon: '#' + ICON_ID,
             title: i18n.format('langchain4j.type.agentic-script'),
-            name: i18n.format('langchain4j.type.agentic-script'),
+            service: createService(opt.bus, opt.constants, i18n.format, opt.Message, opt.request),
+        }],
+        // 底部工具条：形态/描述/输入变量/输出 key/测试参数编辑（脚本走 magic 原生 .ms 编辑器）
+        toolbars: [{
+            type: 'langchain4j-agentic-script',
+            title: i18n.format('langchain4j.form.title'),
+            icon: '#' + ICON_ID,
+            order: 315,
             component: MagicLangchain4jAgenticScriptInfo
         }]
     }

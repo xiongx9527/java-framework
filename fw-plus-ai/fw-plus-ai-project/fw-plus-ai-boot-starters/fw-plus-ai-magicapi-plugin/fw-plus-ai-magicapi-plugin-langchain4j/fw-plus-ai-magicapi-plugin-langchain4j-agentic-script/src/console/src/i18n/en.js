@@ -1,5 +1,8 @@
 export default {
     langchain4j: {
+        form: {
+            title: 'Agentic Script',
+        },
         type: {
             'agentic-script': 'Agentic Script'
         },
@@ -21,6 +24,8 @@ export default {
         'output-key-hint': 'Variable name the node output is written back to (node form, optional)',
         script: 'Script',
         'script-hint': 'magic-script body; input variables are injected into the context, return value is the output',
+        params: 'Test parameters',
+        'params-hint': 'JSON object, e.g. {"question":"test"}, injected during console test runs',
         hint: {
             required: 'required',
             optional: 'optional'
