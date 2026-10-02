@@ -9,8 +9,6 @@ import org.ssssssss.magicapi.core.service.MagicResourceService;
 import org.ssssssss.magicapi.core.service.AbstractMagicDynamicRegistry;
 import org.ssssssss.magicapi.utils.PathUtils;
 
-import java.util.Arrays;
-
 /**
  * agentic 脚本模块：脚本用 {@code langchain4jAgenticScript.node('/path')} 取脚本节点
  * （挂入 {@code AgenticWorkflows} 编排 subAgents），或用
