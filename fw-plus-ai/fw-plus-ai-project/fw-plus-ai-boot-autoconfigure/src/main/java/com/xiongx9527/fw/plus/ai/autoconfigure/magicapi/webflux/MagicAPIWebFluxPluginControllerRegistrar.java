@@ -9,6 +9,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retri
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.web.Langchain4jContentRetrieverController;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.systemmessage.module.Langchain4jSystemMessageProviderModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.systemmessage.web.Langchain4jSystemMessageController;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.agenticscript.web.Langchain4jAgenticScriptController;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.web.Langchain4jDatasourceController;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.config.MagicApiMcpProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.web.MagicMcpDiagnosticController;
@@ -72,6 +73,7 @@ public class MagicAPIWebFluxPluginControllerRegistrar implements SmartInitializi
 				.getBeanProvider(Langchain4jSystemMessageProviderModule.class).getIfAvailable();
 		if (systemMessageModule != null) {
 			mapping.registerController(new Langchain4jSystemMessageController(configuration));
+			mapping.registerController(new Langchain4jAgenticScriptController(configuration));
 		}
 	}
 
