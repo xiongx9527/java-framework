@@ -4,6 +4,10 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.Abstr
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jChatModelModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jEmbeddingModelModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jEmbeddingStoreModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbDatasetService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbDocumentService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSegmentService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.web.KbConsoleController;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.model.MagicDynamicLangchain4jContentRetrieverDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.module.Langchain4jContentRetrieverModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.provider.AggregatingContentRetrieverProvider;
@@ -49,18 +53,42 @@ public class Langchain4jContentRetrieverConfiguration extends AbstractLangchain4
 
 	private final ObjectProvider<ContentRetrieverContext> context;
 
+	/** knowledge 管理端 service（KnowledgeConfiguration 装配；未配置数据源时缺席） */
+	private final ObjectProvider<KbDatasetService> kbDatasetServices;
+
+	private final ObjectProvider<KbDocumentService> kbDocumentServices;
+
+	private final ObjectProvider<KbSegmentService> kbSegmentServices;
+
 	public Langchain4jContentRetrieverConfiguration(ObjectProvider<ContentRetrieverProviderRegistry> providers,
-			ObjectProvider<ContentRetrieverContext> context) {
+			ObjectProvider<ContentRetrieverContext> context, ObjectProvider<KbDatasetService> kbDatasetServices,
+			ObjectProvider<KbDocumentService> kbDocumentServices,
+			ObjectProvider<KbSegmentService> kbSegmentServices) {
 		super("langchain4j-content-retriever", "MagicLangchain4jContentRetriever", JAVASCRIPT_FILENAME);
 		this.providers = providers;
 		this.context = context;
+		this.kbDatasetServices = kbDatasetServices;
+		this.kbDocumentServices = kbDocumentServices;
+		this.kbSegmentServices = kbSegmentServices;
 	}
 
-	/** 连接测试 Controller 由本类承载：路径 {@code /langchain4j/content-retriever/datasource/test}。 */
+	/**
+	 * 连接测试 Controller 由本类承载：路径 {@code /langchain4j/content-retriever/datasource/test}；
+	 * knowledge 管理端 Controller（/kb/**）同属本插件，一并在此注册。
+	 */
 	@Override
 	public MagicControllerRegister controllerRegister() {
-		return (mapping, configuration) -> mapping.registerController(new Langchain4jContentRetrieverController(
-				configuration, providers.getObject(), context.getObject()));
+		return (mapping, configuration) -> {
+			mapping.registerController(new Langchain4jContentRetrieverController(
+					configuration, providers.getObject(), context.getObject()));
+			KbDatasetService datasetService = kbDatasetServices.getIfAvailable();
+			KbDocumentService documentService = kbDocumentServices.getIfAvailable();
+			KbSegmentService segmentService = kbSegmentServices.getIfAvailable();
+			if (datasetService != null && documentService != null && segmentService != null) {
+				mapping.registerController(new KbConsoleController(configuration, datasetService, documentService,
+						segmentService));
+			}
+		};
 	}
 
 	/** provider 分发表：新增 provider 在此登记；也可直接注册 {@link ContentRetrieverProvider} bean 扩展。 */

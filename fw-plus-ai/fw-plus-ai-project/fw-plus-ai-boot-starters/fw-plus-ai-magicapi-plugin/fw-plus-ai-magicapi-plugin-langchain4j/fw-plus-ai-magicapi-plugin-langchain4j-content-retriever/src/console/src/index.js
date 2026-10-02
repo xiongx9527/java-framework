@@ -4,7 +4,9 @@ const iconSymbol = iconDocument.replace(/^[\s\S]*?(<symbol[\s\S]*<\/symbol>)[\s\
 import localZhCN from './i18n/zh-cn.js'
 import localEn from './i18n/en.js'
 import createDatasourceService from './service/magic-langchain4j-datasource.js'
+import { bindKbRequest } from './service/kb-service.js'
 import MagicLangchain4jInfo from './components/magic-langchain4j-content-retriever-info.vue'
+import MagicKbBrowser from './components/magic-kb-browser.vue'
 
 const ICON_ID = 'magic-langchain4j'
 
@@ -32,6 +34,7 @@ export default (opt) => {
     const i18n = opt.i18n
     i18n.add('zh-cn', localZhCN)
     i18n.add('en', localEn)
+    bindKbRequest(opt.request)
     return {
         datasources: [{
             // 完整 datasource type，与后端 Langchain4jContentRetrieverInfo.TYPE 一致
@@ -41,8 +44,17 @@ export default (opt) => {
             name: i18n.format('langchain4j.type.content-retriever'),
             service: createDatasourceService(opt.request, i18n.format, opt.modal, 'content-retriever'),
             component: MagicLangchain4jInfo
+        }],
+        toolbars: [{
+            // 顶部工具栏知识库管理页（数据集/文档/分段/召回测试四视图）
+            id: 'kb-browser',
+            title: i18n.format('kb.dataset.title'),
+            icon: '#' + ICON_ID,
+            order: 210,
+            component: MagicKbBrowser,
+            adminOnly: true,
+            allowClose: true,
+            fullscreen: true
         }]
-        // 知识库管理页 toolbars 在独立产物 index-kb.js（magic-kb-browser iife.js）中，
-        // 由后端 KnowledgeConfiguration 在知识库装配成功时才声明插件加载（不启动，不激活）
     }
 }
