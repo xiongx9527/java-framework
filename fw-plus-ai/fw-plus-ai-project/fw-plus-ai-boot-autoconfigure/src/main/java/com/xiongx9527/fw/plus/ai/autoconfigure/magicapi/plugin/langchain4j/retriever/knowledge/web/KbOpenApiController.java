@@ -243,6 +243,62 @@ public class KbOpenApiController {
 		}
 	}
 
+	/** 业务方文档启禁（body {enabled}）：禁用文档不参与检索。 */
+	@PostMapping("/v1/datasets/{datasetId}/documents/{documentId}/enabled")
+	public Object patchDocumentEnabled(@PathVariable("datasetId") String datasetId,
+			@PathVariable("documentId") String documentId,
+			@RequestBody Map<String, Object> body,
+			@RequestHeader(value = "Authorization", required = false) String authorization,
+			@RequestHeader(value = "kb-token", required = false) String kbToken) {
+		if (!auth(authorization, kbToken)) {
+			return error(1002, "认证失败");
+		}
+		try {
+			requireDocumentInDataset(datasetId, documentId);
+			boolean enabled = !"false".equalsIgnoreCase(String.valueOf(body.get("enabled")));
+			return ok(documentService.patchEnabled(documentId, enabled));
+		} catch (IllegalArgumentException e) {
+			return error(2001, e.getMessage());
+		}
+	}
+
+	/** 业务方文档归档/取消归档（body {archived}），与启禁独立，归档不参与检索。 */
+	@PostMapping("/v1/datasets/{datasetId}/documents/{documentId}/archived")
+	public Object patchDocumentArchived(@PathVariable("datasetId") String datasetId,
+			@PathVariable("documentId") String documentId,
+			@RequestBody Map<String, Object> body,
+			@RequestHeader(value = "Authorization", required = false) String authorization,
+			@RequestHeader(value = "kb-token", required = false) String kbToken) {
+		if (!auth(authorization, kbToken)) {
+			return error(1002, "认证失败");
+		}
+		try {
+			requireDocumentInDataset(datasetId, documentId);
+			boolean archived = !"false".equalsIgnoreCase(String.valueOf(body.get("archived")));
+			return ok(documentService.patchArchived(documentId, archived));
+		} catch (IllegalArgumentException e) {
+			return error(2001, e.getMessage());
+		}
+	}
+
+	/** 业务方文档删除：级联删除分段/向量/原始文件。 */
+	@PostMapping("/v1/datasets/{datasetId}/documents/{documentId}/delete")
+	public Object deleteDocument(@PathVariable("datasetId") String datasetId,
+			@PathVariable("documentId") String documentId,
+			@RequestHeader(value = "Authorization", required = false) String authorization,
+			@RequestHeader(value = "kb-token", required = false) String kbToken) {
+		if (!auth(authorization, kbToken)) {
+			return error(1002, "认证失败");
+		}
+		try {
+			requireDocumentInDataset(datasetId, documentId);
+			documentService.deleteDocument(documentId);
+			return ok(null);
+		} catch (IllegalArgumentException e) {
+			return error(2001, e.getMessage());
+		}
+	}
+
 	/** 业务方分段详情（Sa-Token 认证）。 */
 	@GetMapping("/v1/datasets/{datasetId}/segments/{segmentId}")
 	public Object segmentDetail(@PathVariable("datasetId") String datasetId,
