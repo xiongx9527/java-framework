@@ -65,4 +65,8 @@ public class KbSegment extends MpBaseEntity<String> {
 
     /** 更新时间 */
     private Date updateTime;
+
+    /** 全文检索相关度（非表字段；FULLTEXT MATCH AGAINST 返回，调用方归一化为 0~1 分数） */
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private Double relevance;
 }

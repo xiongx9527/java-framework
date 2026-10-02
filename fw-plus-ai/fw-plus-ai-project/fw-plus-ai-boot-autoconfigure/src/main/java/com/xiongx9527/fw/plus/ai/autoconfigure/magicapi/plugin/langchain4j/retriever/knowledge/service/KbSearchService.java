@@ -459,7 +459,8 @@ public class KbSearchService {
 			if (documentId != null && !documentId.isEmpty() && !documentId.equals(segment.getDocumentId())) {
 				continue;
 			}
-			double score = keywordScore(query, segment);
+			double score = segment.getRelevance() != null ? segment.getRelevance()
+					: keywordScore(query, segment);
 			if (score <= 0) {
 				continue;
 			}
@@ -498,7 +499,9 @@ public class KbSearchService {
 			if (documentId != null && !documentId.isEmpty() && !documentId.equals(segment.getDocumentId())) {
 				continue;
 			}
-			double score = keywordScore(query, segment);
+			// FULLTEXT 模式用归一化相关度；LIKE 回落模式用词项命中度
+			double score = segment.getRelevance() != null ? segment.getRelevance()
+					: keywordScore(query, segment);
 			if (score <= 0) {
 				continue;
 			}
@@ -521,8 +524,29 @@ public class KbSearchService {
 		return merged;
 	}
 
-	/** 关键词路 SQL 召回：content/keywords 对词项 LIKE（OR 连接），限制返回量。 */
+	/** 关键词路 SQL 召回：优先 FULLTEXT ngram 全文（含相关度），索引缺失时回落词项 LIKE。 */
 	private List<KbSegment> keywordRecallSegments(String datasetId, String query) {
+		// FULLTEXT 优先：MATCH AGAINST 返回相关度，写入实体非表字段 relevance
+		try {
+			List<KbSegment> recalled = segmentMapper.fulltextRecall(datasetId, query, 60);
+			if (recalled != null) {
+				double max = 0;
+				for (KbSegment segment : recalled) {
+					if (segment.getRelevance() != null && segment.getRelevance() > max) {
+						max = segment.getRelevance();
+					}
+				}
+				// 归一化到 0~1（本批最大相关度为 1）
+				if (max > 0) {
+					for (KbSegment segment : recalled) {
+						segment.setRelevance(segment.getRelevance() == null ? 0 : segment.getRelevance() / max);
+					}
+				}
+				return recalled;
+			}
+		} catch (Exception e) {
+			// FULLTEXT 索引缺失等场景：回落词项 LIKE
+		}
 		List<String> terms = queryTerms(query);
 		if (terms.isEmpty()) {
 			return Collections.emptyList();
