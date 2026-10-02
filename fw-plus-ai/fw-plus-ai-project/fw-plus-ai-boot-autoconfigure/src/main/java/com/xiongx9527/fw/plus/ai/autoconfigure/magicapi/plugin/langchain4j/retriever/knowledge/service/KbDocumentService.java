@@ -60,7 +60,7 @@ public class KbDocumentService {
 		}
 		java.util.Date now = new java.util.Date();
 		// doc_hash 数据集内去重
-		Integer existing = documentMapper.selectCount(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<KbDocument>()
+		Long existing = documentMapper.selectCount(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<KbDocument>()
 				.eq("dataset_id", targetDatasetId)
 				.eq("doc_hash", document.getDocHash()));
 		if (existing != null && existing > 0) {
@@ -112,7 +112,7 @@ public class KbDocumentService {
 		// 先读出字节以便计算 doc_hash（数据集内去重）
 		byte[] bytes = readAll(content);
 		String hash = sha256Hex(bytes);
-		Integer existing = documentMapper.selectCount(new QueryWrapper<KbDocument>()
+		Long existing = documentMapper.selectCount(new QueryWrapper<KbDocument>()
 				.eq("dataset_id", datasetId)
 				.eq("doc_hash", hash));
 		if (existing != null && existing > 0) {

@@ -229,7 +229,7 @@ public class KbSearchService {
 	/**
 	 * Dify metadata_condition → langchain4j Filter。操作符（Dify 兼容 + 通用别名）：
 	 * is / not is、is not / not_equal、in / not in、gt / gte / lt / lte（数值优先，非数值按字符串比较）、
-	 * contains / not contains（0.35.0 自定义 Filter，下推失败自动落内存过滤；1.x 原生 containsString）；
+	 * contains / not contains（1.x 原生 ContainsString，可随 EmbeddingSearchRequest.filter 下推向量库）；
 	 * is empty / is not empty 以空串近似（metadata 值用空串表示空）。logical_operator 支持 and/or。
 	 */
 	Filter buildMetadataCondition(JSONObject condition) {
@@ -277,10 +277,10 @@ public class KbSearchService {
 						: builder.isNotIn(values.toArray(new String[0]));
 			}
 			case "contains":
-				return ContainsStringFilter.of(name, valueStr);
+				return builder.containsString(valueStr == null ? "" : valueStr);
 			case "not contains":
 			case "not_contains":
-				return Filter.not(ContainsStringFilter.of(name, valueStr));
+				return Filter.not(builder.containsString(valueStr == null ? "" : valueStr));
 			case "gt":
 			case "greater_than":
 				return numericAware(valueStr, v -> builder.isGreaterThan(v), builder::isGreaterThan);

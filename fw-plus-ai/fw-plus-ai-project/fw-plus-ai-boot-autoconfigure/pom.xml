@@ -56,6 +56,14 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- knowledge Mapper 显式注册用 MapperFactoryBean（mybatis-plus 3.5.9+ 不再传递 mybatis-spring，版本由 core BOM 管理） -->
+        <dependency>
+            <groupId>org.mybatis</groupId>
+            <artifactId>mybatis-spring</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
         <!-- fw-plus-ai-mcp-server 协议内核（core 层构件，经 core BOM 管理版本） -->
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>

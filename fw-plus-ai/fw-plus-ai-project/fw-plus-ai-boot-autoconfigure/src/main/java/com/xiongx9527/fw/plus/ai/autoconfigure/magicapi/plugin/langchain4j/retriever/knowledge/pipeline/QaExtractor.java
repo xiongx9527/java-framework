@@ -3,7 +3,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retr
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,9 +24,9 @@ public final class QaExtractor {
 			+ "不要输出任何其他内容：\n\n%s";
 
 	/** 对单个父段抽取 QA 对；模型输出不合规范时返回空列表。 */
-	public static List<String[]> extract(ChatLanguageModel chatModel, String parentText) {
+	public static List<String[]> extract(ChatModel chatModel, String parentText) {
 		List<String[]> pairs = new ArrayList<>();
-		String response = chatModel.generate(String.format(PROMPT_TEMPLATE, parentText));
+		String response = chatModel.chat(String.format(PROMPT_TEMPLATE, parentText));
 		if (response == null || response.isEmpty()) {
 			return pairs;
 		}

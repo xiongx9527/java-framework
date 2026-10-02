@@ -262,7 +262,7 @@ public class KbIndexingService {
 			if (dataset.getChatModelKey() == null || dataset.getChatModelKey().isEmpty()) {
 				throw new IllegalStateException("QA 分段模式需要在数据集配置 chat_model_key（对话模型资源 key）");
 			}
-			dev.langchain4j.model.chat.ChatLanguageModel chatModel =
+			dev.langchain4j.model.chat.ChatModel chatModel =
 					retrieverContext.chatModel(dataset.getChatModelKey());
 			List<String> parentChunks = documentPipeline.splitGeneral(text, maxLen, overlap, delimiter);
 			int qaPosition = 0;

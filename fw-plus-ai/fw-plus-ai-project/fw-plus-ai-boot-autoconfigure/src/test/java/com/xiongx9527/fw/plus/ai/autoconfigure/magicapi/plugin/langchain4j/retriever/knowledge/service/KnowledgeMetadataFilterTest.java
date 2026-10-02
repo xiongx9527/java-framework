@@ -2,11 +2,11 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retr
 
 import com.alibaba.fastjson2.JSONObject;
 import dev.langchain4j.store.embedding.filter.Filter;
+import dev.langchain4j.store.embedding.filter.comparison.ContainsString;
 import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
 import dev.langchain4j.store.embedding.filter.comparison.IsNotEqualTo;
 import dev.langchain4j.store.embedding.filter.logical.And;
 import dev.langchain4j.store.embedding.filter.logical.Or;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.ContainsStringFilter;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -94,9 +94,10 @@ class KnowledgeMetadataFilterTest {
     }
 
     @Test
-    void contains构造自定义Filter并支持内存测试() {
+    void contains构造原生ContainsString并支持内存测试() {
         Filter filter = service.buildMetadataCondition(condition("and", "category", "contains", "faq"));
-        assertThat(filter).isInstanceOf(ContainsStringFilter.class);
+        assertThat(filter).isInstanceOf(ContainsString.class);
+        assertThat(((ContainsString) filter).comparisonValue()).isEqualTo("faq");
         java.util.Map<String, Object> metadata = new java.util.LinkedHashMap<>();
         metadata.put("category", "faq-001");
         assertThat(filter.test(new dev.langchain4j.data.document.Metadata(metadata))).isTrue();

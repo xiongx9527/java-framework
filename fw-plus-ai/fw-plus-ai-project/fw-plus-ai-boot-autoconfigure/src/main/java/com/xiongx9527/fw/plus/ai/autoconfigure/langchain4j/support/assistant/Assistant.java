@@ -10,10 +10,8 @@ import dev.langchain4j.service.V;
  *
  * <p>两条链路共用同一个 Assistant 与同一套装配（模型 + 工具 + RAG），保证行为一致。</p>
  *
- * <p>注意：本仓库锁定 LangChain4j {@code 0.35.0}，模型类型是
- * {@link dev.langchain4j.model.chat.ChatModel} 与
- * {@link dev.langchain4j.model.chat.StreamingChatModel}，不是 1.x 的
- * {@code ChatModel} / {@code StreamingChatModel}。</p>
+ * <p>模型类型是 langchain4j 1.x 的 {@link dev.langchain4j.model.chat.ChatModel} 与
+ * {@link dev.langchain4j.model.chat.StreamingChatModel}（springboot3 分支 1.20.2 起生效）。</p>
  *
  * <p>第一个参数带 {@link MemoryId}：LangChain4j 每次调用会把该实参作为 memoryId 传给
  * {@code AiServices.systemMessageProvider}，系统提示因此可以按会话定制。该参数
