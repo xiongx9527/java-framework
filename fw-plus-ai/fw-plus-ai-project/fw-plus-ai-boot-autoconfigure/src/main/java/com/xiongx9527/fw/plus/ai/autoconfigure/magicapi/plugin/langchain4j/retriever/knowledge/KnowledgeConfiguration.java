@@ -242,6 +242,15 @@ public class KnowledgeConfiguration {
 	}
 
 	@Bean
+	public com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KnowledgeAssistantFactory knowledgeAssistantFactory(
+			ObjectProvider<KbSearchService> searchServices,
+			ObjectProvider<com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService> metadataFieldServices,
+			ContentRetrieverContext retrieverContext) {
+		return new com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KnowledgeAssistantFactory(
+				searchServices, metadataFieldServices, retrieverContext);
+	}
+
+	@Bean
 	public com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService kbMetadataFieldService(
 			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.mapper.KbMetadataFieldMapper fieldMapper,
 			KbDocumentMapper documentMapper, KbKnowledgeState state) {

@@ -146,54 +146,6 @@ public class SimpleAssistant {
 						Collections.<ChatMessage>emptyList()))).contents();
 	}
 
-	// -------------------------------------------------- 带元数据过滤的检索与对话
-
-	/**
-	 * 只检索（带元数据过滤）：{@code metadataCondition} 为 Dify metadata_condition 格式 JSON
-	 * （键须为数据集已定义的元数据字段），仅本次调用生效（ThreadLocal 同线程传递）。
-	 */
-	public List<Content> retrieve(String memoryId, String metadataCondition, String message) {
-		com.alibaba.fastjson2.JSONObject condition = parseCondition(metadataCondition);
-		com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.rag.RetrievalFilterHolder.set(condition);
-		try {
-			return retrieve(memoryId, message);
-		} finally {
-			com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.rag.RetrievalFilterHolder.clear();
-		}
-	}
-
-	/**
-	 * 同步对话（带元数据过滤）：检索经 {@code metadataCondition} 过滤，结果拼入上下文后
-	 * 由底层对话模型直连生成（不经 AiServices RAG，避免 ThreadLocal 跨线程丢失）。
-	 */
-	public String chatWithFilter(String memoryId, String metadataCondition, String message) {
-		List<Content> contents = retrieve(memoryId, metadataCondition, message);
-		StringBuilder context = new StringBuilder();
-		for (Content content : contents) {
-			if (context.length() > 0) {
-				context.append("\n\n");
-			}
-			context.append(content.textSegment().text());
-		}
-		String prompt = context.length() > 0
-				? "请根据以下参考资料回答用户问题。\n\n参考资料：\n" + context + "\n\n用户问题：" + message
-				: message;
-		return chatModel != null
-				? chatModel.generate(prompt)
-				: assistant.chat(memoryId, "", message);
-	}
-
-	private static com.alibaba.fastjson2.JSONObject parseCondition(String metadataCondition) {
-		if (metadataCondition == null || metadataCondition.trim().isEmpty()) {
-			return null;
-		}
-		try {
-			return com.alibaba.fastjson2.JSON.parseObject(metadataCondition);
-		} catch (Exception e) {
-			throw new IllegalArgumentException("metadataCondition 不是合法的 JSON 对象: " + e.getMessage());
-		}
-	}
-
 	private RetrievalAugmentor retrievalAugmentor() {
 		if (retrievalAugmentor == null) {
 			throw new IllegalStateException(

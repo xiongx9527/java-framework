@@ -81,10 +81,6 @@ public class KnowledgeContentRetriever implements ContentRetriever {
 			throw new IllegalStateException("知识库检索服务未装配，无法构建 knowledge 类型检索器");
 		}
 		com.alibaba.fastjson2.JSONObject effectiveCondition = metadataCondition;
-		// 调用方显式过滤（RetrievalFilterHolder，ThreadLocal 同线程生效）：与固定条件叠加
-		com.alibaba.fastjson2.JSONObject holderCondition =
-				com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.rag.RetrievalFilterHolder.get();
-		effectiveCondition = mergeConditions(effectiveCondition, holderCondition);
 		// auto 模式：由 LLM 从用户消息与字段定义自动生成元数据过滤条件（失败回落无条件检索）
 		if ("auto".equalsIgnoreCase(metadataFilterMode) && metadataFieldServices != null) {
 			com.alibaba.fastjson2.JSONObject generated = generateConditionByLlm(query.text());
