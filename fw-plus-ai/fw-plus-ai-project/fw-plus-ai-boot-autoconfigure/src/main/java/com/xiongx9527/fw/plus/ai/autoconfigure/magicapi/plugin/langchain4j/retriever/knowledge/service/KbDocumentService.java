@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retr
 
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.entity.KbDataset;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.entity.KbDocument;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.mapper.KbDocumentMapper;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.pipeline.KbTokenCounter;
@@ -24,18 +25,58 @@ public class KbDocumentService {
 
 	private final KbDocumentMapper documentMapper;
 
+	private final com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.mapper.KbDatasetMapper datasetMapper;
+
 	private final KbIndexingService indexingService;
 
 	private final KbOriginalFileStore fileStore;
 
 	private final KbKnowledgeState state;
 
-	public KbDocumentService(KbDocumentMapper documentMapper, KbIndexingService indexingService,
-			KbOriginalFileStore fileStore, KbKnowledgeState state) {
+	public KbDocumentService(KbDocumentMapper documentMapper,
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.mapper.KbDatasetMapper datasetMapper,
+			KbIndexingService indexingService, KbOriginalFileStore fileStore, KbKnowledgeState state) {
 		this.documentMapper = documentMapper;
+		this.datasetMapper = datasetMapper;
 		this.indexingService = indexingService;
 		this.fileStore = fileStore;
 		this.state = state;
+	}
+
+	/**
+	 * 文档跨数据集迁移：更新归属后触发重建索引（目标数据集的嵌入模型/向量库可能不同，
+	 * 旧向量按原数据集删除，重新走 waiting → 嵌入写入目标数据集的 store）。
+	 */
+	public KbDocument move(String documentId, String targetDatasetId) {
+		state.checkReady();
+		KbDocument document = requireDocument(documentId);
+		if (targetDatasetId == null || targetDatasetId.isEmpty()
+				|| targetDatasetId.equals(document.getDatasetId())) {
+			throw new IllegalArgumentException("目标数据集无效或与当前数据集相同");
+		}
+		KbDataset target = datasetMapper.selectById(targetDatasetId);
+		if (target == null) {
+			throw new IllegalArgumentException("目标数据集不存在: " + targetDatasetId);
+		}
+		java.util.Date now = new java.util.Date();
+		// doc_hash 数据集内去重
+		Integer existing = documentMapper.selectCount(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<KbDocument>()
+				.eq("dataset_id", targetDatasetId)
+				.eq("doc_hash", document.getDocHash()));
+		if (existing != null && existing > 0) {
+			throw new IllegalArgumentException("目标数据集已存在相同内容的文档（doc_hash 去重）");
+		}
+		com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<KbDocument> wrapper =
+				new com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<KbDocument>()
+						.eq("id", documentId)
+						.set("dataset_id", targetDatasetId)
+						.set("indexing_status", "waiting")
+						.set("error_msg", null)
+						.set("update_time", now);
+		documentMapper.update(null, wrapper);
+		document.setDatasetId(targetDatasetId);
+		indexingService.reindex(documentId);
+		return documentMapper.selectById(documentId);
 	}
 
 	/** 文件上传入库：存原文 → 置 waiting → 即时触发异步索引。 */

@@ -97,6 +97,41 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 		return ok(hits);
 	}
 
+	/** 切分预览（Dry-run，不落库不嵌入）：body {text, segmentMode?, segmentMaxLength?, segmentOverlap?, segmentDelimiter?} */
+	@PostMapping("/dataset/preview-split")
+	@ResponseBody
+	public Object previewSplit(@RequestBody Map<String, Object> body) {
+		String text = body.get("text") == null ? null : String.valueOf(body.get("text"));
+		String mode = body.get("segmentMode") == null ? null : String.valueOf(body.get("segmentMode"));
+		Integer maxLen = body.get("segmentMaxLength") == null ? null
+				: Integer.valueOf(String.valueOf(body.get("segmentMaxLength")));
+		Integer overlap = body.get("segmentOverlap") == null ? null
+				: Integer.valueOf(String.valueOf(body.get("segmentOverlap")));
+		String delimiter = body.get("segmentDelimiter") == null ? null : String.valueOf(body.get("segmentDelimiter"));
+		return ok(datasetService.previewSplit(text, mode, maxLen, overlap, delimiter));
+	}
+
+	/** 导出数据集（不含向量）：JSON 附件下载。 */
+	@GetMapping("/dataset/{id}/export")
+	@ResponseBody
+	public void exportDataset(@PathVariable("id") String id, HttpServletResponse response) throws IOException {
+		com.alibaba.fastjson2.JSONObject payload = datasetService.export(id);
+		byte[] bytes = payload.toJSONString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+		response.setContentType("application/json");
+		response.setHeader("Content-Disposition", "attachment; filename=\"kb-dataset-" + id + ".json\"");
+		response.setContentLength(bytes.length);
+		response.getOutputStream().write(bytes);
+	}
+
+	/** 导入数据集（POST 导出 JSON）：返回新数据集 id，全部文档重新入队嵌入。 */
+	@PostMapping("/dataset/import")
+	@ResponseBody
+	public Object importDataset(@RequestBody com.alibaba.fastjson2.JSONObject payload) {
+		Map<String, Object> data = new LinkedHashMap<>();
+		data.put("datasetId", datasetService.importDataset(payload));
+		return ok(data);
+	}
+
 	/** 引用该数据集的 knowledge 类型 retriever 资源列表。 */
 	@GetMapping("/dataset/{id}/retrievers")
 	@ResponseBody

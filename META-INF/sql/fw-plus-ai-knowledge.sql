@@ -13,6 +13,7 @@ CREATE TABLE kb_dataset (
     embedding_model_active    VARCHAR(255)          DEFAULT NULL COMMENT '上次成功索引实际使用的嵌入模型 key；检索嵌入用此值保证与向量一致；切换配置后提示重建索引，重建完成后更新',
     embedding_store_key       VARCHAR(255) NOT NULL COMMENT '向量库资源 key（langchain4j embedding-store）',
     scoring_model_key         VARCHAR(255)          DEFAULT NULL COMMENT 'rerank 模型资源 key（scoring-model），空则不重排',
+    chat_model_key            VARCHAR(255)          DEFAULT NULL COMMENT 'QA 分段抽取用对话模型资源 key（langchain4j chat-model），segment_mode=qa 时必填',
     collection_name           VARCHAR(255)          DEFAULT NULL COMMENT '向量库 collection 名，按数据集隔离；空则按约定生成',
     retrieval_top_k           INT          NOT NULL DEFAULT 4 COMMENT '默认召回数量',
     retrieval_score_threshold DECIMAL(6,4) NOT NULL DEFAULT 0.0000 COMMENT '默认分数阈值',

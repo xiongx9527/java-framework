@@ -116,8 +116,13 @@ public class KnowledgeConfiguration {
 	}
 
 	@Bean
-	@ConditionalOnMissingBean(KbOriginalFileStore.class)
-	public LocalKbOriginalFileStore kbOriginalFileStore(KnowledgeConfiguration.KnowledgeProperties properties) {
+	public KbOriginalFileStore kbOriginalFileStore(KnowledgeConfiguration.KnowledgeProperties properties,
+			ObjectProvider<com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.module.S3Module> s3Modules) {
+		// 文件存储介质可配置：local 本地目录 / s3 复用 fw-plus-boot magicapi s3 插件（s3 数据源）
+		if ("s3".equalsIgnoreCase(properties.getStorageType())) {
+			return new com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.store.PluginS3KbOriginalFileStore(
+					s3Modules, properties.getS3Key(), "kb");
+		}
 		return new LocalKbOriginalFileStore(properties.getStoragePath());
 	}
 
@@ -191,15 +196,15 @@ public class KnowledgeConfiguration {
 	public KbSearchService kbSearchService(KbDatasetMapper datasetMapper, KbDocumentMapper documentMapper,
 			KbSegmentMapper segmentMapper, ContentRetrieverContext retrieverContext,
 			ObjectProvider<Langchain4jScoringModelModule> scoringModels, KbIndexingExecutor executor,
-			KbKnowledgeState state) {
+			KbKnowledgeState state, KnowledgeConfiguration.KnowledgeProperties properties) {
 		return new KbSearchService(datasetMapper, documentMapper, segmentMapper, retrieverContext, scoringModels,
-				executor, state);
+				executor, state, properties.isHybridSearch());
 	}
 
 	@Bean
-	public KbDocumentService kbDocumentService(KbDocumentMapper documentMapper, KbIndexingService indexingService,
-			KbOriginalFileStore fileStore, KbKnowledgeState state) {
-		return new KbDocumentService(documentMapper, indexingService, fileStore, state);
+	public KbDocumentService kbDocumentService(KbDocumentMapper documentMapper, KbDatasetMapper datasetMapper,
+			KbIndexingService indexingService, KbOriginalFileStore fileStore, KbKnowledgeState state) {
+		return new KbDocumentService(documentMapper, datasetMapper, indexingService, fileStore, state);
 	}
 
 	@Bean
@@ -212,12 +217,12 @@ public class KnowledgeConfiguration {
 
 	@Bean
 	public KbDatasetService kbDatasetService(KbDatasetMapper datasetMapper, KbDocumentMapper documentMapper,
-			KbSearchService searchService, KbIndexingService indexingService,
-			ObjectProvider<MagicResourceService> resourceServices,
+			KbSegmentMapper segmentMapper, DocumentPipeline documentPipeline, KbSearchService searchService,
+			KbIndexingService indexingService, ObjectProvider<MagicResourceService> resourceServices,
 			ObjectProvider<Langchain4jContentRetrieverMagicResourceStorage> retrieverStorages,
 			KbKnowledgeState state) {
-		return new KbDatasetService(datasetMapper, documentMapper, searchService, indexingService,
-				resourceServices, retrieverStorages, state);
+		return new KbDatasetService(datasetMapper, documentMapper, segmentMapper, documentPipeline,
+				searchService, indexingService, resourceServices, retrieverStorages, state);
 	}
 
 	// ---------------- 检索器与脚本入口 ----------------
@@ -255,8 +260,25 @@ public class KnowledgeConfiguration {
 		/** 总开关（由 @ConditionalOnProperty 读取，此处保留绑定供扩展） */
 		private boolean enabled = true;
 
-		/** 原始文件目录，默认 ${user.home}/.fw-plus/kb */
+		/** 原始文件目录（storage-type=local 时生效），默认 ${user.home}/.fw-plus/kb */
 		private String storagePath;
+
+		/** 文件存储介质：local 本地目录（默认）/ s3 复用 fw-plus-boot magicapi s3 插件（s3 数据源） */
+		private String storageType = "local";
+
+		/** s3 数据源资源 key（storage-type=s3 时生效；空则取 Spring 默认 s3 数据源） */
+		private String s3Key;
+
+		/** 混合检索开关：向量路 + 关键词路融合（默认开启；关闭则仅向量路） */
+		private boolean hybridSearch = true;
+
+		public boolean isHybridSearch() {
+			return hybridSearch;
+		}
+
+		public void setHybridSearch(boolean hybridSearch) {
+			this.hybridSearch = hybridSearch;
+		}
 
 		public boolean isEnabled() {
 			return enabled;
@@ -273,5 +295,27 @@ public class KnowledgeConfiguration {
 		public void setStoragePath(String storagePath) {
 			this.storagePath = storagePath;
 		}
+
+		public String getStorageType() {
+			return storageType;
+		}
+
+		public void setStorageType(String storageType) {
+			this.storageType = storageType;
+		}
+
+		public String getS3Key() {
+			return s3Key;
+		}
+
+		public void setS3Key(String s3Key) {
+			this.s3Key = s3Key;
+		}
+
+
+
+
+
+
 	}
 }
