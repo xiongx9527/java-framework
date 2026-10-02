@@ -139,7 +139,7 @@ public class KbOpenApiController {
 	}
 
 	/** 业务方新增分段：body {content, keywords?, answer?}，自动重嵌入。 */
-	@PostMapping("/v1/datasets/{datasetId}/segments")
+	@PostMapping("/v1/datasets/{datasetId}/documents/{documentId}/segments")
 	public Object createSegment(@PathVariable("datasetId") String datasetId,
 			@PathVariable("documentId") String documentId,
 			@RequestBody Map<String, Object> body,
