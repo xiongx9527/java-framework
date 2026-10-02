@@ -1,12 +1,14 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.model;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.AgenticPipelineRegistry;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.agenticscript.module.Langchain4jAgenticScriptModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.AgenticToolProviders;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.Langchain4jToolProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.MagicApiToolExecutor;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.MagicApiToolProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.MagicApiToolRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.MagicToolInvoker;
+import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.service.tool.ToolProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,16 +41,20 @@ public class MagicDynamicLangchain4jToolProviderDataSource implements Disposable
 
 	private final AgenticPipelineRegistry pipelineRegistry;
 
+	private final com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.agenticscript.module.Langchain4jAgenticScriptModule agenticScriptModule;
+
 	public MagicDynamicLangchain4jToolProviderDataSource(MagicResourceService magicResourceService,
 			MagicToolInvoker invoker) {
-		this(magicResourceService, invoker, null);
+		this(magicResourceService, invoker, null, null);
 	}
 
 	public MagicDynamicLangchain4jToolProviderDataSource(MagicResourceService magicResourceService,
-			MagicToolInvoker invoker, AgenticPipelineRegistry pipelineRegistry) {
+			MagicToolInvoker invoker, AgenticPipelineRegistry pipelineRegistry,
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.agenticscript.module.Langchain4jAgenticScriptModule agenticScriptModule) {
 		this.magicResourceService = magicResourceService;
 		this.invoker = invoker;
 		this.pipelineRegistry = pipelineRegistry;
+		this.agenticScriptModule = agenticScriptModule;
 	}
 
 	/**
@@ -65,13 +71,19 @@ public class MagicDynamicLangchain4jToolProviderDataSource implements Disposable
 		try {
 			destroy(key);
 			if (info.getAgenticKey() != null && !info.getAgenticKey().trim().isEmpty()) {
-				// agentic 来源：工具即编排注册中心中 agenticKey 对应的编排（agent-as-tool，包装收口在隔离层）
-				if (pipelineRegistry == null) {
-					throw new IllegalArgumentException("未装配编排注册中心，无法使用 agentic 来源");
+				// agentic 来源：工具即一个编排（agent-as-tool，包装收口在隔离层）。
+				// agenticKey 两种绑定：① 编排注册中心的 key（如 nl2sql 流水线）；② agentic-script 脚本资源路径（回落）
+				UntypedAgent pipeline = pipelineRegistry == null ? null : pipelineRegistry.get(info.getAgenticKey().trim());
+				if (pipeline == null && agenticScriptModule != null) {
+					pipeline = agenticScriptModule.node(info.getAgenticKey().trim());
 				}
-				providers.put(key, AgenticToolProviders.agenticToolProviderByKey(pipelineRegistry,
-						info.getAgenticKey().trim(), key,
-						info.getName(),
+				if (pipeline == null) {
+					throw new IllegalArgumentException(String.format(
+							"agenticKey '%s' 未命中：编排注册中心与 agentic-script 脚本资源中均不存在", info.getAgenticKey()));
+				}
+				providers.put(key, AgenticToolProviders.agenticToolProvider(pipeline, key,
+						info.getAgenticDescription() != null && !info.getAgenticDescription().trim().isEmpty()
+								? info.getAgenticDescription() : info.getName(),
 						info.getAgenticOutputKey(),
 						info.getAgenticInputKeys() == null ? new String[0]
 								: info.getAgenticInputKeys().toArray(new String[0])));

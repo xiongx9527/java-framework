@@ -45,9 +45,10 @@ public class Langchain4jToolProviderConfiguration extends AbstractLangchain4jPlu
 	@ConditionalOnMissingBean
 	public MagicDynamicLangchain4jToolProviderDataSource langchain4jToolProviderDataSource(
 			MagicResourceService magicResourceService, MagicToolInvoker invoker,
-			ObjectProvider<com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.AgenticPipelineRegistry> pipelineRegistryProvider) {
+			ObjectProvider<com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.AgenticPipelineRegistry> pipelineRegistryProvider,
+			ObjectProvider<com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.agenticscript.module.Langchain4jAgenticScriptModule> agenticScriptModuleProvider) {
 		return new MagicDynamicLangchain4jToolProviderDataSource(magicResourceService, invoker,
-				pipelineRegistryProvider.getIfAvailable());
+				pipelineRegistryProvider.getIfAvailable(), agenticScriptModuleProvider.getIfAvailable());
 	}
 
 	/** langchain4j-tool-provider 资源类型存储。 */
