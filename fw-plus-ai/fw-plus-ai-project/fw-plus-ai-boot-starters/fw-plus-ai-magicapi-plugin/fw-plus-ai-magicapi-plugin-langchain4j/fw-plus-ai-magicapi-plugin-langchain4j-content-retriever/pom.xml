@@ -13,6 +13,8 @@
 
     <properties>
         <main.basedir>${basedir}/../../../../..</main.basedir>
+        <!-- 知识库管理端（magic-kb-browser）随构建自动编译打包 -->
+        <langchain4j.console.skip>false</langchain4j.console.skip>
     </properties>
 
     <dependencies>

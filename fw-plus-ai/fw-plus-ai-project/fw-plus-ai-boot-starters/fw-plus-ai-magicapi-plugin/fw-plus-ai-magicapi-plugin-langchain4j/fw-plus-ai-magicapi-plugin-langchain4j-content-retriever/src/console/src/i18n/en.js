@@ -100,6 +100,9 @@ export default {
                 chatModel: 'QA Chat Model',
                 chatModelTip: 'Required for qa segment mode (langchain4j chat-model key)',
                 scoreThreshold: 'Score Threshold',
+                similarityWeight: 'Similarity Weight',
+                semanticWeight: 'Semantic Weight',
+                weightTip: 'Configured as a pair to enable weighted hybrid re-ranking (0~1)',
                 errorMsg: 'Notice',
                 retrievers: 'Referenced Retrievers'
             },

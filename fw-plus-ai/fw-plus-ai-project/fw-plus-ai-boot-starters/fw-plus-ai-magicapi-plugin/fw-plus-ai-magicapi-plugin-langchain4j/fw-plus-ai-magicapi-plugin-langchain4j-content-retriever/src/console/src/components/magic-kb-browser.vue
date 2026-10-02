@@ -38,6 +38,7 @@
               <tr><th>{{ $i('kb.dataset.segmentMode') }}</th><td>{{ selectedDataset.segmentMode || 'general' }}</td></tr>
               <tr><th>{{ $i('kb.dataset.segmentParams') }}</th><td>{{ selectedDataset.segmentMaxLength }} / {{ selectedDataset.segmentOverlap }}<template v-if="selectedDataset.segmentDelimiter"> / {{ selectedDataset.segmentDelimiter }}</template></td></tr>
               <tr><th>{{ $i('kb.dataset.topK') }}</th><td>{{ selectedDataset.retrievalTopK }} / {{ selectedDataset.retrievalScoreThreshold }}</td></tr>
+              <tr v-if="selectedDataset.retrievalSimilarityWeight != null || selectedDataset.retrievalSemanticWeight != null"><th>{{ $i('kb.dataset.similarityWeight') }} / {{ $i('kb.dataset.semanticWeight') }}</th><td>{{ selectedDataset.retrievalSimilarityWeight }} / {{ selectedDataset.retrievalSemanticWeight }}</td></tr>
               <tr v-if="selectedDataset.errorMsg"><th>{{ $i('kb.dataset.errorMsg') }}</th><td class="kb-error">{{ selectedDataset.errorMsg }}</td></tr>
               <tr><th>{{ $i('kb.dataset.retrievers') }}</th><td>
                 <span v-if="!referencers.length">{{ $i('kb.empty') }}</span>
@@ -200,6 +201,8 @@
         <div class="kb-form-row"><label>{{ $i('kb.dataset.segmentDelimiter') }}</label><input v-model="datasetForm.segmentDelimiter"/></div>
         <div class="kb-form-row"><label>{{ $i('kb.dataset.topK') }}</label><input v-model="datasetForm.retrievalTopK" type="number"/></div>
         <div class="kb-form-row"><label>{{ $i('kb.dataset.scoreThreshold') }}</label><input v-model="datasetForm.retrievalScoreThreshold" type="number" step="0.0001"/></div>
+        <div class="kb-form-row"><label>{{ $i('kb.dataset.similarityWeight') }}</label><input v-model="datasetForm.retrievalSimilarityWeight" type="number" step="0.0001" min="0" max="1" :placeholder="$i('kb.dataset.weightTip')"/></div>
+        <div class="kb-form-row"><label>{{ $i('kb.dataset.semanticWeight') }}</label><input v-model="datasetForm.retrievalSemanticWeight" type="number" step="0.0001" min="0" max="1" :placeholder="$i('kb.dataset.weightTip')"/></div>
         <div class="kb-modal-actions">
           <button @click="saveDataset">{{ $i('kb.save') }}</button>
           <button @click="datasetForm = null">{{ $i('kb.cancel') }}</button>
@@ -358,7 +361,7 @@ const openDatasetForm = (ds) => {
     ? { ...ds }
     : { name: '', description: '', embeddingModelKey: '', embeddingStoreKey: '', scoringModelKey: '',
         segmentMode: 'general', segmentMaxLength: 1000, segmentOverlap: 200, segmentDelimiter: '',
-        retrievalTopK: 4, retrievalScoreThreshold: 0 }
+        retrievalTopK: 4, retrievalScoreThreshold: 0, retrievalSimilarityWeight: null, retrievalSemanticWeight: null }
 }
 
 const saveDataset = async () => {

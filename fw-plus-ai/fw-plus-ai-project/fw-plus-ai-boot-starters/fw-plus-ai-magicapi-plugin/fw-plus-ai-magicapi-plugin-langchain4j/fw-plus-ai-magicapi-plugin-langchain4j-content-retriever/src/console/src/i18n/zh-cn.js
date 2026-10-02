@@ -100,6 +100,9 @@ export default {
                 chatModel: 'QA 对话模型',
                 chatModelTip: 'qa 分段模式必填（langchain4j chat-model key）',
                 scoreThreshold: '分数阈值',
+                similarityWeight: '相似度分权重',
+                semanticWeight: '语义分权重',
+                weightTip: '两者成对配置时启用加权混合重排（0~1）',
                 errorMsg: '提示',
                 retrievers: '引用的检索器'
             },
