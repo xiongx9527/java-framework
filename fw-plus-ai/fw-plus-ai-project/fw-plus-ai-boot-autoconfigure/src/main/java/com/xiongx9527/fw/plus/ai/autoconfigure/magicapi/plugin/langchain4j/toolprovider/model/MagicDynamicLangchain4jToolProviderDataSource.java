@@ -72,14 +72,21 @@ public class MagicDynamicLangchain4jToolProviderDataSource implements Disposable
 			destroy(key);
 			if (info.getAgenticKey() != null && !info.getAgenticKey().trim().isEmpty()) {
 				// agentic 来源：工具即一个编排（agent-as-tool，包装收口在隔离层）。
-				// agenticKey 两种绑定：① 编排注册中心的 key（如 nl2sql 流水线）；② agentic-script 脚本资源路径（回落）
-				UntypedAgent pipeline = pipelineRegistry == null ? null : pipelineRegistry.get(info.getAgenticKey().trim());
-				if (pipeline == null && agenticScriptModule != null) {
-					pipeline = agenticScriptModule.node(info.getAgenticKey().trim());
+				// agenticKey 两种绑定（按序解析）：① agentic-script 脚本资源路径（优先）；② 编排注册中心的 key（回落）
+				UntypedAgent pipeline = null;
+				if (agenticScriptModule != null) {
+					try {
+						pipeline = agenticScriptModule.node(info.getAgenticKey().trim());
+					} catch (Exception e) {
+						logger.debug("agenticKey '{}' 非脚本资源路径，尝试编排注册中心", info.getAgenticKey());
+					}
+				}
+				if (pipeline == null && pipelineRegistry != null) {
+					pipeline = pipelineRegistry.get(info.getAgenticKey().trim());
 				}
 				if (pipeline == null) {
 					throw new IllegalArgumentException(String.format(
-							"agenticKey '%s' 未命中：编排注册中心与 agentic-script 脚本资源中均不存在", info.getAgenticKey()));
+							"agenticKey '%s' 未命中：agentic-script 脚本资源与编排注册中心中均不存在", info.getAgenticKey()));
 				}
 				providers.put(key, AgenticToolProviders.agenticToolProvider(pipeline, key,
 						info.getAgenticDescription() != null && !info.getAgenticDescription().trim().isEmpty()
