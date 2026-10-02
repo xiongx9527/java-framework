@@ -1,0 +1,146 @@
+schema: comet.native.v4
+name: nl2sql
+language: zh-CN
+phase: shape
+status: await-user
+state_version: 2
+brief: brief.md
+shape_confirmation_hash: b63f67d8b9eff9c678cc49a80439ba5bc408a905d10d6537fbbb786fc907a204
+spec_changes: []
+workspace:
+  isolation: current
+  change_branch: springboot3
+  target_branch: springboot3
+  finish: null
+loop:
+  stage: await-user
+  goal_cycle: 1
+  iteration: 0
+  attempt: 0
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: confirm-shape
+acceptance:
+  - id: A1
+    source: brief.md
+    text: 'Scenario: 正常问数——WHEN 问数实例已配置（数据源+向量库+LLM）且表结构已登记，用户提问"上月订单总额" THEN 返回正确的
+      SQL 执行结果数据与自然语言解读'
+    result: pending
+    reason: null
+  - id: A2
+    source: brief.md
+    text: "Scenario: 非查数据意图——WHEN 用户提问与数据无关（如闲聊天气） THEN 不生成 SQL，返回无法回答数据问题的提示"
+    result: pending
+    reason: null
+  - id: A3
+    source: brief.md
+    text: "Scenario: JSON 契约失败——WHEN LLM 返回非法 JSON 或空 SQL THEN 明确报错（含原始内容），不编造结果"
+    result: pending
+    reason: null
+  - id: A4
+    source: brief.md
+    text: "Scenario: regenerate 自愈——WHEN 执行失败后触发重新生成 THEN 新一轮携带上一次错误信息与完整上下文"
+    result: pending
+    reason: null
+  - id: A5
+    source: brief.md
+    text: "Scenario: 行数限制——WHEN 生成的 SQL 未含行数限制 THEN 最外层自动约束（默认 1000），且子查询内不含限制"
+    result: pending
+    reason: null
+  - id: A6
+    source: brief.md
+    text: "Scenario: 多方言——WHEN 数据源为 Oracle/达梦等非 MySQL 库 THEN 提示词应用对应方言示例，生成 SQL
+      符合该方言语法"
+    result: pending
+    reason: null
+  - id: A7
+    source: brief.md
+    text: "Scenario: 多实例隔离——WHEN 配置两个问数实例绑定不同数据源/模型 THEN 各自问数互不影响 ##
+      管理端插件（nl2sql-admin）"
+    result: pending
+    reason: null
+  - id: A8
+    source: brief.md
+    text: "Scenario: 表结构管理——WHEN 登记表/列及业务注释并触发向量化 THEN 表结构进入向量库可供表匹配"
+    result: pending
+    reason: null
+  - id: A9
+    source: brief.md
+    text: "Scenario: 术语库——WHEN 配置术语映射后问数 THEN 生成过程使用标准词"
+    result: pending
+    reason: null
+  - id: A10
+    source: brief.md
+    text: "Scenario: 数据训练——WHEN 人工保存正确 SQL 示例后提相似问题 THEN 生成命中该示例"
+    result: pending
+    reason: null
+  - id: A11
+    source: brief.md
+    text: "Scenario: 自定义提示词——WHEN 配置自定义提示词 THEN 生成时覆盖/追加默认规则 ##
+      数据权限（nl2sql-security）"
+    result: pending
+    reason: null
+  - id: A12
+    source: brief.md
+    text: "Scenario: 权限注入——WHEN 当前用户命中已配置的权限策略 THEN 生成的 SQL 自动附加过滤条件，越权数据不可见"
+    result: pending
+    reason: null
+  - id: A13
+    source: brief.md
+    text: "Scenario: 自定义策略——WHEN 应用注册自定义权限策略 SPI 实现 THEN 问数执行时按该策略注入 ## 用户端
+      UI（nl2sql-user-ui）"
+    result: pending
+    reason: null
+  - id: A14
+    source: brief.md
+    text: "Scenario: 流式对话——WHEN 用户端发起问数 THEN SSE 流式返回过程与最终数据/解读"
+    result: pending
+    reason: null
+  - id: A15
+    source: brief.md
+    text: "Scenario: 图表切换——WHEN 返回结果后切换图表类型 THEN 按数据正确渲染表格/柱状/折线/饼图 ##
+      图表与看板（nl2sql-chart-dashboard）"
+    result: pending
+    reason: null
+  - id: A16
+    source: brief.md
+    text: "Scenario: dashboard——WHEN 用户将多次问数结果保存到看板 THEN 看板按配置展示图表 ##
+      集成（nl2sql-integrations）"
+    result: pending
+    reason: null
+  - id: A17
+    source: brief.md
+    text: "Scenario: MCP 问数——WHEN 通过 MCP 协议调用问数能力 THEN 返回与对话一致的问数结果"
+    result: pending
+    reason: null
+  - id: A18
+    source: brief.md
+    text: "Scenario: Excel 导入——WHEN 导入 Excel 数据 THEN 生成可查询表并可问数"
+    result: pending
+    reason: null
+  - id: A19
+    source: brief.md
+    text: "Scenario: 嵌入集成——WHEN 第三方系统按嵌入方式集成 THEN 用户端对话可在嵌入环境中使用"
+    result: pending
+    reason: null
+builder_handoff: null
+blockers: []
+verification: null
+history: []
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pending
+verification_report: null
+archived: false
+created_at: 2026-10-01T13:21:11.823Z
