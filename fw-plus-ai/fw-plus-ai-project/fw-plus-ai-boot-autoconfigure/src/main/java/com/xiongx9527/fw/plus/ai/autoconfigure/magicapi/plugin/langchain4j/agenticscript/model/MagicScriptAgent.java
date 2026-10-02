@@ -45,13 +45,6 @@ public class MagicScriptAgent implements UntypedAgent {
 	public String getType() {
 		return info.getType();
 	}
-
-	public String getOutputKey() {
-		return info.getOutputKey();
-	}
-
-	public java.util.List<String> getInputKeys() {
-		return info.getInputKeys();
 	}
 
 	@Override
