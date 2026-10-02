@@ -273,8 +273,9 @@ public class KnowledgeConfiguration {
 	/** knowledge 类型检索器工厂：由 ContentRetrieverProviderRegistry 的 provider bean 收集注册。 */
 	@Bean
 	public KnowledgeContentRetrieverProvider knowledgeContentRetrieverProvider(
-			ObjectProvider<KbSearchService> searchServices) {
-		return new KnowledgeContentRetrieverProvider(searchServices);
+			ObjectProvider<KbSearchService> searchServices,
+			ObjectProvider<com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService> metadataFieldServices) {
+		return new KnowledgeContentRetrieverProvider(searchServices, metadataFieldServices);
 	}
 
 	/** magic-script：{@code import knowledge} 调 {@code search(datasetId, query)}。 */

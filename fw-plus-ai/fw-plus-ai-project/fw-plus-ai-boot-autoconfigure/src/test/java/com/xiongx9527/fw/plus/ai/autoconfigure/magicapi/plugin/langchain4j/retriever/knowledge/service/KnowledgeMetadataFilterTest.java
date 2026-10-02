@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class KnowledgeMetadataFilterTest {
 
-    private final KbSearchService service = new KbSearchService(null, null, null, null, null, null, null, true);
+    private final KbSearchService service = new KbSearchService(null, null, null, null, null, null, null, true, null);
 
     @Test
     void 空条件返回null() {
