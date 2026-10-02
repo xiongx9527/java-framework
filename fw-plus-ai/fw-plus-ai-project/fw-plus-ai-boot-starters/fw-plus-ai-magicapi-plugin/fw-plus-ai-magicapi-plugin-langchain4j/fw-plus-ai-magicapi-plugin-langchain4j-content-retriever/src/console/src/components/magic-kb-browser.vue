@@ -48,6 +48,7 @@
           <div class="kb-actions">
             <button @click="openDatasetForm(selectedDataset)">{{ $i('kb.edit') }}</button>
             <button @click="openFieldsModal">{{ $i('kb.dataset.metadataFields') }}</button>
+            <button @click="syncVectors">{{ $i('kb.dataset.syncVectors') }}</button>
             <button @click="exportDataset">{{ $i('kb.dataset.export') }}</button>
             <button @click="openPreview">{{ $i('kb.dataset.preview') }}</button>
             <button class="danger" @click="removeDataset">{{ $i('kb.delete') }}</button>
@@ -621,6 +622,16 @@ const onImportFile = async (event) => {
     const datasetId = await kbApi.importDataset(text)
     modal && modal.alert ? modal.alert($i('kb.dataset.importDone') + datasetId) : null
     await loadDatasets()
+  } catch (e) {
+    fail(e)
+  }
+}
+
+const syncVectors = async () => {
+  if (!selectedDataset.value) return
+  try {
+    await kbApi.syncDatasetVectors(selectedDataset.value.id)
+    modal && modal.alert ? modal.alert($i('kb.dataset.syncVectorsAccepted')) : null
   } catch (e) {
     fail(e)
   }

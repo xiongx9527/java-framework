@@ -285,6 +285,91 @@ public class KbIndexingService {
 		return total;
 	}
 
+	/**
+	 * 数据集级批量补向量（向量路同步缺口场景）：indexing_technique 由 economy 切换为
+	 * high_quality、或历史分段嵌入失败后，对 completed 且无向量（index_node_id 为空）的
+	 * 分段按 id 游标分批异步补嵌入。
+	 *
+	 * @return 提交状态描述（异步执行）
+	 */
+	public String syncDatasetVectors(String datasetId) {
+		state.checkReady();
+		KbDataset dataset = datasetMapper.selectById(datasetId);
+		if (dataset == null) {
+			throw new IllegalArgumentException("知识库数据集不存在: " + datasetId);
+		}
+		if ("economy".equalsIgnoreCase(dataset.getIndexingTechnique())) {
+			throw new IllegalStateException("economy 经济模式不使用向量库，无需补向量");
+		}
+		executor.execute(() -> {
+			String lastId = "";
+			int batch = 50;
+			int total = 0;
+			try {
+				// 嵌入一致性：补向量后回填 embedding_model_active
+				String effectiveModel = dataset.getEmbeddingModelActive() != null
+						? dataset.getEmbeddingModelActive()
+						: dataset.getEmbeddingModelKey();
+				EmbeddingModel embeddingModel = retrieverContext.embeddingModel(effectiveModel);
+				EmbeddingStore<TextSegment> store = retrieverContext.embeddingStore(dataset.getEmbeddingStoreKey());
+				KbDocument probeDocument = documentMapper.selectById(
+						segmentsProbeDocumentId(datasetId));
+				Map<String, Object> probeDocMetadata = new HashMap<>();
+				while (true) {
+					List<KbSegment> batchSegments = segmentMapper.selectList(new QueryWrapper<KbSegment>()
+							.eq("dataset_id", datasetId)
+							.eq("status", "completed")
+							.isNull("index_node_id")
+							.gt("id", lastId)
+							.orderByAsc("id")
+							.last("LIMIT " + batch));
+					if (batchSegments.isEmpty()) {
+						break;
+					}
+					List<String> nodeIds = store.addAll(
+							embeddingModel.embedAll(batchSegments.stream()
+									.map(segment -> toVectorSegment(segment, probeDocMetadata))
+									.collect(java.util.stream.Collectors.toList())).content(),
+							batchSegments.stream()
+									.map(segment -> toVectorSegment(segment, probeDocMetadata))
+									.collect(java.util.stream.Collectors.toList()));
+					for (int i = 0; i < batchSegments.size(); i++) {
+						KbSegment segment = batchSegments.get(i);
+						KbSegment update = new KbSegment();
+						update.setId(segment.getId());
+						update.setIndexNodeId(nodeIds != null && i < nodeIds.size() ? nodeIds.get(i) : segment.getId());
+						update.setIndexNodeHash(sha256(segment.getContent()));
+						update.setStatus("completed");
+						update.setUpdateTime(new Date());
+						segmentMapper.updateById(update);
+						total++;
+					}
+					lastId = batchSegments.get(batchSegments.size() - 1).getId();
+				}
+				// 回填 embedding_model_active（首次补向量场景）
+				if (dataset.getEmbeddingModelActive() == null || dataset.getEmbeddingModelActive().isEmpty()) {
+					KbDataset update = new KbDataset();
+					update.setId(datasetId);
+					update.setEmbeddingModelActive(effectiveModel);
+					update.setUpdateTime(new Date());
+					datasetMapper.updateById(update);
+				}
+				logger.info("数据集批量补向量完成（datasetId={}，共 {} 条分段）", datasetId, total);
+			} catch (Throwable e) {
+				logger.error("数据集批量补向量失败（datasetId={}）", datasetId, e);
+			}
+		});
+		return "accepted";
+	}
+
+	/** 取数据集下任一分段所属文档 id（补向量的文档 metadata 构造用）。 */
+	private String segmentsProbeDocumentId(String datasetId) {
+		KbDocument probe = documentMapper.selectOne(new QueryWrapper<KbDocument>()
+				.eq("dataset_id", datasetId)
+				.last("LIMIT 1"));
+		return probe == null ? null : probe.getId();
+	}
+
 	/** 解析原文（upload 与 create-by-text 统一回读存储的原文）。 */
 	private String parseOriginal(KbDocument document) {
 		if (document.getFilePath() == null || document.getFilePath().isEmpty()) {

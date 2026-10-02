@@ -62,6 +62,12 @@ export const kbApi = {
     importDataset: (jsonText) => new Promise((resolve, reject) => {
         requireRequest().sendJson('/kb/dataset/import', JSON.parse(jsonText)).success(unwrap(resolve, reject));
     }),
+    syncDatasetVectors: (id) => new Promise((resolve, reject) => {
+        requireRequest().sendJson('/kb/dataset/' + id + '/sync-vectors', {}).success(unwrap(resolve, reject));
+    }),
+    syncDatasetToEs: (id) => new Promise((resolve, reject) => {
+        requireRequest().sendJson('/kb/dataset/' + id + '/sync-es', {}).success(unwrap(resolve, reject));
+    }),
     metadataFields: (datasetId) => new Promise((resolve, reject) => {
         requireRequest().sendGet('/kb/dataset/' + datasetId + '/metadata-fields').success(unwrap(resolve, reject));
     }),

@@ -97,6 +97,8 @@ export default {
                 topK: '召回数量/分数阈值',
                 import: '导入',
                 metadataFields: '元数据字段',
+                syncVectors: '同步向量',
+                syncVectorsAccepted: '已提交后台补向量（completed 且无向量的分段），完成后可检索',
                 export: '导出',
                 preview: '切分预览',
                 importDone: '导入成功，新数据集 id：',

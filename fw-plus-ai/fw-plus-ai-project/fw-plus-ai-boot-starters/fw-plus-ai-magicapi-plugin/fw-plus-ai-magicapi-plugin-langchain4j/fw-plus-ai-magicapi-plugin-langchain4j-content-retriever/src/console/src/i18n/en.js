@@ -97,6 +97,8 @@ export default {
                 topK: 'TopK / Score Threshold',
                 import: 'Import',
                 metadataFields: 'Metadata Fields',
+                syncVectors: 'Sync Vectors',
+                syncVectorsAccepted: 'Background vector backfill submitted (completed segments without vectors)',
                 export: 'Export',
                 preview: 'Split Preview',
                 importDone: 'Imported, new dataset id: ',
