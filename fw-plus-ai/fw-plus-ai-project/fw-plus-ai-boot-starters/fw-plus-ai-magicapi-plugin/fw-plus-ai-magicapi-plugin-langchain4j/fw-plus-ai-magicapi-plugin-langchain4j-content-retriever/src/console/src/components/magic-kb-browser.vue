@@ -91,6 +91,7 @@
                 <td>{{ doc.enabled === '1' ? $i('kb.option.yes') : $i('kb.option.no') }}</td>
                 <td>{{ doc.archived === '1' ? $i('kb.option.yes') : $i('kb.option.no') }}</td>
                 <td>
+                  <button @click="openTextForm(doc)">{{ $i('kb.document.editText') }}</button>
                   <button @click="reindexDocument(doc)">{{ $i('kb.document.reindex') }}</button>
                   <button @click="patchDocument(doc, 'enabled', doc.enabled !== '1')">{{ $i('kb.document.toggleEnabled') }}</button>
                   <button @click="patchDocument(doc, 'archived', doc.archived !== '1')">{{ $i('kb.document.toggleArchived') }}</button>
@@ -111,6 +112,7 @@
               <option v-for="doc in documents" :key="doc.id" :value="doc.id">{{ doc.name }}</option>
             </select>
             <button :disabled="!segmentDocumentId" @click="loadSegments">{{ $i('kb.refresh') }}</button>
+            <button :disabled="!segmentDocumentId" @click="openSegmentCreate">{{ $i('kb.segment.create') }}</button>
           </div>
           <div v-if="!segmentDocumentId" class="kb-state">{{ $i('kb.segment.selectDocumentTip') }}</div>
           <div v-else-if="loading.segments" class="kb-state">{{ $i('kb.loading') }}</div>
@@ -143,6 +145,12 @@
               </tr>
             </tbody>
           </table>
+          <div class="kb-actions">
+            <span class="kb-tab-tip">{{ $i('kb.pagination.total') }}{{ documentsTotal }}</span>
+            <button :disabled="documentsPage <= 1" @click="changeDocumentsPage(-1)">{{ $i('kb.pagination.prev') }}</button>
+            <span>{{ documentsPage }}</span>
+            <button :disabled="documentsPage * 20 >= documentsTotal" @click="changeDocumentsPage(1)">{{ $i('kb.pagination.next') }}</button>
+          </div>
         </section>
 
         <!-- 召回测试视图 -->
@@ -210,7 +218,7 @@
     <!-- 分段表单 -->
     <div v-if="segmentForm" class="kb-modal-mask" @click.self="segmentForm = null">
       <div class="kb-modal">
-        <h4>{{ $i('kb.segment.edit') }}</h4>
+        <h4>{{ segmentFormMode === 'create' ? $i('kb.segment.create') : $i('kb.segment.edit') }}</h4>
         <div class="kb-form-row"><label>{{ $i('kb.segment.content') }}</label><textarea v-model="segmentForm.content" rows="5"/></div>
         <div class="kb-form-row"><label>{{ $i('kb.segment.keywords') }}</label><input v-model="segmentForm.keywords"/></div>
         <div class="kb-form-row"><label>{{ $i('kb.segment.answer') }}</label><textarea v-model="segmentForm.answer" rows="2"/></div>
@@ -258,6 +266,18 @@
       </div>
     </div>
 
+    <!-- 编辑文档文本 -->
+    <div v-if="textForm" class="kb-modal-mask" @click.self="textForm = null">
+      <div class="kb-modal">
+        <h4>{{ $i('kb.document.editText') }}</h4>
+        <div class="kb-form-row"><label>{{ $i('kb.segment.content') }}</label><textarea v-model="textForm.text" rows="10"/></div>
+        <div class="kb-modal-actions">
+          <button @click="saveText">{{ $i('kb.save') }}</button>
+          <button @click="textForm = null">{{ $i('kb.cancel') }}</button>
+        </div>
+      </div>
+    </div>
+
     <!-- metadata 表单 -->
     <div v-if="metadataForm" class="kb-modal-mask" @click.self="metadataForm = null">
       <div class="kb-modal">
@@ -283,15 +303,21 @@ const error = ref('')
 const datasets = ref([])
 const selectedDatasetId = ref('')
 const documents = ref([])
+const documentsPage = ref(1)
+const documentsTotal = ref(0)
 const checkedDocuments = ref([])
 const segments = ref([])
+const segmentsPage = ref(1)
+const segmentsTotal = ref(0)
 const segmentDocumentId = ref('')
+const segmentFormMode = ref('edit')
 const hits = ref([])
 const hitQuery = ref('')
 const hitMetadata = ref('')
 const dragOver = ref(false)
 const previewItems = ref(null)
 const moveForm = ref(null)
+const textForm = ref(null)
 const referencers = ref([])
 const activeView = ref('dataset')
 const datasetForm = ref(null)
@@ -335,7 +361,9 @@ const loadDocuments = async () => {
   if (!selectedDatasetId.value) return
   loading.value.documents = true
   try {
-    documents.value = (await kbApi.listDocuments(selectedDatasetId.value)) || []
+    const pageData = (await kbApi.listDocuments(selectedDatasetId.value, documentsPage.value, 20)) || {}
+    documents.value = pageData.list || []
+    documentsTotal.value = pageData.total || 0
     checkedDocuments.value = []
   } catch (e) {
     fail(e)
@@ -466,7 +494,9 @@ const loadSegments = async () => {
   if (!segmentDocumentId.value) return
   loading.value.segments = true
   try {
-    segments.value = (await kbApi.listSegments(segmentDocumentId.value)) || []
+    const pageData = (await kbApi.listSegments(segmentDocumentId.value, segmentsPage.value, 20)) || {}
+    segments.value = pageData.list || []
+    segmentsTotal.value = pageData.total || 0
   } catch (e) {
     fail(e)
   } finally {
@@ -476,20 +506,6 @@ const loadSegments = async () => {
 
 const openSegmentForm = (seg) => {
   segmentForm.value = { id: seg.id, content: seg.content, keywords: seg.keywords, answer: seg.answer }
-}
-
-const saveSegment = async () => {
-  try {
-    await kbApi.updateSegment(segmentForm.value.id, {
-      content: segmentForm.value.content,
-      keywords: segmentForm.value.keywords,
-      answer: segmentForm.value.answer
-    })
-    segmentForm.value = null
-    await loadSegments()
-  } catch (e) {
-    fail(e)
-  }
 }
 
 const patchSegment = async (seg, value) => {
@@ -594,6 +610,70 @@ const doMove = async () => {
       await kbApi.moveDocument(id, moveForm.value.targetDatasetId)
     }
     moveForm.value = null
+    await loadDocuments()
+  } catch (e) {
+    fail(e)
+  }
+}
+
+const changeDocumentsPage = async (delta) => {
+  const next = documentsPage.value + delta
+  if (next < 1 || (documentsTotal.value && (next - 1) * 20 >= documentsTotal.value)) return
+  documentsPage.value = next
+  await loadDocuments()
+}
+
+const changeSegmentsPage = async (delta) => {
+  const next = segmentsPage.value + delta
+  if (next < 1 || (segmentsTotal.value && (next - 1) * 20 >= segmentsTotal.value)) return
+  segmentsPage.value = next
+  await loadSegments()
+}
+
+// 新增分段
+const openSegmentCreate = () => {
+  segmentFormMode.value = 'create'
+  segmentForm.value = { documentId: segmentDocumentId.value, content: '', keywords: '', answer: '' }
+}
+
+const saveSegment = async () => {
+  try {
+    if (segmentFormMode.value === 'create') {
+      await kbApi.createSegment(segmentForm.value.documentId, {
+        content: segmentForm.value.content,
+        keywords: segmentForm.value.keywords,
+        answer: segmentForm.value.answer
+      })
+    } else {
+      await kbApi.updateSegment(segmentForm.value.id, {
+        content: segmentForm.value.content,
+        keywords: segmentForm.value.keywords,
+        answer: segmentForm.value.answer
+      })
+    }
+    segmentForm.value = null
+    await loadSegments()
+  } catch (e) {
+    fail(e)
+  }
+}
+
+// 编辑文档文本（create-by-text）
+const openTextForm = async (doc) => {
+  let text = ''
+  try {
+    const bytes = doc.filePath ? await fetch('/kb/document/' + doc.id + '/download').then(r => r.arrayBuffer()) : null
+    if (bytes) text = new TextDecoder().decode(bytes)
+  } catch (e) {
+    text = ''
+  }
+  textForm.value = { id: doc.id, text }
+}
+
+const saveText = async () => {
+  try {
+    await kbApi.updateText(textForm.value.id, textForm.value.text)
+    textForm.value = null
     await loadDocuments()
   } catch (e) {
     fail(e)

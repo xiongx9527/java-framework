@@ -48,11 +48,96 @@ public class KbSegmentService {
 		this.state = state;
 	}
 
-	public List<KbSegment> listByDocument(String documentId) {
+	/**
+	 * 文档下的分段分页列表：手动 LIMIT/OFFSET 分页，不依赖 MyBatis-Plus 分页插件配置。
+	 *
+	 * @return {list, total, page, pageSize}
+	 */
+	public Map<String, Object> listSegments(String documentId, int page, int pageSize) {
 		state.checkReady();
-		return segmentMapper.selectList(new QueryWrapper<KbSegment>()
-				.eq("document_id", documentId)
-				.orderByAsc("position"));
+		requireSegmentDocument(documentId);
+		int safePage = Math.max(1, page);
+		int safeSize = Math.min(100, Math.max(1, pageSize));
+		// MP 标准分页（PaginationInterceptor 由 fw-plus-boot mybatisplus 插件保证注册）
+		com.baomidou.mybatisplus.extension.plugins.pagination.Page<KbSegment> pageRequest =
+				new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(safePage, safeSize);
+		com.baomidou.mybatisplus.core.metadata.IPage<KbSegment> result =
+				segmentMapper.selectPage(pageRequest, new QueryWrapper<KbSegment>()
+						.eq("document_id", documentId)
+						.orderByAsc("position"));
+		Map<String, Object> response = new java.util.LinkedHashMap<>();
+		response.put("list", result.getRecords());
+		response.put("total", result.getTotal());
+		response.put("page", safePage);
+		response.put("pageSize", safeSize);
+		return response;
+	}
+
+	private void requireSegmentDocument(String documentId) {
+		if (documentId == null || documentId.isEmpty() || documentMapper.selectById(documentId) == null) {
+			throw new IllegalArgumentException("文档不存在: " + documentId);
+		}
+	}
+
+	/** 分段详情。 */
+	public KbSegment getSegment(String segmentId) {
+		state.checkReady();
+		return requireSegment(segmentId);
+	}
+
+	/**
+	 * 手动新增分段（文档分片补充）：position 取该文档最大序号 +1，落表后按数据集模式
+	 * 嵌入写入向量（economy 模式仅落表）。
+	 */
+	public KbSegment create(String documentId, String content, String keywords, String answer) {
+		state.checkReady();
+		if (content == null || content.isEmpty()) {
+			throw new IllegalArgumentException("分段内容不能为空");
+		}
+		KbDocument document = documentMapper.selectById(documentId);
+		if (document == null) {
+			throw new IllegalArgumentException("文档不存在: " + documentId);
+		}
+		KbDataset dataset = datasetMapper.selectById(document.getDatasetId());
+		if (dataset == null) {
+			throw new IllegalStateException("所属数据集不存在: " + document.getDatasetId());
+		}
+		// position 取当前文档最大序号 +1
+		int maxPosition = -1;
+		for (KbSegment existing : segmentMapper.selectList(new QueryWrapper<KbSegment>()
+				.eq("document_id", documentId))) {
+			if (existing.getPosition() != null && existing.getPosition() > maxPosition) {
+				maxPosition = existing.getPosition();
+			}
+		}
+		KbSegment segment = new KbSegment();
+		segment.setId(java.util.UUID.randomUUID().toString().replace("-", ""));
+		segment.setDatasetId(document.getDatasetId());
+		segment.setDocumentId(documentId);
+		segment.setPosition(maxPosition + 1);
+		segment.setContent(content);
+		segment.setKeywords(keywords);
+		segment.setAnswer(answer);
+		segment.setWordCount(KbTokenCounter.estimate(content));
+		segment.setTokens(KbTokenCounter.estimate(content));
+		segment.setIndexNodeHash(KbIndexingServiceSha.sha256(content));
+		segment.setStatus("waiting");
+		segment.setEnabled("1");
+		segment.setHitCount(0L);
+		java.util.Date now = new java.util.Date();
+		segment.setCreateTime(now);
+		segment.setUpdateTime(now);
+		segmentMapper.insert(segment);
+		// economy 数据集无向量路：仅落表即完成；其余重嵌入写入向量
+		if (!"economy".equalsIgnoreCase(dataset.getIndexingTechnique())) {
+			reembed(segment.getId());
+		} else {
+			KbSegment update = new KbSegment();
+			update.setId(segment.getId());
+			update.setStatus("completed");
+			segmentMapper.updateById(update);
+		}
+		return segmentMapper.selectById(segment.getId());
 	}
 
 	/**

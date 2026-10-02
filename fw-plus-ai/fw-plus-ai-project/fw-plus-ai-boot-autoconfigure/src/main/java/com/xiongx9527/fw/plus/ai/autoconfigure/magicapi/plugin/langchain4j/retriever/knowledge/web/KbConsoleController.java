@@ -143,8 +143,10 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 
 	@GetMapping("/dataset/{id}/document")
 	@ResponseBody
-	public Object listDocuments(@PathVariable("id") String id) {
-		return ok(datasetService.listDocuments(id));
+	public Object listDocuments(@PathVariable("id") String id,
+			@RequestParam(value = "page", defaultValue = "1") int page,
+			@RequestParam(value = "pageSize", defaultValue = "20") int pageSize) {
+		return ok(datasetService.listDocuments(id, page, pageSize));
 	}
 
 	@PostMapping(value = "/document/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -152,6 +154,20 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 	public Object upload(@RequestParam("datasetId") String datasetId,
 			@RequestParam("file") MultipartFile file) {
 		return ok(documentService.createByFile(datasetId, file));
+	}
+
+	/** 文档详情。 */
+	@GetMapping("/document/{id}")
+	@ResponseBody
+	public Object getDocument(@PathVariable("id") String id) {
+		return ok(documentService.get(id));
+	}
+
+	/** 分段详情。 */
+	@GetMapping("/segment/{id}")
+	@ResponseBody
+	public Object getSegment(@PathVariable("id") String id) {
+		return ok(segmentService.getSegment(id));
 	}
 
 	@PostMapping("/document/{id}/reindex")
@@ -206,10 +222,30 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 
 	// ---------------- 分段 ----------------
 
+	/** 手动新增分段：body {content, keywords?, answer?}，position 自动追加，嵌入写入向量。 */
+	@PostMapping("/document/{id}/segment")
+	@ResponseBody
+	public Object createSegment(@PathVariable("id") String id, @RequestBody Map<String, Object> body) {
+		String content = body.get("content") == null ? null : String.valueOf(body.get("content"));
+		String keywords = body.get("keywords") == null ? null : String.valueOf(body.get("keywords"));
+		String answer = body.get("answer") == null ? null : String.valueOf(body.get("answer"));
+		return ok(segmentService.create(id, content, keywords, answer));
+	}
+
+	/** 更新文档文本（create-by-text 类型）：body {text}，重算 hash 并重新入队索引。 */
+	@RequestMapping(value = "/document/{id}/text", method = {RequestMethod.PUT, RequestMethod.POST})
+	@ResponseBody
+	public Object updateText(@PathVariable("id") String id, @RequestBody Map<String, Object> body) {
+		String text = body.get("text") == null ? "" : String.valueOf(body.get("text"));
+		return ok(documentService.updateText(id, text));
+	}
+
 	@GetMapping("/document/{id}/segment")
 	@ResponseBody
-	public Object listSegments(@PathVariable("id") String id) {
-		return ok(segmentService.listByDocument(id));
+	public Object listSegments(@PathVariable("id") String id,
+			@RequestParam(value = "page", defaultValue = "1") int page,
+			@RequestParam(value = "pageSize", defaultValue = "20") int pageSize) {
+		return ok(segmentService.listSegments(id, page, pageSize));
 	}
 
 	@RequestMapping(value = "/segment/{id}/enabled", method = {RequestMethod.PATCH, RequestMethod.POST})

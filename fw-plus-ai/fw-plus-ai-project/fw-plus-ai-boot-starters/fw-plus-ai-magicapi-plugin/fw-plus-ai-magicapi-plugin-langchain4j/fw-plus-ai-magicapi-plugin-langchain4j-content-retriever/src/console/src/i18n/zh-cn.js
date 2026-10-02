@@ -116,6 +116,7 @@ export default {
                 metadataJson: 'Metadata JSON',
                 download: '下载',
                 move: '迁移',
+                editText: '编辑内容',
                 dropHere: '松开鼠标上传文件',
                 enable: '启用',
                 disable: '禁用',
@@ -123,7 +124,9 @@ export default {
                 unarchive: '取消归档',
                 deleteConfirm: '确认删除该文档（级联删除分段/向量/原始文件）？'
             },
+            pagination: { total: '共 ', prev: '上一页', next: '下一页' },
             segment: {
+                create: '新增分段',
                 content: '分段内容',
                 keywords: '关键词',
                 answer: '答案',

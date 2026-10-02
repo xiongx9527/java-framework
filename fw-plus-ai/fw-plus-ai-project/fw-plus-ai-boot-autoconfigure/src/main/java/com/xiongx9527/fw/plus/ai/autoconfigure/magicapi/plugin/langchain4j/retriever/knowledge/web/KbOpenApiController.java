@@ -34,12 +34,20 @@ public class KbOpenApiController {
 
 	private final KbSearchService searchService;
 
+	private final com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbDatasetService datasetService;
+
+	private final com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSegmentService segmentService;
+
 	private final KbSaTokenAuthChecker authChecker;
 
 	public KbOpenApiController(KbDocumentService documentService, KbSearchService searchService,
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbDatasetService datasetService,
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSegmentService segmentService,
 			KbSaTokenAuthChecker authChecker) {
 		this.documentService = documentService;
 		this.searchService = searchService;
+		this.datasetService = datasetService;
+		this.segmentService = segmentService;
 		this.authChecker = authChecker;
 	}
 
@@ -76,6 +84,49 @@ public class KbOpenApiController {
 		} catch (IllegalArgumentException e) {
 			return error(2001, e.getMessage());
 		}
+	}
+
+	/** 业务方文档分页列表（Sa-Token 认证）。 */
+	@GetMapping("/v1/datasets/{datasetId}/documents")
+	public Object listDocuments(@PathVariable("datasetId") String datasetId,
+			@RequestParam(value = "page", defaultValue = "1") int page,
+			@RequestParam(value = "pageSize", defaultValue = "20") int pageSize,
+			@RequestHeader(value = "Authorization", required = false) String authorization,
+			@RequestHeader(value = "kb-token", required = false) String kbToken) {
+		if (!auth(authorization, kbToken)) {
+			return error(1002, "认证失败");
+		}
+		try {
+			return ok(datasetService.listDocuments(datasetId, page, pageSize));
+		} catch (IllegalArgumentException e) {
+			return error(2001, e.getMessage());
+		}
+	}
+
+	/** 业务方分段分页列表（Sa-Token 认证）。 */
+	@GetMapping("/v1/datasets/{datasetId}/documents/{documentId}/segments")
+	public Object listSegments(@PathVariable("datasetId") String datasetId,
+			@PathVariable("documentId") String documentId,
+			@RequestParam(value = "page", defaultValue = "1") int page,
+			@RequestParam(value = "pageSize", defaultValue = "20") int pageSize,
+			@RequestHeader(value = "Authorization", required = false) String authorization,
+			@RequestHeader(value = "kb-token", required = false) String kbToken) {
+		if (!auth(authorization, kbToken)) {
+			return error(1002, "认证失败");
+		}
+		return ok(segmentService.listSegments(documentId, page, pageSize));
+	}
+
+	/** 业务方分段详情（Sa-Token 认证）。 */
+	@GetMapping("/v1/datasets/{datasetId}/segments/{segmentId}")
+	public Object segmentDetail(@PathVariable("datasetId") String datasetId,
+			@PathVariable("segmentId") String segmentId,
+			@RequestHeader(value = "Authorization", required = false) String authorization,
+			@RequestHeader(value = "kb-token", required = false) String kbToken) {
+		if (!auth(authorization, kbToken)) {
+			return error(1002, "认证失败");
+		}
+		return ok(segmentService.getSegment(segmentId));
 	}
 
 	@GetMapping("/v1/datasets/{datasetId}/document/{documentId}")

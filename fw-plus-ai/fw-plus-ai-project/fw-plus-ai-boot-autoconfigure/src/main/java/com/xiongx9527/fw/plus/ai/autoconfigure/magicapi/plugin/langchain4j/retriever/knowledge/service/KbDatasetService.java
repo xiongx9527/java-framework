@@ -169,13 +169,30 @@ public class KbDatasetService {
 		return referencedBy;
 	}
 
-	/** 数据集下的文档列表（管理端文档视图）。 */
-	public List<KbDocument> listDocuments(String datasetId) {
+	/**
+	 * 数据集下的文档分页列表（管理端文档视图）：手动 LIMIT/OFFSET 分页，
+	 * 不依赖 MyBatis-Plus 分页插件配置。
+	 *
+	 * @return {list, total, page, pageSize}
+	 */
+	public Map<String, Object> listDocuments(String datasetId, int page, int pageSize) {
 		state.checkReady();
 		requireDataset(datasetId);
-		return documentMapper.selectList(new QueryWrapper<KbDocument>()
-				.eq("dataset_id", datasetId)
-				.orderByDesc("create_time"));
+		int safePage = Math.max(1, page);
+		int safeSize = Math.min(100, Math.max(1, pageSize));
+		// MP 标准分页（PaginationInterceptor 由 fw-plus-boot mybatisplus 插件保证注册）
+		com.baomidou.mybatisplus.extension.plugins.pagination.Page<KbDocument> pageRequest =
+				new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(safePage, safeSize);
+		com.baomidou.mybatisplus.core.metadata.IPage<KbDocument> result =
+				documentMapper.selectPage(pageRequest, new QueryWrapper<KbDocument>()
+						.eq("dataset_id", datasetId)
+						.orderByDesc("create_time"));
+		Map<String, Object> response = new LinkedHashMap<>();
+		response.put("list", result.getRecords());
+		response.put("total", result.getTotal());
+		response.put("page", safePage);
+		response.put("pageSize", safeSize);
+		return response;
 	}
 
 	/** 召回测试（设计 §3.1）：query → 嵌入 → 向量检索 → 过滤 → rerank → 命中分段与 score。 */

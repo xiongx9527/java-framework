@@ -69,8 +69,9 @@ export const kbApi = {
     retrievers: (id) => new Promise((resolve, reject) => {
         requireRequest().sendGet('/kb/dataset/' + id + '/retrievers').success(unwrap(resolve, reject));
     }),
-    listDocuments: (datasetId) => new Promise((resolve, reject) => {
-        requireRequest().sendGet('/kb/dataset/' + datasetId + '/document').success(unwrap(resolve, reject));
+    listDocuments: (datasetId, page, pageSize) => new Promise((resolve, reject) => {
+        requireRequest().sendGet('/kb/dataset/' + datasetId + '/document?page=' + (page || 1)
+            + '&pageSize=' + (pageSize || 20)).success(unwrap(resolve, reject));
     }),
     reindex: (id) => new Promise((resolve, reject) => {
         requireRequest().sendJson('/kb/document/' + id + '/reindex', {}).success(unwrap(resolve, reject));
@@ -90,8 +91,15 @@ export const kbApi = {
     deleteDocument: (id) => new Promise((resolve, reject) => {
         requireRequest().sendJson('/kb/document/' + id, {}).success(unwrap(resolve, reject));
     }),
-    listSegments: (documentId) => new Promise((resolve, reject) => {
-        requireRequest().sendGet('/kb/document/' + documentId + '/segment').success(unwrap(resolve, reject));
+    listSegments: (documentId, page, pageSize) => new Promise((resolve, reject) => {
+        requireRequest().sendGet('/kb/document/' + documentId + '/segment?page=' + (page || 1)
+            + '&pageSize=' + (pageSize || 20)).success(unwrap(resolve, reject));
+    }),
+    createSegment: (documentId, body) => new Promise((resolve, reject) => {
+        requireRequest().sendJson('/kb/document/' + documentId + '/segment', body).success(unwrap(resolve, reject));
+    }),
+    updateText: (id, text) => new Promise((resolve, reject) => {
+        requireRequest().sendJson('/kb/document/' + id + '/text', {text}).success(unwrap(resolve, reject));
     }),
     updateSegment: (id, body) => new Promise((resolve, reject) => {
         requireRequest().sendJson('/kb/segment/' + id, body).success(unwrap(resolve, reject));

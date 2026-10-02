@@ -250,8 +250,8 @@ public class KnowledgeConfiguration {
 
 	@Bean
 	public KbOpenApiController kbOpenApiController(KbDocumentService documentService, KbSearchService searchService,
-			KbSaTokenAuthChecker authChecker) {
-		return new KbOpenApiController(documentService, searchService, authChecker);
+			KbDatasetService datasetService, KbSegmentService segmentService, KbSaTokenAuthChecker authChecker) {
+		return new KbOpenApiController(documentService, searchService, datasetService, segmentService, authChecker);
 	}
 
 	/** 知识库配置项（设计 §5）：总开关与原始文件目录。 */

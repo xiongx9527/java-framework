@@ -116,6 +116,7 @@ export default {
                 metadataJson: 'Metadata JSON',
                 download: 'Download',
                 move: 'Move',
+                editText: 'Edit Text',
                 dropHere: 'Drop files to upload',
                 enable: 'Enable',
                 disable: 'Disable',
@@ -123,7 +124,9 @@ export default {
                 unarchive: 'Unarchive',
                 deleteConfirm: 'Delete this document (cascades to segments/vectors/original file)?'
             },
+            pagination: { total: 'Total ', prev: 'Prev', next: 'Next' },
             segment: {
+                create: 'New Segment',
                 content: 'Segment Content',
                 keywords: 'Keywords',
                 answer: 'Answer',
