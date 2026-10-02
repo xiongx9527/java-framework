@@ -121,6 +121,15 @@ public class Langchain4jModule {
 		return require(retrievalAssistant, "content-retriever");
 	}
 
+	/**
+	 * agentic 编排入口：脚本经本方法构建 sequence / loop / conditional / parallel 编排，
+	 * 或经 {@code agenticToolProvider(...)} 把编排包装为工具挂入助手
+	 * （依赖 langchain4j-agentic / langgraph4j，未引入时调用将抛出类缺失错误）。
+	 */
+	public Object agentic() {
+		return com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.AgenticWorkflows.instance();
+	}
+
 	/** 全能力助手（容器注入）：chat / stream / 补全 / 检索 / 记忆 / 工具。 */
 	public SimpleAssistant simpleAssistant() {
 		return require(simpleAssistant, "simple-assistant（请配置 fw.plus.magicapi.langchain4j.simple-assistant.enabled=true "

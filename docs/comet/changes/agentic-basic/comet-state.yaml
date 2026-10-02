@@ -1,0 +1,79 @@
+schema: comet.native.v4
+name: agentic-basic
+language: zh-CN
+phase: build
+status: active
+state_version: 3
+brief: brief.md
+shape_confirmation_hash: eeec8b46513e930c2764ee5144f03824d752cff4e9977f968017e1a092215b3b
+spec_changes: []
+workspace:
+  isolation: worktree
+  change_branch: comet/agentic-basic
+  target_branch: springboot3
+  finish: null
+loop:
+  stage: building
+  goal_cycle: 1
+  iteration: 1
+  attempt: 0
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: submit-builder-candidate
+acceptance:
+  - id: A1
+    source: brief.md
+    text: "Scenario: 通用顺序编排——WHEN 用 AgenticWorkflows.sequence() 串联多个 agent 并指定
+      outputName THEN 各 agent 输出经 AgenticScope 按 @V 变量名流向下一个 agent，最终产出
+      outputName 结果"
+    result: pending
+    reason: null
+  - id: A2
+    source: brief.md
+    text: "Scenario: 通用循环编排——WHEN 用 AgenticWorkflows.loop() 配置 maxIterations 与
+      exitCondition THEN 反复执行 subAgents 直到条件满足或达上限"
+    result: pending
+    reason: null
+  - id: A3
+    source: brief.md
+    text: "Scenario: 编排当工具——WHEN 将编排产物经 agenticToolProvider 包装并挂入助手 toolProvider
+      THEN 主 LLM 可按工具描述调用该工具并获得编排结果"
+    result: pending
+    reason: null
+  - id: A4
+    source: brief.md
+    text: "Scenario: 入参映射——WHEN 主 LLM 调用工具传参 THEN 参数按编排 inputKeys 注入 AgenticScope"
+    result: pending
+    reason: null
+  - id: A5
+    source: brief.md
+    text: "Scenario: 脚本可用——WHEN magic 脚本经 langchain4j.agentic() 构建 sequence/loop
+      并挂入助手 THEN 行为与 Java API 一致"
+    result: pending
+    reason: null
+  - id: A6
+    source: brief.md
+    text: "Scenario: 依赖可选——WHEN 应用未引入 langchain4j-agentic THEN 构建器与适配器不装配，助手其余功能不受影响"
+    result: pending
+    reason: null
+builder_handoff: null
+blockers: []
+verification: null
+history: []
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pending
+verification_report: null
+archived: false
+created_at: 2026-10-02T00:29:59.220Z
