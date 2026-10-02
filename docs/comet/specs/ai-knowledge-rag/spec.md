@@ -1,6 +1,6 @@
-# easy-rag 知识库 完整目标规格（设计文档）
+# easy-rag 知识库 完整目标规格（实现 change）
 
-> **文档角色**：本 change（easy-rag-knowledge）只交付设计文档定稿；功能实现由后续**一个**实现 change 承接，实现时以本文档为输入契约。DDL（§2.2）是实现 change 进入 Build 后第一批落地的文件（原样写入 `META-INF/sql/fw-plus-ai-knowledge.sql`）。管理端与对外 API 同属 content-retriever 插件同一服务（§3.3），API 实现 Sa-Token 认证授权。
+> **文档角色**：本文档承接设计文档（easy-rag-knowledge 归档定稿）作为实现 change 的完整目标规格，内容与设计定稿一致。实现验收以 brief 的 A1–A17 与本文各章节为准。DDL（§2.2）在 Build 第一批落地为 `META-INF/sql/fw-plus-ai-knowledge.sql`。管理端与对外 API 同属 content-retriever 插件同一服务（§3.3），API 实现 Sa-Token 认证授权。
 
 fw-plus-ai 层的知识库能力：Dify 风格的知识库管理 + magic 控制台 UI + 对外 API 服务（业务对接与 Dify External Knowledge API 兼容）+ knowledge 类型检索器。参照 Dify 知识库全功能设计，数据模型采用 数据集 → 文档 → 分段 三层。
 
@@ -8,7 +8,7 @@ fw-plus-ai 层的知识库能力：Dify 风格的知识库管理 + magic 控制�
 
 不新增 Maven 模块（用户决定 D1）。
 
-- 后端：`fw-plus-ai-boot-autoconfigure` 新包 `com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.knowledge`
+- 后端：`fw-plus-ai-boot-autoconfigure` 的 content-retriever 后端实现包 `com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever` 下新增 `knowledge` 子包（用户决定 2026-10-02：knowledge 的 Java 实现与检索器实现同包体系，即 content-retriever 后端）
   - `KnowledgePluginConfiguration`（@Import 进 MagicAPIBaseAutoConfiguration）
   - `entity/` KbDataset、KbDocument、KbSegment（继承 MpBaseEntity）
   - `mapper/` KbDatasetMapper、KbDocumentMapper、KbSegmentMapper（继承 MpBaseMapper）
@@ -49,6 +49,7 @@ CREATE TABLE kb_dataset (
     segment_max_length        INT          NOT NULL DEFAULT 1000 COMMENT '分段最大长度（字符）',
     segment_overlap           INT          NOT NULL DEFAULT 200 COMMENT '分段重叠长度（字符）',
     segment_delimiter         VARCHAR(32)           DEFAULT NULL COMMENT '自定义分段分隔符，空则仅按递归规则',
+    segment_mode              VARCHAR(16)  NOT NULL DEFAULT 'general' COMMENT '分段模式：general 通用（分段直接嵌入）/parent-child 父子（父段落表不嵌入，子段嵌入带 parent_id）；qa 为预留，当前版本不支持',
     status                    VARCHAR(16)  NOT NULL DEFAULT 'active' COMMENT '状态：active/disabled',
     error_msg                 TEXT                  COMMENT '最近错误信息',
     create_time               DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -216,12 +217,25 @@ fw.plus.ai.knowledge.storage-path     # 原始文件目录，默认 ${user.home}
 - 8 家向量库删除/metadata 能力差异按 store 分支降级。
 - 不自动建表；DDL 在 META-INF/sql 供手工执行。
 
-## Scenario 索引（本 change 交付设计文档，验收为文档审查）
+## Scenario 索引（实现验收，与 brief A1–A17 对应）
 
-- Scenario A1 设计文档完整：本文档覆盖全部已确认设计（§1–§6，含对外 API 与认证授权），用户逐节审查确认
-- Scenario A2 DDL 设计稿定稿：§2.2 的三表 CREATE TABLE 可直接落地为 `META-INF/sql/fw-plus-ai-knowledge.sql`，字段语义说明完备
-- Scenario A3 对外 API 设计完整：§3.3/§3.4 成文——REST 接口清单、Sa-Token 认证授权（校验与未认证拒绝）、Dify /retrieval 协议（records 响应、错误码 1002/2001），由 content-retriever 插件同一服务提供
-- Scenario A4 需求共识完备：brief 无 [blocking]，S1–S21 全部 covered（superseded 条目有替代说明），D1–D17 决策有记录
+- Scenario A1 模块结构落地与 DDL（§1、§2.2）
+- Scenario A2 装配条件与配置项（§2.1、§5）
+- Scenario A3 索引管道至 completed + CAS 认领（§2.3）
+- Scenario A4 失败状态与重建索引（§2.3）
+- Scenario A5 分段管理与启禁过滤（§3.1）
+- Scenario A6 召回测试与 hit_count（§3.1）
+- Scenario A7 原始文件持久化与生命周期（§2.4）
+- Scenario A8 knowledge 检索器多实例与过滤链（§3.2）
+- Scenario A9 归档/批量/下载/metadata 接口（§3.1）
+- Scenario A10 分段关键词与自定义分隔符（§2.2、§2.3、§3.1）
+- Scenario A11 父子分段（§2.3）
+- Scenario A12 控制台 toolbars UI（§4.1）
+- Scenario A13 knowledge 类型表单与 i18n（§4.2）
+- Scenario A14 对外 REST API（§3.3）
+- Scenario A15 Sa-Token 认证授权（§3.3）
+- Scenario A16 Dify /retrieval 协议符合性（§3.4）
+- Scenario A17 构建与非功能约束（§6）
 
 > 范围注记：本 change 只交付设计文档（用户方案 A）；功能实现由后续**一个**实现 change 承接（管理端 + 对外 API 同服务），以本文档为输入。
 > 正文中 §2.3 管道行为、§3.1/§3.2 接口行为、§4 前端行为为实现 change 的验收设计基础（届时其 brief/spec 引用本文档章节）。

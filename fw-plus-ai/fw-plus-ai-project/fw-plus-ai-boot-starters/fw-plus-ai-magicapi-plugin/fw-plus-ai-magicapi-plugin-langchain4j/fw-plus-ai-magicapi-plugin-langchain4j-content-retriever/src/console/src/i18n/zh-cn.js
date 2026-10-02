@@ -34,7 +34,8 @@ export default {
             'filtering': '过滤装饰器',
             'nebula': 'NebulaGraph 图库',
             'neo4j': 'Neo4j 图库',
-            'web-search': '联网搜索'
+            'web-search': '联网搜索',
+            'knowledge': '知识库检索'
         },
         field: {
             'addresses': 'graphd 地址',
@@ -61,7 +62,71 @@ export default {
             'space-name': '图空间',
             'timeout': '超时（毫秒）',
             'uri': '连接 URI',
-            'username': '用户名'
+            'username': '用户名',
+            'dataset-id': '知识库数据集'
+        },
+        kb: {
+            refresh: '刷新',
+            loading: '加载中…',
+            empty: '暂无数据',
+            save: '保存',
+            cancel: '取消',
+            edit: '编辑',
+            delete: '删除',
+            selectDataset: '请选择左侧数据集',
+            option: { yes: '是', no: '否' },
+            status: { active: '启用', disabled: '停用' },
+            common: { name: '名称', description: '描述', actions: '操作' },
+            view: { dataset: '数据集', document: '文档', segment: '分段', hit: '召回测试' },
+            dataset: {
+                title: '知识库',
+                create: '新建数据集',
+                edit: '编辑数据集',
+                deleteConfirm: '删除数据集将级联删除全部文档、分段与向量，确认？',
+                embeddingModel: '嵌入模型',
+                embeddingModelActive: '生效嵌入模型',
+                embeddingStore: '向量库',
+                scoringModel: '重排模型',
+                segmentMode: '分段模式',
+                segmentParams: '分段参数（长度/重叠/分隔符）',
+                segmentMaxLength: '分段最大长度',
+                segmentOverlap: '分段重叠',
+                segmentDelimiter: '自定义分隔符',
+                topK: '召回数量/分数阈值',
+                scoreThreshold: '分数阈值',
+                errorMsg: '提示',
+                retrievers: '引用的检索器'
+            },
+            document: {
+                name: '文档名',
+                status: '索引状态',
+                enabled: '启用',
+                archived: '归档',
+                upload: '上传文档',
+                reindex: '重建索引',
+                toggleEnabled: '启/禁',
+                toggleArchived: '归档切换',
+                metadata: 'Metadata',
+                metadataJson: 'Metadata JSON',
+                download: '下载',
+                enable: '启用',
+                disable: '禁用',
+                archive: '归档',
+                unarchive: '取消归档',
+                deleteConfirm: '确认删除该文档（级联删除分段/向量/原始文件）？'
+            },
+            segment: {
+                content: '分段内容',
+                keywords: '关键词',
+                answer: '答案',
+                tokens: 'Token 估计',
+                parent: '父段',
+                hits: '命中次数',
+                selectDocument: '选择文档…',
+                selectDocumentTip: '请先选择文档',
+                edit: '编辑分段'
+            },
+            hit: { run: '检索', queryTip: '输入测试 query', score: '分数' }
         }
     }
 }

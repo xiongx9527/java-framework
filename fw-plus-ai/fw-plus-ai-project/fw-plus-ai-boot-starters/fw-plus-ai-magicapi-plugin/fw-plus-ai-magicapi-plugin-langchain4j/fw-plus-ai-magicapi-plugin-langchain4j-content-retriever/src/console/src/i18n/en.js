@@ -34,7 +34,8 @@ export default {
             'filtering': 'Filtering Decorator',
             'nebula': 'NebulaGraph',
             'neo4j': 'Neo4j Graph',
-            'web-search': 'Web Search'
+            'web-search': 'Web Search',
+            'knowledge': 'Knowledge Retrieval'
         },
         field: {
             'addresses': 'Graphd Addresses',
@@ -61,7 +62,71 @@ export default {
             'space-name': 'Space Name',
             'timeout': 'Timeout (ms)',
             'uri': 'URI',
-            'username': 'Username'
+            'username': 'Username',
+            'dataset-id': 'Knowledge Dataset'
+        },
+        kb: {
+            refresh: 'Refresh',
+            loading: 'Loading…',
+            empty: 'No data',
+            save: 'Save',
+            cancel: 'Cancel',
+            edit: 'Edit',
+            delete: 'Delete',
+            selectDataset: 'Select a dataset on the left',
+            option: { yes: 'Yes', no: 'No' },
+            status: { active: 'Active', disabled: 'Disabled' },
+            common: { name: 'Name', description: 'Description', actions: 'Actions' },
+            view: { dataset: 'Dataset', document: 'Documents', segment: 'Segments', hit: 'Hit Test' },
+            dataset: {
+                title: 'Knowledge Base',
+                create: 'New Dataset',
+                edit: 'Edit Dataset',
+                deleteConfirm: 'Deleting the dataset cascades to all documents, segments and vectors. Continue?',
+                embeddingModel: 'Embedding Model',
+                embeddingModelActive: 'Active Embedding Model',
+                embeddingStore: 'Embedding Store',
+                scoringModel: 'Scoring Model',
+                segmentMode: 'Segment Mode',
+                segmentParams: 'Segment Params (size/overlap/delimiter)',
+                segmentMaxLength: 'Max Segment Size',
+                segmentOverlap: 'Segment Overlap',
+                segmentDelimiter: 'Custom Delimiter',
+                topK: 'TopK / Score Threshold',
+                scoreThreshold: 'Score Threshold',
+                errorMsg: 'Notice',
+                retrievers: 'Referenced Retrievers'
+            },
+            document: {
+                name: 'Document',
+                status: 'Index Status',
+                enabled: 'Enabled',
+                archived: 'Archived',
+                upload: 'Upload',
+                reindex: 'Reindex',
+                toggleEnabled: 'Enable/Disable',
+                toggleArchived: 'Archive Toggle',
+                metadata: 'Metadata',
+                metadataJson: 'Metadata JSON',
+                download: 'Download',
+                enable: 'Enable',
+                disable: 'Disable',
+                archive: 'Archive',
+                unarchive: 'Unarchive',
+                deleteConfirm: 'Delete this document (cascades to segments/vectors/original file)?'
+            },
+            segment: {
+                content: 'Segment Content',
+                keywords: 'Keywords',
+                answer: 'Answer',
+                tokens: 'Token Est.',
+                parent: 'Parent',
+                hits: 'Hits',
+                selectDocument: 'Select a document…',
+                selectDocumentTip: 'Select a document first',
+                edit: 'Edit Segment'
+            },
+            hit: { run: 'Retrieve', queryTip: 'Enter test query', score: 'Score' }
         }
     }
 }
