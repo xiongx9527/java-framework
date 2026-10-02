@@ -26,12 +26,8 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retri
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.resource.Langchain4jContentRetrieverMagicResourceStorage;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.mapper.MapperFactoryBean;
-import org.ssssssss.magicapi.core.config.MagicPluginConfiguration;
-import org.ssssssss.magicapi.core.model.Plugin;
 import org.ssssssss.magicapi.core.service.MagicResourceService;
-import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -49,56 +45,28 @@ import org.springframework.context.annotation.Configuration;
  * 整体不装配，不影响其余 langchain4j 功能。启动时校验三张元数据表存在性，缺失时警告并禁用。</p>
  *
  * <p>knowledge 检索器工厂以 {@code ContentRetrieverProvider} bean 注册，经
- * {@code Langchain4jContentRetrieverConfiguration} 的分发表收集进入短名 {@code knowledge}。</p>
+ * {@code Langchain4jContentRetrieverConfiguration} 的分发表收集进入短名 {@code knowledge}；
+ * 管理端 Controller 由 {@code Langchain4jContentRetrieverConfiguration.controllerRegister()}
+ * 统一挂到 content-retriever 插件（UI 与插件标识均复用，本类不声明独立插件）。</p>
  */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnClass(SqlSessionFactory.class)
 @ConditionalOnBean(SqlSessionFactory.class)
 @ConditionalOnProperty(prefix = "fw.plus.ai.knowledge", name = "enabled", havingValue = "true",
 		matchIfMissing = true)
-public class KnowledgePluginConfiguration implements MagicPluginConfiguration {
-
-	@Autowired
-	private ObjectProvider<KbDatasetService> datasetServices;
-
-	@Autowired
-	private ObjectProvider<KbDocumentService> documentServices;
-
-	@Autowired
-	private ObjectProvider<KbSegmentService> segmentServices;
-
-	/** 插件标识（管理端 UI 产物复用 content-retriever 插件 iife.js，此处不重复声明前端产物）。 */
-	@Override
-	public Plugin plugin() {
-		return new Plugin("langchain4j-knowledge");
-	}
-
-	/** 管理端 Controller 注册：路径 /kb/**（magic 统一挂 /magic/web 前缀）。 */
-	@Override
-	public MagicControllerRegister controllerRegister() {
-		return (mapping, configuration) -> {
-			KbDatasetService datasetService = datasetServices.getIfAvailable();
-			KbDocumentService documentService = documentServices.getIfAvailable();
-			KbSegmentService segmentService = segmentServices.getIfAvailable();
-			if (datasetService == null || documentService == null || segmentService == null) {
-				return;
-			}
-			mapping.registerController(new KbConsoleController(configuration, datasetService, documentService,
-					segmentService));
-		};
-	}
+public class KnowledgeConfiguration {
 
 	// ---------------- 配置与存储 ----------------
 
 	@Bean
 	@ConfigurationProperties(prefix = "fw.plus.ai.knowledge")
-	public KnowledgePluginConfiguration.KnowledgeProperties knowledgeProperties() {
-		return new KnowledgePluginConfiguration.KnowledgeProperties();
+	public KnowledgeConfiguration.KnowledgeProperties knowledgeProperties() {
+		return new KnowledgeConfiguration.KnowledgeProperties();
 	}
 
 	@Bean
 	@ConditionalOnMissingBean(KbOriginalFileStore.class)
-	public LocalKbOriginalFileStore kbOriginalFileStore(KnowledgePluginConfiguration.KnowledgeProperties properties) {
+	public LocalKbOriginalFileStore kbOriginalFileStore(KnowledgeConfiguration.KnowledgeProperties properties) {
 		return new LocalKbOriginalFileStore(properties.getStoragePath());
 	}
 
