@@ -4,7 +4,7 @@ import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.service.tool.ToolExecutionResult;
+import dev.langchain4j.service.tool.AiServiceTool;
 import dev.langchain4j.service.tool.ToolProvider;
 import dev.langchain4j.service.tool.ToolProviderRequest;
 import dev.langchain4j.service.tool.ToolProviderResult;
@@ -30,8 +30,8 @@ class AgenticToolProviderTest {
 
         ToolProviderResult result = provider.provideTools(new ToolProviderRequest("m1", UserMessage.from("问数")));
 
-        assertThat(result.tools()).hasSize(1);
-        ToolSpecification specification = result.tools().keySet().iterator().next();
+        assertThat(result.aiServiceTools()).hasSize(1);
+        ToolSpecification specification = result.aiServiceTools().get(0).toolSpecification();
         assertThat(specification.name()).isEqualTo("query_data");
         assertThat(specification.description()).isEqualTo("按自然语言查询业务数据");
         assertThat(specification.parameters().properties()).containsKey("question");
@@ -82,12 +82,11 @@ class AgenticToolProviderTest {
 
     private String execute(ToolProvider provider, String arguments) {
         ToolProviderResult result = provider.provideTools(new ToolProviderRequest("m1", UserMessage.from("问数")));
-        Map.Entry<ToolSpecification, ? extends dev.langchain4j.service.tool.ToolExecutor> entry =
-                result.tools().entrySet().iterator().next();
+        AiServiceTool tool = result.aiServiceTools().get(0);
         ToolExecutionRequest request = ToolExecutionRequest.builder()
-                .name(entry.getKey().name())
+                .name(tool.toolSpecification().name())
                 .arguments(arguments)
                 .build();
-        return entry.getValue().execute(request, "m1");
+        return tool.toolExecutor().execute(request, "m1");
     }
 }

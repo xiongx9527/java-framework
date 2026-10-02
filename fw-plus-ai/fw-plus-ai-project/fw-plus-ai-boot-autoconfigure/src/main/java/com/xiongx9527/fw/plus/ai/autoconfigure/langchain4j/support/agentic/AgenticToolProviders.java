@@ -32,8 +32,9 @@ public final class AgenticToolProviders {
     }
 
     /** 把 langgraph4j 编译图包装为 ToolProvider。 */
-    public static <T extends org.bsc.langgraph4j.state.AgentState> ToolProvider graphToolProvider(
-            org.bsc.langgraph4j.CompiledGraph<T> compiledGraph, String toolName, String toolDescription) {
+    public static ToolProvider graphToolProvider(
+            org.bsc.langgraph4j.CompiledGraph<? extends org.bsc.langgraph4j.state.AgentState> compiledGraph,
+            String toolName, String toolDescription) {
         return AgenticToolProvider.graph(compiledGraph, toolName, toolDescription);
     }
 }

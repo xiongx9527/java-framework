@@ -50,17 +50,28 @@ public final class AgenticToolProvider implements ToolProvider {
     }
 
     /** 把 langgraph4j 编译图包装为单工具的 ToolProvider（工具入参即图的 state）。 */
-    public static <T extends org.bsc.langgraph4j.state.AgentState> AgenticToolProvider graph(
-            org.bsc.langgraph4j.CompiledGraph<T> compiledGraph, String toolName, String toolDescription) {
-        return new AgenticToolProvider(
-                input -> compiledGraph.invoke(input)
-                        .map(state -> {
-                            Map<String, Object> data = new LinkedHashMap<>();
-                            state.data().forEach((k, v) -> data.put(String.valueOf(k), v));
-                            return data;
-                        })
-                        .orElse(Map.of()),
-                toolName, toolDescription, null, new String[0]);
+    public static AgenticToolProvider graph(org.bsc.langgraph4j.CompiledGraph<? extends org.bsc.langgraph4j.state.AgentState> compiledGraph,
+            String toolName, String toolDescription) {
+        return new AgenticToolProvider(input -> invokeGraph(compiledGraph, input), toolName, toolDescription, null,
+                new String[0]);
+    }
+
+    /** 执行编译图并抽出最终 state：图终止无输出时返回空 Map。 */
+    private static Map<String, Object> invokeGraph(
+            org.bsc.langgraph4j.CompiledGraph<? extends org.bsc.langgraph4j.state.AgentState> compiledGraph,
+            Map<String, Object> input) {
+        // langgraph4j 1.9 起 invoke(Map) 已弃用，统一走 GraphInput + RunnableConfig 入口
+        java.util.Optional<? extends org.bsc.langgraph4j.state.AgentState> graphOutput = compiledGraph
+                .invoke(org.bsc.langgraph4j.GraphInput.args(input), org.bsc.langgraph4j.RunnableConfig.empty());
+        if (graphOutput == null || !graphOutput.isPresent()) {
+            return new LinkedHashMap<>();
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        Map<String, Object> stateData = graphOutput.get().data();
+        if (stateData != null) {
+            result.putAll(stateData);
+        }
+        return result;
     }
 
     @Override
