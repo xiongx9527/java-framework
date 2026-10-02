@@ -38,11 +38,16 @@ public class Langchain4jAgenticScriptModule {
 	public ToolProvider toolProvider(String path, String toolName, String toolDescription) {
 		MagicScriptAgent node = node(path);
 		return AgenticToolProviders.agenticToolProvider(node,
-				toolName == null || toolName.trim().isEmpty() ? path : toolName,
+				toolName == null || toolName.trim().isEmpty() ? node.getName() : toolName,
 				toolDescription == null || toolDescription.trim().isEmpty()
 						? node.getDescription() : toolDescription,
 				node.getOutputKey(),
 				node.getInputKeys() == null ? new String[0] : node.getInputKeys().toArray(new String[0]));
+	}
+
+	/** 简化形态：工具名/描述直接取资源定义（name/description），无需调用方传参。 */
+	public ToolProvider toolProvider(String path) {
+		return toolProvider(path, null, null);
 	}
 
 	private Langchain4jAgenticScriptInfo find(String path) {

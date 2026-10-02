@@ -30,6 +30,10 @@ public class MagicScriptAgent implements UntypedAgent {
 		return info.getPath();
 	}
 
+	public String getName() {
+		return info.getName() == null || info.getName().trim().isEmpty() ? info.getPath() : info.getName();
+	}
+
 	public String getDescription() {
 		return info.getDescription();
 	}
