@@ -95,13 +95,19 @@ public class Langchain4jAgenticScriptModule {
 				info.getPath(), result == null ? "null" : result.getClass().getName()));
 	}
 
-	/** 把脚本节点包装为 ToolProvider（agent-as-tool），挂入助手 toolProvider。 */
+	/**
+	 * 把脚本资源包装为 ToolProvider（agent-as-tool），挂入助手 toolProvider。
+	 * 按资源 type 自动分发：tool → 编排工具包装；graph → 编译图包装；node 按工具包装。
+	 */
 	public ToolProvider toolProvider(String path, String toolName, String toolDescription) {
-		MagicScriptAgent node = node(path);
+		Langchain4jAgenticScriptInfo info = find(path);
+		if ("graph".equalsIgnoreCase(info.getType())) {
+			return graphToolProvider(path, toolName, toolDescription);
+		}
+		MagicScriptAgent node = new MagicScriptAgent(info);
 		return AgenticToolProviders.agenticToolProvider(node,
-				toolName == null || toolName.trim().isEmpty() ? node.getName() : toolName,
-				toolDescription == null || toolDescription.trim().isEmpty()
-						? node.getDescription() : toolDescription,
+				blank(toolName) ? node.getName() : toolName,
+				blank(toolDescription) ? node.getDescription() : toolDescription,
 				node.getOutputKey(),
 				node.getInputKeys() == null ? new String[0] : node.getInputKeys().toArray(new String[0]));
 	}

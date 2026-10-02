@@ -25,6 +25,7 @@ import java.util.Map;
  *     systemMessage: prompt/assistant
  *     tokenizer: openai
  *     scoringModel: jina
+ *     agenticScript: /agentic/query,/agentic/report   # agentic 脚本资源路径（逗号分隔，逐个包装为编排工具）
  *   memory-max-messages: 20      # 进程内记忆窗口（条）；配置 tokenizer 后改按 token 截断
  *   max-tokens: 1000             # TokenWindowChatMemory 的 token 上限（需配置 tokenizer）
  *   rerank-min-score: 0.6        # rerank 生效下限（需配置 scoringModel）
@@ -50,8 +51,8 @@ public class Langchain4jSimpleAssistantProperties {
 	private String key;
 
 	/** 分类型专属 key：类型名（chatModel / streamingModel / chatMemoryStore / toolProvider /
-	 * contentRetriever / contentInjector / systemMessage / tokenizer / scoringModel）→ 资源 key，
-	 * 未配置的类型回落 {@link #key}。 */
+	 * contentRetriever / contentInjector / systemMessage / tokenizer / scoringModel / skill /
+	 * agenticScript）→ 资源 key（skill/agenticScript 支持逗号分隔多个），未配置的类型回落 {@link #key}。 */
 	private Map<String, String> keys = new HashMap<>();
 
 	/** 进程内记忆窗口（条，每 memoryId 一份）；null 时用 AssistantBuilder 默认（20） */
