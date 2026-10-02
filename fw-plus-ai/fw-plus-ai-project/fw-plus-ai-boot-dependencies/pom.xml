@@ -13,9 +13,15 @@
 
     <properties>
         <main.basedir>${basedir}/../..</main.basedir>
+        <langgraph4j.version>1.9.3</langgraph4j.version>
     </properties>
     <dependencyManagement>
         <dependencies>
+        <dependency>
+            <groupId>org.bsc.langgraph4j</groupId>
+            <artifactId>langgraph4j-core</artifactId>
+            <version>${langgraph4j.version}</version>
+        </dependency>
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
