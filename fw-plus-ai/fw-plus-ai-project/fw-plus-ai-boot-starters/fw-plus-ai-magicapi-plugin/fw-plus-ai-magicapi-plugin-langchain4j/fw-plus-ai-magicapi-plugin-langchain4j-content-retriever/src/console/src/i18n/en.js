@@ -93,6 +93,12 @@ export default {
                 segmentOverlap: 'Segment Overlap',
                 segmentDelimiter: 'Custom Delimiter',
                 topK: 'TopK / Score Threshold',
+                import: 'Import',
+                export: 'Export',
+                preview: 'Split Preview',
+                importDone: 'Imported, new dataset id: ',
+                chatModel: 'QA Chat Model',
+                chatModelTip: 'Required for qa segment mode (langchain4j chat-model key)',
                 scoreThreshold: 'Score Threshold',
                 errorMsg: 'Notice',
                 retrievers: 'Referenced Retrievers'
@@ -109,6 +115,8 @@ export default {
                 metadata: 'Metadata',
                 metadataJson: 'Metadata JSON',
                 download: 'Download',
+                move: 'Move',
+                dropHere: 'Drop files to upload',
                 enable: 'Enable',
                 disable: 'Disable',
                 archive: 'Archive',
@@ -126,7 +134,13 @@ export default {
                 selectDocumentTip: 'Select a document first',
                 edit: 'Edit Segment'
             },
-            hit: { run: 'Retrieve', queryTip: 'Enter test query', score: 'Score' }
+            hit: {
+                run: 'Retrieve',
+                queryTip: 'Enter test query',
+                score: 'Score',
+                metadataCondition: 'Metadata Condition',
+                metadataTip: 'JSON, e.g. {"logical_operator":"and","conditions":[{"name":"lang","value":"zh"}]}'
+            }
         }
     }
 }

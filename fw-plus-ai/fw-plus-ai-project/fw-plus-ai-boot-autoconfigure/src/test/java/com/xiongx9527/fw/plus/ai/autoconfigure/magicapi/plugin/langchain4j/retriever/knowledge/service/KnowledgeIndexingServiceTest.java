@@ -221,7 +221,7 @@ class KnowledgeIndexingServiceTest {
     }
 
     @Test
-    void qa模式给出预留提示() {
+    void qa模式缺少chatModelKey时报可操作错误() {
         KbDocument document = waitingDocument();
         KbDataset dataset = dataset();
         dataset.setSegmentMode("qa");
@@ -235,7 +235,7 @@ class KnowledgeIndexingServiceTest {
         org.mockito.ArgumentCaptor<KbDocument> captor = org.mockito.ArgumentCaptor.forClass(KbDocument.class);
         verify(documentMapper).updateById(captor.capture());
         assertThat(captor.getValue().getIndexingStatus()).isEqualTo("error");
-        assertThat(captor.getValue().getErrorMsg()).contains("预留");
+        assertThat(captor.getValue().getErrorMsg()).contains("chat_model_key");
     }
 
     @Test
