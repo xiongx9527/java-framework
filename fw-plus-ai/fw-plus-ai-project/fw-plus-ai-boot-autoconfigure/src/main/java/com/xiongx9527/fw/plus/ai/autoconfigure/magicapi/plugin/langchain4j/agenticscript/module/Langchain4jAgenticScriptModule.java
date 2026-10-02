@@ -1,58 +1,63 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.agenticscript.module;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.AgenticToolProviders;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.agenticscript.model.MagicDynamicLangchain4jAgenticScriptDataSource;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.agenticscript.model.Langchain4jAgenticScriptInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.agenticscript.model.MagicScriptAgent;
 import dev.langchain4j.service.tool.ToolProvider;
 import org.ssssssss.magicapi.core.annotation.MagicModule;
-import org.ssssssss.magicapi.core.model.Options;
-import org.ssssssss.magicapi.modules.DynamicModule;
-import org.ssssssss.script.MagicScriptContext;
-import org.ssssssss.script.functions.DynamicAttribute;
+import org.ssssssss.magicapi.core.service.MagicResourceService;
+import org.ssssssss.magicapi.core.service.AbstractMagicDynamicRegistry;
+import org.ssssssss.magicapi.utils.PathUtils;
 
-import java.util.TreeSet;
+import java.util.Arrays;
 
 /**
- * agentic 脚本节点/工具模块：脚本用 {@code langchain4jAgenticScript['key']} 取脚本节点
+ * agentic 脚本模块：脚本用 {@code langchain4jAgenticScript.node('/path')} 取脚本节点
  * （挂入 {@code AgenticWorkflows} 编排 subAgents），或用
- * {@code langchain4jAgenticScript.toolProvider('key', '工具名', '描述')} 把节点包装为工具。
+ * {@code langchain4jAgenticScript.toolProvider('/path', '工具名', '描述')} 包装为工具挂入助手。
  */
 @MagicModule("langchain4jAgenticScript")
-public class Langchain4jAgenticScriptModule
-		implements DynamicAttribute<MagicScriptAgent, Langchain4jAgenticScriptModule>, DynamicModule<MagicScriptAgent> {
+public class Langchain4jAgenticScriptModule {
 
-	private final MagicDynamicLangchain4jAgenticScriptDataSource dataSource;
+	private final AbstractMagicDynamicRegistry<Langchain4jAgenticScriptInfo> registry;
 
-	public Langchain4jAgenticScriptModule(MagicDynamicLangchain4jAgenticScriptDataSource dataSource) {
-		this.dataSource = dataSource;
+	private final MagicResourceService magicResourceService;
+
+	public Langchain4jAgenticScriptModule(AbstractMagicDynamicRegistry<Langchain4jAgenticScriptInfo> registry,
+			MagicResourceService magicResourceService) {
+		this.registry = registry;
+		this.magicResourceService = magicResourceService;
 	}
 
-	@Override
-	public MagicScriptAgent getDynamicAttribute(String key) {
-		MagicScriptAgent agent = dataSource.get(key);
-		if (agent == null) {
-			throw new IllegalArgumentException(String.format(
-					"未配置 LangChain4j Agentic Script: %s，已配置: %s", key, new TreeSet<>(dataSource.keys())));
-		}
-		return agent;
+	/** 按资源路径取脚本节点：编排构建时挂入 subAgents，每次取用实时解析（资源热更新即时生效）。 */
+	public MagicScriptAgent node(String path) {
+		return new MagicScriptAgent(find(path));
 	}
 
-	/** 把脚本节点（或任意 agentic 编排产物）包装为 ToolProvider，挂入助手 toolProvider。 */
-	public ToolProvider toolProvider(MagicScriptAgent node, String toolName, String toolDescription) {
-		return AgenticToolProviders.agenticToolProvider(node, toolName == null || toolName.trim().isEmpty()
-				? node.getKey() : toolName, toolDescription, node.getOutputKey(),
+	/** 把脚本节点包装为 ToolProvider（agent-as-tool），挂入助手 toolProvider。 */
+	public ToolProvider toolProvider(String path, String toolName, String toolDescription) {
+		MagicScriptAgent node = node(path);
+		return AgenticToolProviders.agenticToolProvider(node,
+				toolName == null || toolName.trim().isEmpty() ? path : toolName,
+				toolDescription == null || toolDescription.trim().isEmpty()
+						? node.getDescription() : toolDescription,
+				node.getOutputKey(),
 				node.getInputKeys() == null ? new String[0] : node.getInputKeys().toArray(new String[0]));
 	}
 
-	@Override
-	public Langchain4jAgenticScriptModule setDynamicAttribute(String key, MagicScriptAgent value) {
-		throw new UnsupportedOperationException(
-				"脚本不支持设置 Agentic Script，请在控制台维护 langchain4j-agentic-script 数据源");
-	}
-
-	@Override
-	public MagicScriptAgent getDynamicModule(MagicScriptContext context) {
-		String key = context == null ? null : context.getString(Options.DEFAULT_DATA_SOURCE.getValue());
-		return getDynamicAttribute(key);
+	private Langchain4jAgenticScriptInfo find(String path) {
+		if (path == null || path.trim().isEmpty()) {
+			throw new IllegalArgumentException("agentic 脚本路径不能为空");
+		}
+		String normalized = PathUtils.replaceSlash(path.startsWith("/") ? path : "/" + path);
+		Langchain4jAgenticScriptInfo info = registry.getMapping(normalized);
+		if (info == null) {
+			info = magicResourceService.file(normalized);
+		}
+		if (info == null) {
+			throw new IllegalArgumentException(String.format(
+					"未找到 agentic 脚本资源: %s", normalized));
+		}
+		return info;
 	}
 }

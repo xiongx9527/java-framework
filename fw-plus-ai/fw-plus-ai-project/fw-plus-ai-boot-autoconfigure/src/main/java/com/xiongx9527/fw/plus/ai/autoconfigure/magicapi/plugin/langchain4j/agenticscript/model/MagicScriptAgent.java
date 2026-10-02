@@ -21,13 +21,25 @@ public class MagicScriptAgent implements UntypedAgent {
 
 	private final String script;
 
-	public MagicScriptAgent(Langchain4jAgenticScriptInfo info, String script) {
+	public MagicScriptAgent(Langchain4jAgenticScriptInfo info) {
 		this.info = info;
-		this.script = script;
+		this.script = info.getScript();
 	}
 
-	public String getKey() {
-		return info.getKey();
+	public String getPath() {
+		return info.getPath();
+	}
+
+	public String getDescription() {
+		return info.getDescription();
+	}
+
+	public java.util.List<String> getInputKeys() {
+		return info.getInputKeys();
+	}
+
+	public String getOutputKey() {
+		return info.getOutputKey();
 	}
 
 	public String getType() {
@@ -55,7 +67,7 @@ public class MagicScriptAgent implements UntypedAgent {
 	@Override
 	public Object invoke(Map<String, Object> input) {
 		MagicScriptContext context = new MagicScriptContext();
-		context.setScriptName(info.getName() == null ? info.getKey() : info.getName());
+		context.setScriptName(info.getName() == null ? info.getPath() : info.getName());
 		Map<String, Object> injected = new HashMap<>();
 		if (input != null) {
 			for (Map.Entry<String, Object> entry : input.entrySet()) {
