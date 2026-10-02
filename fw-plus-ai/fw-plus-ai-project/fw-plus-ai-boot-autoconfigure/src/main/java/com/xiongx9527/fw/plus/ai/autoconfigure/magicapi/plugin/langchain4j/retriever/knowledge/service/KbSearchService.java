@@ -24,6 +24,7 @@ import dev.langchain4j.store.embedding.filter.Filter;
 import dev.langchain4j.store.embedding.filter.MetadataFilterBuilder;
 import org.springframework.beans.factory.ObjectProvider;
 
+import java.math.BigDecimal;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -339,7 +340,9 @@ public class KbSearchService {
 		return values;
 	}
 
-	/** rerank（scoring_model_key 非空时启用）；score 保留向量相似度分，rerank_score 由重排模型打分；失败回落向量 score 顺序。 */
+	/** rerank（scoring_model_key 非空时启用）；score 保留向量相似度分，rerank_score 由重排模型打分；失败回落向量 score 顺序。
+	 * 数据集成对配置 retrieval_similarity_weight/retrieval_semantic_weight 时启用加权混合重排：
+	 * 融合分 = 向量分 × similarityWeight + 语义分 × semanticWeight，按融合分排序（score/rerank_score 仍保留原分）。 */
 	private List<KbSearchHit> rerank(KbDataset dataset, String query, List<KbSearchHit> hits) {
 		if (dataset.getScoringModelKey() == null || dataset.getScoringModelKey().isEmpty() || hits.size() < 2) {
 			return hits;
@@ -355,32 +358,64 @@ public class KbSearchService {
 				segments.add(TextSegment.from(hit.getContent()));
 			}
 			List<Double> scores = scoringModel.scoreAll(segments, query).content();
-			List<Map.Entry<KbSearchHit, Double>> paired = new ArrayList<>();
+			Double similarityWeight = weightOf(dataset.getRetrievalSimilarityWeight());
+			Double semanticWeight = weightOf(dataset.getRetrievalSemanticWeight());
+			boolean weighted = similarityWeight != null && semanticWeight != null;
+			List<RankedHit> paired = new ArrayList<>();
 			for (int i = 0; i < hits.size(); i++) {
-				Double score = scores != null && i < scores.size() && scores.get(i) != null
-						? scores.get(i) : hits.get(i).getScore();
-				paired.add(new AbstractMap.SimpleEntry<>(hits.get(i), score));
-			}
-			paired.sort(new Comparator<Map.Entry<KbSearchHit, Double>>() {
-				@Override
-				public int compare(Map.Entry<KbSearchHit, Double> a, Map.Entry<KbSearchHit, Double> b) {
-					return Double.compare(b.getValue() == null ? 0 : b.getValue(),
-							a.getValue() == null ? 0 : a.getValue());
+				Double vectorScore = hits.get(i).getScore();
+				Double semanticScore = scores != null && i < scores.size() ? scores.get(i) : null;
+				double rank;
+				if (weighted) {
+					// 加权混合：模型失败回落向量分时，语义侧按向量分近似
+					double vector = vectorScore == null ? 0 : vectorScore;
+					double semantic = semanticScore == null ? vector : semanticScore;
+					rank = vector * similarityWeight + semantic * semanticWeight;
+				} else {
+					Double score = semanticScore != null ? semanticScore : vectorScore;
+					rank = score == null ? 0 : score;
 				}
-			});
+				paired.add(new RankedHit(hits.get(i), semanticScore, rank));
+			}
+			paired.sort((a, b) -> Double.compare(b.rank, a.rank));
 			List<KbSearchHit> ranked = new ArrayList<>();
-			for (Map.Entry<KbSearchHit, Double> entry : paired) {
-				KbSearchHit hit = entry.getKey();
+			for (RankedHit item : paired) {
+				KbSearchHit hit = item.hit;
 				KbSearchHit rankedHit = KbSearchHit.of(segmentOf(hit), hit.getDocumentName(), hit.getScore(),
 						hit.getParentContent(), hit.getMetadata());
 				// score 保留向量相似度分，重排分单独放 rerank_score（两套量纲不混用）
-				rankedHit.setRerankScore(entry.getValue());
+				rankedHit.setRerankScore(item.semanticScore != null ? item.semanticScore : hit.getScore());
 				ranked.add(rankedHit);
 			}
 			return ranked;
 		} catch (Exception e) {
 			return hits;
 		}
+	}
+
+	/** rerank 排序中间结构：命中项 + 重排模型语义分 + 排序分（纯语义分或加权融合分）。 */
+	private static final class RankedHit {
+
+		final KbSearchHit hit;
+
+		final Double semanticScore;
+
+		final double rank;
+
+		RankedHit(KbSearchHit hit, Double semanticScore, double rank) {
+			this.hit = hit;
+			this.semanticScore = semanticScore;
+			this.rank = rank;
+		}
+	}
+
+	/** 权重取值：null 或越界（<0 / >1）返回 null（不启用加权）。 */
+	private static Double weightOf(BigDecimal weight) {
+		if (weight == null) {
+			return null;
+		}
+		double value = weight.doubleValue();
+		return value < 0 || value > 1 ? null : value;
 	}
 
 	private static KbSegment segmentOf(KbSearchHit hit) {

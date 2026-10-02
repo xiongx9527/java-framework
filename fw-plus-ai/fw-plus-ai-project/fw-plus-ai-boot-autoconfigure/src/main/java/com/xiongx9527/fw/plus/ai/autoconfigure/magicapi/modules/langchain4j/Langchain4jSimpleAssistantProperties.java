@@ -30,6 +30,8 @@ import java.util.Map;
  *   max-tokens: 1000             # TokenWindowChatMemory 的 token 上限（需配置 tokenizer）
  *   rerank-min-score: 0.6        # rerank 生效下限（需配置 scoringModel）
  *   rerank-max-results: 5        # rerank 保留上限（需配置 scoringModel；不配保留全部）
+ *   similarity-weight: 0.3       # 相似度分权重（与 semantic-weight 成对配置启用加权混合重排）
+ *   semantic-weight: 0.7         # 语义分权重（加权混合重排：总分 = 相似度×本组权重 + 语义分×semantic-weight）
  * }</pre>
  */
 @ConfigurationProperties(prefix = "fw.plus.magicapi.langchain4j.simple-assistant")
@@ -66,6 +68,12 @@ public class Langchain4jSimpleAssistantProperties {
 
 	/** rerank 保留上限：重排后最多保留的条目数（仅在配置了 scoring-model 类型 key 时生效；null 保留全部） */
 	private Integer rerankMaxResults;
+
+	/** 相似度分权重（0~1，与 {@link #semanticWeight} 成对配置时启用加权混合重排；null 不启用） */
+	private Double similarityWeight;
+
+	/** 语义分权重（0~1，加权混合重排：总分 = 相似度分 × similarityWeight + 语义分 × semanticWeight） */
+	private Double semanticWeight;
 
 	public boolean isEnabled() {
 		return enabled;
@@ -145,5 +153,21 @@ public class Langchain4jSimpleAssistantProperties {
 
 	public void setRerankMaxResults(Integer rerankMaxResults) {
 		this.rerankMaxResults = rerankMaxResults;
+	}
+
+	public Double getSimilarityWeight() {
+		return similarityWeight;
+	}
+
+	public void setSimilarityWeight(Double similarityWeight) {
+		this.similarityWeight = similarityWeight;
+	}
+
+	public Double getSemanticWeight() {
+		return semanticWeight;
+	}
+
+	public void setSemanticWeight(Double semanticWeight) {
+		this.semanticWeight = semanticWeight;
 	}
 }

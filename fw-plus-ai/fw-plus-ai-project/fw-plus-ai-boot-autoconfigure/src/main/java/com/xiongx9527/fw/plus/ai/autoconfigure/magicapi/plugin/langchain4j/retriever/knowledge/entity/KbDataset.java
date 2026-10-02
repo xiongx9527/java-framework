@@ -51,6 +51,12 @@ public class KbDataset extends MpBaseEntity<String> {
     /** 默认分数阈值 */
     private BigDecimal retrievalScoreThreshold;
 
+    /** 向量相似度分权重（0~1；与 {@link #retrievalSemanticWeight} 成对配置时启用加权混合重排） */
+    private BigDecimal retrievalSimilarityWeight;
+
+    /** rerank 语义分权重（0~1；与 {@link #retrievalSimilarityWeight} 成对配置时启用加权混合重排） */
+    private BigDecimal retrievalSemanticWeight;
+
     /** 分段最大长度（字符） */
     private Integer segmentMaxLength;
 

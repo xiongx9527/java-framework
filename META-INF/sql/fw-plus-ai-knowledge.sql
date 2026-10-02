@@ -17,6 +17,8 @@ CREATE TABLE kb_dataset (
     collection_name           VARCHAR(255)          DEFAULT NULL COMMENT '向量库 collection 名，按数据集隔离；空则按约定生成',
     retrieval_top_k           INT          NOT NULL DEFAULT 4 COMMENT '默认召回数量',
     retrieval_score_threshold DECIMAL(6,4) NOT NULL DEFAULT 0.0000 COMMENT '默认分数阈值',
+    retrieval_similarity_weight DECIMAL(6,4)         DEFAULT NULL COMMENT '向量相似度分权重（0~1）；与 retrieval_semantic_weight 成对配置时启用加权混合重排',
+    retrieval_semantic_weight   DECIMAL(6,4)         DEFAULT NULL COMMENT 'rerank 语义分权重（0~1）；与 retrieval_similarity_weight 成对配置时启用加权混合重排',
     segment_max_length        INT          NOT NULL DEFAULT 1000 COMMENT '分段最大长度（字符）',
     segment_overlap           INT          NOT NULL DEFAULT 200 COMMENT '分段重叠长度（字符）',
     segment_delimiter         VARCHAR(32)           DEFAULT NULL COMMENT '自定义分段分隔符，空则仅按递归规则',
@@ -29,6 +31,11 @@ CREATE TABLE kb_dataset (
     PRIMARY KEY (id),
     KEY idx_kb_dataset_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='easy-rag 知识库数据集';
+
+-- 存量库升级（加权混合重排，2026-10-02）：
+-- ALTER TABLE kb_dataset
+--     ADD COLUMN retrieval_similarity_weight DECIMAL(6,4) DEFAULT NULL COMMENT '向量相似度分权重（0~1）；与 retrieval_semantic_weight 成对配置时启用加权混合重排',
+--     ADD COLUMN retrieval_semantic_weight   DECIMAL(6,4) DEFAULT NULL COMMENT 'rerank 语义分权重（0~1）；与 retrieval_similarity_weight 成对配置时启用加权混合重排';
 
 -- 知识库文档
 CREATE TABLE kb_document (

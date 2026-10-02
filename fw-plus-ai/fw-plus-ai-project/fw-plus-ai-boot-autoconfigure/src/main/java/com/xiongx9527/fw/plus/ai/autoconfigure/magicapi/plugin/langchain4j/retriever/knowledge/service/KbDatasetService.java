@@ -131,6 +131,10 @@ public class KbDatasetService {
 				? dataset.getRetrievalTopK() : existing.getRetrievalTopK());
 		update.setRetrievalScoreThreshold(dataset.getRetrievalScoreThreshold() != null
 				? dataset.getRetrievalScoreThreshold() : existing.getRetrievalScoreThreshold());
+		update.setRetrievalSimilarityWeight(dataset.getRetrievalSimilarityWeight() != null
+				? dataset.getRetrievalSimilarityWeight() : existing.getRetrievalSimilarityWeight());
+		update.setRetrievalSemanticWeight(dataset.getRetrievalSemanticWeight() != null
+				? dataset.getRetrievalSemanticWeight() : existing.getRetrievalSemanticWeight());
 		update.setSegmentMaxLength(dataset.getSegmentMaxLength() != null
 				? dataset.getSegmentMaxLength() : existing.getSegmentMaxLength());
 		update.setSegmentOverlap(dataset.getSegmentOverlap() != null

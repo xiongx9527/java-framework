@@ -179,6 +179,12 @@ public class Langchain4jModuleConfiguration {
 		if (properties.getRerankMaxResults() != null) {
 			assistantBuilder.rerankMaxResults(properties.getRerankMaxResults());
 		}
+		if (properties.getSimilarityWeight() != null) {
+			assistantBuilder.similarityWeight(properties.getSimilarityWeight());
+		}
+		if (properties.getSemanticWeight() != null) {
+			assistantBuilder.semanticWeight(properties.getSemanticWeight());
+		}
 		return assistantBuilder.build();
 	}
 
