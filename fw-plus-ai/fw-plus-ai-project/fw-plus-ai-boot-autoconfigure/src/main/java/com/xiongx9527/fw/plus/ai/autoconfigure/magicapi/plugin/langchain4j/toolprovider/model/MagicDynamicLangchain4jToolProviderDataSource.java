@@ -1,10 +1,13 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.model;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.AgenticPipelineRegistry;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.AgenticToolProviders;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.Langchain4jToolProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.MagicApiToolExecutor;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.MagicApiToolProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.MagicApiToolRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.MagicToolInvoker;
+import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.service.tool.ToolProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,14 +34,22 @@ public class MagicDynamicLangchain4jToolProviderDataSource implements Disposable
 
 	private final MagicToolInvoker invoker;
 
-	private final Map<String, MagicApiToolProvider> providers = new ConcurrentHashMap<>();
+	private final Map<String, ToolProvider> providers = new ConcurrentHashMap<>();
 
 	private final Map<String, MagicApiToolRegistry> registries = new ConcurrentHashMap<>();
 
+	private final AgenticPipelineRegistry pipelineRegistry;
+
 	public MagicDynamicLangchain4jToolProviderDataSource(MagicResourceService magicResourceService,
 			MagicToolInvoker invoker) {
+		this(magicResourceService, invoker, null);
+	}
+
+	public MagicDynamicLangchain4jToolProviderDataSource(MagicResourceService magicResourceService,
+			MagicToolInvoker invoker, AgenticPipelineRegistry pipelineRegistry) {
 		this.magicResourceService = magicResourceService;
 		this.invoker = invoker;
+		this.pipelineRegistry = pipelineRegistry;
 	}
 
 	/**
@@ -54,6 +65,23 @@ public class MagicDynamicLangchain4jToolProviderDataSource implements Disposable
 		}
 		try {
 			destroy(key);
+			if (info.getAgenticKey() != null && !info.getAgenticKey().trim().isEmpty()) {
+				// agentic 来源：工具即编排注册中心中 agenticKey 对应的编排（agent-as-tool）
+				UntypedAgent pipeline = pipelineRegistry == null ? null : pipelineRegistry.get(info.getAgenticKey().trim());
+				if (pipeline == null) {
+					throw new IllegalArgumentException(String.format(
+							"编排注册中心中不存在 agenticKey '%s'，已注册: %s",
+							info.getAgenticKey(), pipelineRegistry == null ? java.util.Set.of() : pipelineRegistry.keys()));
+				}
+				providers.put(key, AgenticToolProviders.agenticToolProvider(pipeline, key,
+						info.getAgenticDescription() != null && !info.getAgenticDescription().trim().isEmpty()
+								? info.getAgenticDescription() : info.getName(),
+						info.getAgenticOutputKey(),
+						info.getAgenticInputKeys() == null ? new String[0]
+								: info.getAgenticInputKeys().toArray(new String[0])));
+				logger.info("注册 LangChain4j ToolProvider(agentic): {} -> {}", key, info.getAgenticKey());
+				return true;
+			}
 			Langchain4jToolProperties.Tools scope = info.getTools() == null
 					? new Langchain4jToolProperties.Tools() : info.getTools();
 			MagicApiToolRegistry registry = new MagicApiToolRegistry(magicResourceService, scope);
