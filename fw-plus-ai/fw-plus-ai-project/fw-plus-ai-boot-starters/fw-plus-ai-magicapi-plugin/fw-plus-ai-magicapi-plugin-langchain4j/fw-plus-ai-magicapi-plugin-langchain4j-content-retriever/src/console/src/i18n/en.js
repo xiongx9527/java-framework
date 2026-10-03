@@ -63,7 +63,9 @@ export default {
             'timeout': 'Timeout (ms)',
             'uri': 'URI',
             'username': 'Username',
-            'dataset-id': 'Knowledge Dataset'
+            'dataset-id': 'Knowledge Dataset',
+            'document-id': 'Document ID',
+            'metadata-condition': 'Metadata Condition'
         },
         kb: {
             refresh: 'Refresh',
@@ -94,6 +96,9 @@ export default {
                 segmentDelimiter: 'Custom Delimiter',
                 topK: 'TopK / Score Threshold',
                 import: 'Import',
+                metadataFields: 'Metadata Fields',
+                syncVectors: 'Sync Vectors',
+                syncVectorsAccepted: 'Background vector backfill submitted (completed segments without vectors)',
                 export: 'Export',
                 preview: 'Split Preview',
                 importDone: 'Imported, new dataset id: ',
@@ -119,6 +124,7 @@ export default {
                 metadataJson: 'Metadata JSON',
                 download: 'Download',
                 move: 'Move',
+                editText: 'Edit Text',
                 dropHere: 'Drop files to upload',
                 enable: 'Enable',
                 disable: 'Disable',
@@ -126,7 +132,10 @@ export default {
                 unarchive: 'Unarchive',
                 deleteConfirm: 'Delete this document (cascades to segments/vectors/original file)?'
             },
+            fieldType: 'Field Type',
+            pagination: { total: 'Total ', prev: 'Prev', next: 'Next' },
             segment: {
+                create: 'New Segment',
                 content: 'Segment Content',
                 keywords: 'Keywords',
                 answer: 'Answer',
@@ -141,6 +150,8 @@ export default {
                 run: 'Retrieve',
                 queryTip: 'Enter test query',
                 score: 'Score',
+                documentId: 'Document ID',
+                documentIdTip: 'Optional, restrict retrieval to one document',
                 metadataCondition: 'Metadata Condition',
                 metadataTip: 'JSON, e.g. {"logical_operator":"and","conditions":[{"name":"lang","value":"zh"}]}'
             }

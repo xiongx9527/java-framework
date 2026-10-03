@@ -31,15 +31,20 @@ public class KbDocumentService {
 
 	private final KbOriginalFileStore fileStore;
 
+	private final com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService metadataFieldService;
+
 	private final KbKnowledgeState state;
 
 	public KbDocumentService(KbDocumentMapper documentMapper,
 			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.mapper.KbDatasetMapper datasetMapper,
-			KbIndexingService indexingService, KbOriginalFileStore fileStore, KbKnowledgeState state) {
+			KbIndexingService indexingService, KbOriginalFileStore fileStore,
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService metadataFieldService,
+			KbKnowledgeState state) {
 		this.documentMapper = documentMapper;
 		this.datasetMapper = datasetMapper;
 		this.indexingService = indexingService;
 		this.fileStore = fileStore;
+		this.metadataFieldService = metadataFieldService;
 		this.state = state;
 	}
 
@@ -79,31 +84,72 @@ public class KbDocumentService {
 		return documentMapper.selectById(documentId);
 	}
 
-	/** 文件上传入库：存原文 → 置 waiting → 即时触发异步索引。 */
-	public KbDocument createByFile(String datasetId, MultipartFile file) {
+	/** 文件上传入库：存原文 → 置 waiting → 即时触发异步索引。metadata 为文档级键值对（可空）。 */
+	public KbDocument createByFile(String datasetId, MultipartFile file, java.util.Map<String, Object> metadata) {
 		state.checkReady();
 		try {
 			String fileName = file.getOriginalFilename() == null ? "upload.bin" : file.getOriginalFilename();
 			InputStream in = file.getInputStream();
-			return createInternal(datasetId, fileName, "upload", in, file.getSize(), null);
+			return createInternal(datasetId, fileName, "upload", in, file.getSize(), null, metadata);
 		} catch (java.io.IOException e) {
 			throw new IllegalStateException("读取上传文件失败: " + e.getMessage(), e);
 		}
 	}
 
-	/** 文本入库（create-by-text）：同 waiting + 异步索引。 */
-	public KbDocument createByText(String datasetId, String name, String text) {
+	/**
+	 * 文本入库（create-by-text）：同 waiting + 异步索引。text 允许为空——生成空文档占位
+	 * （无分段、直接 completed），后续经 {@link #updateText} 填充内容并重索引。
+	 */
+	public KbDocument createByText(String datasetId, String name, String text,
+			java.util.Map<String, Object> metadata) {
 		state.checkReady();
-		if (text == null || text.isEmpty()) {
-			throw new IllegalArgumentException("text 不能为空");
-		}
-		byte[] bytes = text.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+		byte[] bytes = (text == null ? "" : text).getBytes(java.nio.charset.StandardCharsets.UTF_8);
 		return createInternal(datasetId, name == null || name.isEmpty() ? "create-by-text.txt" : name,
-				"create-by-text", new java.io.ByteArrayInputStream(bytes), (long) bytes.length, text);
+				"create-by-text", new java.io.ByteArrayInputStream(bytes), (long) bytes.length, text, metadata);
+	}
+
+	/**
+	 * 更新文档文本内容（create-by-text 类型）：原文重写、doc_hash 重算，置 waiting 重新
+	 * 切分/嵌入（旧分段与向量由索引管道清理）。
+	 */
+	public KbDocument updateText(String documentId, String text, java.util.Map<String, Object> metadata) {
+		state.checkReady();
+		KbDocument document = requireDocument(documentId);
+		if (!"create-by-text".equals(document.getDataSourceType())) {
+			throw new IllegalArgumentException("仅 create-by-text 类型文档支持文本更新，上传文档请使用重新索引");
+		}
+		byte[] bytes = (text == null ? "" : text).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+		// 原文重写 + hash 重算（数据集内去重）
+		String hash = sha256Hex(bytes);
+		Integer existing = documentMapper.selectCount(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<KbDocument>()
+				.eq("dataset_id", document.getDatasetId())
+				.eq("doc_hash", hash)
+				.ne("id", documentId));
+		if (existing != null && existing > 0) {
+			throw new IllegalArgumentException("该数据集下已存在相同内容的文档（doc_hash 去重）");
+		}
+		metadataFieldService.validate(document.getDatasetId(), metadata);
+		String path = fileStore.saveText(documentId, document.getName(), text == null ? "" : text);
+		java.util.Date now = new java.util.Date();
+		com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<KbDocument> wrapper =
+				new com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<KbDocument>()
+						.eq("id", documentId)
+						.set("file_path", path)
+						.set("file_size", (long) bytes.length)
+						.set("word_count", text == null || text.isEmpty() ? 0 : KbTokenCounter.estimate(text))
+						.set("doc_hash", hash)
+						.set("indexing_status", "waiting")
+						.set("error_msg", null)
+						.set("latency_ms", null)
+						.set("metadata", metadata == null ? "{}" : JSON.toJSONString(metadata))
+						.set("update_time", now);
+		documentMapper.update(null, wrapper);
+		indexingService.trigger(documentMapper.selectById(documentId));
+		return documentMapper.selectById(documentId);
 	}
 
 	private KbDocument createInternal(String datasetId, String fileName, String sourceType,
-			InputStream content, long size, String text) {
+			InputStream content, long size, String text, java.util.Map<String, Object> metadata) {
 		if (datasetId == null || datasetId.isEmpty()) {
 			throw new IllegalArgumentException("数据集 id 不能为空");
 		}
@@ -133,8 +179,10 @@ public class KbDocumentService {
 		document.setDataSourceType(sourceType);
 		document.setWordCount(text != null ? approxWordCount(text) : null);
 		document.setIndexingStatus("waiting");
+		metadataFieldService.validate(datasetId, metadata);
 		document.setEnabled("1");
 		document.setArchived("0");
+		document.setMetadata(metadata == null || metadata.isEmpty() ? "{}" : JSON.toJSONString(metadata));
 		document.setDocHash(hash);
 		document.setCreateTime(now);
 		document.setUpdateTime(now);
@@ -253,7 +301,8 @@ public class KbDocumentService {
 	/** 设置文档 metadata 键值对（JSON 持久化，检索过滤/向量 metadata 同步用）。 */
 	public KbDocument setMetadata(String documentId, Map<String, Object> metadata) {
 		state.checkReady();
-		requireDocument(documentId);
+		KbDocument existing = requireDocument(documentId);
+		metadataFieldService.validate(existing.getDatasetId(), metadata);
 		KbDocument update = new KbDocument();
 		update.setId(documentId);
 		update.setMetadata(metadata == null ? "{}" : JSON.toJSONString(metadata));

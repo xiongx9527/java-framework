@@ -4,6 +4,8 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.auth.KbSaTokenAuthChecker;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.entity.KbDataset;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.entity.KbSegment;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbDocumentService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSearchHit;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSearchService;
@@ -34,12 +36,24 @@ public class KbOpenApiController {
 
 	private final KbSearchService searchService;
 
+	private final com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbDatasetService datasetService;
+
+	private final com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSegmentService segmentService;
+
+	private final com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService metadataFieldService;
+
 	private final KbSaTokenAuthChecker authChecker;
 
 	public KbOpenApiController(KbDocumentService documentService, KbSearchService searchService,
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbDatasetService datasetService,
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSegmentService segmentService,
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService metadataFieldService,
 			KbSaTokenAuthChecker authChecker) {
 		this.documentService = documentService;
 		this.searchService = searchService;
+		this.datasetService = datasetService;
+		this.segmentService = segmentService;
+		this.metadataFieldService = metadataFieldService;
 		this.authChecker = authChecker;
 	}
 
@@ -49,13 +63,16 @@ public class KbOpenApiController {
 			consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public Object uploadByFile(@PathVariable("datasetId") String datasetId,
 			@RequestParam("file") MultipartFile file,
+			@RequestParam(value = "metadata", required = false) String metadataJson,
 			@RequestHeader(value = "Authorization", required = false) String authorization,
 			@RequestHeader(value = "kb-token", required = false) String kbToken) {
 		if (!auth(authorization, kbToken)) {
 			return error(1002, "认证失败");
 		}
 		try {
-			return ok(documentService.createByFile(datasetId, file));
+			return ok(documentService.createByFile(datasetId, file,
+					com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.web.KbConsoleController
+							.parseStaticMetadataJson(metadataJson)));
 		} catch (IllegalArgumentException e) {
 			return error(2001, e.getMessage());
 		}
@@ -72,10 +89,266 @@ public class KbOpenApiController {
 		try {
 			String name = body.get("name") == null ? null : String.valueOf(body.get("name"));
 			String text = body.get("text") == null ? null : String.valueOf(body.get("text"));
-			return ok(documentService.createByText(datasetId, name, text));
+			Object metadata = body.get("metadata");
+			return ok(documentService.createByText(datasetId, name, text,
+					metadata instanceof Map ? (Map<String, Object>) metadata : null));
 		} catch (IllegalArgumentException e) {
 			return error(2001, e.getMessage());
 		}
+	}
+
+	/** 业务方文档分页列表（Sa-Token 认证）。 */
+	@GetMapping("/v1/datasets/{datasetId}/documents")
+	public Object listDocuments(@PathVariable("datasetId") String datasetId,
+			@RequestParam(value = "page", defaultValue = "1") int page,
+			@RequestParam(value = "pageSize", defaultValue = "20") int pageSize,
+			@RequestHeader(value = "Authorization", required = false) String authorization,
+			@RequestHeader(value = "kb-token", required = false) String kbToken) {
+		if (!auth(authorization, kbToken)) {
+			return error(1002, "认证失败");
+		}
+		try {
+			return ok(datasetService.listDocuments(datasetId, page, pageSize));
+		} catch (IllegalArgumentException e) {
+			return error(2001, e.getMessage());
+		}
+	}
+
+	/** 业务方分段分页列表（Sa-Token 认证）。 */
+	@GetMapping("/v1/datasets/{datasetId}/documents/{documentId}/segments")
+	public Object listSegments(@PathVariable("datasetId") String datasetId,
+			@PathVariable("documentId") String documentId,
+			@RequestParam(value = "page", defaultValue = "1") int page,
+			@RequestParam(value = "pageSize", defaultValue = "20") int pageSize,
+			@RequestHeader(value = "Authorization", required = false) String authorization,
+			@RequestHeader(value = "kb-token", required = false) String kbToken) {
+		if (!auth(authorization, kbToken)) {
+			return error(1002, "认证失败");
+		}
+		return ok(segmentService.listSegments(documentId, page, pageSize));
+	}
+
+	/** 业务方单独更新文档 metadata：body 为键值对 JSON；向量快照在重建索引后同步。 */
+	@PostMapping("/v1/datasets/{datasetId}/documents/{documentId}/metadata")
+	public Object updateDocumentMetadata(@PathVariable("datasetId") String datasetId,
+			@PathVariable("documentId") String documentId,
+			@RequestBody Map<String, Object> metadata,
+			@RequestHeader(value = "Authorization", required = false) String authorization,
+			@RequestHeader(value = "kb-token", required = false) String kbToken) {
+		if (!auth(authorization, kbToken)) {
+			return error(1002, "认证失败");
+		}
+		try {
+			requireDocumentInDataset(datasetId, documentId);
+			return ok(documentService.setMetadata(documentId, metadata));
+		} catch (IllegalArgumentException e) {
+			return error(2001, e.getMessage());
+		}
+	}
+
+	/** 业务方文本更新（create-by-text 类型）：body {text}，重算 hash 并重新入队索引。 */
+	@PostMapping("/v1/datasets/{datasetId}/document/{documentId}/text")
+	public Object updateDocumentText(@PathVariable("datasetId") String datasetId,
+			@PathVariable("documentId") String documentId,
+			@RequestBody Map<String, Object> body,
+			@RequestHeader(value = "Authorization", required = false) String authorization,
+			@RequestHeader(value = "kb-token", required = false) String kbToken) {
+		if (!auth(authorization, kbToken)) {
+			return error(1002, "认证失败");
+		}
+		try {
+			requireDocumentInDataset(datasetId, documentId);
+			String text = body.get("text") == null ? "" : String.valueOf(body.get("text"));
+			Object metadata = body.get("metadata");
+			return ok(documentService.updateText(documentId, text,
+					metadata instanceof Map ? (Map<String, Object>) metadata : null));
+		} catch (IllegalArgumentException e) {
+			return error(2001, e.getMessage());
+		}
+	}
+
+	/** 业务方新增分段：body {content, keywords?, answer?}，自动重嵌入。 */
+	@PostMapping("/v1/datasets/{datasetId}/documents/{documentId}/segments")
+	public Object createSegment(@PathVariable("datasetId") String datasetId,
+			@PathVariable("documentId") String documentId,
+			@RequestBody Map<String, Object> body,
+			@RequestHeader(value = "Authorization", required = false) String authorization,
+			@RequestHeader(value = "kb-token", required = false) String kbToken) {
+		if (!auth(authorization, kbToken)) {
+			return error(1002, "认证失败");
+		}
+		try {
+			requireDocumentInDataset(datasetId, documentId);
+			String content = body.get("content") == null ? null : String.valueOf(body.get("content"));
+			String keywords = body.get("keywords") == null ? null : String.valueOf(body.get("keywords"));
+			String answer = body.get("answer") == null ? null : String.valueOf(body.get("answer"));
+			return ok(segmentService.create(documentId, content, keywords, answer));
+		} catch (IllegalArgumentException e) {
+			return error(2001, e.getMessage());
+		}
+	}
+
+	/** 业务方修改分段：body {content?, keywords?, answer?}，内容变更自动重嵌入。 */
+	@PostMapping("/v1/datasets/{datasetId}/segments/{segmentId}")
+	public Object updateSegment(@PathVariable("datasetId") String datasetId,
+			@PathVariable("segmentId") String segmentId,
+			@RequestBody Map<String, Object> body,
+			@RequestHeader(value = "Authorization", required = false) String authorization,
+			@RequestHeader(value = "kb-token", required = false) String kbToken) {
+		if (!auth(authorization, kbToken)) {
+			return error(1002, "认证失败");
+		}
+		try {
+			requireSegmentInDataset(datasetId, segmentId);
+			String content = body.get("content") == null ? null : String.valueOf(body.get("content"));
+			String keywords = body.get("keywords") == null ? null : String.valueOf(body.get("keywords"));
+			String answer = body.get("answer") == null ? null : String.valueOf(body.get("answer"));
+			return ok(segmentService.update(segmentId, content, keywords, answer));
+		} catch (IllegalArgumentException e) {
+			return error(2001, e.getMessage());
+		}
+	}
+
+	/** 业务方分段启禁：body {enabled}。 */
+	@PostMapping("/v1/datasets/{datasetId}/segments/{segmentId}/enabled")
+	public Object patchSegmentEnabled(@PathVariable("datasetId") String datasetId,
+			@PathVariable("segmentId") String segmentId,
+			@RequestBody Map<String, Object> body,
+			@RequestHeader(value = "Authorization", required = false) String authorization,
+			@RequestHeader(value = "kb-token", required = false) String kbToken) {
+		if (!auth(authorization, kbToken)) {
+			return error(1002, "认证失败");
+		}
+		try {
+			requireSegmentInDataset(datasetId, segmentId);
+			boolean enabled = !"false".equalsIgnoreCase(String.valueOf(body.get("enabled")));
+			return ok(segmentService.patchEnabled(segmentId, enabled));
+		} catch (IllegalArgumentException e) {
+			return error(2001, e.getMessage());
+		}
+	}
+
+	/** 业务方删除分段。 */
+	@PostMapping("/v1/datasets/{datasetId}/segments/{segmentId}/delete")
+	public Object deleteSegment(@PathVariable("datasetId") String datasetId,
+			@PathVariable("segmentId") String segmentId,
+			@RequestHeader(value = "Authorization", required = false) String authorization,
+			@RequestHeader(value = "kb-token", required = false) String kbToken) {
+		if (!auth(authorization, kbToken)) {
+			return error(1002, "认证失败");
+		}
+		try {
+			requireSegmentInDataset(datasetId, segmentId);
+			segmentService.delete(segmentId);
+			return ok(null);
+		} catch (IllegalArgumentException e) {
+			return error(2001, e.getMessage());
+		}
+	}
+
+	/** 校验文档属于指定数据集，不属于时抛 2001 语义异常。 */
+	private void requireDocumentInDataset(String datasetId, String documentId) {
+		KbDataset dataset = searchService.datasetOf(datasetId);
+		if (dataset == null) {
+			throw new IllegalArgumentException("知识库数据集不存在: " + datasetId);
+		}
+		com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.entity.KbDocument document =
+				documentService.get(documentId);
+		if (!datasetId.equals(document.getDatasetId())) {
+			throw new IllegalArgumentException("文档不属于该数据集: " + documentId);
+		}
+	}
+
+	/** 校验分段属于指定数据集。 */
+	private void requireSegmentInDataset(String datasetId, String segmentId) {
+		KbDataset dataset = searchService.datasetOf(datasetId);
+		if (dataset == null) {
+			throw new IllegalArgumentException("知识库数据集不存在: " + datasetId);
+		}
+		com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.entity.KbSegment segment =
+				segmentService.getSegment(segmentId);
+		if (!datasetId.equals(segment.getDatasetId())) {
+			throw new IllegalArgumentException("分段不属于该数据集: " + segmentId);
+		}
+	}
+
+	/** 业务方数据集元数据字段定义列表（赋值前先了解可用字段）。 */
+	@GetMapping("/v1/datasets/{datasetId}/metadata-fields")
+	public Object listMetadataFields(@PathVariable("datasetId") String datasetId,
+			@RequestHeader(value = "Authorization", required = false) String authorization,
+			@RequestHeader(value = "kb-token", required = false) String kbToken) {
+		if (!auth(authorization, kbToken)) {
+			return error(1002, "认证失败");
+		}
+		return ok(metadataFieldService.list(datasetId));
+	}
+
+	/** 业务方文档启禁（body {enabled}）：禁用文档不参与检索。 */
+	@PostMapping("/v1/datasets/{datasetId}/documents/{documentId}/enabled")
+	public Object patchDocumentEnabled(@PathVariable("datasetId") String datasetId,
+			@PathVariable("documentId") String documentId,
+			@RequestBody Map<String, Object> body,
+			@RequestHeader(value = "Authorization", required = false) String authorization,
+			@RequestHeader(value = "kb-token", required = false) String kbToken) {
+		if (!auth(authorization, kbToken)) {
+			return error(1002, "认证失败");
+		}
+		try {
+			requireDocumentInDataset(datasetId, documentId);
+			boolean enabled = !"false".equalsIgnoreCase(String.valueOf(body.get("enabled")));
+			return ok(documentService.patchEnabled(documentId, enabled));
+		} catch (IllegalArgumentException e) {
+			return error(2001, e.getMessage());
+		}
+	}
+
+	/** 业务方文档归档/取消归档（body {archived}），与启禁独立，归档不参与检索。 */
+	@PostMapping("/v1/datasets/{datasetId}/documents/{documentId}/archived")
+	public Object patchDocumentArchived(@PathVariable("datasetId") String datasetId,
+			@PathVariable("documentId") String documentId,
+			@RequestBody Map<String, Object> body,
+			@RequestHeader(value = "Authorization", required = false) String authorization,
+			@RequestHeader(value = "kb-token", required = false) String kbToken) {
+		if (!auth(authorization, kbToken)) {
+			return error(1002, "认证失败");
+		}
+		try {
+			requireDocumentInDataset(datasetId, documentId);
+			boolean archived = !"false".equalsIgnoreCase(String.valueOf(body.get("archived")));
+			return ok(documentService.patchArchived(documentId, archived));
+		} catch (IllegalArgumentException e) {
+			return error(2001, e.getMessage());
+		}
+	}
+
+	/** 业务方文档删除：级联删除分段/向量/原始文件。 */
+	@PostMapping("/v1/datasets/{datasetId}/documents/{documentId}/delete")
+	public Object deleteDocument(@PathVariable("datasetId") String datasetId,
+			@PathVariable("documentId") String documentId,
+			@RequestHeader(value = "Authorization", required = false) String authorization,
+			@RequestHeader(value = "kb-token", required = false) String kbToken) {
+		if (!auth(authorization, kbToken)) {
+			return error(1002, "认证失败");
+		}
+		try {
+			requireDocumentInDataset(datasetId, documentId);
+			documentService.deleteDocument(documentId);
+			return ok(null);
+		} catch (IllegalArgumentException e) {
+			return error(2001, e.getMessage());
+		}
+	}
+
+	/** 业务方分段详情（Sa-Token 认证）。 */
+	@GetMapping("/v1/datasets/{datasetId}/segments/{segmentId}")
+	public Object segmentDetail(@PathVariable("datasetId") String datasetId,
+			@PathVariable("segmentId") String segmentId,
+			@RequestHeader(value = "Authorization", required = false) String authorization,
+			@RequestHeader(value = "kb-token", required = false) String kbToken) {
+		if (!auth(authorization, kbToken)) {
+			return error(1002, "认证失败");
+		}
+		return ok(segmentService.getSegment(segmentId));
 	}
 
 	@GetMapping("/v1/datasets/{datasetId}/document/{documentId}")
@@ -106,7 +379,9 @@ public class KbOpenApiController {
 			Object condition = body.get("metadataCondition");
 			JSONObject metadataCondition = condition instanceof Map
 					? JSON.parseObject(JSON.toJSONString(condition)) : null;
-			List<KbSearchHit> hits = searchService.search(datasetId, query, topK, minScore, metadataCondition);
+			String documentId = body.get("documentId") == null ? null : String.valueOf(body.get("documentId"));
+			List<KbSearchHit> hits = searchService.search(datasetId, query, topK, minScore, metadataCondition,
+					documentId);
 			List<Map<String, Object>> records = new ArrayList<>();
 			for (KbSearchHit hit : hits) {
 				Map<String, Object> record = new LinkedHashMap<>();

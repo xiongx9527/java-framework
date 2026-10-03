@@ -67,10 +67,14 @@ public class KbSearchService {
 	/** 混合检索开关（向量路 + 关键词路融合；关闭则仅向量路） */
 	private final boolean hybridSearch;
 
+	/** ES 全文检索客户端（es.enabled 关闭时内部 no-op，关键词路回落 FULLTEXT/LIKE） */
+	private final com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.es.EsSegmentSearchClient esClient;
+
 	public KbSearchService(KbDatasetMapper datasetMapper, KbDocumentMapper documentMapper,
 			KbSegmentMapper segmentMapper, ContentRetrieverContext retrieverContext,
 			ObjectProvider<Langchain4jScoringModelModule> scoringModels, KbIndexingExecutor executor,
-			KbKnowledgeState state, boolean hybridSearch) {
+			KbKnowledgeState state, boolean hybridSearch,
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.es.EsSegmentSearchClient esClient) {
 		this.datasetMapper = datasetMapper;
 		this.documentMapper = documentMapper;
 		this.segmentMapper = segmentMapper;
@@ -79,6 +83,7 @@ public class KbSearchService {
 		this.executor = executor;
 		this.state = state;
 		this.hybridSearch = hybridSearch;
+		this.esClient = esClient;
 	}
 
 	/**
@@ -90,6 +95,16 @@ public class KbSearchService {
 	 */
 	public List<KbSearchHit> search(String datasetId, String query, Integer topKOverride,
 			Double minScoreOverride, JSONObject metadataCondition) {
+		return search(datasetId, query, topKOverride, minScoreOverride, metadataCondition, null);
+	}
+
+	/**
+	 * 召回检索（支持文档级限定）。
+	 *
+	 * @param documentId 文档 id 条件（非空时仅在该文档范围内检索；向量下推 + 内存兜底双路生效）
+	 */
+	public List<KbSearchHit> search(String datasetId, String query, Integer topKOverride,
+			Double minScoreOverride, JSONObject metadataCondition, String documentId) {
 		state.checkReady();
 		if (query == null || query.isEmpty()) {
 			throw new IllegalArgumentException("检索 query 不能为空");
@@ -104,7 +119,7 @@ public class KbSearchService {
 
 		// economy 经济模式：不入向量库，纯关键词单路
 		if ("economy".equalsIgnoreCase(dataset.getIndexingTechnique())) {
-			List<KbSearchHit> hits = economySearch(dataset, query, metadataFilter);
+			List<KbSearchHit> hits = economySearch(dataset, query, metadataFilter, documentId);
 			if (hits.size() > topK) {
 				hits = new ArrayList<>(hits.subList(0, topK));
 			}
@@ -121,31 +136,37 @@ public class KbSearchService {
 		Embedding queryEmbedding = embeddingModel.embed(query).content();
 
 		List<EmbeddingMatch<TextSegment>> matches;
-		// 元数据条件优先下推向量库（查询期过滤）；store 不支持时才回落为取出后内存过滤
-		boolean metadataPushedDown = false;
-		if (metadataFilter != null) {
+		// 元数据/文档条件优先下推向量库（查询期过滤）；store 不支持时才回落为取出后内存过滤
+		// 文档 id 条件：向量 metadata 携带 document_id，直接随 base filter 下推
+		Filter documentFilter = documentId == null || documentId.isEmpty() ? null
+				: new MetadataFilterBuilder("document_id").isEqualTo(documentId);
+		Filter queryFilter = metadataFilter == null ? documentFilter
+				: documentFilter == null ? metadataFilter : metadataFilter.and(documentFilter);
+		boolean filterPushedDown = false;
+		if (queryFilter != null) {
 			try {
-				matches = doSearch(store, queryEmbedding, topK, minScore, baseFilter().and(metadataFilter));
-				metadataPushedDown = true;
+				matches = doSearch(store, queryEmbedding, topK, minScore, baseFilter().and(queryFilter));
+				filterPushedDown = true;
 			} catch (Exception e) {
-				// store 不支持 metadata filter 下推：多取后内存过滤（语义与下推一致）
+				// store 不支持 filter 下推：多取后内存过滤（语义与下推一致）
 				matches = doSearch(store, queryEmbedding, Math.max(topK * 3, 20), minScore, null);
 			}
 		} else {
 			matches = doSearch(store, queryEmbedding, topK, minScore, null);
 		}
 
-		Filter inMemoryMetadataFilter = metadataPushedDown ? null : metadataFilter;
-		List<KbSearchHit> hits = assemble(matches, minScore, inMemoryMetadataFilter);
+		Filter inMemoryMetadataFilter = filterPushedDown ? null : queryFilter;
+		List<KbSearchHit> hits = assemble(matches, minScore, inMemoryMetadataFilter, documentId);
 		if (inMemoryMetadataFilter != null && matches.size() > hits.size()) {
 			// 兜底过滤后不足 topK：多取一轮补足
 			matches = doSearch(store, queryEmbedding, Math.max(topK * 3, 20), minScore, null);
-			hits = assemble(matches, minScore, inMemoryMetadataFilter);
+			hits = assemble(matches, minScore, inMemoryMetadataFilter, documentId);
 		}
 
 		// 多路召回融合：向量路之外补充关键词路（按 segmentId 去重，关键词命中带命中度分）
 		if (hybridSearch) {
-			hits = mergeKeywordRecall(dataset, query, hits, inMemoryMetadataFilter, Math.max(topK * 3, 20));
+			hits = mergeKeywordRecall(dataset, query, hits, inMemoryMetadataFilter, documentId,
+					Math.max(topK * 3, 20));
 		}
 
 		List<KbSearchHit> ranked = rerank(dataset, query, hits);
@@ -175,7 +196,7 @@ public class KbSearchService {
 	}
 
 	private List<KbSearchHit> assemble(List<EmbeddingMatch<TextSegment>> matches, double minScore,
-			Filter inMemoryMetadataFilter) {
+			Filter inMemoryMetadataFilter, String documentId) {
 		List<KbSearchHit> hits = new ArrayList<>();
 		for (EmbeddingMatch<TextSegment> match : matches) {
 			if (match.score() < minScore) {
@@ -191,8 +212,11 @@ public class KbSearchService {
 				// 向量残留（分段已删）：跳过
 				continue;
 			}
-			// 启禁/归档以表为准（向量 metadata 只是写入时快照）
+			// 启禁/归档以表为准（向量 metadata 只是写入时快照）；文档 id 条件同样以表为权威
 			if (!"1".equals(segment.getEnabled())) {
+				continue;
+			}
+			if (documentId != null && !documentId.isEmpty() && !documentId.equals(segment.getDocumentId())) {
 				continue;
 			}
 			KbDocument document = documentMapper.selectById(segment.getDocumentId());
@@ -467,11 +491,16 @@ public class KbSearchService {
 	 * 关键词路召回：segment content/keywords 对 query 词项 LIKE 命中（中文按 2-gram 切词，
 	 * 空格分词的词项原样），命中度 = 命中词项数 / 词项总数（0~1，与向量 score 同量纲）。
 	 */
-	private List<KbSearchHit> economySearch(KbDataset dataset, String query, Filter metadataFilter) {
+	private List<KbSearchHit> economySearch(KbDataset dataset, String query, Filter metadataFilter,
+			String documentId) {
 		List<KbSegment> segments = keywordRecallSegments(dataset.getId(), query);
 		List<KbSearchHit> hits = new ArrayList<>();
 		for (KbSegment segment : segments) {
-			double score = keywordScore(query, segment);
+			if (documentId != null && !documentId.isEmpty() && !documentId.equals(segment.getDocumentId())) {
+				continue;
+			}
+			double score = segment.getRelevance() != null ? segment.getRelevance()
+					: keywordScore(query, segment);
 			if (score <= 0) {
 				continue;
 			}
@@ -493,7 +522,7 @@ public class KbSearchService {
 
 	/** 多路召回融合：向量路命中保留原分，关键词路新增命中带命中度分，按 segmentId 去重。 */
 	private List<KbSearchHit> mergeKeywordRecall(KbDataset dataset, String query, List<KbSearchHit> vectorHits,
-			Filter inMemoryMetadataFilter, int limit) {
+			Filter inMemoryMetadataFilter, String documentId, int limit) {
 		List<KbSegment> keywordSegments = keywordRecallSegments(dataset.getId(), query);
 		if (keywordSegments.isEmpty()) {
 			return vectorHits;
@@ -507,7 +536,12 @@ public class KbSearchService {
 			if (vectorIds.contains(segment.getId())) {
 				continue;
 			}
-			double score = keywordScore(query, segment);
+			if (documentId != null && !documentId.isEmpty() && !documentId.equals(segment.getDocumentId())) {
+				continue;
+			}
+			// FULLTEXT 模式用归一化相关度；LIKE 回落模式用词项命中度
+			double score = segment.getRelevance() != null ? segment.getRelevance()
+					: keywordScore(query, segment);
 			if (score <= 0) {
 				continue;
 			}
@@ -530,8 +564,57 @@ public class KbSearchService {
 		return merged;
 	}
 
-	/** 关键词路 SQL 召回：content/keywords 对词项 LIKE（OR 连接），限制返回量。 */
+	/** 关键词路召回：ES 优先（es.enabled）→ FULLTEXT ngram 全文 → 词项 LIKE。 */
 	private List<KbSegment> keywordRecallSegments(String datasetId, String query) {
+		// ES 优先：multi_match 相关度，写入实体非表字段 relevance；ES 无命中时不回落字面检索
+		if (esClient != null) {
+			try {
+				List<com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.es.EsSegmentSearchClient.EsHit> esHits =
+						esClient.search(datasetId, query, null, 60);
+				if (!esHits.isEmpty()) {
+					double max = 0;
+					for (com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.es.EsSegmentSearchClient.EsHit esHit : esHits) {
+						if (esHit.getScore() > max) {
+							max = esHit.getScore();
+						}
+					}
+					List<KbSegment> segments = new ArrayList<>();
+					for (com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.es.EsSegmentSearchClient.EsHit esHit : esHits) {
+						KbSegment segment = segmentMapper.selectById(esHit.getSegmentId());
+						if (segment == null) {
+							continue;
+						}
+						segment.setRelevance(max > 0 ? esHit.getScore() / max : 1.0);
+						segments.add(segment);
+					}
+					return segments;
+				}
+				return Collections.emptyList();
+			} catch (Exception e) {
+				// ES 不可用：回落 FULLTEXT/LIKE
+			}
+		}
+		// FULLTEXT 优先：MATCH AGAINST 返回相关度，写入实体非表字段 relevance
+		try {
+			List<KbSegment> recalled = segmentMapper.fulltextRecall(datasetId, query, 60);
+			if (recalled != null) {
+				double max = 0;
+				for (KbSegment segment : recalled) {
+					if (segment.getRelevance() != null && segment.getRelevance() > max) {
+						max = segment.getRelevance();
+					}
+				}
+				// 归一化到 0~1（本批最大相关度为 1）
+				if (max > 0) {
+					for (KbSegment segment : recalled) {
+						segment.setRelevance(segment.getRelevance() == null ? 0 : segment.getRelevance() / max);
+					}
+				}
+				return recalled;
+			}
+		} catch (Exception e) {
+			// FULLTEXT 索引缺失等场景：回落词项 LIKE
+		}
 		List<String> terms = queryTerms(query);
 		if (terms.isEmpty()) {
 			return Collections.emptyList();

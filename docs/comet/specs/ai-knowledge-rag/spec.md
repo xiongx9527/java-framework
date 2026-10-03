@@ -84,6 +84,19 @@ CREATE TABLE kb_document (
     UNIQUE KEY uk_kb_document_hash (dataset_id, doc_hash)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='easy-rag 知识库文档';
 
+-- 知识库元数据字段定义
+CREATE TABLE kb_metadata_field (
+    id          VARCHAR(32)  NOT NULL COMMENT '主键',
+    dataset_id  VARCHAR(32)  NOT NULL COMMENT '所属数据集 id',
+    name        VARCHAR(255) NOT NULL COMMENT '字段名（数据集内唯一）',
+    type        VARCHAR(16)  NOT NULL DEFAULT 'string' COMMENT '字段类型：string/number/time',
+    description VARCHAR(1024)         DEFAULT NULL COMMENT '字段说明',
+    create_time DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_kb_metadata_field (dataset_id, name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='知识库元数据字段定义';
+
 -- 知识库分段
 CREATE TABLE kb_segment (
     id               VARCHAR(32)  NOT NULL COMMENT '主键（同时作为向量库 vector id）',

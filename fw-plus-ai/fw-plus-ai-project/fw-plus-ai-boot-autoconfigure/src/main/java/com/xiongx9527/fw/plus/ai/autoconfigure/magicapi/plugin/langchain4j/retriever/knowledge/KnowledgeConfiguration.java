@@ -73,6 +73,12 @@ public class KnowledgeConfiguration {
 	@Autowired
 	private ObjectProvider<KbSegmentService> segmentServices;
 
+	@Autowired
+	private ObjectProvider<com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService> metadataFieldServices;
+
+	@Autowired
+	private ObjectProvider<com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbIndexingService> indexingServices;
+
 	/**
 	 * knowledge 管理端插件：声明专属前端产物（magic-kb-browser iife.js，toolbars 四视图入口）
 	 * 并注册 {@code /kb/**} Controller。控制台入口经 {@code magic-api.plugin.knowledge.admin.enabled}
@@ -97,11 +103,16 @@ public class KnowledgeConfiguration {
 					KbDatasetService datasetService = datasetServices.getIfAvailable();
 					KbDocumentService documentService = documentServices.getIfAvailable();
 					KbSegmentService segmentService = segmentServices.getIfAvailable();
-					if (datasetService == null || documentService == null || segmentService == null) {
+					com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService metadataFieldService =
+							metadataFieldServices.getIfAvailable();
+					com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbIndexingService indexingService =
+							indexingServices.getIfAvailable();
+					if (datasetService == null || documentService == null || segmentService == null
+							|| metadataFieldService == null || indexingService == null) {
 						return;
 					}
 					mapping.registerController(new KbConsoleController(configuration, datasetService,
-							documentService, segmentService));
+							documentService, segmentService, metadataFieldService, indexingService));
 				};
 			}
 		};
@@ -143,6 +154,13 @@ public class KnowledgeConfiguration {
 		return mapper(KbSegmentMapper.class, sqlSessionFactory);
 	}
 
+	@Bean
+	public MapperFactoryBean<com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.mapper.KbMetadataFieldMapper> kbMetadataFieldMapper(
+			SqlSessionFactory sqlSessionFactory) {
+		return mapper(com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.mapper.KbMetadataFieldMapper.class,
+				sqlSessionFactory);
+	}
+
 	private static <T> MapperFactoryBean<T> mapper(Class<T> type, SqlSessionFactory sqlSessionFactory) {
 		MapperFactoryBean<T> factoryBean = new MapperFactoryBean<>(type);
 		factoryBean.setSqlSessionFactory(sqlSessionFactory);
@@ -166,17 +184,20 @@ public class KnowledgeConfiguration {
 
 	@Bean
 	public KbKnowledgeState kbKnowledgeState(KbDatasetMapper datasetMapper, KbDocumentMapper documentMapper,
-			KbSegmentMapper segmentMapper) {
-		return new KbKnowledgeState(datasetMapper, documentMapper, segmentMapper);
+			KbSegmentMapper segmentMapper,
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.mapper.KbMetadataFieldMapper metadataFieldMapper) {
+		return new KbKnowledgeState(datasetMapper, documentMapper, segmentMapper, metadataFieldMapper);
 	}
 
-	/** 全部单例就绪后启动 waiting 轮询兜底（设计 §2.3：入库即时触发 + 定时轮询）。 */
+	/** 全部单例就绪后启动 waiting 轮询兜底（设计 §2.3）并初始化 ES 索引（es.enabled 时）。 */
 	@Bean
 	public org.springframework.beans.factory.SmartInitializingSingleton kbIndexingPollingStarter(
-			final KbIndexingExecutor executor, final KbIndexingService indexingService) {
+			final KbIndexingExecutor executor, final KbIndexingService indexingService,
+			final com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.es.EsSegmentSearchClient esClient) {
 		return new org.springframework.beans.factory.SmartInitializingSingleton() {
 			@Override
 			public void afterSingletonsInstantiated() {
+				esClient.ensureIndex();
 				executor.startPolling(indexingService::pollWaiting);
 			}
 		};
@@ -187,32 +208,63 @@ public class KnowledgeConfiguration {
 	@Bean
 	public KbIndexingService kbIndexingService(KbDatasetMapper datasetMapper, KbDocumentMapper documentMapper,
 			KbSegmentMapper segmentMapper, KbOriginalFileStore fileStore, DocumentPipeline documentPipeline,
-			KbIndexingExecutor executor, ContentRetrieverContext retrieverContext, KbKnowledgeState state) {
+			KbIndexingExecutor executor, ContentRetrieverContext retrieverContext, KbKnowledgeState state,
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.es.EsSegmentSearchClient esClient) {
 		return new KbIndexingService(datasetMapper, documentMapper, segmentMapper, fileStore, documentPipeline,
-				executor, retrieverContext, state);
+				executor, retrieverContext, state, esClient);
+	}
+
+	@Bean
+	public com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.es.EsSegmentSearchClient esSegmentSearchClient(
+			org.springframework.beans.factory.ObjectProvider<com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.elasticsearch.module.ElasticSearchModule> esModules,
+			KnowledgeConfiguration.KnowledgeProperties properties) {
+		return new com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.es.EsSegmentSearchClient(
+				esModules, properties.getEsKey(), properties.getEsIndexPrefix(), properties.isEsEnabled());
 	}
 
 	@Bean
 	public KbSearchService kbSearchService(KbDatasetMapper datasetMapper, KbDocumentMapper documentMapper,
 			KbSegmentMapper segmentMapper, ContentRetrieverContext retrieverContext,
 			ObjectProvider<Langchain4jScoringModelModule> scoringModels, KbIndexingExecutor executor,
-			KbKnowledgeState state, KnowledgeConfiguration.KnowledgeProperties properties) {
+			KbKnowledgeState state, KnowledgeConfiguration.KnowledgeProperties properties,
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.es.EsSegmentSearchClient esClient) {
 		return new KbSearchService(datasetMapper, documentMapper, segmentMapper, retrieverContext, scoringModels,
-				executor, state, properties.isHybridSearch());
+				executor, state, properties.isHybridSearch(), esClient);
 	}
 
 	@Bean
 	public KbDocumentService kbDocumentService(KbDocumentMapper documentMapper, KbDatasetMapper datasetMapper,
-			KbIndexingService indexingService, KbOriginalFileStore fileStore, KbKnowledgeState state) {
-		return new KbDocumentService(documentMapper, datasetMapper, indexingService, fileStore, state);
+			KbIndexingService indexingService, KbOriginalFileStore fileStore,
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService metadataFieldService,
+			KbKnowledgeState state) {
+		return new KbDocumentService(documentMapper, datasetMapper, indexingService, fileStore,
+				metadataFieldService, state);
+	}
+
+	@Bean
+	public com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KnowledgeAssistantFactory knowledgeAssistantFactory(
+			ObjectProvider<KbSearchService> searchServices,
+			ObjectProvider<com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService> metadataFieldServices,
+			ContentRetrieverContext retrieverContext) {
+		return new com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KnowledgeAssistantFactory(
+				searchServices, metadataFieldServices, retrieverContext);
+	}
+
+	@Bean
+	public com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService kbMetadataFieldService(
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.mapper.KbMetadataFieldMapper fieldMapper,
+			KbDocumentMapper documentMapper, KbKnowledgeState state) {
+		return new com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService(
+				fieldMapper, documentMapper, state);
 	}
 
 	@Bean
 	public KbSegmentService kbSegmentService(KbSegmentMapper segmentMapper, KbDocumentMapper documentMapper,
 			KbDatasetMapper datasetMapper, ContentRetrieverContext retrieverContext,
-			ObjectProvider<KbDocumentService> documentServices, KbKnowledgeState state) {
+			ObjectProvider<KbDocumentService> documentServices, KbKnowledgeState state,
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.es.EsSegmentSearchClient esClient) {
 		return new KbSegmentService(segmentMapper, documentMapper, datasetMapper, retrieverContext,
-				documentServices, state);
+				documentServices, state, esClient);
 	}
 
 	@Bean
@@ -230,8 +282,9 @@ public class KnowledgeConfiguration {
 	/** knowledge 类型检索器工厂：由 ContentRetrieverProviderRegistry 的 provider bean 收集注册。 */
 	@Bean
 	public KnowledgeContentRetrieverProvider knowledgeContentRetrieverProvider(
-			ObjectProvider<KbSearchService> searchServices) {
-		return new KnowledgeContentRetrieverProvider(searchServices);
+			ObjectProvider<KbSearchService> searchServices,
+			ObjectProvider<com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService> metadataFieldServices) {
+		return new KnowledgeContentRetrieverProvider(searchServices, metadataFieldServices);
 	}
 
 	/** magic-script：{@code import knowledge} 调 {@code search(datasetId, query)}。 */
@@ -250,8 +303,11 @@ public class KnowledgeConfiguration {
 
 	@Bean
 	public KbOpenApiController kbOpenApiController(KbDocumentService documentService, KbSearchService searchService,
+			KbDatasetService datasetService, KbSegmentService segmentService,
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService metadataFieldService,
 			KbSaTokenAuthChecker authChecker) {
-		return new KbOpenApiController(documentService, searchService, authChecker);
+		return new KbOpenApiController(documentService, searchService, datasetService, segmentService,
+				metadataFieldService, authChecker);
 	}
 
 	/** 知识库配置项（设计 §5）：总开关与原始文件目录。 */
@@ -271,6 +327,15 @@ public class KnowledgeConfiguration {
 
 		/** 混合检索开关：向量路 + 关键词路融合（默认开启；关闭则仅向量路） */
 		private boolean hybridSearch = true;
+
+		/** ES 全文检索开关：开启后关键词路优先走 ES（需启用 magicapi elasticsearch 插件并配置 ES 数据源） */
+		private boolean esEnabled = false;
+
+		/** ES 数据源资源 key（空则取 Spring 默认 ES 数据源） */
+		private String esKey;
+
+		/** ES 索引名前缀（分段全文索引名 = 前缀 + "-segments"），默认 fw-kb */
+		private String esIndexPrefix = "fw-kb";
 
 		public boolean isHybridSearch() {
 			return hybridSearch;
@@ -310,6 +375,30 @@ public class KnowledgeConfiguration {
 
 		public void setS3Key(String s3Key) {
 			this.s3Key = s3Key;
+		}
+
+		public boolean isEsEnabled() {
+			return esEnabled;
+		}
+
+		public void setEsEnabled(boolean esEnabled) {
+			this.esEnabled = esEnabled;
+		}
+
+		public String getEsKey() {
+			return esKey;
+		}
+
+		public void setEsKey(String esKey) {
+			this.esKey = esKey;
+		}
+
+		public String getEsIndexPrefix() {
+			return esIndexPrefix;
+		}
+
+		public void setEsIndexPrefix(String esIndexPrefix) {
+			this.esIndexPrefix = esIndexPrefix;
 		}
 
 

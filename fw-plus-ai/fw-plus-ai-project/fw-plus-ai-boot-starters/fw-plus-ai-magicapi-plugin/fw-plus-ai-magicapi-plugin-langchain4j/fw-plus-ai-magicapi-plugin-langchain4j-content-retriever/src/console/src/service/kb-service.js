@@ -62,6 +62,23 @@ export const kbApi = {
     importDataset: (jsonText) => new Promise((resolve, reject) => {
         requireRequest().sendJson('/kb/dataset/import', JSON.parse(jsonText)).success(unwrap(resolve, reject));
     }),
+    syncDatasetVectors: (id) => new Promise((resolve, reject) => {
+        requireRequest().sendJson('/kb/dataset/' + id + '/sync-vectors', {}).success(unwrap(resolve, reject));
+    }),
+    syncDatasetToEs: (id) => new Promise((resolve, reject) => {
+        requireRequest().sendJson('/kb/dataset/' + id + '/sync-es', {}).success(unwrap(resolve, reject));
+    }),
+    metadataFields: (datasetId) => new Promise((resolve, reject) => {
+        requireRequest().sendGet('/kb/dataset/' + datasetId + '/metadata-fields').success(unwrap(resolve, reject));
+    }),
+    createMetadataField: (datasetId, body) => new Promise((resolve, reject) => {
+        requireRequest().sendJson('/kb/dataset/' + datasetId + '/metadata-fields', body)
+            .success(unwrap(resolve, reject));
+    }),
+    deleteMetadataField: (fieldId) => new Promise((resolve, reject) => {
+        requireRequest().sendJson('/kb/metadata-fields/' + fieldId + '/delete', {})
+            .success(unwrap(resolve, reject));
+    }),
     moveDocument: (id, datasetId) => new Promise((resolve, reject) => {
         requireRequest().sendJson('/kb/document/' + id + '/move', {datasetId})
             .success(unwrap(resolve, reject));
@@ -69,8 +86,9 @@ export const kbApi = {
     retrievers: (id) => new Promise((resolve, reject) => {
         requireRequest().sendGet('/kb/dataset/' + id + '/retrievers').success(unwrap(resolve, reject));
     }),
-    listDocuments: (datasetId) => new Promise((resolve, reject) => {
-        requireRequest().sendGet('/kb/dataset/' + datasetId + '/document').success(unwrap(resolve, reject));
+    listDocuments: (datasetId, page, pageSize) => new Promise((resolve, reject) => {
+        requireRequest().sendGet('/kb/dataset/' + datasetId + '/document?page=' + (page || 1)
+            + '&pageSize=' + (pageSize || 20)).success(unwrap(resolve, reject));
     }),
     reindex: (id) => new Promise((resolve, reject) => {
         requireRequest().sendJson('/kb/document/' + id + '/reindex', {}).success(unwrap(resolve, reject));
@@ -90,8 +108,15 @@ export const kbApi = {
     deleteDocument: (id) => new Promise((resolve, reject) => {
         requireRequest().sendJson('/kb/document/' + id, {}).success(unwrap(resolve, reject));
     }),
-    listSegments: (documentId) => new Promise((resolve, reject) => {
-        requireRequest().sendGet('/kb/document/' + documentId + '/segment').success(unwrap(resolve, reject));
+    listSegments: (documentId, page, pageSize) => new Promise((resolve, reject) => {
+        requireRequest().sendGet('/kb/document/' + documentId + '/segment?page=' + (page || 1)
+            + '&pageSize=' + (pageSize || 20)).success(unwrap(resolve, reject));
+    }),
+    createSegment: (documentId, body) => new Promise((resolve, reject) => {
+        requireRequest().sendJson('/kb/document/' + documentId + '/segment', body).success(unwrap(resolve, reject));
+    }),
+    updateText: (id, text) => new Promise((resolve, reject) => {
+        requireRequest().sendJson('/kb/document/' + id + '/text', {text}).success(unwrap(resolve, reject));
     }),
     updateSegment: (id, body) => new Promise((resolve, reject) => {
         requireRequest().sendJson('/kb/segment/' + id, body).success(unwrap(resolve, reject));

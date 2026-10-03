@@ -63,7 +63,9 @@ export default {
             'timeout': '超时（毫秒）',
             'uri': '连接 URI',
             'username': '用户名',
-            'dataset-id': '知识库数据集'
+            'dataset-id': '知识库数据集',
+            'document-id': '限定文档 ID',
+            'metadata-condition': '元数据过滤条件'
         },
         kb: {
             refresh: '刷新',
@@ -94,6 +96,9 @@ export default {
                 segmentDelimiter: '自定义分隔符',
                 topK: '召回数量/分数阈值',
                 import: '导入',
+                metadataFields: '元数据字段',
+                syncVectors: '同步向量',
+                syncVectorsAccepted: '已提交后台补向量（completed 且无向量的分段），完成后可检索',
                 export: '导出',
                 preview: '切分预览',
                 importDone: '导入成功，新数据集 id：',
@@ -119,6 +124,7 @@ export default {
                 metadataJson: 'Metadata JSON',
                 download: '下载',
                 move: '迁移',
+                editText: '编辑内容',
                 dropHere: '松开鼠标上传文件',
                 enable: '启用',
                 disable: '禁用',
@@ -126,7 +132,10 @@ export default {
                 unarchive: '取消归档',
                 deleteConfirm: '确认删除该文档（级联删除分段/向量/原始文件）？'
             },
+            fieldType: '字段类型',
+            pagination: { total: '共 ', prev: '上一页', next: '下一页' },
             segment: {
+                create: '新增分段',
                 content: '分段内容',
                 keywords: '关键词',
                 answer: '答案',
@@ -141,6 +150,8 @@ export default {
                 run: '检索',
                 queryTip: '输入测试 query',
                 score: '分数',
+                documentId: '文档 ID',
+                documentIdTip: '选填，限定在该文档范围内检索',
                 metadataCondition: 'Metadata 条件',
                 metadataTip: 'JSON，如 {"logical_operator":"and","conditions":[{"name":"lang","value":"zh"}]}'
             }

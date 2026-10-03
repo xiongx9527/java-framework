@@ -57,9 +57,13 @@ public class KbIndexingService {
 
 	private final KbKnowledgeState state;
 
+	/** ES 分段全文索引同步（es.enabled 关闭时内部 no-op） */
+	private final com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.es.EsSegmentSearchClient esClient;
+
 	public KbIndexingService(KbDatasetMapper datasetMapper, KbDocumentMapper documentMapper,
 			KbSegmentMapper segmentMapper, KbOriginalFileStore fileStore, DocumentPipeline documentPipeline,
-			KbIndexingExecutor executor, ContentRetrieverContext retrieverContext, KbKnowledgeState state) {
+			KbIndexingExecutor executor, ContentRetrieverContext retrieverContext, KbKnowledgeState state,
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.es.EsSegmentSearchClient esClient) {
 		this.datasetMapper = datasetMapper;
 		this.documentMapper = documentMapper;
 		this.segmentMapper = segmentMapper;
@@ -68,6 +72,7 @@ public class KbIndexingService {
 		this.executor = executor;
 		this.retrieverContext = retrieverContext;
 		this.state = state;
+		this.esClient = esClient;
 	}
 
 	/** 入库即时触发（设计 §2.3：入库只置 waiting，执行方认领处理）。 */
@@ -176,8 +181,11 @@ public class KbIndexingService {
 		trigger(document);
 	}
 
-	/** 删除文档的全部分段行与向量（store 能力不足时降级逐条删除）。 */
+	/** 删除文档的全部分段行与向量（store 能力不足时降级逐条删除），并同步删除 ES 索引。 */
 	public void deleteSegmentsAndVectors(String documentId) {
+		if (esClient != null) {
+			esClient.deleteByDocument(documentId);
+		}
 		List<KbSegment> segments = segmentMapper.selectList(new QueryWrapper<KbSegment>()
 				.eq("document_id", documentId));
 		List<String> nodeIds = new ArrayList<>();
@@ -217,6 +225,149 @@ public class KbIndexingService {
 			// 向量库不可达时记录但不阻断行删除（残留向量检索时会被跳过）
 			logger.warn("删除文档向量失败（documentId={}）: {}", document.getId(), e.getMessage());
 		}
+	}
+
+	/**
+	 * 数据集级批量同步到 ES（中途启用 ES 的补数据场景）：全量 completed 分段按 id 游标分批
+	 * 异步写入 ES；同步期间检索可用（ES 无该分段则由 FULLTEXT/LIKE 兜底）。
+	 *
+	 * @return 提交状态描述（异步执行）
+	 */
+	public String syncDatasetToEs(String datasetId) {
+		state.checkReady();
+		if (esClient == null) {
+			throw new IllegalStateException("ES 全文检索未启用（fw.plus.ai.knowledge.es-enabled=false）");
+		}
+		executor.execute(() -> {
+			String lastId = "";
+			int batch = 500;
+			int total = 0;
+			try {
+				while (true) {
+					List<KbSegment> batchSegments = segmentMapper.selectList(new QueryWrapper<KbSegment>()
+							.eq("dataset_id", datasetId)
+							.eq("status", "completed")
+							.gt("id", lastId)
+							.orderByAsc("id")
+							.last("LIMIT " + batch));
+					if (batchSegments.isEmpty()) {
+						break;
+					}
+					for (KbSegment segment : batchSegments) {
+						esClient.index(datasetId, segment.getDocumentId(), segment.getId(),
+								segment.getContent(), segment.getKeywords());
+						total++;
+					}
+					lastId = batchSegments.get(batchSegments.size() - 1).getId();
+				}
+				logger.info("数据集 ES 批量同步完成（datasetId={}，共 {} 条分段）", datasetId, total);
+			} catch (Throwable e) {
+				logger.error("数据集 ES 批量同步失败（datasetId={}，已同步 {} 条后中断）", datasetId, total, e);
+			}
+		});
+		return "accepted";
+	}
+
+	/** 文档级同步到 ES（同步执行，单文档分段量有限）。 */
+	public int syncDocumentToEs(String documentId) {
+		state.checkReady();
+		if (esClient == null) {
+			throw new IllegalStateException("ES 全文检索未启用（fw.plus.ai.knowledge.es-enabled=false）");
+		}
+		int total = 0;
+		for (KbSegment segment : segmentMapper.selectList(new QueryWrapper<KbSegment>()
+				.eq("document_id", documentId)
+				.eq("status", "completed"))) {
+			esClient.index(segment.getDatasetId(), segment.getDocumentId(), segment.getId(),
+					segment.getContent(), segment.getKeywords());
+			total++;
+		}
+		return total;
+	}
+
+	/**
+	 * 数据集级批量补向量（向量路同步缺口场景）：indexing_technique 由 economy 切换为
+	 * high_quality、或历史分段嵌入失败后，对 completed 且无向量（index_node_id 为空）的
+	 * 分段按 id 游标分批异步补嵌入。
+	 *
+	 * @return 提交状态描述（异步执行）
+	 */
+	public String syncDatasetVectors(String datasetId) {
+		state.checkReady();
+		KbDataset dataset = datasetMapper.selectById(datasetId);
+		if (dataset == null) {
+			throw new IllegalArgumentException("知识库数据集不存在: " + datasetId);
+		}
+		if ("economy".equalsIgnoreCase(dataset.getIndexingTechnique())) {
+			throw new IllegalStateException("economy 经济模式不使用向量库，无需补向量");
+		}
+		executor.execute(() -> {
+			String lastId = "";
+			int batch = 50;
+			int total = 0;
+			try {
+				// 嵌入一致性：补向量后回填 embedding_model_active
+				String effectiveModel = dataset.getEmbeddingModelActive() != null
+						? dataset.getEmbeddingModelActive()
+						: dataset.getEmbeddingModelKey();
+				EmbeddingModel embeddingModel = retrieverContext.embeddingModel(effectiveModel);
+				EmbeddingStore<TextSegment> store = retrieverContext.embeddingStore(dataset.getEmbeddingStoreKey());
+				KbDocument probeDocument = documentMapper.selectById(
+						segmentsProbeDocumentId(datasetId));
+				Map<String, Object> probeDocMetadata = new HashMap<>();
+				while (true) {
+					List<KbSegment> batchSegments = segmentMapper.selectList(new QueryWrapper<KbSegment>()
+							.eq("dataset_id", datasetId)
+							.eq("status", "completed")
+							.isNull("index_node_id")
+							.gt("id", lastId)
+							.orderByAsc("id")
+							.last("LIMIT " + batch));
+					if (batchSegments.isEmpty()) {
+						break;
+					}
+					List<String> nodeIds = store.addAll(
+							embeddingModel.embedAll(batchSegments.stream()
+									.map(segment -> toVectorSegment(segment, probeDocMetadata))
+									.collect(java.util.stream.Collectors.toList())).content(),
+							batchSegments.stream()
+									.map(segment -> toVectorSegment(segment, probeDocMetadata))
+									.collect(java.util.stream.Collectors.toList()));
+					for (int i = 0; i < batchSegments.size(); i++) {
+						KbSegment segment = batchSegments.get(i);
+						KbSegment update = new KbSegment();
+						update.setId(segment.getId());
+						update.setIndexNodeId(nodeIds != null && i < nodeIds.size() ? nodeIds.get(i) : segment.getId());
+						update.setIndexNodeHash(sha256(segment.getContent()));
+						update.setStatus("completed");
+						update.setUpdateTime(new Date());
+						segmentMapper.updateById(update);
+						total++;
+					}
+					lastId = batchSegments.get(batchSegments.size() - 1).getId();
+				}
+				// 回填 embedding_model_active（首次补向量场景）
+				if (dataset.getEmbeddingModelActive() == null || dataset.getEmbeddingModelActive().isEmpty()) {
+					KbDataset update = new KbDataset();
+					update.setId(datasetId);
+					update.setEmbeddingModelActive(effectiveModel);
+					update.setUpdateTime(new Date());
+					datasetMapper.updateById(update);
+				}
+				logger.info("数据集批量补向量完成（datasetId={}，共 {} 条分段）", datasetId, total);
+			} catch (Throwable e) {
+				logger.error("数据集批量补向量失败（datasetId={}）", datasetId, e);
+			}
+		});
+		return "accepted";
+	}
+
+	/** 取数据集下任一分段所属文档 id（补向量的文档 metadata 构造用）。 */
+	private String segmentsProbeDocumentId(String datasetId) {
+		KbDocument probe = documentMapper.selectOne(new QueryWrapper<KbDocument>()
+				.eq("dataset_id", datasetId)
+				.last("LIMIT 1"));
+		return probe == null ? null : probe.getId();
 	}
 
 	/** 解析原文（upload 与 create-by-text 统一回读存储的原文）。 */
@@ -319,6 +470,12 @@ public class KbIndexingService {
 				update.setStatus("completed");
 				update.setUpdateTime(new Date());
 				segmentMapper.updateById(update);
+				// 关键词路若启用 ES：分段同步写入 ES（economy 检索也享受全文召回）
+				if (esClient != null) {
+					esClient.index(dataset.getId(), segment.getDocumentId(), segment.getId(),
+							segment.getContent(), segment.getKeywords());
+				}
+
 			}
 			return;
 		}
@@ -361,6 +518,11 @@ public class KbIndexingService {
 				update.setStatus("completed");
 				update.setUpdateTime(new Date());
 				segmentMapper.updateById(update);
+				// ES 同步：分段全文写入（es.enabled）
+				if (esClient != null) {
+					esClient.index(dataset.getId(), segment.getDocumentId(), segment.getId(),
+							segment.getContent(), segment.getKeywords());
+				}
 			}
 		}
 
