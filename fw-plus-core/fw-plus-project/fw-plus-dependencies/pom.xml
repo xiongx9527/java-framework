@@ -162,6 +162,10 @@
         <!--knife4j版本号-->
         <knife4j-openapi3.version>4.5.0</knife4j-openapi3.version>
         <knife4j-gateway.version>4.5.0</knife4j-gateway.version>
+        <!--springdoc版本号：覆盖 knife4j 4.5.0 传递的 2.2.0——Spring 6.2 移除了
+            ControllerAdviceBean(Object) 构造器，springdoc 2.2.0 访问 /v3/api-docs 即 NoSuchMethodError；
+            2.8.x 配套 Spring Boot 3.4/3.5（3.x 线对应 Boot 4，不适用）-->
+        <springdoc-openapi.version>2.8.17</springdoc-openapi.version>
         <!--apollo版本号-->
         <apollo-client.version>2.5.0</apollo-client.version>
         <!--jodd-core版本号-->
@@ -958,6 +962,33 @@
                 <groupId>com.github.xiaoymin</groupId>
                 <artifactId>knife4j-gateway-spring-boot-starter</artifactId>
                 <version>${knife4j-gateway.version}</version>
+            </dependency>
+            <!--springdoc 覆盖 knife4j 传递版本（2.2.0 与 Spring 6.2 不兼容，见属性注释）。
+                各 starter 必须整体对齐同一版本，混用会导致自动配置清单引用不存在的类-->
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-common</artifactId>
+                <version>${springdoc-openapi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>${springdoc-openapi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
+                <version>${springdoc-openapi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+                <version>${springdoc-openapi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webflux-api</artifactId>
+                <version>${springdoc-openapi.version}</version>
             </dependency>
             <!--poi版本统一管理-->
             <!--
