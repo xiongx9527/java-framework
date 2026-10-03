@@ -12,7 +12,15 @@
       <label>{{ $i('langchain4j.input-keys') }}</label>
       <magic-input v-model:value="inputKeysText" :placeholder="$i('langchain4j.input-keys-hint')" width="100%"/>
     </div>
-    <div class="magic-form-row" v-if="info.type === 'node'">
+    <div class="magic-form-row" v-if="info.type === 'llm'">
+      <label>{{ $i('langchain4j.model-key') }}</label>
+      <magic-input v-model:value="info.modelKey" :placeholder="$i('langchain4j.model-key-hint')" width="100%"/>
+    </div>
+    <div class="magic-form-row magic-form-row-top" v-if="info.type === 'llm'">
+      <label>{{ $i('langchain4j.system-message') }}</label>
+      <magic-textarea v-model:value="info.systemMessage" :placeholder="$i('langchain4j.system-message-hint')" width="100%"/>
+    </div>
+    <div class="magic-form-row" v-if="info.type === 'node' || info.type === 'llm'">
       <label>{{ $i('langchain4j.output-key') }}</label>
       <magic-input v-model:value="info.outputKey" :placeholder="$i('langchain4j.output-key-hint')" width="100%"/>
     </div>
@@ -32,6 +40,7 @@ const info = inject('info')
 
 const typeOptions = [
   {text: $i('langchain4j.script-type.node'), value: 'node'},
+  {text: $i('langchain4j.script-type.llm'), value: 'llm'},
   {text: $i('langchain4j.script-type.tool'), value: 'tool'},
   {text: $i('langchain4j.script-type.graph'), value: 'graph'}
 ]

@@ -59,11 +59,12 @@ public class Langchain4jAgenticScriptConfiguration extends AbstractLangchain4jPl
 		return new Langchain4jAgenticScriptMagicDynamicRegistry(storage);
 	}
 
-	/** 脚本模块：langchain4jAgenticScript.node(path) 取脚本节点，toolProvider(path,...) 包装为工具。 */
+	/** 脚本模块：langchain4jAgenticScript.node(path) 取节点（node/llm 形态），toolProvider(path,...) 包装为工具。 */
 	@Bean
 	@ConditionalOnMissingBean
 	public Langchain4jAgenticScriptModule langchain4jAgenticScriptModule(
-			Langchain4jAgenticScriptMagicDynamicRegistry registry, MagicResourceService magicResourceService) {
-		return new Langchain4jAgenticScriptModule(registry, magicResourceService);
+			Langchain4jAgenticScriptMagicDynamicRegistry registry, MagicResourceService magicResourceService,
+			org.springframework.beans.factory.ObjectProvider<com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jChatModelModule> chatModelModules) {
+		return new Langchain4jAgenticScriptModule(registry, magicResourceService, chatModelModules);
 	}
 }

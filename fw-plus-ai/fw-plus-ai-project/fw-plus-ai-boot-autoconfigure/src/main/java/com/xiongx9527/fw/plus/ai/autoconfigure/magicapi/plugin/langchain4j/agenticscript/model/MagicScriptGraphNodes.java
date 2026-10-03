@@ -7,8 +7,9 @@ import org.bsc.langgraph4j.state.AgentState;
 import java.util.Map;
 
 /**
- * {@link MagicScriptAgent} → langgraph4j 图节点的适配：脚本节点可作为 StateGraph 里的
- * 一个节点参与图编排（state.data() 注入脚本上下文，脚本返回值写回 state）。
+ * 脚本资源节点 → langgraph4j 图节点的适配：{@link MagicAgenticNode}（magic-script 节点或
+ * LLM 对话节点）可作为 StateGraph 里的一个节点参与图编排（state.data() 注入输入，节点返回值
+ * 写回 state）。
  *
  * <p>用法：</p>
  * <pre>{@code
@@ -19,27 +20,27 @@ import java.util.Map;
  *         .addEdge("表匹配", StateGraph.END);
  * }</pre>
  *
- * <p>脚本返回值为 Map 时按键合并进 state；其他类型写入 outputKey（未配置时写 "output"）。</p>
+ * <p>节点返回值为 Map 时按键合并进 state；其他类型写入 outputKey（未配置时写 "output"）。</p>
  */
 public final class MagicScriptGraphNodes {
 
 	private MagicScriptGraphNodes() {
 	}
 
-	/** 默认结果键：脚本返回值非 Map 时写入该键。 */
+	/** 默认结果键：节点返回值非 Map 时写入该键。 */
 	public static final String DEFAULT_OUTPUT_KEY = "output";
 
-	/** 脚本节点 → langgraph4j 节点动作（同步形态，内部异步包装）。 */
-	public static <T extends AgentState> AsyncNodeAction<T> nodeAsync(MagicScriptAgent agent) {
+	/** 节点 → langgraph4j 节点动作（同步形态，内部异步包装）。 */
+	public static <T extends AgentState> AsyncNodeAction<T> nodeAsync(MagicAgenticNode agent) {
 		return AsyncNodeAction.node_async(nodeAction(agent));
 	}
 
-	/** 脚本节点 → langgraph4j 节点动作（同步形态）。 */
-	public static <T extends AgentState> NodeAction<T> nodeAction(MagicScriptAgent agent) {
+	/** 节点 → langgraph4j 节点动作（同步形态）。 */
+	public static <T extends AgentState> NodeAction<T> nodeAction(MagicAgenticNode agent) {
 		return state -> execute(agent, state.data());
 	}
 
-	private static Map<String, Object> execute(MagicScriptAgent agent, Map<String, Object> input) {
+	private static Map<String, Object> execute(MagicAgenticNode agent, Map<String, Object> input) {
 		Object result = agent.invoke(input == null ? Map.of() : input);
 		if (result == null) {
 			return Map.of();

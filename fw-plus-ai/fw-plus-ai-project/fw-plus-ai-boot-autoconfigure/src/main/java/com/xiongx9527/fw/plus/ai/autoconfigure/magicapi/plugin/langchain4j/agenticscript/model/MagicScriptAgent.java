@@ -1,6 +1,5 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.agenticscript.model;
 
-import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.agentic.scope.AgenticScope;
 import dev.langchain4j.agentic.scope.ResultWithAgenticScope;
 import org.ssssssss.magicapi.utils.ScriptManager;
@@ -15,7 +14,7 @@ import java.util.Map;
  *
  * <p>脚本求值走框架既有 {@link ScriptManager} 机制（与 system-message 插件同模式）。</p>
  */
-public class MagicScriptAgent implements UntypedAgent {
+public class MagicScriptAgent implements MagicAgenticNode {
 
 	private final Langchain4jAgenticScriptInfo info;
 

@@ -3,8 +3,11 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.agen
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.AgenticToolProviders;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.AgenticWorkflows;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.agenticscript.model.Langchain4jAgenticScriptInfo;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.agenticscript.model.MagicAgenticNode;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.agenticscript.model.MagicLlmAgent;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.agenticscript.model.MagicScriptAgent;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.agenticscript.model.MagicScriptGraphNodes;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jChatModelModule;
 import dev.langchain4j.service.tool.ToolProvider;
 import org.bsc.langgraph4j.CompileConfig;
 import org.bsc.langgraph4j.CompiledGraph;
@@ -16,11 +19,14 @@ import org.ssssssss.magicapi.core.service.AbstractMagicDynamicRegistry;
 import org.ssssssss.magicapi.utils.PathUtils;
 import org.ssssssss.magicapi.utils.ScriptManager;
 import org.ssssssss.script.MagicScriptContext;
+import org.springframework.beans.factory.ObjectProvider;
 
 /**
  * agentic 脚本模块：脚本用 {@code langchain4jAgenticScript.node('/path')} 取脚本节点
- * （挂入 {@code AgenticWorkflows} 编排 subAgents，或经 {@code graphNode('/path')} 嵌入
- * langgraph4j 图），用 {@code langchain4jAgenticScript.toolProvider('/path', '工具名', '描述')}
+ * （type=node 为 magic-script 节点，type=llm 为 LLM 对话节点——script 正文为 user message
+ * 模板，modelKey/systemMessage 定义模型与系统提示；均挂入 {@code AgenticWorkflows} 编排
+ * subAgents，或经 {@code graphNode('/path')} 嵌入 langgraph4j 图），用
+ * {@code langchain4jAgenticScript.toolProvider('/path', '工具名', '描述')}
  * 包装为工具挂入助手；graph 形态脚本构建并返回 StateGraph，用
  * {@code graph(path)} 编译执行或 {@code graphToolProvider(path,...)} 包装为工具。
  */
@@ -31,15 +37,47 @@ public class Langchain4jAgenticScriptModule {
 
 	private final MagicResourceService magicResourceService;
 
+	/** chat 插件的模型模块（可缺席）：type=llm 节点解析 {@code langchain4jChatModel['key']} 用 */
+	private final ObjectProvider<Langchain4jChatModelModule> chatModelModules;
+
 	public Langchain4jAgenticScriptModule(AbstractMagicDynamicRegistry<Langchain4jAgenticScriptInfo> registry,
 			MagicResourceService magicResourceService) {
-		this.registry = registry;
-		this.magicResourceService = magicResourceService;
+		this(registry, magicResourceService, null);
 	}
 
-	/** 按资源路径取脚本节点：编排构建时挂入 subAgents，每次取用实时解析（资源热更新即时生效）。 */
-	public MagicScriptAgent node(String path) {
-		return new MagicScriptAgent(find(path));
+	public Langchain4jAgenticScriptModule(AbstractMagicDynamicRegistry<Langchain4jAgenticScriptInfo> registry,
+			MagicResourceService magicResourceService,
+			ObjectProvider<Langchain4jChatModelModule> chatModelModules) {
+		this.registry = registry;
+		this.magicResourceService = magicResourceService;
+		this.chatModelModules = chatModelModules;
+	}
+
+	/** 按资源路径取节点：type=llm 返回 LLM 对话节点，否则返回脚本节点；每次取用实时解析（资源热更新即时生效）。 */
+	public MagicAgenticNode node(String path) {
+		return node(find(path));
+	}
+
+	/** 按资源定义构建节点：按 type 分发——llm → {@link MagicLlmAgent}，其余 → {@link MagicScriptAgent}。 */
+	public MagicAgenticNode node(Langchain4jAgenticScriptInfo info) {
+		if ("llm".equalsIgnoreCase(info.getType())) {
+			return new MagicLlmAgent(info, chatModelModule());
+		}
+		return new MagicScriptAgent(info);
+	}
+
+	/** 按 id/路径取 LLM 节点（控制台测试执行用）。 */
+	public MagicLlmAgent llmAgent(Langchain4jAgenticScriptInfo info) {
+		if (!"llm".equalsIgnoreCase(info.getType())) {
+			throw new IllegalArgumentException(String.format(
+					"资源 %s 不是 llm 形态节点（type=%s）", info.getPath(), info.getType()));
+		}
+		return new MagicLlmAgent(info, chatModelModule());
+	}
+
+	/** 解析 chat 插件模块：缺席时返回 null（{@code MagicLlmAgent} 调用侧报可操作错误）。 */
+	private Langchain4jChatModelModule chatModelModule() {
+		return chatModelModules == null ? null : chatModelModules.getIfAvailable();
 	}
 
 	/** 脚本节点 → langgraph4j 图节点动作：嵌入 {@code agentic.graph(stateFactory)} 构建的 StateGraph。 */
@@ -97,19 +135,20 @@ public class Langchain4jAgenticScriptModule {
 
 	/**
 	 * 把脚本资源包装为 ToolProvider（agent-as-tool），挂入助手 toolProvider。
-	 * 按资源 type 自动分发：tool → 编排工具包装；graph → 编译图包装；node 按工具包装。
+	 * 按资源 type 自动分发：tool/graph → 各自包装；node/llm 按节点包装（llm 节点的
+	 * 模板变量即工具入参，模型输出即工具返回值）。
 	 */
 	public ToolProvider toolProvider(String path, String toolName, String toolDescription) {
 		Langchain4jAgenticScriptInfo info = find(path);
 		if ("graph".equalsIgnoreCase(info.getType())) {
 			return graphToolProvider(path, toolName, toolDescription);
 		}
-		MagicScriptAgent node = new MagicScriptAgent(info);
-		return AgenticToolProviders.agenticToolProvider(node,
-				blank(toolName) ? node.getName() : toolName,
-				blank(toolDescription) ? node.getDescription() : toolDescription,
-				node.getOutputKey(),
-				node.getInputKeys() == null ? new String[0] : node.getInputKeys().toArray(new String[0]));
+		MagicAgenticNode agent = node(info);
+		return AgenticToolProviders.agenticToolProvider(agent,
+				blank(toolName) ? agent.getName() : toolName,
+				blank(toolDescription) ? agent.getDescription() : toolDescription,
+				agent.getOutputKey(),
+				agent.getInputKeys() == null ? new String[0] : agent.getInputKeys().toArray(new String[0]));
 	}
 
 	/** 简化形态：工具名/描述直接取资源定义（name/description），无需调用方传参。 */

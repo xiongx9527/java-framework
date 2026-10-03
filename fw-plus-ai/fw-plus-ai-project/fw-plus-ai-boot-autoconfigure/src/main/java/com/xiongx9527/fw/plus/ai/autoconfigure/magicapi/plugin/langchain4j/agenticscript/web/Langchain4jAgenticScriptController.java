@@ -68,6 +68,17 @@ public class Langchain4jAgenticScriptController extends MagicController implemen
 			}
 		}
 
+		// llm 形态：正文是 user message 模板而非 magic-script，直接调 LLM 节点执行
+		if ("llm".equals(entity.getType())) {
+			try {
+				return new JsonBean<>(SpringUtils
+						.getBean(com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.agenticscript.module.Langchain4jAgenticScriptModule.class)
+						.llmAgent(entity).invoke(params));
+			} finally {
+				MagicLoggerContext.SESSION.remove();
+			}
+		}
+
 		MagicScriptDebugContext magicScriptContext = null;
 		try {
 			magicScriptContext = debugRequest.createMagicScriptContext(configuration.getDebugTimeout());

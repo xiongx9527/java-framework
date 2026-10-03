@@ -12,6 +12,10 @@ import java.util.List;
  *
  * <p>继承 {@link PathMagicEntity}：{@code path} 为资源路径（即节点/工具唯一标识），
  * {@code script} 为脚本正文（magic-script，输入变量已注入脚本上下文，返回值即节点输出/工具返回值）。</p>
+ *
+ * <p>{@code type=llm} 时为 LLM 节点形态：{@code script} 正文是 user message 模板
+ * （{@code {{var}}} 按输入变量插值），{@code systemMessage} 为系统提示，{@code modelKey}
+ * 指定 {@code langchain4jChatModel} 资源 key；调用即一次对话补全，返回模型文本。</p>
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -19,7 +23,8 @@ public class Langchain4jAgenticScriptInfo extends PathMagicEntity {
 
 	/** 形态：node = 编排节点（挂入 AgenticWorkflows 编排 subAgents，或经 MagicScriptGraphNodes 嵌入 langgraph4j 图）；
 	 * tool = 编排工具（包装为 ToolProvider）；
-	 * graph = 图编排脚本（脚本构建并返回 langgraph4j StateGraph，可编译执行或包装为 ToolProvider） */
+	 * graph = 图编排脚本（脚本构建并返回 langgraph4j StateGraph，可编译执行或包装为 ToolProvider）；
+	 * llm = LLM 节点（script 为 user message 模板，调用一次对话补全） */
 	private String type;
 
 	/** 展示名，缺省取 path */
@@ -37,6 +42,12 @@ public class Langchain4jAgenticScriptInfo extends PathMagicEntity {
 	/** 测试参数（JSON 对象字符串）：node/tool 求值时注入脚本上下文；graph 作为图的执行输入 */
 	private String params;
 
+	/** LLM 节点的模型 key（type=llm 时使用）：对应 {@code langchain4jChatModel['<modelKey>']}；解析失败回落容器 ChatModel bean */
+	private String modelKey;
+
+	/** LLM 节点的系统提示（type=llm 时使用，可选） */
+	private String systemMessage;
+
 	@Override
 	public Langchain4jAgenticScriptInfo simple() {
 		Langchain4jAgenticScriptInfo info = new Langchain4jAgenticScriptInfo();
@@ -47,6 +58,8 @@ public class Langchain4jAgenticScriptInfo extends PathMagicEntity {
 		info.setInputKeys(this.inputKeys);
 		info.setOutputKey(this.outputKey);
 		info.setParams(this.params);
+		info.setModelKey(this.modelKey);
+		info.setSystemMessage(this.systemMessage);
 		return info;
 	}
 
@@ -60,6 +73,8 @@ public class Langchain4jAgenticScriptInfo extends PathMagicEntity {
 		info.setInputKeys(this.inputKeys);
 		info.setOutputKey(this.outputKey);
 		info.setParams(this.params);
+		info.setModelKey(this.modelKey);
+		info.setSystemMessage(this.systemMessage);
 		return info;
 	}
 }
