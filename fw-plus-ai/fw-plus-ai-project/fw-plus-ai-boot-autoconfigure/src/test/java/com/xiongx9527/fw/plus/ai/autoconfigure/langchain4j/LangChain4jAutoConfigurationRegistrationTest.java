@@ -219,14 +219,14 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 
 		// store 工厂直接在 main 里使用官方 SDK 类型，因此必须是编译期依赖；
 		// 同时以 optional 声明，避免把供应商 jar 传递给下游使用方。
+		// milvus-sdk-java 不再单独声明：随 langchain4j-milvus 传递（见 527d1971）。
 		Map<String, Boolean> optionals = dependencyOptionals(pom);
 		for (String providerSdk : new String[] {
 				"langchain4j-elasticsearch",
 				"langchain4j-milvus",
 				"langchain4j-qdrant",
 				"langchain4j-redis",
-				"langchain4j-weaviate",
-				"milvus-sdk-java"
+				"langchain4j-weaviate"
 		}) {
 			assertEquals("compile", scopes.get(providerSdk), providerSdk + " should be on the compile classpath");
 			assertEquals(Boolean.TRUE, optionals.get(providerSdk),

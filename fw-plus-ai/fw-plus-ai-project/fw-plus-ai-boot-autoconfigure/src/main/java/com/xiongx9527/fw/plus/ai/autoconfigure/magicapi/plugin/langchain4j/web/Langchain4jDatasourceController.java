@@ -107,6 +107,8 @@ public class Langchain4jDatasourceController extends MagicController implements 
                 return (T) JSON.parseObject(json, Langchain4jEmbeddingModelInfo.class);
             case SCORING_MODEL:
                 return (T) JSON.parseObject(json, Langchain4jScoringModelInfo.class);
+            case TOKENIZER:
+                return (T) JSON.parseObject(json, Langchain4jTokenizerInfo.class);
             case EMBEDDING_STORE:
                 return (T) JSON.parseObject(json, Langchain4jEmbeddingStoreInfo.class);
             default:

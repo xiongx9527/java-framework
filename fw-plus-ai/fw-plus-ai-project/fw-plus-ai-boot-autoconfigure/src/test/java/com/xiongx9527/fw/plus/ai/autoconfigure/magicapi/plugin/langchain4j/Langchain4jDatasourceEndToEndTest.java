@@ -8,6 +8,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jLanguageModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jScoringModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jStreamingChatModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jStreamingLanguageModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jTokenizerInfo;
@@ -16,6 +17,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resou
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resource.Langchain4jEmbeddingModelMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resource.Langchain4jEmbeddingStoreMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resource.Langchain4jLanguageModelMagicResourceStorage;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resource.Langchain4jScoringModelMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resource.Langchain4jStreamingChatModelMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resource.Langchain4jStreamingLanguageModelMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resource.Langchain4jTokenizerMagicResourceStorage;
@@ -82,6 +84,8 @@ class Langchain4jDatasourceEndToEndTest {
                         factories.providers(Langchain4jModelTypes.STREAMING_LANGUAGE_MODEL)));
         storages.put(Langchain4jModelTypes.EMBEDDING_MODEL, new Langchain4jEmbeddingModelMagicResourceStorage(
                 factories.providers(Langchain4jModelTypes.EMBEDDING_MODEL)));
+        storages.put(Langchain4jModelTypes.SCORING_MODEL, new Langchain4jScoringModelMagicResourceStorage(
+                factories.providers(Langchain4jModelTypes.SCORING_MODEL)));
         storages.put(Langchain4jModelTypes.TOKENIZER, new Langchain4jTokenizerMagicResourceStorage(
                 factories.providers(Langchain4jModelTypes.TOKENIZER)));
         storages.put(Langchain4jModelTypes.EMBEDDING_STORE, new Langchain4jEmbeddingStoreMagicResourceStorage(
@@ -101,6 +105,8 @@ class Langchain4jDatasourceEndToEndTest {
                 Langchain4jModelTypes.STREAMING_LANGUAGE_MODEL)).isTrue();
         assertThat(save(model("embed-main", Langchain4jModelTypes.EMBEDDING_MODEL),
                 Langchain4jModelTypes.EMBEDDING_MODEL)).isTrue();
+        assertThat(save(model("scoring-main", Langchain4jModelTypes.SCORING_MODEL),
+                Langchain4jModelTypes.SCORING_MODEL)).isTrue();
         assertThat(save(model("tokenizer-main", Langchain4jModelTypes.TOKENIZER),
                 Langchain4jModelTypes.TOKENIZER)).isTrue();
         assertThat(save(store("store-main"), Langchain4jModelTypes.EMBEDDING_STORE)).isTrue();
@@ -207,6 +213,8 @@ class Langchain4jDatasourceEndToEndTest {
                 return "streaming-language-main";
             case EMBEDDING_MODEL:
                 return "embed-main";
+            case SCORING_MODEL:
+                return "scoring-main";
             case TOKENIZER:
                 return "tokenizer-main";
             case EMBEDDING_STORE:
@@ -238,13 +246,17 @@ class Langchain4jDatasourceEndToEndTest {
             case EMBEDDING_MODEL:
                 info = new Langchain4jEmbeddingModelInfo();
                 break;
+            case SCORING_MODEL:
+                info = new Langchain4jScoringModelInfo();
+                break;
             case TOKENIZER:
                 info = new Langchain4jTokenizerInfo();
                 break;
             default:
                 throw new IllegalArgumentException("不支持的测试类型: " + type);
         }
-        fill(info, key, "openai");
+        // scoring 工厂只有 jina / cohere，其余类型走 openai
+        fill(info, key, type == Langchain4jModelTypes.SCORING_MODEL ? "jina" : "openai");
         info.setOptions(openAiOptions());
         return info;
     }

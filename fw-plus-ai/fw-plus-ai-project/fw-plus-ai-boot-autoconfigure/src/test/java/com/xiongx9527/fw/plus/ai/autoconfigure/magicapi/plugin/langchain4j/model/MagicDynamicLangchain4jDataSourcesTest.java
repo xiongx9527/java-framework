@@ -11,18 +11,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 /**
- * 七类实例持有者的类型覆盖与隔离性：每个数据源类型一个持有者，各自只持有本类型实例。
+ * 各类实例持有者的类型覆盖与隔离性：每个模型数据源类型一个持有者，各自只持有本类型实例。
  */
 class MagicDynamicLangchain4jDataSourcesTest {
 
     @Test
-    void shouldCoverSevenDistinctDataSources() {
+    void shouldCoverEveryModelTypeDataSource() {
         List<AbstractMagicDynamicLangchain4jDataSource<?>> dataSources = Arrays.asList(
                 new MagicDynamicLangchain4jChatModelDataSource(),
                 new MagicDynamicLangchain4jStreamingChatModelDataSource(),
                 new MagicDynamicLangchain4jLanguageModelDataSource(),
                 new MagicDynamicLangchain4jStreamingLanguageModelDataSource(),
                 new MagicDynamicLangchain4jEmbeddingModelDataSource(),
+                new MagicDynamicLangchain4jScoringModelDataSource(),
                 new MagicDynamicLangchain4jTokenizerDataSource(),
                 new MagicDynamicLangchain4jEmbeddingStoreDataSource());
 

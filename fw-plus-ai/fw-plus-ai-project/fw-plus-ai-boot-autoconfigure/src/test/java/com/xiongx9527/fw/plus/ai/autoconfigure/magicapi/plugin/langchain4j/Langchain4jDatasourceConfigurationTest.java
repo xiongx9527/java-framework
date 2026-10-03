@@ -112,7 +112,10 @@ class Langchain4jDatasourceConfigurationTest {
             assertThat(child.getEnclosingClass()).as("%s 应为顶层类", child.getName()).isNull();
             assertThat(child.getAnnotation(Configuration.class))
                     .as("%s 应标注 @Configuration", child.getName()).isNotNull();
-            assertThat(child.getName()).contains("Langchain4j");
+            if (child != com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.KnowledgeConfiguration.class) {
+                // knowledge 是 content-retriever 插件的后端配置，不携带 langchain4j 插件命名
+                assertThat(child.getName()).contains("Langchain4j");
+            }
         }
     }
 
@@ -141,7 +144,7 @@ class Langchain4jDatasourceConfigurationTest {
                     context.getBeansOfType(AbstractLangchain4jPluginConfiguration.class).values().stream()
                             .collect(Collectors.toList());
 
-            assertThat(plugins).as("每类资源各一个插件配置 + 工具提供者插件").hasSize(12);
+            assertThat(plugins).as("每类资源各一个插件配置 + 工具提供者插件").hasSize(14);
             assertThat(plugins.stream().map(AbstractLangchain4jPluginConfiguration::pluginName)
                     .collect(Collectors.toList()))
                     .as("插件标识与 datasource type 同源")
@@ -151,9 +154,11 @@ class Langchain4jDatasourceConfigurationTest {
                             "langchain4j-language-model",
                             "langchain4j-streaming-language-model",
                             "langchain4j-embedding-model",
+                            "langchain4j-scoring-model",
                             "langchain4j-tokenizer",
                             "langchain4j-embedding-store",
                             "langchain4j-tool-provider",
+                            "langchain4j-aj-mcp-client",
                             "langchain4j-system-message",
                             "langchain4j-chat-memory-store",
                             "langchain4j-content-retriever",

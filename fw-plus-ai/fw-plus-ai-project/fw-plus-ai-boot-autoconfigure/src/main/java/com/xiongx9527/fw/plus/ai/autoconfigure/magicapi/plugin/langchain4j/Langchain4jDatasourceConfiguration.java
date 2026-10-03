@@ -38,6 +38,7 @@ import org.ssssssss.magicapi.core.service.MagicResourceService;
         Langchain4jStreamingChatModelConfiguration.class,
         Langchain4jLanguageModelConfiguration.class,
         Langchain4jStreamingLanguageModelConfiguration.class,
+        Langchain4jEmbeddingModelConfiguration.class,
         Langchain4jScoringModelConfiguration.class,
         Langchain4jTokenizerConfiguration.class,
         Langchain4jEmbeddingStoreConfiguration.class,

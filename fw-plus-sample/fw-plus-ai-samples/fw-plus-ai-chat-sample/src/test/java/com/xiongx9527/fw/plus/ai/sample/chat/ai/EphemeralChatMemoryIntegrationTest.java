@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.sample.chat.ai;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant.Assistant;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant.AssistantBuilder;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
@@ -8,7 +9,6 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ChatMessageType;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.output.Response;
-import dev.langchain4j.service.AiServices;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
 import org.junit.jupiter.api.Test;
 
@@ -43,12 +43,13 @@ class EphemeralChatMemoryIntegrationTest {
 				// 第二轮：直接收尾
 				AiMessage.from("北京当前 32℃，和刚才一样。"));
 
-		Assistant assistant = AiServices.builder(Assistant.class)
-				.chatLanguageModel(model)
-				.chatMemoryProvider(new ChatAssistantConfig()
-						.chatMemoryProvider(new InMemoryChatMemoryStore()))
+		// 经框架 AssistantBuilder 构建：同时回归「内置记忆（EphemeralChatMemory 包装）在
+		// 真实 AiServices 链路上不残留工具往返」——与样例 ChatAssistantConfig 装配同形态
+		Assistant assistant = new AssistantBuilder()
+				.chatModel(model)
+				.memoryStore(new InMemoryChatMemoryStore())
 				.tools(weatherTools)
-				.build();
+				.toAssistant();
 
 		assistant.chat(SESSION, "", "北京天气怎么样");
 		assistant.chat(SESSION, "", "再问一次");

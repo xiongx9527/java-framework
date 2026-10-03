@@ -95,6 +95,8 @@ public class Langchain4jModelFactoryRegistry {
                 return factory.buildEmbeddingModel(reader);
             case SCORING_MODEL:
                 return factory.buildScoringModel(reader);
+            case TOKENIZER:
+                return factory.buildTokenizer(reader);
             case EMBEDDING_STORE:
                 return factory.buildEmbeddingStore(reader, embeddingModel);
             default:
@@ -152,6 +154,7 @@ public class Langchain4jModelFactoryRegistry {
                 case STREAMING_LANGUAGE_MODEL: factory.buildStreamingLanguageModel(PROBE); break;
                 case EMBEDDING_MODEL: factory.buildEmbeddingModel(PROBE); break;
                 case SCORING_MODEL: factory.buildScoringModel(PROBE); break;
+                case TOKENIZER: factory.buildTokenizer(PROBE); break;
                 case EMBEDDING_STORE: factory.buildEmbeddingStore(PROBE, null); break;
                 default: return false;
             }
