@@ -1,14 +1,14 @@
 package com.xiongx9527.fw.plus.ai.sample.chat.ai;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant.Assistant;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant.AssistantBuilder;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ChatMessageType;
-import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.output.Response;
-import dev.langchain4j.service.AiServices;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
 import org.junit.jupiter.api.Test;
 
@@ -43,12 +43,13 @@ class EphemeralChatMemoryIntegrationTest {
 				// 第二轮：直接收尾
 				AiMessage.from("北京当前 32℃，和刚才一样。"));
 
-		Assistant assistant = AiServices.builder(Assistant.class)
+		// 经框架 AssistantBuilder 构建：同时回归「内置记忆（EphemeralChatMemory 包装）在
+		// 真实 AiServices 链路上不残留工具往返」——与样例 ChatAssistantConfig 装配同形态
+		Assistant assistant = new AssistantBuilder()
 				.chatModel(model)
-				.chatMemoryProvider(new ChatAssistantConfig()
-						.chatMemoryProvider(new InMemoryChatMemoryStore()))
+				.memoryStore(new InMemoryChatMemoryStore())
 				.tools(weatherTools)
-				.build();
+				.toAssistant();
 
 		assistant.chat(SESSION, "", "北京天气怎么样");
 		assistant.chat(SESSION, "", "再问一次");
@@ -70,11 +71,11 @@ class EphemeralChatMemoryIntegrationTest {
 	/**
 	 * 可编排模型：记录每次收到的消息，按序回放预设回复。
 	 *
-	 * <p>带工具的重载必须一并实现——{@code ChatModel} 对它的默认实现是直接抛
+	 * <p>带工具的重载必须一并实现——{@code ChatLanguageModel} 对它的默认实现是直接抛
 	 * {@code IllegalArgumentException: Tools are currently not supported by this model}，
 	 * 而框架走的正是这个重载。</p>
 	 */
-	private static class RecordingChatModel implements ChatModel {
+	private static class RecordingChatModel implements ChatLanguageModel {
 
 		private final List<List<ChatMessage>> requests = new ArrayList<>();
 		private final Deque<AiMessage> replies = new ArrayDeque<>();

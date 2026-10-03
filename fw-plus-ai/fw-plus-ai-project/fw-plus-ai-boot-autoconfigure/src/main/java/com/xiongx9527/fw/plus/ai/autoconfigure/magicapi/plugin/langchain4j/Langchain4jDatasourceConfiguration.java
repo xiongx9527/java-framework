@@ -4,9 +4,6 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.ajmcp
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.chatmemorystore.Langchain4jChatMemoryStoreConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.contentinjector.Langchain4jContentInjectorConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.Langchain4jContentRetrieverConfiguration;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.mcpclient.Langchain4jMcpClientConfiguration;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.agenticscript.Langchain4jAgenticScriptConfiguration;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.skill.Langchain4jSkillConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.KnowledgeConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.systemmessage.Langchain4jSystemMessageProviderConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.Langchain4jToolProviderConfiguration;
@@ -42,13 +39,10 @@ import org.ssssssss.magicapi.core.service.MagicResourceService;
         Langchain4jLanguageModelConfiguration.class,
         Langchain4jStreamingLanguageModelConfiguration.class,
         Langchain4jEmbeddingModelConfiguration.class,
-        Langchain4jTokenizerConfiguration.class,
         Langchain4jScoringModelConfiguration.class,
+        Langchain4jTokenizerConfiguration.class,
         Langchain4jEmbeddingStoreConfiguration.class,
         Langchain4jToolProviderConfiguration.class,
-        Langchain4jMcpClientConfiguration.class,
-        Langchain4jAgenticScriptConfiguration.class,
-        Langchain4jSkillConfiguration.class,
         Langchain4jAjMcpClientConfiguration.class,
         Langchain4jSystemMessageProviderConfiguration.class,
         Langchain4jChatMemoryStoreConfiguration.class,

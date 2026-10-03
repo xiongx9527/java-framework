@@ -53,12 +53,12 @@ curl -N localhost:8080/api/chat/stream -H 'Content-Type: application/json' \
 
 ## 系统提示（systemMessageProvider）
 
-系统提示由 `ChatAssistantConfig.systemMessageProvider` 提供，**没有使用 `@SystemMessage` 注解**——注解是静态的，provider 才能按会话定制：
+系统提示由 `AssistantBuilder.systemMessageProvider` 提供（实现挂在 `SystemPromptBuilder` 上），**没有使用 `@SystemMessage` 注解**——注解是静态的，provider 才能按会话定制：
 
 ```java
-AiServices.builder(Assistant.class)
+new AssistantBuilder()
         ...
-        .systemMessageProvider(this::systemMessage);   // 每次调用都执行
+        .systemMessageProvider(systemPromptBuilder::build);   // 每次调用都执行
 ```
 
 `Assistant` 的两个方法把 `sessionId` 作为第一个参数并标注 `@MemoryId`，LangChain4j 每次调用会把该实参透传给 provider，因此提示词末尾的「当前会话标识」是客户端真实传入的值：
@@ -73,7 +73,7 @@ TokenStream stream(@MemoryId String sessionId, String message);
 - `sessionId` 留空（或纯空白）时 Controller 兜底为 `default`，**不能传 null**——LangChain4j 0.35.0 的 `DefaultAiServices.findMemoryId` 对 `@MemoryId` 收到 null 会直接抛 `IllegalArgumentException`，兜底逻辑由 `ChatControllerTest` 的 sessionId 用例覆盖。
 - 0.35.0 的 `AiServices` 上没有 `systemMessage(String)`，只有 `systemMessageProvider(Function<Object, String>)`；若方法上同时存在 `@SystemMessage` 注解，注解优先、provider 不再生效。
 - provider 返回的字符串同样支持 `{{变量}}` 模板，变量取自方法参数上 `@V("name")` 标注的值。
-- 同一个 `sessionId` 将来接入 `ChatMemoryProvider` 时就是记忆键，届时多轮会话上下文按它隔离。
+- 同一个 `sessionId` 就是会话记忆键（`@MemoryId`），多轮会话上下文按它隔离。
 
 ## 打印模型上下文
 
@@ -126,18 +126,19 @@ langchain4j:
 
 ## 多轮记忆与个人信息
 
-`Assistant` 首个参数 `@MemoryId String sessionId` 兼任会话记忆键，也决定读取哪份个人资料：`ChatAssistantConfig.chatMemoryProvider` 按它隔离多轮上下文，同一 sessionId 的多次对话会带上历史，不同 sessionId 互不干扰。
+`Assistant` 首个参数 `@MemoryId String sessionId` 兼任会话记忆键，也决定读取哪份个人资料：`AssistantBuilder` 的内置记忆按它隔离多轮上下文，同一 sessionId 的多次对话会带上历史，不同 sessionId 互不干扰。
 
 ```java
-AiServices.builder(Assistant.class)
-        ...
-        .chatMemoryProvider(chatMemoryProvider)
+new AssistantBuilder()
+        .memory(MAX_MEMORY_MESSAGES)   // MessageWindowChatMemory，默认 20 条
+        .memoryStore(chatMemoryStore)  // 共享存储 Bean
+        ...                            // build() 时内置包一层 EphemeralChatMemory
 ```
 
 实现要点：
 
-- `MessageWindowChatMemory` 按 `memoryId` 建实例，窗口 `MAX_MEMORY_MESSAGES = 20` 条，超出自动淘汰最早的消息；**SystemMessage 不占窗口额度**（淘汰时跳过）。
-- **store 必须是共享 Bean**：在 provider 的 lambda 里 `new InMemoryChatMemoryStore()` 会让每次 `get` 都拿到空存储，多轮上下文静默失效——由 `ChatAssistantConfigTest` 锁定。
+- 内置记忆为 `MessageWindowChatMemory`（按 `memoryId` 建实例）外包 `EphemeralChatMemory`，窗口 `MAX_MEMORY_MESSAGES = 20` 条，超出自动淘汰最早的消息；**SystemMessage 不占窗口额度**（淘汰时跳过）。
+- **store 必须是共享 Bean**：在 `.memoryStore(...)` 里传每次 new 的存储实例会让多轮上下文静默失效；`ChatAssistantConfig` 把它声明为独立 Bean，`assistant` Bean 注入使用。
 - 默认用进程内 `InMemoryChatMemoryStore`，重启即丢。生产换成实现 `ChatMemoryStore` 的 Redis / JDBC 存储即可；注意 `updateMessages` 是读全量再全量写回，落库前最好先按窗口裁剪。
 
 ### 系统提示与个人信息放哪
@@ -221,7 +222,7 @@ Content-Type: application/json
 |---|---|
 | `ChatSampleApplication` | 启动类 |
 | `ai/Assistant` | `AiServices` 声明式接口：`chat` / `stream`，参数只有 `@MemoryId sessionId` 与 `@UserMessage message` |
-| `ai/ChatAssistantConfig` | 自建两个模型 Bean（挂 `ChatModelListener`）+ 装配模型/工具/RAG/记忆/系统提示 |
+| `ai/ChatAssistantConfig` | 自建两个模型 Bean（挂 `ChatModelListener`），经框架 `AssistantBuilder` 装配模型/工具/RAG/记忆/系统提示 |
 | `ai/OllamaProperties` | `langchain4j.ollama.*` 配置绑定（框架侧类是包私有，样例需自声明） |
 | `ai/SystemPromptBuilder` | 拼装系统提示：人设 + profile |
 | `ai/SystemPromptBuilder` | 拼装系统提示：人设 + profile + 检索资料 |
