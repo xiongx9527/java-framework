@@ -18,7 +18,8 @@ import java.util.Map;
  * 注册顺序与数据集创建先后不影响构建。过滤链（enabled/archived/score 阈值）与 hit_count 累加
  * 统一由 {@link KbSearchService#search} 承担。
  */
-public class KnowledgeContentRetriever implements ContentRetriever {
+public class KnowledgeContentRetriever implements ContentRetriever,
+		com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant.SimpleAssistant.FilterableRetriever {
 
 	private final ObjectProvider<KbSearchService> searchServices;
 
@@ -76,19 +77,32 @@ public class KnowledgeContentRetriever implements ContentRetriever {
 
 	@Override
 	public List<Content> retrieve(Query query) {
+		return doRetrieve(query.text(), metadataCondition);
+	}
+
+	/**
+	 * 显式带元数据过滤的检索：{@code extraCondition}（Dify metadata_condition 格式，可 null）
+	 * 与构建期固定 {@code metadataCondition} 叠加（AND），供 SimpleAssistant 的过滤重载
+	 * 经回调直达，不依赖 ThreadLocal 隐式传参。
+	 */
+	public List<Content> retrieve(String message, com.alibaba.fastjson2.JSONObject extraCondition) {
+		return doRetrieve(message, mergeConditions(metadataCondition, extraCondition));
+	}
+
+	private List<Content> doRetrieve(String queryText, com.alibaba.fastjson2.JSONObject baseCondition) {
 		KbSearchService searchService = searchServices == null ? null : searchServices.getIfAvailable();
 		if (searchService == null) {
 			throw new IllegalStateException("知识库检索服务未装配，无法构建 knowledge 类型检索器");
 		}
-		com.alibaba.fastjson2.JSONObject effectiveCondition = metadataCondition;
+		com.alibaba.fastjson2.JSONObject effectiveCondition = baseCondition;
 		// auto 模式：由 LLM 从用户消息与字段定义自动生成元数据过滤条件（失败回落无条件检索）
 		if ("auto".equalsIgnoreCase(metadataFilterMode) && metadataFieldServices != null) {
-			com.alibaba.fastjson2.JSONObject generated = generateConditionByLlm(query.text());
+			com.alibaba.fastjson2.JSONObject generated = generateConditionByLlm(queryText);
 			if (generated != null && !generated.isEmpty()) {
 				effectiveCondition = mergeConditions(effectiveCondition, generated);
 			}
 		}
-		List<KbSearchHit> hits = searchService.search(datasetId, query.text(), maxResults, minScore,
+		List<KbSearchHit> hits = searchService.search(datasetId, queryText, maxResults, minScore,
 				effectiveCondition, documentId);
 		List<Content> contents = new ArrayList<>(hits.size());
 		for (KbSearchHit hit : hits) {
@@ -131,7 +145,7 @@ public class KnowledgeContentRetriever implements ContentRetriever {
 				return null;
 			}
 			// 对话模型：取 Spring 默认实例（chat model 数据源模块的默认链路）
-			dev.langchain4j.model.chat.ChatLanguageModel chatModel = retrieverContext.chatModel(null);
+			dev.langchain4j.model.chat.ChatModel chatModel = retrieverContext.chatModel(null);
 			if (chatModel == null) {
 				return null;
 			}
@@ -151,7 +165,7 @@ public class KnowledgeContentRetriever implements ContentRetriever {
 					+ "3. 用户消息没有可用于过滤的信息时，输出空对象 {}；\n"
 					+ "4. 只输出 JSON，格式：{\"logical_operator\":\"and\",\"conditions\":[{\"name\":\"字段名\",\"comparison_operator\":\"is\",\"value\":\"值\"}]}。\n"
 					+ "\n用户消息：" + userMessage;
-			String response = chatModel.generate(prompt);
+			String response = chatModel.chat(prompt);
 			if (response == null || response.isEmpty()) {
 				return null;
 			}

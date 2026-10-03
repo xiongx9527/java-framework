@@ -123,13 +123,20 @@ public class FilteringContentRetriever implements ContentRetriever {
 
 	/** 取 metadata 里的 score；缺失或解析失败按 1.0（不因元数据缺失丢内容）。 */
 	private static double scoreOf(Content content) {
-		String score = content.textSegment().metadata().getString(KEY_SCORE);
-		if (score == null || score.trim().isEmpty()) {
+		dev.langchain4j.data.document.Metadata metadata = content.textSegment().metadata();
+		if (!metadata.containsKey(KEY_SCORE)) {
 			return 1.0;
 		}
+		// langchain4j 1.x EmbeddingStoreContentRetriever 写入的 score 是 Double，历史数据可能为 String；
+		// 1.x Metadata 强类型 getter 读到不匹配类型会抛异常，故双兼容
 		try {
-			return Double.parseDouble(score.trim());
-		} catch (NumberFormatException e) {
+			return metadata.getDouble(KEY_SCORE);
+		} catch (RuntimeException typeMismatch) {
+			// 落到字符串解析
+		}
+		try {
+			return Double.parseDouble(metadata.getString(KEY_SCORE).trim());
+		} catch (RuntimeException e) {
 			return 1.0;
 		}
 	}

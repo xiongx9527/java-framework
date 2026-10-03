@@ -56,7 +56,7 @@ public class KbMetadataFieldService {
 		if (!"string".equals(normalizedType) && !"number".equals(normalizedType) && !"time".equals(normalizedType)) {
 			throw new IllegalArgumentException("不支持的元数据字段类型: " + normalizedType + "（string / number / time）");
 		}
-		Integer exists = fieldMapper.selectCount(new QueryWrapper<KbMetadataField>()
+		Long exists = fieldMapper.selectCount(new QueryWrapper<KbMetadataField>()
 				.eq("dataset_id", datasetId)
 				.eq("name", name.trim()));
 		if (exists != null && exists > 0) {

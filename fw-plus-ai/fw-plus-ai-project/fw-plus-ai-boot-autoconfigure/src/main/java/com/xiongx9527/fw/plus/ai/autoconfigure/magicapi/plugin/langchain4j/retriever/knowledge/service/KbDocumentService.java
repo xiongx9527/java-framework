@@ -121,7 +121,7 @@ public class KbDocumentService {
 		byte[] bytes = (text == null ? "" : text).getBytes(java.nio.charset.StandardCharsets.UTF_8);
 		// 原文重写 + hash 重算（数据集内去重）
 		String hash = sha256Hex(bytes);
-		Integer existing = documentMapper.selectCount(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<KbDocument>()
+		Long existing = documentMapper.selectCount(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<KbDocument>()
 				.eq("dataset_id", document.getDatasetId())
 				.eq("doc_hash", hash)
 				.ne("id", documentId));

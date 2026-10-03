@@ -98,9 +98,18 @@ public class WeightedScoringContentAggregator implements ContentAggregator {
 	private Weighted weighted(Content content, double semanticScore) {
 		Double similarity = null;
 		try {
-			String raw = content.textSegment().metadata().getString(KEY_SIMILARITY_SCORE);
-			if (raw != null && !raw.trim().isEmpty()) {
-				similarity = Double.parseDouble(raw);
+			// langchain4j 1.x EmbeddingStoreContentRetriever 写入的 score 是 Double，历史数据可能为 String；
+			// 1.x Metadata 强类型 getter 读到不匹配类型会抛异常，故双兼容
+			dev.langchain4j.data.document.Metadata metadata = content.textSegment().metadata();
+			if (metadata.containsKey(KEY_SIMILARITY_SCORE)) {
+				try {
+					similarity = metadata.getDouble(KEY_SIMILARITY_SCORE);
+				} catch (RuntimeException typeMismatch) {
+					String raw = metadata.getString(KEY_SIMILARITY_SCORE);
+					if (raw != null && !raw.trim().isEmpty()) {
+						similarity = Double.parseDouble(raw.trim());
+					}
+				}
 			}
 		} catch (Exception ignored) {
 			// metadata 分数缺失或格式异常：退化为纯语义分

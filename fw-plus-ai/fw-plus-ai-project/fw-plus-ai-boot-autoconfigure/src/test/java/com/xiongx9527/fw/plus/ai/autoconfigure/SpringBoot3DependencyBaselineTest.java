@@ -24,11 +24,11 @@ public class SpringBoot3DependencyBaselineTest {
         assertProperty(coreBom(), "magic-api.version", "2.2.2");
         assertProperty(coreBom(), "magic-script.version", "1.9.0");
         assertProperty(coreBom(), "mybatis-plus.version", "3.5.16");
-        assertProperty(coreBom(), "langchain4j.version", "1.18.0");
-        assertProperty(coreBom(), "langchain4j-community.version", "1.18.0-beta28");
-        assertProperty(coreBom(), "spring-ai.version", "1.1.2");
-        assertProperty(coreBom(), "spring-ai-alibaba.version", "1.1.2.2");
-        assertProperty(coreBom(), "spring-ai-alibaba-extensions.version", "1.1.2.2");
+        assertProperty(coreBom(), "langchain4j.version", "1.20.2");
+        assertProperty(coreBom(), "langchain4j-community.version", "1.20.0-beta30");
+        assertProperty(coreBom(), "spring-ai.version", "1.1.8");
+        assertProperty(coreBom(), "spring-ai-alibaba.version", "1.1.2.4-security-fix");
+        assertProperty(coreBom(), "spring-ai-alibaba-extensions.version", "1.1.2.4-security-fix");
         assertCoreLangChain4jManagement();
         assertImportedBom(aiBom(), "com.xiongx9527.fw.plus", "fw-plus-dependencies", "${project.version}");
         assertNoDirectLangChain4jManagement(aiBom());
@@ -59,10 +59,8 @@ public class SpringBoot3DependencyBaselineTest {
             }
         }
         Map<String, String> expectedExceptions = new HashMap<>();
-        expectedExceptions.put("langchain4j-community-redis", "${langchain4j-community.version}");
-        expectedExceptions.put("langchain4j-community-qianfan", "${langchain4j-community.version}");
-        expectedExceptions.put("langchain4j-community-dashscope", "${langchain4j-community.version}");
-        expectedExceptions.put("langchain4j-community-zhipu-ai", "${langchain4j-community.version}");
+        expectedExceptions.put("langchain4j-community-bom", "${langchain4j-community.version}");
+        expectedExceptions.put("langchain4j-github-models", "${langchain4j-github-models.version}");
         assertEquals(expectedExceptions, managedArtifacts,
                 "Core BOM must keep LangChain4j version overrides centralized");
     }

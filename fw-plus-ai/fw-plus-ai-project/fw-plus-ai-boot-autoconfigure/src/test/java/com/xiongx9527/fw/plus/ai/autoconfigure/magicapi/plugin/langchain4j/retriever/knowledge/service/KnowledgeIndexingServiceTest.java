@@ -84,7 +84,7 @@ class KnowledgeIndexingServiceTest {
 
         executor = new KbIndexingExecutor();
         service = new KbIndexingService(datasetMapper, documentMapper, segmentMapper, fileStore,
-                new DocumentPipeline(), executor, retrieverContext, state);
+                new DocumentPipeline(), executor, retrieverContext, state, null);
 
         when(fileStore.read(anyString())).thenAnswer(inv ->
                 new ByteArrayInputStream(savedFile.get() == null ? new byte[0] : savedFile.get()));

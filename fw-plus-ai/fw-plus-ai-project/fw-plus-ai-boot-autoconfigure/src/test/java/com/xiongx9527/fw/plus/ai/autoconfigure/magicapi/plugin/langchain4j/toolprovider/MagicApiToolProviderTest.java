@@ -68,7 +68,9 @@ class MagicApiToolProviderTest {
 	}
 
 	private ToolProviderResult provideOnce() {
-		return provider.provideTools(new ToolProviderRequest(null, null));
+		// langchain4j 1.x 校验 userMessage 非空，0.35 允许 null
+		return provider.provideTools(new ToolProviderRequest(null,
+				dev.langchain4j.data.message.UserMessage.from("test")));
 	}
 
 	private static List<String> specNames(ToolProviderResult result) {

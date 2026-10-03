@@ -168,6 +168,29 @@ class SimpleAssistantTest {
 			}
 
 			@Override
+			public TokenStream onPartialResponseWithContext(
+					java.util.function.BiConsumer<dev.langchain4j.model.chat.response.PartialResponse,
+							dev.langchain4j.model.chat.response.PartialResponseContext> handler) {
+				return onPartialResponse(text -> handler.accept(
+						new dev.langchain4j.model.chat.response.PartialResponse(text), null));
+			}
+
+			@Override
+			public TokenStream onPartialThinkingWithContext(
+					java.util.function.BiConsumer<dev.langchain4j.model.chat.response.PartialThinking,
+							dev.langchain4j.model.chat.response.PartialThinkingContext> handler) {
+				// 替身不产生思考内容，仅返回自身保证链式调用可用
+				return this;
+			}
+
+			@Override
+			public TokenStream beforeToolExecution(
+					java.util.function.Consumer<dev.langchain4j.service.tool.BeforeToolExecution> handler) {
+				// 替身不产生工具调用，仅返回自身保证链式调用可用
+				return this;
+			}
+
+			@Override
 			public TokenStream onRetrieved(Consumer<List<dev.langchain4j.rag.content.Content>> handler) {
 				return this;
 			}
@@ -222,8 +245,9 @@ class SimpleAssistantTest {
 		}
 
 		@Override
-		public dev.langchain4j.model.chat.response.ChatResponse chat(List<ChatMessage> messages) {
-			requests.add(new ArrayList<>(messages));
+		public dev.langchain4j.model.chat.response.ChatResponse doChat(
+				dev.langchain4j.model.chat.request.ChatRequest request) {
+			requests.add(new ArrayList<>(request.messages()));
 			int index = Math.min(requests.size() - 1, replies.size() - 1);
 			return dev.langchain4j.model.chat.response.ChatResponse.builder()
 					.aiMessage(AiMessage.from(replies.get(index)))
