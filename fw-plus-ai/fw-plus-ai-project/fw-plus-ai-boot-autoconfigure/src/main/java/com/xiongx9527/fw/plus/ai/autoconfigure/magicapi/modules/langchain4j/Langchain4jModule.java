@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.AgenticWorkflows;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant.AssistantBuilder;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant.SimpleAssistant;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicChatModel;
@@ -126,7 +127,7 @@ public class Langchain4jModule {
 	 * 或经 {@code agenticToolProvider(...)} 把编排包装为工具挂入助手
 	 * （依赖 langchain4j-agentic / langgraph4j，未引入时调用将抛出类缺失错误）。
 	 */
-	public Object agentic() {
+	public AgenticWorkflows agentic() {
 		return com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.AgenticWorkflows.instance();
 	}
 
