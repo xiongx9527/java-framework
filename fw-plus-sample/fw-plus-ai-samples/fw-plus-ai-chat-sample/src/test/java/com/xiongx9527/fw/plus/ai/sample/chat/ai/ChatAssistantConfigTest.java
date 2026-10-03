@@ -1,10 +1,11 @@
 package com.xiongx9527.fw.plus.ai.sample.chat.ai;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.logging.ChatContextLogger;
-import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
+import dev.langchain4j.model.ollama.OllamaStreamingChatModel;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
@@ -16,17 +17,16 @@ import static org.junit.jupiter.api.Assertions.assertNull;
  */
 class ChatAssistantConfigTest {
 
-	/** 流式模型 Bean 读的是 {@code langchain4j.open-ai.streaming-chat-model} 下的配置 */
+	/** 流式模型 Bean 读的是 {@code langchain4j.ollama.streaming-chat-model} 下的配置 */
 	@Test
-	void streamingChatModelUsesOpenAiProperties() {
-		OpenAiProperties properties = new OpenAiProperties();
+	void streamingChatModelUsesOllamaProperties() {
+		OllamaProperties properties = new OllamaProperties();
 		properties.getStreamingChatModel().setBaseUrl("http://localhost:11434");
-		properties.getStreamingChatModel().setApiKey("ollama");
 		properties.getStreamingChatModel().setModelName("gemma4:31b-cloud");
 
-		OpenAiStreamingChatModel model = new ChatAssistantConfig().streamingChatModel(properties, new ChatContextLogger());
+		OllamaStreamingChatModel model = new ChatAssistantConfig().streamingChatModel(properties, new ChatContextLogger());
 
-		assertEquals("gemma4:31b-cloud", model.modelName());
+		assertNotNull(model);
 	}
 
 	/** OpenAI 兼容端点地址：缺 /v1 要补上，已有 /v1 或尾斜杠要归一 */

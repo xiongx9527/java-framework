@@ -26,13 +26,16 @@ langchain4j:
       # ChatContextLogger 已按类型拆开打印上下文，这里默认关闭，需要看原始报文时再打开
       log-requests: false
       log-responses: false
-  # 流式链路（SSE）用的是 OpenAI 集成（指向 Ollama 的 OpenAI 兼容端点），所以配置挂在 open-ai 下：
-  # 键名与框架侧 dev.langchain4j.openai.spring.ChatModelProperties 一致。
-  # base-url 需要 /v1（OpenAI 客户端会拼成 /v1/chat/completions），不写也会自动补。
-  # 为什么不用 langchain4j.ollama：0.35.0 的 OllamaStreamingChatModel 没有「带工具」的重载，
-  # 调用会抛 Tools are currently not supported by this model；OpenAI 集成实现了该重载。
-  # api-key 由 Ollama 侧忽略，但 OpenAI builder 要求非空，填占位值即可。
+    # 流式链路（SSE）：也走 Ollama 原生协议，模型 Bean 由 ChatAssistantConfig 自建
+    streaming-chat-model:
+      base-url: http://localhost:11434
+      model-name: gemma4:31b-cloud
+      temperature: 0.3
+      log-requests: false
+      log-responses: false
   open-ai:
+    # 流式链路已切回 Ollama 集成（不再走 OpenAI 兼容端点），关掉框架侧 OpenAI 装配
+    enabled: false
     streaming-chat-model:
       base-url: http://localhost:11434/v1
       api-key: ollama
