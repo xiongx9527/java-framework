@@ -1,29 +1,20 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger;
 
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.entity.SwaggerProvider;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.web.MagicSwaggerController;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.webflux.WebFluxRequestMagicDynamicRegistry;
 import io.swagger.v3.oas.models.OpenAPI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springdoc.core.AbstractSwaggerUiConfigProperties;
-import org.springdoc.core.AbstractSwaggerUiConfigProperties.SwaggerUrl;
 import org.springdoc.core.GroupedOpenApi;
 import org.springdoc.core.SpringDocConfigProperties;
 import org.springdoc.core.SwaggerUiConfigParameters;
 import org.springdoc.core.SwaggerUiConfigProperties;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springdoc.core.models.GroupedOpenApi;
-import org.springdoc.core.properties.AbstractSwaggerUiConfigProperties;
-import org.springdoc.core.properties.SpringDocConfigProperties;
-import org.springdoc.core.properties.SwaggerUiConfigParameters;
-import org.springdoc.core.properties.SwaggerUiConfigProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
@@ -36,7 +27,6 @@ import org.ssssssss.magicapi.core.model.Plugin;
 import org.ssssssss.magicapi.core.service.MagicResourceService;
 import org.ssssssss.magicapi.core.service.impl.RequestMagicDynamicRegistry;
 import org.ssssssss.magicapi.core.web.MagicControllerRegister;
-import org.ssssssss.magicapi.utils.Mapping;
 
 import jakarta.servlet.ServletContext;
 import java.lang.reflect.Method;
