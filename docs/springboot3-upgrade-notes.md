@@ -96,3 +96,9 @@ fw-plus-boot 层 `fw-plus-boot-autoconfigure` 仍有约 90 处编译错误，非
 - 已随本轮修复：`SpringBoot3DependencyBaselineTest`（版本与 BOM 管理断言对齐 1.20.2/1.20.0-beta30/
   spring-ai 1.1.8/community-bom 集中管理）、`MagicApiToolProviderTest`（1.x 校验 userMessage 非空）、
   `ContentRetrieverProviderRegistryTest` / `FilteringContentRetriever`（score 读取 Double/String 双兼容）。
+
+> dev 侧曾记录的"检索元数据条件按请求动态传入"设计讨论（bdb02b690），已被第 6 节
+> 显式参数方案落地；其中一条备选思路留存备查：`Query.metadata().chatMemoryId()` 已暴露
+> 当前会话 memoryId，检索器可按 memoryId 查"会话 → 条件"映射动态解析（与 ChatMemoryStore
+> 同构，非编码进 memoryId、非 ThreadLocal）；业务侧在会话建立时登记租户条件即可单实例
+> 服务全部会话。若未来需要"单实例 + 每会话固定条件"语义，可回归该方案。
