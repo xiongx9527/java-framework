@@ -5,38 +5,45 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.StreamingResponseHandler;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.listener.ChatModelErrorContext;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
+import dev.langchain4j.model.chat.listener.ChatModelRequest;
+import dev.langchain4j.model.chat.listener.ChatModelRequestContext;
+import dev.langchain4j.model.chat.listener.ChatModelResponse;
+import dev.langchain4j.model.chat.listener.ChatModelResponseContext;
 import dev.langchain4j.model.ollama.spi.OllamaStreamingChatModelBuilderFactory;
+import dev.langchain4j.model.output.Response;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
 import static dev.langchain4j.model.ollama.OllamaMessagesUtils.toOllamaMessages;
 import static dev.langchain4j.model.ollama.OllamaMessagesUtils.toOllamaTools;
+import static dev.langchain4j.model.ollama.OllamaChatModelListenerUtils.createModelListenerResponse;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 import static java.time.Duration.ofSeconds;
 import static java.util.Collections.emptyList;
+
+import static dev.langchain4j.model.ollama.OllamaChatModelListenerUtils.createModelListenerResponse;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * <a href="https://github.com/jmorganca/ollama/blob/main/docs/api.md">Ollama API reference</a>
  * <br>
  * <a href="https://github.com/jmorganca/ollama/blob/main/docs/modelfile.md#valid-parameters-and-values">Ollama API parameters</a>.
- *
- * <p><b>fw-plus 覆盖版本（同 FQCN 类路径覆盖 langchain4j-ollama 0.35.0）</b>：
- * 上游 0.35.0 未实现「带工具」的 {@code generate} 重载，调用会命中接口 default 方法抛
- * {@code Tools are currently not supported by this model}。本类在其源码基础上补齐两个
- * 工具重载，把 {@code tools} 写入 {@link ChatRequest} 后走上游四参
- * {@link OllamaClient#streamingChat}；流式累积由类路径覆盖的
- * {@link OllamaStreamingResponseBuilder} 处理。升级 langchain4j 1.x 时删除本覆盖
- * （见 docs/springboot3-upgrade-notes.md）。</p>
  */
 public class OllamaStreamingChatModel implements StreamingChatLanguageModel {
+
+    private static final Logger log = LoggerFactory.getLogger(OllamaStreamingChatModel.class);
 
     private final OllamaClient client;
     private final String modelName;
@@ -95,17 +102,12 @@ public class OllamaStreamingChatModel implements StreamingChatLanguageModel {
         generate(messages, null, null, handler);
     }
 
-    /**
-     * 带工具的流式调用：上游 0.35.0 未实现该重载（接口 default 方法抛
-     * {@code Tools are currently not supported by this model}），本覆盖补齐。
-     */
     @Override
     public void generate(List<ChatMessage> messages, List<ToolSpecification> toolSpecifications,
                          StreamingResponseHandler<AiMessage> handler) {
         generate(messages, toolSpecifications, null, handler);
     }
 
-    /** 强制单工具的流式调用：同上，覆盖接口 default 方法。 */
     @Override
     public void generate(List<ChatMessage> messages, ToolSpecification toolSpecification,
                          StreamingResponseHandler<AiMessage> handler) {
@@ -131,7 +133,64 @@ public class OllamaStreamingChatModel implements StreamingChatLanguageModel {
             requestBuilder.tools(toOllamaTools(toolSpecifications));
         }
 
-        client.streamingChat(requestBuilder.build(), handler, listeners, messages);
+        // 上游 OllamaClient 在创建 ChatModelRequest 时硬编码了空 toolSpecifications（见
+        // OllamaClient.streamingChat 中 createModelListenerRequest(request, messages, new ArrayList<>())），
+        // 导致 ChatModelListener 永远收到空工具列表。这里自己通知 listener，listeners 不再传给 OllamaClient。
+        ChatModelRequest modelListenerRequest = ChatModelRequest.builder()
+                .model(modelName)
+                .temperature(options.getTemperature())
+                .topP(options.getTopP())
+                .maxTokens(options.getNumPredict())
+                .messages(messages)
+                .toolSpecifications(toolThatMustBeExecuted != null ? Collections.singletonList(toolThatMustBeExecuted) : toolSpecifications)
+                .build();
+        Map<Object, Object> attributes = new ConcurrentHashMap<>();
+        ChatModelRequestContext requestContext = new ChatModelRequestContext(modelListenerRequest, attributes);
+        listeners.forEach(listener -> {
+            try {
+                listener.onRequest(requestContext);
+            } catch (Exception e) {
+                log.warn("Exception while calling model listener", e);
+            }
+        });
+
+        // 用带 listener 通知的 StreamingResponseHandler 包住原始 handler，
+        // listeners 传空给 client.streamingChat，避免上游重复触发 response/error 及空工具列表的 onRequest
+        StreamingResponseHandler<AiMessage> listenerAwareHandler = new StreamingResponseHandler<AiMessage>() {
+            @Override
+            public void onNext(String token) {
+                handler.onNext(token);
+            }
+
+            @Override
+            public void onError(Throwable error) {
+                ChatModelResponse partialResponse = null;
+                listeners.forEach(listener -> {
+                    try {
+                        listener.onError(new ChatModelErrorContext(error, modelListenerRequest, partialResponse, attributes));
+                    } catch (Exception e) {
+                        log.warn("Exception while calling model listener", e);
+                    }
+                });
+                handler.onError(error);
+            }
+
+            @Override
+            public void onComplete(Response<AiMessage> response) {
+                ChatModelResponse modelListenerResponse = createModelListenerResponse(modelName, response);
+                ChatModelResponseContext responseContext = new ChatModelResponseContext(modelListenerResponse, modelListenerRequest, attributes);
+                listeners.forEach(listener -> {
+                    try {
+                        listener.onResponse(responseContext);
+                    } catch (Exception e) {
+                        log.warn("Exception while calling model listener", e);
+                    }
+                });
+                handler.onComplete(response);
+            }
+        };
+
+        client.streamingChat(requestBuilder.build(), listenerAwareHandler, Collections.emptyList(), messages);
     }
 
     public static class OllamaStreamingChatModelBuilder {

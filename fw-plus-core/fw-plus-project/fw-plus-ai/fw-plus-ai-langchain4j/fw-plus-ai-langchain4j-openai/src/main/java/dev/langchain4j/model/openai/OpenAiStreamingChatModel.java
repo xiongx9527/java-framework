@@ -54,6 +54,11 @@ import static java.util.Collections.singletonList;
  * Represents an OpenAI language model with a chat completion interface, such as gpt-3.5-turbo and gpt-4.
  * The model's response is streamed token by token and should be handled with {@link StreamingResponseHandler}.
  * You can find description of parameters <a href="https://platform.openai.com/docs/api-reference/chat/create">here</a>.
+ *
+ * <p><b>fw-plus 覆盖版本（同 FQCN 类路径覆盖 langchain4j-open-ai 0.35.0）</b>：
+ * 源码从官方 0.35.0 复制，工具调用的流式累积由覆盖的
+ * {@link OpenAiStreamingResponseBuilder} 处理（修复同帧丢失 tool_calls 的问题）。
+ * 升级 langchain4j 1.x 时删除本覆盖（见 docs/fw-plus-ai-langchain4j-ollama-override.md）。</p>
  */
 @Slf4j
 public class OpenAiStreamingChatModel implements StreamingChatLanguageModel, TokenCountEstimator {

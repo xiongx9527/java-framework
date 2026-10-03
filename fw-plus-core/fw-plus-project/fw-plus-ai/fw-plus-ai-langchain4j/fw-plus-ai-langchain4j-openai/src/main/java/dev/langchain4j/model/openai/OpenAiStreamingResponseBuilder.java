@@ -26,6 +26,18 @@ import static java.util.stream.Collectors.toList;
  * This class needs to be thread safe because it is called when a streaming result comes back
  * and there is no guarantee that this thread will be the same as the one that initiated the request,
  * in fact it almost certainly won't be.
+ *
+ * <p><b>fw-plus 覆盖版本（同 FQCN 类路径覆盖 langchain4j-open-ai 0.35.0）</b>：
+ * 上游存在三处问题，导致挂 listener 的流式链路在工具调用场景下报错或丢失工具调用：
+ * <ol>
+ *   <li>content 分支提前 {@code return}，同帧的 {@code tool_calls} 被丢弃
+ *       （Ollama 兼容端点的 SSE delta 常把 content 与 tool_calls 放在同一帧）</li>
+ *   <li>多工具调用只取 {@code delta.toolCalls().get(0)}，后续 tool_calls 丢失</li>
+ *   <li>{@code build()} 在流为空时返回 {@code null}，挂 listener 会抛
+ *       {@code response cannot be null}</li>
+ * </ol>
+ * 本覆盖：content 与 tool_calls 同帧都累积；多工具按 index 排序遍历；{@code build()} 永不返回 null。
+ * （升级 langchain4j 1.x 时删除本覆盖，见 docs/fw-plus-ai-langchain4j-ollama-override.md）</p>
  */
 public class OpenAiStreamingResponseBuilder {
 

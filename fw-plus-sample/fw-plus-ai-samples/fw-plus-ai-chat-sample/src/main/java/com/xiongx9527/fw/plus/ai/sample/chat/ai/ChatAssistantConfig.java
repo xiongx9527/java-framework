@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant.Ass
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.logging.ChatContextLogger;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.ollama.OllamaStreamingChatModel;
 import dev.langchain4j.model.ollama.OllamaChatModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import dev.langchain4j.rag.RetrievalAugmentor;
@@ -96,9 +97,9 @@ public class ChatAssistantConfig {
 	 * 不用 {@code OllamaStreamingChatModel} 的原因：langchain4j 0.35.0 的 ollama 流式实现没有「带工具」的重载，
 	 * 调用会抛 {@code Tools are currently not supported by this model}。</p>
 	 */
-	@Bean
+	//@Bean
 	public OpenAiStreamingChatModel streamingChatModel(OpenAiProperties properties,
-			ChatContextLogger chatContextLogger) {
+													   ChatContextLogger chatContextLogger) {
 		OpenAiProperties.StreamingChatModelProperties p = properties.getStreamingChatModel();
 		return OpenAiStreamingChatModel.builder()
 				.baseUrl(openAiCompatibleBaseUrl(p.getBaseUrl()))
@@ -113,6 +114,29 @@ public class ChatAssistantConfig {
 				.customHeaders(p.getCustomHeaders())
 				.logRequests(p.getLogRequests())
 				.logResponses(p.getLogResponses())
+				.listeners(Collections.singletonList(chatContextLogger))
+				.build();
+	}
+
+	@Bean
+	public OllamaStreamingChatModel streamingChatModel(OllamaProperties properties,
+			ChatContextLogger chatContextLogger) {
+		OllamaProperties.ModelProperties p = properties.getStreamingChatModel();
+		return OllamaStreamingChatModel.builder()
+				.baseUrl(p.getBaseUrl())
+				.modelName(p.getModelName())
+				.temperature(p.getTemperature())
+				.topK(p.getTopK())
+				.topP(p.getTopP())
+				.repeatPenalty(p.getRepeatPenalty())
+				.seed(p.getSeed())
+				.numPredict(p.getNumPredict())
+				.stop(p.getStop())
+				.format(p.getFormat())
+				.timeout(p.getTimeout())
+				.logRequests(p.getLogRequests())
+				.logResponses(p.getLogResponses())
+				.customHeaders(p.getCustomHeaders())
 				.listeners(Collections.singletonList(chatContextLogger))
 				.build();
 	}
