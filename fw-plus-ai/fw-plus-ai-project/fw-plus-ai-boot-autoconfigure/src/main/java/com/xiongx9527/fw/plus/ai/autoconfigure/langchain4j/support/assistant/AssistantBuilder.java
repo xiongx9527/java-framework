@@ -255,9 +255,15 @@ public class AssistantBuilder {
 	public SimpleAssistant build() {
 		// RetrievalAugmentor 从 builder 装配结果传入：常规模式随 AiServices 一起走检索增强，
 		// 只检索模式（retrievalOnly）则产出仅支持 retrieve(...) 的 SimpleAssistant；
+		// streamingModel 透传给 SimpleAssistant 的直连流式能力（streamWithFilter 用），
 		// languageModel / streamingLanguageModel 透传给 SimpleAssistant 的直连补全能力
-		return new SimpleAssistant(assemble(), chatModel, languageModel, streamingLanguageModel,
-				resolveRetrievalAugmentor());
+		SimpleAssistant assistant = new SimpleAssistant(assemble(), chatModel, streamingModel, languageModel,
+				streamingLanguageModel, resolveRetrievalAugmentor());
+		// 检索器支持显式元数据过滤时（如 knowledge 类型），接线供 retrieve/chatWithFilter/streamWithFilter 过滤重载使用
+		if (contentRetriever instanceof SimpleAssistant.FilterableRetriever) {
+			assistant.filterableRetriever((SimpleAssistant.FilterableRetriever) contentRetriever);
+		}
+		return assistant;
 	}
 
 	/** 需要底层 {@link Assistant} 类型（如继续挂 AiServices 能力）时取用 */

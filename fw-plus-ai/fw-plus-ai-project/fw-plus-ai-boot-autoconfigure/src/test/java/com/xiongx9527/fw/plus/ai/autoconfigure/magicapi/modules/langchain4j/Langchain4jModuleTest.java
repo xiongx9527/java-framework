@@ -131,7 +131,7 @@ class Langchain4jModuleTest {
                 };
 
         org.springframework.web.servlet.mvc.method.annotation.SseEmitter emitter =
-                new SimpleAssistant(null, null, null, streamingModel, null)
+                new SimpleAssistant(null, null, null, null, streamingModel, null)
                         .generateTextToSse("北京天气", startedRequestId::set);
 
         assertThat(emitter).isNotNull();

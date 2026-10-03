@@ -5,6 +5,7 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.model.language.StreamingLanguageModel;
 import dev.langchain4j.model.output.Response;
@@ -13,6 +14,7 @@ import dev.langchain4j.rag.AugmentationResult;
 import dev.langchain4j.rag.RetrievalAugmentor;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.service.TokenStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -76,6 +78,8 @@ public class SimpleAssistant {
 
 	private final ChatLanguageModel chatModel;
 
+	private final StreamingChatLanguageModel streamingTextModel;
+
 	private final LanguageModel languageModel;
 
 	private final StreamingLanguageModel streamingLanguageModel;
@@ -87,10 +91,12 @@ public class SimpleAssistant {
 	 * 便于把外部已有的模型实例装配进同一个封装对象。
 	 */
 	public SimpleAssistant(Assistant assistant, ChatLanguageModel chatModel,
+						   StreamingChatLanguageModel streamingTextModel,
 						   LanguageModel languageModel, StreamingLanguageModel streamingLanguageModel,
 						   RetrievalAugmentor retrievalAugmentor) {
 		this.assistant = assistant;
 		this.chatModel = chatModel;
+		this.streamingTextModel = streamingTextModel;
 		this.languageModel = languageModel;
 		this.streamingLanguageModel = streamingLanguageModel;
 		this.retrievalAugmentor = retrievalAugmentor;
@@ -98,27 +104,27 @@ public class SimpleAssistant {
 
 	/** 全能来源：{@code AiServices<Assistant>}（chat / stream / 记忆 / 工具 / 检索增强） */
 	public SimpleAssistant(Assistant assistant) {
-		this(assistant, null, null, null, null);
+		this(assistant, null, null, null, null, null);
 	}
 
 	/** 仅同步对话：{@code ChatLanguageModel}，无记忆、无流式 */
 	public SimpleAssistant(ChatLanguageModel chatModel) {
-		this(null, chatModel, null, null, null);
+		this(null, chatModel, null, null, null, null);
 	}
 
 	/** 仅文本补全：{@code LanguageModel} */
 	public SimpleAssistant(LanguageModel languageModel) {
-		this(null, null, languageModel, null, null);
+		this(null, null, null, languageModel, null, null);
 	}
 
 	/** 仅流式补全：{@code StreamingLanguageModel}，逐段推送 */
 	public SimpleAssistant(StreamingLanguageModel streamingLanguageModel) {
-		this(null, null, null, streamingLanguageModel, null);
+		this(null, null, null, null, streamingLanguageModel, null);
 	}
 
 	/** 仅检索：{@code RetrievalAugmentor}（不聊天、不调用对话大模型） */
 	public SimpleAssistant(RetrievalAugmentor retrievalAugmentor) {
-		this(null, null, null, null, retrievalAugmentor);
+		this(null, null, null, null, null, retrievalAugmentor);
 	}
 
 	/** 需要底层 {@link Assistant} 类型（如再挂别的 AiServices 能力）时取用 */
@@ -153,6 +159,203 @@ public class SimpleAssistant {
 							+ "或使用 AssistantBuilder.retrievalOnly() 只检索模式构建");
 		}
 		return retrievalAugmentor;
+	}
+
+	// -------------------------------------------------- 带元数据过滤的检索与对话（显式参数）
+
+	/**
+	 * 显式元数据过滤检索回调：由带知识库检索的构建方注入（经 {@code AssistantBuilder} 自动识别
+	 * 支持 {@code retrieve(message, metadataCondition)} 的检索器并接线），实现方负责将传入条件
+	 * 与自身固定条件叠加（AND）。
+	 */
+	public interface FilterableRetriever {
+
+		/**
+		 * 检索：{@code metadataCondition} 为 Dify metadata_condition 格式（可 null）。
+		 */
+		List<Content> retrieve(String message, com.alibaba.fastjson2.JSONObject metadataCondition);
+	}
+
+	private FilterableRetriever filterableRetriever;
+
+	/** 注入显式过滤检索回调（链式），供 {@link #retrieve(String, String, String)} /
+	 * {@link #chatWithFilter(String, String, String)} 使用 */
+	public SimpleAssistant filterableRetriever(FilterableRetriever filterableRetriever) {
+		this.filterableRetriever = filterableRetriever;
+		return this;
+	}
+
+	private FilterableRetriever filterableRetriever() {
+		if (filterableRetriever == null) {
+			throw new IllegalStateException(
+					"未注入显式过滤检索回调：仅构建时配置了支持元数据过滤的检索器"
+							+ "（如 knowledge 类型）才支持带过滤参数的 retrieve / chatWithFilter / streamWithFilter");
+		}
+		return filterableRetriever;
+	}
+
+	/**
+	 * 只检索（带元数据过滤）：{@code metadataCondition} 为 Dify metadata_condition 格式 JSON
+	 * 字符串（键须为数据集已定义的元数据字段），仅本次调用生效，与构建期固定条件叠加（AND）。
+	 */
+	public List<Content> retrieve(String memoryId, String metadataCondition, String message) {
+		return filterableRetriever().retrieve(message, parseCondition(metadataCondition));
+	}
+
+	/**
+	 * 同步对话（带元数据过滤）：检索经 {@code metadataCondition} 过滤，结果拼入上下文后由
+	 * 底层对话模型直连生成（不经 AiServices 检索增强链，避免重复召回）；未配置 ChatLanguageModel
+	 * 时退回底层 {@link Assistant} 会话对话。
+	 */
+	public String chatWithFilter(String memoryId, String metadataCondition, String message) {
+		List<Content> contents = retrieve(memoryId, metadataCondition, message);
+		String prompt = filteredPrompt(contents, message);
+		return chatModel != null
+				? chatModel.generate(prompt)
+				: requireAssistant().chat(memoryId, "", message);
+	}
+
+	/**
+	 * 流式对话（带元数据过滤）：检索经 {@code metadataCondition} 过滤，结果拼入上下文后由
+	 * 流式对话模型直连生成（不经 AiServices 检索增强链，避免重复召回；与会话记忆一样不经过——
+	 * 直连路径与 {@link #chatWithFilter} 语义一致）。需构建时配置 StreamingChatLanguageModel。
+	 * langchain4j 0.35.0 的流式 API 无取消句柄，取消语义为停止消费（模型侧流自然结束）。
+	 */
+	public TokenStream streamWithFilter(String memoryId, String metadataCondition, String message) {
+		if (streamingTextModel == null) {
+			throw new IllegalStateException(
+					"未配置流式对话模型：streamWithFilter 需构建时配置 streamingModel(...) / StreamingChatLanguageModel");
+		}
+		List<Content> contents = retrieve(memoryId, metadataCondition, message);
+		return new DirectTokenStream(filteredPrompt(contents, message), contents);
+	}
+
+	/** SSE 推流（带元数据过滤）：事件链与 {@link #streamToSse(String, String)} 一致 */
+	public SseEmitter streamToSseWithFilter(String memoryId, String metadataCondition, String message) {
+		return streamTokenStreamToSse(streamWithFilter(memoryId, metadataCondition, message),
+				null, null, null, null);
+	}
+
+	/**
+	 * SSE 推流（带元数据过滤，挂钩形态）：参数语义与
+	 * {@link #streamToSse(String, String, Object, java.util.function.Function)} /
+	 * {@link #streamToSse(String, String, Consumer, Consumer)} 一致
+	 * （startData / doneDataMapper / onStarted / onDone 均可为 null）。
+	 */
+	public SseEmitter streamToSseWithFilter(String memoryId, String metadataCondition, String message,
+			Object startData, java.util.function.Function<String, Object> doneDataMapper,
+			Consumer<String> onStarted, Consumer<String> onDone) {
+		return streamTokenStreamToSse(streamWithFilter(memoryId, metadataCondition, message),
+				startData, doneDataMapper, onStarted, onDone);
+	}
+
+	/** 把检索结果拼成带参考资料的提示词（chatWithFilter / streamWithFilter 共用） */
+	private static String filteredPrompt(List<Content> contents, String message) {
+		StringBuilder context = new StringBuilder();
+		for (Content content : contents) {
+			if (context.length() > 0) {
+				context.append("\n\n");
+			}
+			context.append(content.textSegment().text());
+		}
+		return context.length() > 0
+				? "请根据以下参考资料回答用户问题。\n\n参考资料：\n" + context + "\n\n用户问题：" + message
+				: message;
+	}
+
+	/**
+	 * 直连流式 TokenStream：不经 AiServices，直接驱动 {@link StreamingChatLanguageModel} 逐段回调。
+	 * 无会话记忆、无工具事件；检索结果在 start() 时经 {@code onRetrieved} 回调
+	 * （显式检索已在 streamWithFilter 完成）。
+	 */
+	private final class DirectTokenStream implements TokenStream {
+
+		private final String prompt;
+
+		private final List<Content> contents;
+
+		private final List<Consumer<String>> nextHandlers = new ArrayList<>();
+
+		private final List<Consumer<List<Content>>> retrievedHandlers = new ArrayList<>();
+
+		private Consumer<Response<AiMessage>> completeHandler;
+
+		private Consumer<Throwable> errorHandler;
+
+		private DirectTokenStream(String prompt, List<Content> contents) {
+			this.prompt = prompt;
+			this.contents = contents;
+		}
+
+		@Override
+		public TokenStream onNext(Consumer<String> handler) {
+			nextHandlers.add(handler);
+			return this;
+		}
+
+		@Override
+		public TokenStream onRetrieved(Consumer<List<Content>> handler) {
+			retrievedHandlers.add(handler);
+			return this;
+		}
+
+		@Override
+		public TokenStream onComplete(Consumer<Response<AiMessage>> handler) {
+			completeHandler = handler;
+			return this;
+		}
+
+		@Override
+		public TokenStream onError(Consumer<Throwable> handler) {
+			errorHandler = handler;
+			return this;
+		}
+
+		@Override
+		public TokenStream ignoreErrors() {
+			return this;
+		}
+
+		@Override
+		public void start() {
+			// 先回调检索结果（SSE 链会发 retrieved 事件），再启动直连流式生成
+			for (Consumer<List<Content>> handler : retrievedHandlers) {
+				handler.accept(contents);
+			}
+			streamingTextModel.generate(prompt, new dev.langchain4j.model.StreamingResponseHandler<AiMessage>() {
+				@Override
+				public void onNext(String token) {
+					for (Consumer<String> handler : nextHandlers) {
+						handler.accept(token);
+					}
+				}
+
+				@Override
+				public void onComplete(Response<AiMessage> response) {
+					if (completeHandler != null) {
+						completeHandler.accept(response);
+					}
+				}
+
+				@Override
+				public void onError(Throwable throwable) {
+					if (errorHandler != null) {
+						errorHandler.accept(throwable);
+					}
+				}
+			});
+		}
+	}
+
+	private static com.alibaba.fastjson2.JSONObject parseCondition(String metadataCondition) {
+		if (metadataCondition == null || metadataCondition.trim().isEmpty()) {
+			return null;
+		}
+		try {
+			return com.alibaba.fastjson2.JSON.parseObject(metadataCondition);
+		} catch (Exception e) {
+			throw new IllegalArgumentException("metadataCondition 不是合法的 JSON 对象: " + e.getMessage());
+		}
 	}
 
 	/** 一次性对话：memoryId 取 {@value #DEFAULT_MEMORY_ID}，context 为空 */
@@ -426,6 +629,18 @@ public class SimpleAssistant {
 	private SseEmitter doStreamToSse(String memoryId, String context, String message, Object startData,
 			java.util.function.Function<String, Object> doneDataMapper,
 			Consumer<String> onStarted, Consumer<String> onDone) {
+		return streamTokenStreamToSse(stream(memoryId, context, message),
+				startData, doneDataMapper, onStarted, onDone);
+	}
+
+	/**
+	 * 将给定 {@link TokenStream} 以 SSE 推流：start/token/done/error 事件链与客户端断开
+	 * 停止消费逻辑与常规流式完全一致，供常规流式与带过滤直连流式
+	 * （{@link #streamToSseWithFilter}）共用。
+	 */
+	private SseEmitter streamTokenStreamToSse(TokenStream tokenStream, Object startData,
+			java.util.function.Function<String, Object> doneDataMapper,
+			Consumer<String> onStarted, Consumer<String> onDone) {
 		SseEmitter emitter = new SseEmitter(0L);
 		String requestId = java.util.UUID.randomUUID().toString().replace("-", "");
 		// 客户端断开/超时后置位：后续 token 不再推送也不再消费。
@@ -448,7 +663,7 @@ public class SimpleAssistant {
 			}
 		}
 
-		stream(memoryId, context, message)
+		tokenStream
 				.onNext(token -> {
 					if (cancelled.get()) {
 						return;
