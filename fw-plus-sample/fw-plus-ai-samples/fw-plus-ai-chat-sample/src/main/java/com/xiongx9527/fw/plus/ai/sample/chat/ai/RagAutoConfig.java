@@ -21,9 +21,9 @@ import org.springframework.context.annotation.Configuration;
  * </pre>
  *
  * <p><b>RAG 不进记忆</b>：框架把检索结果拼进 user message 后会整条写进 memory；
- * {@link EphemeralChatMemory} 按 {@link EphemeralChatMemory#RAG_SEPARATOR} 剥掉检索内容，
+ * {@code EphemeralChatMemory} 按 {@code EphemeralChatMemory.DEFAULT_RAG_SEPARATOR} 剥掉检索内容，
  * 只让用户原话进记忆，本轮请求仍带完整内容。锚点必须与默认注入模板的分隔段一致
- * （上游改默认模板时需同步 {@code EphemeralChatMemory.RAG_SEPARATOR}）。</p>
+ * （上游改默认模板时需同步 {@code EphemeralChatMemory.DEFAULT_RAG_SEPARATOR}）。</p>
  *
  * <p>未配置 {@code fw.plus.sample.chat.knowledge-base.base-url} 时两个 Bean 都不创建，
  * {@code AiServices} 便不启用检索增强，样例退化为纯对话。</p>

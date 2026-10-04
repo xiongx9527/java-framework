@@ -28,8 +28,8 @@ import java.util.Collections;
  *
  * <p>{@code memoryId} 兼任会话记忆键，也决定读取哪份个人资料：{@link AssistantBuilder}
  * 的内置记忆（{@code memory(...)} + {@code memoryStore(...)}）按它隔离多轮上下文，
- * 并包一层 {@code EphemeralChatMemory} 让历史只沉淀系统提示与用户原话——RAG 检索段、
- * 工具往返、AI 回复都不留。</p>
+ * 并包一层 {@code EphemeralChatMemory}：默认只沉淀系统提示、用户原话与上一轮的最终回答——
+ * RAG 检索段与工具往返都不留（只在本轮请求里带出）。</p>
  *
  * <p><b>为什么系统提示不走 {@code systemMessageProvider} 的静态注解</b>：provider 每轮产出的
  * 系统提示会被 {@code DefaultAiServices} 写进 memory，而 {@code MessageWindowChatMemory.add}
@@ -160,8 +160,8 @@ public class ChatAssistantConfig {
 	 * 经 {@link AssistantBuilder} 装配：模型 / 流式模型 / 系统提示 / 内置记忆 / 工具 / 检索增强
 	 * 一条链配齐。记忆由 builder 内置——按 {@code @MemoryId} 实参（即 memoryId）取会话记忆，
 	 * {@code MessageWindowChatMemory} 每个会话一个实例，超出窗口的旧消息自动淘汰；外层包
-	 * {@code EphemeralChatMemory} 让历史只沉淀系统提示与用户原话（RAG 检索段、工具往返、
-	 * AI 回复都不留，工具往返只在本轮请求里带出）。
+	 * {@code EphemeralChatMemory} 让历史只沉淀系统提示、用户原话与上一轮的最终回答
+	 * （RAG 检索段、工具往返都不留；工具往返只在本轮请求里带出）。
 	 *
 	 * <p>系统提示由 {@link SystemPromptBuilder#build} 每轮生成：人设 + profile。注意 memory 里
 	 * 只容得下一条 SystemMessage——框架会把 provider 的产出写进去，所以不要再由别处写第二条，

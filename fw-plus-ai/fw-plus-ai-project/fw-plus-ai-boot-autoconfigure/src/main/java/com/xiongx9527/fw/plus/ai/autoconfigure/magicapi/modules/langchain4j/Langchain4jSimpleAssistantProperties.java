@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.EphemeralChatMemoryProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.HashMap;
@@ -61,6 +62,9 @@ public class Langchain4jSimpleAssistantProperties {
 
 	/** rerank 生效下限：低于该分数的检索条目丢弃（仅在配置了 scoring-model 类型 key 时生效） */
 	private Double rerankMinScore;
+
+	/** Ephemeral 记忆配置：AI 持久化策略、长度限制、RAG/工具往返处理等（见 {@link EphemeralChatMemoryProperties}） */
+	private EphemeralChatMemoryProperties ephemeral = new EphemeralChatMemoryProperties();
 
 	public boolean isEnabled() {
 		return enabled;
@@ -132,5 +136,13 @@ public class Langchain4jSimpleAssistantProperties {
 
 	public void setRerankMinScore(Double rerankMinScore) {
 		this.rerankMinScore = rerankMinScore;
+	}
+
+	public EphemeralChatMemoryProperties getEphemeral() {
+		return ephemeral;
+	}
+
+	public void setEphemeral(EphemeralChatMemoryProperties ephemeral) {
+		this.ephemeral = ephemeral;
 	}
 }

@@ -76,8 +76,8 @@ class Langchain4jModuleTest {
         assistant.chat("session-1", "", "第二句");
 
         assertThat(model.requests.get(0)).hasSize(1);
-        assertThat(model.requests.get(1)).as("第二轮带上第一轮的用户原话（EphemeralChatMemory 不保留 AI 回复）")
-                .containsExactly(UserMessage.from("第一句"), UserMessage.from("第二句"));
+        assertThat(model.requests.get(1)).as("第二轮带上一轮用户原话与沉淀下来的最终回答（未调工具）")
+                .containsExactly(UserMessage.from("第一句"), AiMessage.from("收到。"), UserMessage.from("第二句"));
     }
 
     @Test

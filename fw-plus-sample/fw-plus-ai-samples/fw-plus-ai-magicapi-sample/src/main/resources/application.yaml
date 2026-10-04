@@ -4,6 +4,9 @@ server:
 spring:
   application:
       name: ai-sample
+  main:
+    # OpenAI 与 Azure OpenAI 的 langchain4j 自动配置 Bean 名冲突，统一通过应用侧覆盖/禁用
+    allow-bean-definition-overriding: true
   autoconfigure:
     exclude: org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
 
@@ -12,6 +15,8 @@ fw:
   plus:
     uid:
       enabled: false
+    ws:
+      enabled: true
     web:
       jackson:
         write_longs_as_strings:
