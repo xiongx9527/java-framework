@@ -24,9 +24,9 @@ import java.util.List;
  * <p>覆盖六类内容，对应排查 prompt 拼接效果时最常看的几处：</p>
  * <ul>
  *   <li><b>TOOLS</b>：本轮可用工具清单（{@code ToolSpecification}），即模型能看到的工具能力边界；</li>
- *   <li><b>SYSTEM</b>：系统提示词，由 {@code ChatAssistantConfig.systemMessageProvider} 生成，
- *       <b>末尾的「可参考的资料」就是 RAG 检索结果</b>（经 {@code @V("ragContext")} 注入）；</li>
- *   <li><b>USER</b>：用户原话（检索内容不在这里）；</li>
+ *   <li><b>SYSTEM</b>：系统提示词，由 {@code systemMessageProvider} 生成；</li>
+ *   <li><b>USER</b>：用户消息；工具续调时会先记录不带 RAG 的原话，再在工具往返之后附加一条
+ *       含 RAG 的当前问题；</li>
  *   <li><b>TOOL_CALL</b>：模型请求执行的工具及参数（{@code AiMessage.toolExecutionRequests}）；</li>
  *   <li><b>TOOL_RESPONSE</b>：工具执行结果（{@code ToolExecutionResultMessage}）；</li>
  *   <li><b>RESPONSE</b>：模型回复与 token 用量。</li>

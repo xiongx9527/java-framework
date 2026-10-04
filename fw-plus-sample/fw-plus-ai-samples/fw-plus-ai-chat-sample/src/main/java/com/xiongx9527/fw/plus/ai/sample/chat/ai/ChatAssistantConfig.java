@@ -3,8 +3,8 @@ package com.xiongx9527.fw.plus.ai.sample.chat.ai;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant.Assistant;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant.AssistantBuilder;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.logging.ChatContextLogger;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.ollama.OllamaStreamingChatModel;
 import dev.langchain4j.model.ollama.OllamaChatModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
@@ -65,7 +65,7 @@ public class ChatAssistantConfig {
 	 * 只多出一行 {@code .listeners(...)}——这是本样例自建 Bean 的唯一原因。
 	 *
 	 * <p>框架侧 ollama 装配已用 {@code fw.plus.ai.langchain4j.ollama.enabled=false} 关掉，
-	 * 否则容器内会出现两个 {@link ChatLanguageModel} Bean，{@link #assistant} 按类型注入会报歧义。</p>
+	 * 否则容器内会出现两个 {@link ChatModel} Bean，{@link #assistant} 按类型注入会报歧义。</p>
 	 */
 	@Bean
 	public OllamaChatModel chatModel(OllamaProperties properties, ChatContextLogger chatContextLogger) {
@@ -80,7 +80,6 @@ public class ChatAssistantConfig {
 				.seed(p.getSeed())
 				.numPredict(p.getNumPredict())
 				.stop(p.getStop())
-				.format(p.getFormat())
 				.timeout(p.getTimeout())
 				.maxRetries(p.getMaxRetries())
 				.customHeaders(p.getCustomHeaders())
@@ -132,7 +131,6 @@ public class ChatAssistantConfig {
 				.seed(p.getSeed())
 				.numPredict(p.getNumPredict())
 				.stop(p.getStop())
-				.format(p.getFormat())
 				.timeout(p.getTimeout())
 				.logRequests(p.getLogRequests())
 				.logResponses(p.getLogResponses())
@@ -168,8 +166,8 @@ public class ChatAssistantConfig {
 	 * 否则互相顶掉。</p>
 	 */
 	@Bean
-	public Assistant assistant(ChatLanguageModel chatModel,
-							   StreamingChatLanguageModel streamingChatModel,
+	public Assistant assistant(ChatModel chatModel,
+							   StreamingChatModel streamingChatModel,
 							   WeatherTools weatherTools,
 							   SystemPromptBuilder systemPromptBuilder,
 							   ChatMemoryStore chatMemoryStore,

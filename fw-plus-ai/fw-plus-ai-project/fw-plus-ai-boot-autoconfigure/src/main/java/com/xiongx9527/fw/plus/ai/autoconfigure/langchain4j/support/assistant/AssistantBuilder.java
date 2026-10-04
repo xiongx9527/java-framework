@@ -48,7 +48,8 @@ import java.util.function.Function;
  * 记忆二选一：配置 {@link #tokenizer(TokenCountEstimator)} 用 {@code TokenWindowChatMemory}（按 token 截断），
  * 否则用 {@code MessageWindowChatMemory}（按条数截断）——都不配时用进程内窗口记忆（默认 20 条）。
  * 无论哪种，内置记忆都包一层 {@link EphemeralChatMemory}：历史只沉淀系统提示与用户原话，
- * RAG 检索段与工具往返不进历史。
+ * RAG 检索段与工具往返不进历史。检索段不进历史由 {@code storeRetrievedContentInChatMemory(false)}
+ * 保证——langchain4j 该开关默认 {@code true}，会把拼了检索内容的整条 user message 写进记忆。
  */
 public class AssistantBuilder {
 
@@ -367,7 +368,12 @@ public class AssistantBuilder {
 			return null;
 		}
 		AiServices<Assistant> builder = AiServices.builder(Assistant.class)
-				.chatMemoryProvider(resolveChatMemoryProvider());
+				.chatMemoryProvider(resolveChatMemoryProvider())
+				// 检索增强后的 user message 只进请求、不进记忆：默认 true 会把 RAG 检索段整条写进
+				// ChatMemoryStore，每轮重复计费且与后续问题无关。置 false 后框架写的是用户原话，
+				// 工具续调时由 ToolService.resolveMessagesForNextRequest 把增强后的原话换回请求
+				// 末尾（UserMessage.replaceLast），本轮 RAG 仍然只出现一次。
+				.storeRetrievedContentInChatMemory(false);
 
 		if (chatModel != null) {
 			builder.chatModel(chatModel);
