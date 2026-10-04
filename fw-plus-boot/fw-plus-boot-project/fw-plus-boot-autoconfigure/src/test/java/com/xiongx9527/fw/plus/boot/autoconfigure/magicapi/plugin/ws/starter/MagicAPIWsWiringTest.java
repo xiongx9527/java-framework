@@ -47,10 +47,18 @@ class MagicAPIWsWiringTest {
     private final MagicAPIProperties properties = new MagicAPIProperties();
 
     // fw.plus.ws.enabled 无 matchIfMissing：未配置时装配关闭，测试统一显式开启。
+    //
+    // 注册顺序必须让 WS 地基先于 magic 侧插件配置被解析：MagicAPIWsConfiguration 用
+    // @ConditionalOnBean(AbstractWebSocketHandler.class) 决定是否装配，而该条件只能看到
+    // "此刻已解析完的配置"里声明过的 @Bean。生产里这条顺序由
+    // MagicAPIBaseAutoConfiguration 上的 @AutoConfigureAfter(WsAutoConfiguration.class) 保证；
+    // 这里用 withUserConfiguration 的先后顺序复现同一前提。若把 WsAutoConfiguration 放进
+    // AutoConfigurations.of(...)，它会成为延迟自动配置（在用户配置之后解析），
+    // MagicAPIWsConfiguration 会被静默跳过，wsModule bean 数为 0。
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
             .withPropertyValues("fw.plus.ws.enabled=true")
-            .withConfiguration(AutoConfigurations.of(RefreshAutoConfiguration.class, WsAutoConfiguration.class))
-            .withUserConfiguration(MagicAPIWsConfiguration.class)
+            .withConfiguration(AutoConfigurations.of(RefreshAutoConfiguration.class))
+            .withUserConfiguration(WsAutoConfiguration.class, MagicAPIWsConfiguration.class)
             .withBean(MagicAPIProperties.class, () -> properties)
             .withBean(SpringUtils.class);
 

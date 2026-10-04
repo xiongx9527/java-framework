@@ -9,6 +9,10 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retri
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbDocumentService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSearchHit;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSearchService;
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,7 +32,18 @@ import java.util.Map;
  * 对外 REST API（设计 §3.3/§3.4）：业务对接 + Dify External Knowledge API 兼容，同一服务。
  * 认证统一走 {@link KbSaTokenAuthChecker}（Sa-Token）；未认证返回 error_code 1002，
  * 数据集不存在返回 error_code 2001。
+ *
+ * <p>类级装配条件与 {@code KnowledgeConfiguration} 对齐（本控制器唯一注册入口是该配置的
+ * {@code kbOpenApiController} Bean 方法，条件对它不生效，仅约束组件扫描）：应用若误将
+ * {@code com.xiongx9527.fw.plus.ai.autoconfigure.**} 纳入 {@code @ComponentScan}，本类会被当作应用
+ * 自己的控制器注册，而此时知识库服务层可能整体未装配（无 SqlSessionFactory 或开关关闭），
+ * 导致启动期缺 {@link KbDocumentService} 报 "required a bean of type ... that could not be found"。
+ * 加上条件后，误扫描时本类不注册，知识库未装配的应用照常启动。</p>
  */
+@ConditionalOnClass(SqlSessionFactory.class)
+@ConditionalOnBean(KbDocumentService.class)
+@ConditionalOnProperty(prefix = "fw.plus.ai.knowledge", name = "enabled", havingValue = "true",
+		matchIfMissing = true)
 @RestController
 public class KbOpenApiController {
 

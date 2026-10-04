@@ -10,12 +10,14 @@ import com.ajaxjs.mcp.server.feature.annotation.Resource;
 import com.ajaxjs.mcp.server.feature.annotation.ResourceTemplate;
 import com.ajaxjs.mcp.server.feature.annotation.Tool;
 import com.xiongx9527.fw.plus.ai.mcp.server.annotation.McpServer;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 扫描 {@code @McpService} 能力并按 {@link McpServer} 注解归属到对应 key 的 {@link FeatureMgr}。
@@ -23,7 +25,12 @@ import java.util.Map;
  * <p>{@link FeatureMgr#init(String)} 只能整包注册，无法把单个方法注册到指定 FeatureMgr
  * （{@code addTool} 等均为私有方法），因此这里走反射注册，语义与内核 {@code FeatureMgr#init}
  * 的注册顺序保持一致。</p>
+ *
+ * <p>扫描期异常按包降级（见 {@link #register}）：扫描基包通常取应用启动类所在包，
+ * 该包可能覆盖到可选依赖缺失的框架类，逐类反射读注解会失败——此时只跳过该包并记告警，
+ * 不中断启动；能力注册失败（实例化失败、绑定到未声明的 server key 等）仍 fail-fast。</p>
  */
+@Slf4j
 public class McpFeatureScanner {
 
     /**
@@ -43,21 +50,39 @@ public class McpFeatureScanner {
     /**
      * 逐个包扫描 {@code @McpService} 类，将能力按注解归属注册到对应 key 的 FeatureMgr。
      *
-     * @param basePackages 待扫描的包
+     * @param basePackages 待扫描的包，扫描失败的包被跳过而不影响其余包
      * @param featureMgrs  key → FeatureMgr 映射，必须包含 {@link #DEFAULT_KEY}
-     * @throws IOException 扫描目录失败
-     * @throws ClassNotFoundException 扫描到的类无法加载
      */
-    public void register(List<String> basePackages, Map<String, FeatureMgr> featureMgrs)
-            throws IOException, ClassNotFoundException {
+    public void register(List<String> basePackages, Map<String, FeatureMgr> featureMgrs) {
         if (!featureMgrs.containsKey(DEFAULT_KEY)) {
             throw new IllegalArgumentException("featureMgrs must contain key '" + DEFAULT_KEY + "'");
         }
         for (String basePackage : basePackages) {
-            for (Class<?> clazz : PackageAnnotationScanner.findClassesWithAnnotation(basePackage, McpService.class)) {
+            Set<Class<?>> services;
+            try {
+                services = findServices(basePackage);
+            } catch (Throwable e) {
+                // 内核扫描器逐类反射读注解，包内只要有一个类引用的可选依赖不在 classpath 就会中断整包扫描
+                // （NoClassDefFoundError、注解成员类缺失导致的 TypeNotPresentException 等 Error 级失败）。
+                // 扫描基包通常取启动类所在包，可能覆盖到这类与 MCP 能力无关的框架类，不应拖垮启动：跳过该包继续。
+                log.warn("MCP feature scan degraded: package '{}' skipped ({}). Remaining packages are still scanned.",
+                        basePackage, e.toString());
+                continue;
+            }
+            for (Class<?> clazz : services) {
                 registerClass(clazz, featureMgrs);
             }
         }
+    }
+
+    /**
+     * 调用内核扫描器扫描单个包中的 {@code @McpService} 类，异常交由 {@link #register} 按包降级。
+     *
+     * @param basePackage 待扫描的包
+     * @return 该包的 {@code @McpService} 类
+     */
+    protected Set<Class<?>> findServices(String basePackage) throws IOException, ClassNotFoundException {
+        return PackageAnnotationScanner.findClassesWithAnnotation(basePackage, McpService.class);
     }
 
     private void registerClass(Class<?> clazz, Map<String, FeatureMgr> featureMgrs) {

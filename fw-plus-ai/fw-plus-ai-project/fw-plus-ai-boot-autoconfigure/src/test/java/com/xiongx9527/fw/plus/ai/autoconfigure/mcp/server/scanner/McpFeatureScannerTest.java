@@ -5,10 +5,13 @@ import com.xiongx9527.fw.plus.ai.mcp.server.annotation.McpServer;
 import com.xiongx9527.fw.plus.ai.mcp.server.feature.McpFeatureScanner;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashMap;
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -23,6 +26,7 @@ class McpFeatureScannerTest {
 
 	private final String fixturePackage = "com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.scanner.fixture";
 	private final String ghostPackage = "com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.scanner.ghost";
+	private final String brokenPackage = "com.example.broken";
 
 	@Test
 	void shouldRouteAnnotatedCapabilitiesToMatchingFeatureMgr() throws Exception {
@@ -49,6 +53,29 @@ class McpFeatureScannerTest {
 		assertThatThrownBy(() -> scanner.register(Collections.singletonList(ghostPackage), mgrs))
 				.isInstanceOf(IllegalStateException.class)
 				.hasMessageContaining("unresolved server key 'ghost'");
+	}
+
+	@Test
+	void shouldSkipPackageWhoseScanFailsAndStillRegisterOtherPackages() {
+		Map<String, FeatureMgr> mgrs = mgrs("default", "order", "weather");
+		// 内核扫描器在包内遇到不可加载类时抛错（可选依赖缺失 → NoClassDefFoundError / TypeNotPresentException），
+		// 模拟：坏包扫描抛错，好包照常返回
+		McpFeatureScanner degraded = new McpFeatureScanner() {
+			@Override
+			protected Set<Class<?>> findServices(String basePackage) throws IOException, ClassNotFoundException {
+				if (brokenPackage.equals(basePackage)) {
+					throw new NoClassDefFoundError("com/example/Missing");
+				}
+				return super.findServices(basePackage);
+			}
+		};
+
+		degraded.register(Arrays.asList(brokenPackage, fixturePackage), mgrs);
+
+		assertThat(mgrs.get("default").getToolStore())
+				.as("坏包降级跳过，好包能力仍注册")
+				.containsKey("getWeather");
+		assertThat(mgrs.get("order").getToolStore()).containsKey("createOrder");
 	}
 
 	@Test

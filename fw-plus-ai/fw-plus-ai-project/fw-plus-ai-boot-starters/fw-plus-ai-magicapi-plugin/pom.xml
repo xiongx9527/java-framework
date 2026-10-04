@@ -75,6 +75,35 @@
                 </plugin>
             </plugins>
         </pluginManagement>
+        <plugins>
+            <!-- 清理上一轮构建遗留的前端产物。vite 每次 build 都会生成新的 hash 文件名（index.<hash>.js），
+                 而 copy-resources 只做覆盖、不删除已不存在的旧文件，导致 target/classes/magic-editor
+                 以及最终打出的 jar 里堆积多份历史产物。这里在 initialize 阶段先清空该目录，
+                 让本次构建的 dist 成为唯一来源。
+                 excludeDefaultDirectories=true 保证只删下面显式列出的目录，不会连带删掉整个 target。 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-clean-plugin</artifactId>
+                <version>3.2.0</version>
+                <executions>
+                    <execution>
+                        <id>clean-stale-console-assets</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                        <configuration>
+                            <excludeDefaultDirectories>true</excludeDefaultDirectories>
+                            <filesets>
+                                <fileset>
+                                    <directory>${project.build.outputDirectory}/magic-editor</directory>
+                                </fileset>
+                            </filesets>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
     </build>
 
     <dependencies>
