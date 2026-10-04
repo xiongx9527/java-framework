@@ -81,7 +81,7 @@ TokenStream stream(@MemoryId String sessionId, String message);
 
 样例内置 `ai/ChatContextLogger`（实现 LangChain4j `ChatModelListener`）。框架侧的 ollama 自动配置已用 `fw.plus.ai.langchain4j.ollama.enabled=false` 关掉，改由 `ChatAssistantConfig` 自己构造 `OllamaChatModel` / `OllamaStreamingChatModel`，并在 builder 上调用**官方** `.listeners(...)` 挂载——不动任何框架文件，代价是模型参数在样例里再声明一份（`ai/OllamaProperties`，yaml 键名与框架侧完全一致）。同步与流式两条链路都会经过它。
 
-**流式模型的配置**：`/api/chat/stream` 的流式模型走的是 **Ollama 的 OpenAI 兼容端点**，因此配置在 `langchain4j.open-ai.streaming-chat-model`（OpenAI 集成的键名）而不是 `langchain4j.ollama`（`base-url` + `/v1`，装配时自动补 `/v1`），用的是 OpenAI 集成而不是 `OllamaStreamingChatModel`——langchain4j 0.35.0 的 ollama 流式实现没有「带工具」的重载，调了会抛 `Tools are currently not supported by this model`。换到 `/v1` 后流式链路是真流式且能调工具，与同步链路行为一致。
+**流式模型的配置**：`/api/chat/stream` 使用 Ollama 原生 `OllamaStreamingChatModel`，配置位于 `langchain4j.ollama.streaming-chat-model`。要把 Ollama 返回的思考内容作为 SSE 的 `thinking` 事件推送，需启用 `think: true` 和 `return-thinking: true`；前者请求模型生成思考内容，后者让 LangChain4j 将 thinking 增量交给 `onPartialThinkingWithContext`。未启用或模型未返回 thinking 时，不会产生 `thinking` 事件。
 
 一次对话按七类标签输出：
 

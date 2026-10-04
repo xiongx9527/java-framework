@@ -43,7 +43,8 @@ public class Langchain4jMistralAiModelFactory implements ModelFactory {
     @Override
     public MistralAiStreamingChatModel buildStreamingChatModel(Langchain4jOptionsReader o,
             List<ChatModelListener> listeners) {
-        return MistralAiStreamingChatModel.builder()
+        MistralAiStreamingChatModel.MistralAiStreamingChatModelBuilder builder =
+                MistralAiStreamingChatModel.builder()
                 .baseUrl(o.string("base-url", null))
                 .apiKey(o.required("api-key"))
                 .modelName(o.required("model-name"))
@@ -55,8 +56,14 @@ public class Langchain4jMistralAiModelFactory implements ModelFactory {
                 .timeout(o.duration("timeout", null))
                 .logRequests(o.bool("log-requests", null))
                 .logResponses(o.bool("log-responses", null))
-                .listeners(listeners)
-                .build();
+                .listeners(listeners);
+        if (o.has("send-thinking")) {
+            builder.sendThinking(o.bool("send-thinking", null));
+        }
+        if (o.has("return-thinking")) {
+            builder.returnThinking(o.bool("return-thinking", null));
+        }
+        return builder.build();
     }
 
     @Override

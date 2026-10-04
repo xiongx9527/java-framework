@@ -82,6 +82,8 @@ public class ChatAssistantConfig {
 				.stop(p.getStop())
 				.timeout(p.getTimeout())
 				.maxRetries(p.getMaxRetries())
+				.think(p.getThink())
+				.returnThinking(p.getReturnThinking())
 				.customHeaders(p.getCustomHeaders())
 				.logRequests(p.getLogRequests())
 				.logResponses(p.getLogResponses())
@@ -90,11 +92,10 @@ public class ChatAssistantConfig {
 	}
 
 	/**
-	 * 流式模型：OpenAI 集成，指向 Ollama 的 OpenAI 兼容端点（{@code base-url}，形如 {@code http://localhost:11434/v1}）。
+	 * 流式模型：Ollama 原生流式 API（{@code base-url}，形如 {@code http://localhost:11434}）。
 	 *
-	 * <p>配置取自 {@code langchain4j.open-ai.streaming-chat-model}（OpenAI 集成就用 OpenAI 的键）；
-	 * 不用 {@code OllamaStreamingChatModel} 的原因：langchain4j 0.35.0 的 ollama 流式实现没有「带工具」的重载，
-	 * 调用会抛 {@code Tools are currently not supported by this model}。</p>
+	 * <p>{@code think} 启用模型思考输出；{@code return-thinking} 让 LangChain4j 将思考增量提供给
+	 * {@code onPartialThinkingWithContext}。</p>
 	 */
 	//@Bean
 	public OpenAiStreamingChatModel streamingChatModel(OpenAiProperties properties,
@@ -130,6 +131,8 @@ public class ChatAssistantConfig {
 				.repeatPenalty(p.getRepeatPenalty())
 				.seed(p.getSeed())
 				.numPredict(p.getNumPredict())
+				.think(p.getThink())
+				.returnThinking(p.getReturnThinking())
 				.stop(p.getStop())
 				.timeout(p.getTimeout())
 				.logRequests(p.getLogRequests())

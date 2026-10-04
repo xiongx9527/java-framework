@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8081
 
 spring:
   application:
@@ -31,6 +31,8 @@ langchain4j:
       base-url: http://localhost:11434
       model-name: gemma4:31b-cloud
       temperature: 0.3
+      think: true
+      return-thinking: true
       log-requests: false
       log-responses: false
   open-ai:

@@ -1,8 +1,11 @@
 package com.xiongx9527.fw.plus.ai.sample.chat.ai;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.logging.ChatContextLogger;
+import dev.langchain4j.model.ollama.OllamaChatRequestParameters;
 import dev.langchain4j.model.ollama.OllamaStreamingChatModel;
 import org.junit.jupiter.api.Test;
+
+import java.lang.reflect.Field;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -29,6 +32,23 @@ class ChatAssistantConfigTest {
 		assertNotNull(model);
 	}
 
+	@Test
+	void streamingChatModelPassesThroughThinkingOptions() throws Exception {
+		OllamaProperties properties = new OllamaProperties();
+		properties.getStreamingChatModel().setBaseUrl("http://localhost:11434");
+		properties.getStreamingChatModel().setModelName("gemma4:31b-cloud");
+		properties.getStreamingChatModel().setThink(true);
+		properties.getStreamingChatModel().setReturnThinking(true);
+
+		OllamaStreamingChatModel model =
+				new ChatAssistantConfig().streamingChatModel(properties, new ChatContextLogger());
+
+		assertEquals(true, field(model, "returnThinking"));
+		OllamaChatRequestParameters parameters =
+				(OllamaChatRequestParameters) field(model, "defaultRequestParameters");
+		assertEquals(true, parameters.think());
+	}
+
 	/** OpenAI 兼容端点地址：缺 /v1 要补上，已有 /v1 或尾斜杠要归一 */
 	@Test
 	void openAiCompatibleBaseUrlAppendsV1() {
@@ -36,5 +56,19 @@ class ChatAssistantConfigTest {
 		assertEquals("http://localhost:11434/v1", ChatAssistantConfig.openAiCompatibleBaseUrl("http://localhost:11434/"));
 		assertEquals("http://localhost:11434/v1", ChatAssistantConfig.openAiCompatibleBaseUrl("http://localhost:11434/v1"));
 		assertNull(ChatAssistantConfig.openAiCompatibleBaseUrl(null), "未配置时保持 null，交给 OpenAI 客户端默认值");
+	}
+
+	private static Object field(Object target, String name) throws Exception {
+		Class<?> type = target.getClass();
+		while (type != null) {
+			try {
+				Field field = type.getDeclaredField(name);
+				field.setAccessible(true);
+				return field.get(target);
+			} catch (NoSuchFieldException e) {
+				type = type.getSuperclass();
+			}
+		}
+		throw new NoSuchFieldException(name);
 	}
 }

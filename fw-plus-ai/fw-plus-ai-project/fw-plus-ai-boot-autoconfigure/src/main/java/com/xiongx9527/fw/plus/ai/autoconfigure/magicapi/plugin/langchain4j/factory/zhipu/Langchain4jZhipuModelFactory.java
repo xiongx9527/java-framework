@@ -6,6 +6,7 @@ import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.community.model.zhipu.ZhipuAiChatModel;
 import dev.langchain4j.community.model.zhipu.ZhipuAiEmbeddingModel;
 import dev.langchain4j.community.model.zhipu.ZhipuAiStreamingChatModel;
+import dev.langchain4j.community.model.zhipu.chat.Thinking;
 import java.util.List;
 
 /**
@@ -42,7 +43,7 @@ public class Langchain4jZhipuModelFactory implements ModelFactory {
 
     @Override
     public ZhipuAiStreamingChatModel buildStreamingChatModel(Langchain4jOptionsReader o, List<ChatModelListener> listeners) {
-        return ZhipuAiStreamingChatModel.builder()
+        ZhipuAiStreamingChatModel.ZhipuAiStreamingChatModelBuilder builder = ZhipuAiStreamingChatModel.builder()
                 .baseUrl(o.string("base-url", null))
                 .apiKey(o.required("api-key"))
                 .model(o.string("model", "glm-4"))
@@ -56,8 +57,18 @@ public class Langchain4jZhipuModelFactory implements ModelFactory {
                 .writeTimeout(o.duration("write-timeout", null))
                 .logRequests(o.bool("log-requests", null))
                 .logResponses(o.bool("log-responses", null))
-                .listeners(listeners)
-                .build();
+                .listeners(listeners);
+        if (o.has("thinking-type") || o.has("clear-thinking")) {
+            Thinking.Builder thinking = Thinking.builder();
+            if (o.has("thinking-type")) {
+                thinking.type(o.string("thinking-type", null));
+            }
+            if (o.has("clear-thinking")) {
+                thinking.clearThinking(o.bool("clear-thinking", null));
+            }
+            builder.thinking(thinking.build());
+        }
+        return builder.build();
     }
 
     @Override

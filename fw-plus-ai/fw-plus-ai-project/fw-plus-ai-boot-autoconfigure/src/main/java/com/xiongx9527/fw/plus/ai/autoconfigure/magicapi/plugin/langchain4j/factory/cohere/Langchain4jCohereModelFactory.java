@@ -4,6 +4,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.facto
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
 import dev.langchain4j.community.model.CohereChatModel;
 import dev.langchain4j.community.model.CohereStreamingChatModel;
+import dev.langchain4j.community.model.client.CohereThinkingType;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.cohere.CohereEmbeddingModel;
 import dev.langchain4j.model.cohere.CohereScoringModel;
@@ -47,7 +48,7 @@ public class Langchain4jCohereModelFactory implements ModelFactory {
     @Override
     public CohereStreamingChatModel buildStreamingChatModel(Langchain4jOptionsReader o,
             List<ChatModelListener> listeners) {
-        return CohereStreamingChatModel.builder()
+        CohereStreamingChatModel.CohereStreamingChatModelBuilder builder = CohereStreamingChatModel.builder()
                 .baseUrl(o.string("base-url", null))
                 .apiKey(o.required("api-key"))
                 .modelName(o.string("model-name", null))
@@ -59,8 +60,14 @@ public class Langchain4jCohereModelFactory implements ModelFactory {
                 .timeout(o.duration("timeout", null))
                 .logRequests(o.bool("log-requests", null))
                 .logResponses(o.bool("log-responses", null))
-                .listeners(listeners)
-                .build();
+                .listeners(listeners);
+        if (o.has("thinking-type")) {
+            builder.thinkingType(o.enumValue("thinking-type", CohereThinkingType.class, null));
+        }
+        if (o.has("thinking-token-budget")) {
+            builder.thinkingTokenBudget(o.integer("thinking-token-budget", null));
+        }
+        return builder.build();
     }
 
     /** rerank 模型（ScoringModel，主线构件），知识库管理消费端接入后启用 */

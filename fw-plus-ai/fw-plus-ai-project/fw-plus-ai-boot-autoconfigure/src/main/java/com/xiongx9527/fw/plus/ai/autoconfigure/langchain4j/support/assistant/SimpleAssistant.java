@@ -300,7 +300,7 @@ public class SimpleAssistant {
 
 	/**
 	 * 直连流式 TokenStream：不经 AiServices，直接驱动 {@link StreamingChatModel} 逐段回调。
-	 * 无会话记忆、无工具/思考事件（onToolExecuted / thinking 回调为 no-op）；
+	 * 无会话记忆和工具事件；思考增量与回答增量都转发到 TokenStream 回调。
 	 * 检索结果在 start() 时经 {@code onRetrieved} 回调（显式检索已在 streamWithFilter 完成）。
 	 */
 	private final class DirectTokenStream implements TokenStream {
@@ -310,6 +310,8 @@ public class SimpleAssistant {
 		private final List<Content> contents;
 
 		private final List<Consumer<String>> partialHandlers = new ArrayList<>();
+
+		private final List<Consumer<PartialThinking>> thinkingHandlers = new ArrayList<>();
 
 		private final List<Consumer<List<Content>>> retrievedHandlers = new ArrayList<>();
 
@@ -340,7 +342,7 @@ public class SimpleAssistant {
 		public TokenStream onPartialThinkingWithContext(
 				java.util.function.BiConsumer<dev.langchain4j.model.chat.response.PartialThinking,
 						dev.langchain4j.model.chat.response.PartialThinkingContext> handler) {
-			// 直连路径无思考事件
+			thinkingHandlers.add(partial -> handler.accept(partial, null));
 			return this;
 		}
 
@@ -393,6 +395,13 @@ public class SimpleAssistant {
 				public void onPartialResponse(String token) {
 					for (Consumer<String> handler : partialHandlers) {
 						handler.accept(token);
+					}
+				}
+
+				@Override
+				public void onPartialThinking(PartialThinking partialThinking) {
+					for (Consumer<PartialThinking> handler : thinkingHandlers) {
+						handler.accept(partialThinking);
 					}
 				}
 
@@ -786,6 +795,9 @@ public class SimpleAssistant {
 					// done 事件带上完整回复文本：前端流式中途丢段时可兜底
 					String text = doneData(response.aiMessage());
 					try {
+						if (!cancelled.get()) {
+							thinking.finish(emitter, cancelled, requestId);
+						}
 						if (!cancelled.get()) {
 							Object data = doneDataMapper != null ? doneDataMapper.apply(text) : text;
 							emitter.send(SseEmitter.event().name(EVENT_DONE).id(requestId).data(data));

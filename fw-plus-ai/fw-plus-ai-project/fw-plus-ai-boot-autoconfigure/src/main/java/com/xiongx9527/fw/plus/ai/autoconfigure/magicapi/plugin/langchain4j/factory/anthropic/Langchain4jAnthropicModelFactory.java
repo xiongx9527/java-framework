@@ -45,7 +45,8 @@ public class Langchain4jAnthropicModelFactory implements ModelFactory {
     @Override
     public AnthropicStreamingChatModel buildStreamingChatModel(Langchain4jOptionsReader o, List<ChatModelListener> listeners) {
         // 注意：0.35.0 streaming builder 无 maxRetries 与 beta
-        return AnthropicStreamingChatModel.builder()
+        AnthropicStreamingChatModel.AnthropicStreamingChatModelBuilder builder =
+                AnthropicStreamingChatModel.builder()
                 .apiKey(o.required("api-key"))
                 .baseUrl(o.string("base-url", null))
                 .version(o.string("version", DEFAULT_VERSION))
@@ -58,8 +59,23 @@ public class Langchain4jAnthropicModelFactory implements ModelFactory {
                 .timeout(o.duration("timeout", null))
                 .logRequests(o.bool("log-requests", null))
                 .logResponses(o.bool("log-responses", null))
-                .listeners(listeners)
-                .build();
+                .listeners(listeners);
+        if (o.has("thinking-type")) {
+            builder.thinkingType(o.string("thinking-type", null));
+        }
+        if (o.has("thinking-budget-tokens")) {
+            builder.thinkingBudgetTokens(o.integer("thinking-budget-tokens", null));
+        }
+        if (o.has("thinking-display")) {
+            builder.thinkingDisplay(o.string("thinking-display", null));
+        }
+        if (o.has("send-thinking")) {
+            builder.sendThinking(o.bool("send-thinking", null));
+        }
+        if (o.has("return-thinking")) {
+            builder.returnThinking(o.bool("return-thinking", null));
+        }
+        return builder.build();
     }
 
     private static Integer nullIfZero(Integer value) {

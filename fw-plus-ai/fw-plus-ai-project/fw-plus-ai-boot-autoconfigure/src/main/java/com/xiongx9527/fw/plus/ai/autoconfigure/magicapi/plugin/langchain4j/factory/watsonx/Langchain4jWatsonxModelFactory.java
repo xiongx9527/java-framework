@@ -44,7 +44,7 @@ public class Langchain4jWatsonxModelFactory implements ModelFactory {
     @Override
     public WatsonxStreamingChatModel buildStreamingChatModel(Langchain4jOptionsReader o,
             List<ChatModelListener> listeners) {
-        return WatsonxStreamingChatModel.builder()
+        WatsonxStreamingChatModel.Builder builder = WatsonxStreamingChatModel.builder()
                 .baseUrl(o.required("base-url"))
                 .apiKey(o.required("api-key"))
                 .projectId(o.required("project-id"))
@@ -55,8 +55,11 @@ public class Langchain4jWatsonxModelFactory implements ModelFactory {
                 .timeout(o.duration("timeout", null))
                 .logRequests(o.bool("log-requests", null))
                 .logResponses(o.bool("log-responses", null))
-                .listeners(listeners)
-                .build();
+                .listeners(listeners);
+        if (o.has("thinking")) {
+            builder.thinking(o.bool("thinking", null));
+        }
+        return builder.build();
     }
 
     @Override

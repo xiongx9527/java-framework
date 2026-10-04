@@ -5,14 +5,22 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.PartialThinking;
+import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.service.TokenStream;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
@@ -20,6 +28,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 
 /**
  * Assistant 易用封装：context 默认空串、memoryId 默认 default，
@@ -154,84 +165,219 @@ class SimpleAssistantTest {
 		assertThat(SimpleAssistant.doneData(AiMessage.from(""))).isEqualTo("[DONE]");
 	}
 
+	@Test
+	void streamToSseFinishesThinkingBeforeDoneWhenThereIsNoAnswerToken() throws Exception {
+		org.mockito.Mockito.when(assistant.stream("s-1", "", "问题"))
+				.thenReturn(fakeThinkingStream("思考内容"));
+
+		SseEmitter emitter = simple.streamToSse("s-1", "问题");
+
+		assertThat(eventNames(emitter)).containsExactly(
+				SimpleAssistant.EVENT_START, SimpleAssistant.EVENT_THINKING,
+				SimpleAssistant.EVENT_THINKING_DONE, SimpleAssistant.EVENT_DONE);
+	}
+
+	@Test
+	void streamToSseFinishesThinkingBeforeToolCall() throws Exception {
+		dev.langchain4j.agent.tool.ToolExecutionRequest request =
+				dev.langchain4j.agent.tool.ToolExecutionRequest.builder()
+						.name("search").arguments("{}").build();
+		org.mockito.Mockito.when(assistant.stream("s-1", "", "问题"))
+				.thenReturn(fakeThinkingStream("思考内容", request));
+
+		SseEmitter emitter = simple.streamToSse("s-1", "问题");
+
+		assertThat(eventNames(emitter)).containsExactly(
+				SimpleAssistant.EVENT_START, SimpleAssistant.EVENT_THINKING,
+				SimpleAssistant.EVENT_THINKING_DONE, SimpleAssistant.EVENT_TOOL_CALL,
+				SimpleAssistant.EVENT_DONE);
+	}
+
+	@Test
+	void directStreamingChatForwardsThinkingAndFinishesItBeforeAnswer() throws Exception {
+		StreamingChatModel model = mock(StreamingChatModel.class);
+		doAnswer(invocation -> {
+			StreamingChatResponseHandler handler = invocation.getArgument(1);
+			handler.onPartialThinking(new PartialThinking("思考内容"));
+			handler.onPartialResponse("回答");
+			handler.onCompleteResponse(ChatResponse.builder().aiMessage(AiMessage.from("回答")).build());
+			return null;
+		}).when(model).chat(anyString(), any(StreamingChatResponseHandler.class));
+
+		SimpleAssistant direct = new SimpleAssistant(model)
+				.filterableRetriever((message, condition) -> Collections.emptyList());
+		SseEmitter emitter = direct.streamToSseWithFilter("s-1", null, "问题");
+
+		assertThat(eventNames(emitter)).containsExactly(
+				SimpleAssistant.EVENT_START, SimpleAssistant.EVENT_THINKING,
+				SimpleAssistant.EVENT_THINKING_DONE, SimpleAssistant.EVENT_TOKEN, SimpleAssistant.EVENT_DONE);
+	}
+
+	@Test
+	void directStreamingChatWithoutThinkingDoesNotEmitThinkingEvents() throws Exception {
+		StreamingChatModel model = mock(StreamingChatModel.class);
+		doAnswer(invocation -> {
+			StreamingChatResponseHandler handler = invocation.getArgument(1);
+			handler.onPartialResponse("回答");
+			handler.onCompleteResponse(ChatResponse.builder().aiMessage(AiMessage.from("回答")).build());
+			return null;
+		}).when(model).chat(anyString(), any(StreamingChatResponseHandler.class));
+
+		SimpleAssistant direct = new SimpleAssistant(model)
+				.filterableRetriever((message, condition) -> Collections.emptyList());
+		SseEmitter emitter = direct.streamToSseWithFilter("s-1", null, "问题");
+
+		assertThat(eventNames(emitter)).containsExactly(
+				SimpleAssistant.EVENT_START, SimpleAssistant.EVENT_TOKEN, SimpleAssistant.EVENT_DONE);
+	}
+
+	private static List<String> eventNames(SseEmitter emitter) throws Exception {
+		List<String> events = new ArrayList<>();
+		Class<?> handlerType = Class.forName(
+				"org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter$Handler");
+		Object handler = Proxy.newProxyInstance(handlerType.getClassLoader(), new Class<?>[] { handlerType },
+				(proxy, method, args) -> {
+					if ("send".equals(method.getName()) && args[0] instanceof Set) {
+						StringBuilder event = new StringBuilder();
+						for (Object item : (Set<?>) args[0]) {
+							Method getData = item.getClass().getMethod("getData");
+							event.append(getData.invoke(item));
+						}
+						events.add(event.toString());
+					}
+					return null;
+				});
+		Method initialize = org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter.class
+				.getDeclaredMethod("initialize", handlerType);
+		initialize.setAccessible(true);
+		initialize.invoke(emitter, handler);
+
+		List<String> names = new ArrayList<>();
+		for (String event : events) {
+			int start = 0;
+			while ((start = event.indexOf("event:", start)) >= 0) {
+				int end = event.indexOf('\n', start);
+				names.add(event.substring(start + "event:".length(), end));
+				start = end + 1;
+			}
+		}
+		return names;
+	}
+
 	/** 生成一个会在 start() 时依次触发 onNext/onComplete 的 TokenStream 替身 */
 	private static TokenStream fakeStream(String... tokens) {
-		return new TokenStream() {
+		return new FakeTokenStream(null, null, tokens);
+	}
 
-			private final List<Consumer<String>> nextHandlers = new ArrayList<>();
-			private Consumer<dev.langchain4j.model.chat.response.ChatResponse> completeHandler;
+	private static TokenStream fakeThinkingStream(String thinking,
+			dev.langchain4j.agent.tool.ToolExecutionRequest toolRequest, String... tokens) {
+		return new FakeTokenStream(thinking, toolRequest, tokens);
+	}
 
-			@Override
-			public TokenStream onPartialResponse(java.util.function.Consumer<String> handler) {
-				nextHandlers.add(handler);
-				return this;
+	private static TokenStream fakeThinkingStream(String thinking, String... tokens) {
+		return fakeThinkingStream(thinking, null, tokens);
+	}
+
+	private static final class FakeTokenStream implements TokenStream {
+
+		private final String thinking;
+		private final dev.langchain4j.agent.tool.ToolExecutionRequest toolRequest;
+		private final String[] tokens;
+		private final List<Consumer<String>> nextHandlers = new ArrayList<>();
+		private java.util.function.BiConsumer<PartialThinking,
+				dev.langchain4j.model.chat.response.PartialThinkingContext> thinkingHandler;
+		private Consumer<dev.langchain4j.service.tool.BeforeToolExecution> beforeToolHandler;
+		private Consumer<dev.langchain4j.model.chat.response.ChatResponse> completeHandler;
+
+		private FakeTokenStream(String thinking, dev.langchain4j.agent.tool.ToolExecutionRequest toolRequest,
+				String... tokens) {
+			this.thinking = thinking;
+			this.toolRequest = toolRequest;
+			this.tokens = tokens;
+		}
+
+		@Override
+		public TokenStream onPartialResponse(Consumer<String> handler) {
+			nextHandlers.add(handler);
+			return this;
+		}
+
+		@Override
+		public TokenStream onPartialResponseWithContext(
+				java.util.function.BiConsumer<dev.langchain4j.model.chat.response.PartialResponse,
+						dev.langchain4j.model.chat.response.PartialResponseContext> handler) {
+			return onPartialResponse(text -> handler.accept(
+					new dev.langchain4j.model.chat.response.PartialResponse(text), null));
+		}
+
+		@Override
+		public TokenStream onPartialThinkingWithContext(
+				java.util.function.BiConsumer<PartialThinking,
+						dev.langchain4j.model.chat.response.PartialThinkingContext> handler) {
+			thinkingHandler = handler;
+			return this;
+		}
+
+		@Override
+		public TokenStream beforeToolExecution(
+				Consumer<dev.langchain4j.service.tool.BeforeToolExecution> handler) {
+			beforeToolHandler = handler;
+			return this;
+		}
+
+		@Override
+		public TokenStream onRetrieved(Consumer<List<dev.langchain4j.rag.content.Content>> handler) {
+			return this;
+		}
+
+		@Override
+		public TokenStream onToolExecuted(Consumer<dev.langchain4j.service.tool.ToolExecution> handler) {
+			return this;
+		}
+
+		@Override
+		public TokenStream onCompleteResponse(
+				Consumer<dev.langchain4j.model.chat.response.ChatResponse> handler) {
+			completeHandler = handler;
+			return this;
+		}
+
+		@Override
+		public TokenStream onError(Consumer<Throwable> handler) {
+			return this;
+		}
+
+		@Override
+		public TokenStream ignoreErrors() {
+			return this;
+		}
+
+		@Override
+		public void start() {
+			if (thinkingHandler != null && thinking != null) {
+				thinkingHandler.accept(new PartialThinking(thinking), null);
 			}
-
-			@Override
-			public TokenStream onPartialResponseWithContext(
-					java.util.function.BiConsumer<dev.langchain4j.model.chat.response.PartialResponse,
-							dev.langchain4j.model.chat.response.PartialResponseContext> handler) {
-				return onPartialResponse(text -> handler.accept(
-						new dev.langchain4j.model.chat.response.PartialResponse(text), null));
+			if (beforeToolHandler != null && toolRequest != null) {
+				beforeToolHandler.accept(dev.langchain4j.service.tool.BeforeToolExecution.builder()
+						.request(toolRequest)
+						.invocationContext(mock(dev.langchain4j.invocation.InvocationContext.class))
+						.build());
 			}
-
-			@Override
-			public TokenStream onPartialThinkingWithContext(
-					java.util.function.BiConsumer<dev.langchain4j.model.chat.response.PartialThinking,
-							dev.langchain4j.model.chat.response.PartialThinkingContext> handler) {
-				// 替身不产生思考内容，仅返回自身保证链式调用可用
-				return this;
-			}
-
-			@Override
-			public TokenStream beforeToolExecution(
-					java.util.function.Consumer<dev.langchain4j.service.tool.BeforeToolExecution> handler) {
-				// 替身不产生工具调用，仅返回自身保证链式调用可用
-				return this;
-			}
-
-			@Override
-			public TokenStream onRetrieved(Consumer<List<dev.langchain4j.rag.content.Content>> handler) {
-				return this;
-			}
-
-			@Override
-			public TokenStream onToolExecuted(java.util.function.Consumer<dev.langchain4j.service.tool.ToolExecution> handler) {
-				return this;
-			}
-
-			@Override
-			public TokenStream onCompleteResponse(java.util.function.Consumer<dev.langchain4j.model.chat.response.ChatResponse> handler) {
-				completeHandler = handler;
-				return this;
-			}
-
-			@Override
-			public TokenStream onError(Consumer<Throwable> handler) {
-				return this;
-			}
-
-			@Override
-			public TokenStream ignoreErrors() {
-				return this;
-			}
-
-			@Override
-			public void start() {
-				for (Consumer<String> handler : nextHandlers) {
-					handler.accept(tokens[0]);
+			for (Consumer<String> handler : nextHandlers) {
+				for (String token : tokens) {
+					handler.accept(token);
 				}
-				if (completeHandler != null) {
-					StringBuilder full = new StringBuilder();
-					for (String token : tokens) {
-						full.append(token);
-					}
-					completeHandler.accept(dev.langchain4j.model.chat.response.ChatResponse.builder()
+			}
+			if (completeHandler != null) {
+				StringBuilder full = new StringBuilder();
+				for (String token : tokens) {
+					full.append(token);
+				}
+				completeHandler.accept(dev.langchain4j.model.chat.response.ChatResponse.builder()
 						.aiMessage(AiMessage.from(full.toString()))
 						.build());
-				}
 			}
-		};
+		}
 	}
 
 	/** 记录每次请求、按序回放的对话模型替身 */

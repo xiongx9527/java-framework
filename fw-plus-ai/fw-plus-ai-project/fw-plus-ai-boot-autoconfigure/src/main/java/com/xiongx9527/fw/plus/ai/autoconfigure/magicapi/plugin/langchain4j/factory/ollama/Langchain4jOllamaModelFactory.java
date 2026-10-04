@@ -10,7 +10,8 @@ import dev.langchain4j.model.ollama.OllamaStreamingChatModel;
 import java.util.List;
 
 /**
- * Ollama 工厂：本地模型，无需 api-key。ollama jar 不含 language/tokenizer，对应能力保持默认 Unsupported。
+ * Ollama 工厂：本地模型，无需 api-key。streaming-chat-model 支持 think / return-thinking 控制 thinking 输出；
+ * ollama jar 不含 language/tokenizer，对应能力保持默认 Unsupported。
  */
 public class Langchain4jOllamaModelFactory implements ModelFactory {
 
@@ -45,8 +46,7 @@ public class Langchain4jOllamaModelFactory implements ModelFactory {
     @Override
     public OllamaStreamingChatModel buildStreamingChatModel(Langchain4jOptionsReader o,
             List<ChatModelListener> listeners) {
-        // 注意：0.35.0 streaming builder 无 maxRetries
-        return OllamaStreamingChatModel.builder()
+        OllamaStreamingChatModel.OllamaStreamingChatModelBuilder builder = OllamaStreamingChatModel.builder()
                 .baseUrl(o.string("base-url", DEFAULT_BASE_URL))
                 .modelName(o.string("model-name", DEFAULT_MODEL))
                 .temperature(o.dbl("temperature", 0.7))
@@ -58,8 +58,14 @@ public class Langchain4jOllamaModelFactory implements ModelFactory {
                 .numCtx(nullIfZero(o.integer("num-ctx", null)))
                 .stop(o.stringList("stop", null))
                 .timeout(o.duration("timeout", null))
-                .listeners(listeners)
-                .build();
+                .listeners(listeners);
+        if (o.has("think")) {
+            builder.think(o.bool("think", null));
+        }
+        if (o.has("return-thinking")) {
+            builder.returnThinking(o.bool("return-thinking", null));
+        }
+        return builder.build();
     }
 
     @Override

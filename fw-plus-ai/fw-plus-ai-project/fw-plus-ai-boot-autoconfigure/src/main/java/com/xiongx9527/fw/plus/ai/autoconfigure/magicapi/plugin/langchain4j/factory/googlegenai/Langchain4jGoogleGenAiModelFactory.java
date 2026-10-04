@@ -44,7 +44,7 @@ public class Langchain4jGoogleGenAiModelFactory implements ModelFactory {
     @Override
     public GoogleGenAiStreamingChatModel buildStreamingChatModel(Langchain4jOptionsReader o,
             List<ChatModelListener> listeners) {
-        return GoogleGenAiStreamingChatModel.builder()
+        GoogleGenAiStreamingChatModel.Builder builder = GoogleGenAiStreamingChatModel.builder()
                 .apiKey(o.string("api-key", null))
                 .projectId(o.string("project-id", null))
                 .location(o.string("location", null))
@@ -56,8 +56,23 @@ public class Langchain4jGoogleGenAiModelFactory implements ModelFactory {
                 .timeout(o.duration("timeout", null))
                 .logRequests(o.bool("log-requests", null))
                 .logResponses(o.bool("log-responses", null))
-                .listeners(listeners)
-                .build();
+                .listeners(listeners);
+        if (o.has("thinking-budget")) {
+            builder.thinkingBudget(o.integer("thinking-budget", null));
+        }
+        if (o.has("thinking-level")) {
+            builder.thinkingLevel(o.string("thinking-level", null));
+        }
+        if (o.has("include-thoughts")) {
+            builder.includeThoughts(o.bool("include-thoughts", null));
+        }
+        if (o.has("send-thinking")) {
+            builder.sendThinking(o.bool("send-thinking", null));
+        }
+        if (o.has("return-thinking")) {
+            builder.returnThinking(o.bool("return-thinking", null));
+        }
+        return builder.build();
     }
 
     @Override

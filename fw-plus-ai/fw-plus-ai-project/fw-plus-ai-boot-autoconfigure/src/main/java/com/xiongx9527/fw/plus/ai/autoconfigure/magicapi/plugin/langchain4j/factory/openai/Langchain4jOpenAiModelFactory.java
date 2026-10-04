@@ -52,7 +52,7 @@ public class Langchain4jOpenAiModelFactory implements ModelFactory {
     @Override
     public OpenAiStreamingChatModel buildStreamingChatModel(Langchain4jOptionsReader o, List<ChatModelListener> listeners) {
         // 注意：0.35.0 streaming builder 无 maxRetries（流式请求不重试）
-        return OpenAiStreamingChatModel.builder()
+        OpenAiStreamingChatModel.OpenAiStreamingChatModelBuilder builder = OpenAiStreamingChatModel.builder()
                 .baseUrl(o.string("base-url", null))
                 .apiKey(o.required("api-key"))
                 .organizationId(o.string("organization-id", null))
@@ -68,8 +68,21 @@ public class Langchain4jOpenAiModelFactory implements ModelFactory {
                 .timeout(o.duration("timeout", null))
                 .logRequests(o.bool("log-requests", null))
                 .logResponses(o.bool("log-responses", null))
-                .listeners(listeners)
-                .build();
+                .listeners(listeners);
+        if (o.has("reasoning-effort")) {
+            builder.reasoningEffort(o.string("reasoning-effort", null));
+        }
+        if (o.has("send-thinking") && o.has("thinking-field-name")) {
+            builder.sendThinking(o.bool("send-thinking", null), o.string("thinking-field-name", null));
+        } else if (o.has("send-thinking")) {
+            builder.sendThinking(o.bool("send-thinking", null));
+        } else if (o.has("thinking-field-name")) {
+            builder.sendThinking(null, o.string("thinking-field-name", null));
+        }
+        if (o.has("return-thinking")) {
+            builder.returnThinking(o.bool("return-thinking", null));
+        }
+        return builder.build();
     }
 
 
