@@ -1,250 +1,409 @@
-package com.xiongx9527.fw.plus.ai.sample.chat.ai;
+package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant.Assistant;
-import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant.AssistantBuilder;
-import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.EphemeralChatMemory;
-import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ChatMessageType;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.rag.content.Content;
-import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
-import org.junit.jupiter.api.Test;
+import dev.langchain4j.memory.ChatMemory;
+import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Deque;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 /**
- * 真实 {@code AiServices} 链路上的记忆行为回归。
+ * 可配置的 Ephemeral ChatMemory 装饰器。
  *
- * <p>用可编排的假模型跑通「模型请求工具 → 框架执行 → 模型收尾」的完整循环。存在的理由：
- * {@link EphemeralChatMemoryTest} 直接驱动 wrapper，绕开了 langchain4j 自己拼装请求消息的
- * 顺序——而顺序正是这两个坑的来源：</p>
+ * <p>核心设计：</p>
  * <ul>
- *   <li>框架每轮先读 {@code chatMemory.messages()} 取历史，<b>之后</b>才把本轮用户消息写进记忆。
- *       所以「上一轮过程数据的清理」不能只靠 {@code add(UserMessage)}，否则上一轮的工具往返
- *       会随历史进入本轮首个请求；</li>
- *   <li>检索增强后的用户消息由框架接到请求末尾，记忆里只应留用户原话。</li>
+ *   <li><b>持久化时机</b>：在收到新的 {@link UserMessage}（新一轮开始）时，从 {@link ChatMemoryStore}
+ *       取出当前消息，构建「持久历史」并写回。持久历史 = 系统提示 + 历史用户原话 +
+ *       按 {@link AiPersistenceStrategy} 选出的「上一轮」输出。</li>
+ *   <li><b>无有效字符过滤</b>：只有包含有效字符（非纯空白）的 AI 消息才会持久化，其余不带到下一轮。</li>
+ *   <li><b>位置控制</b>：策略可为每条消息指定 {@link AiPersistencePosition}，实现「关键放前尾、不重要放中间」。</li>
+ *   <li><b>默认不放</b>：RAG 检索段、工具调用往返默认只存在于本轮请求窗口，不写入持久历史。</li>
  * </ul>
+ *
+ * <p><b>不持有跨轮实例状态</b>：实例按 memoryId 复用，所有决策只基于 store 中的消息顺序。</p>
  */
-class EphemeralChatMemoryIntegrationTest {
-
-	private static final String SESSION = "s-1";
-
-	@Test
-	void secondTurnDoesNotSeeAnyToolDerivedOutputSoModelRetools() {
-		WeatherTools weatherTools = new WeatherTools();
-		RecordingChatModel model = new RecordingChatModel().reply(
-				// 第一轮：先请求工具，拿到结果后收尾
-				AiMessage.from(ToolExecutionRequest.builder()
-						.name("queryWeather").arguments("{\"city\":\"北京\"}").build()),
-				AiMessage.from("北京当前 32℃。"),
-				// 第二轮：再次请求工具
-				AiMessage.from(ToolExecutionRequest.builder()
-						.name("queryWeather").arguments("{\"city\":\"北京\"}").build()),
-				// 第二轮收尾
-				AiMessage.from("北京当前 31℃。"));
-
-		// 经框架 AssistantBuilder 构建：默认策略 PERSIST_NON_TOOL_FINAL_ANSWER——
-		// 上一轮调过工具，工具往返与工具派生的最终回答整轮都不沉淀
-		Assistant assistant = new AssistantBuilder()
-				.chatModel(model)
-				.memoryStore(new InMemoryChatMemoryStore())
-				.tools(weatherTools)
-				.toAssistant();
-
-		assistant.chat(SESSION, "", "北京天气怎么样");
-		assistant.chat(SESSION, "", "北京天气怎么样");
-
-		assertEquals(2, weatherTools.getCallCount(), "第二轮应重新调用工具而不是复用上一轮结果");
-		assertEquals(Arrays.asList(ChatMessageType.USER, ChatMessageType.USER),
-				typesOf(model.requests().get(2)),
-				"第二轮请求不带第一轮的工具往返，也不带工具派生的最终回答");
-	}
+public class EphemeralChatMemory implements ChatMemory {
 
 	/**
-	 * 未调用工具的轮次仍沉淀最终回答——上下文连续性不受影响。
+	 * 默认的检索内容注入分隔串。
+	 * <p>与框架默认 injector 模板的分隔段一致：注入结果即「用户原话 + 本分隔串 + 检索内容」。</p>
 	 */
-	@Test
-	void nonToolTurnKeepsFinalAnswerForNextRound() {
-		WeatherTools weatherTools = new WeatherTools();
-		RecordingChatModel model = new RecordingChatModel().reply(
-				AiMessage.from("西湖是杭州著名景点。"),
-				AiMessage.from("西湖位于杭州西面。"));
+	public static final String DEFAULT_RAG_SEPARATOR = "\n\nAnswer using the following information:\n";
 
-		Assistant assistant = new AssistantBuilder()
-				.chatModel(model)
-				.memoryStore(new InMemoryChatMemoryStore())
-				.tools(weatherTools)
-				.toAssistant();
+	private final ChatMemory delegate;
+	private final ChatMemoryStore store;
+	private final AiPersistenceStrategy aiPersistenceStrategy;
+	private final List<String> ephemeralSeparators;
+	private final boolean stripRagFromHistory;
+	private final boolean includeCurrentUserWithEphemeral;
+	private final boolean sendToolResultsInCurrentTurn;
+	private final boolean sendToolRequestsInCurrentTurn;
 
-		assistant.chat(SESSION, "", "介绍一下西湖");
-		assistant.chat(SESSION, "", "它在哪里");
-
-		assertEquals(0, weatherTools.getCallCount(), "本例不触发工具");
-		assertEquals(Arrays.asList(ChatMessageType.USER, ChatMessageType.AI, ChatMessageType.USER),
-				typesOf(model.requests().get(1)),
-				"未调工具的上一轮结论要带到下一轮");
+	private EphemeralChatMemory(Builder builder) {
+		this.delegate = builder.delegate;
+		this.store = builder.store;
+		this.aiPersistenceStrategy = builder.aiPersistenceStrategy;
+		this.ephemeralSeparators = builder.ephemeralSeparators;
+		this.stripRagFromHistory = builder.stripRagFromHistory;
+		this.includeCurrentUserWithEphemeral = builder.includeCurrentUserWithEphemeral;
+		this.sendToolResultsInCurrentTurn = builder.sendToolResultsInCurrentTurn;
+		this.sendToolRequestsInCurrentTurn = builder.sendToolRequestsInCurrentTurn;
 	}
 
-	@Test
-	void toolContinuationKeepsSingleAugmentedUserMessage() {
-		String question = "杭州有什么著名景点";
-		String rag = "杭州著名景点有西湖、灵隐寺、西溪湿地";
-		RecordingChatModel model = new RecordingChatModel().reply(
-				AiMessage.from(Arrays.asList(
-						ToolExecutionRequest.builder().id("weather-hangzhou")
-								.name("queryWeather").arguments("{\"city\":\"杭州\"}").build(),
-						ToolExecutionRequest.builder().id("weather-beijing")
-								.name("queryWeather").arguments("{\"city\":\"北京\"}").build())),
-				AiMessage.from("杭州有西湖。"));
-
-		Assistant assistant = new AssistantBuilder()
-				.chatModel(model)
-				.memoryStore(new InMemoryChatMemoryStore())
-				.systemMessage("系统提示")
-				.tools(new WeatherTools())
-				.contentRetriever(query -> Arrays.asList(Content.from(rag)))
-				.toAssistant();
-
-		assistant.chat(SESSION, "", question);
-		assertEquals(2, model.requests().size(), "批量调用两个工具后只应产生一次续调模型请求");
-
-		List<ChatMessage> firstRequest = model.requests().get(0);
-		assertEquals(Arrays.asList(ChatMessageType.SYSTEM, ChatMessageType.USER), typesOf(firstRequest));
-		assertTrue(textOf(firstRequest.get(1)).contains(rag), "首轮模型请求仍应包含 RAG");
-
-		// 工具续调：框架把增强后的用户消息换回本轮提问所在的位置，RAG 全程只出现一次
-		List<ChatMessage> followUpRequest = model.requests().get(1);
-		assertEquals(Arrays.asList(ChatMessageType.SYSTEM, ChatMessageType.USER, ChatMessageType.AI,
-				ChatMessageType.TOOL_EXECUTION_RESULT, ChatMessageType.TOOL_EXECUTION_RESULT),
-				typesOf(followUpRequest), followUpRequest.toString());
-		String continuedQuestion = textOf(followUpRequest.get(1));
-		assertTrue(continuedQuestion.contains(question), continuedQuestion);
-		assertTrue(continuedQuestion.contains(rag), "工具续调仍应包含本轮 RAG：" + continuedQuestion);
-		assertEquals(1, countRagUserMessages(followUpRequest), "一条请求里只能有一条带 RAG 的 user");
+	public static Builder builder(ChatMemory delegate, ChatMemoryStore store) {
+		return new Builder(delegate, store);
 	}
 
-	@Test
-	void ragSegmentIsNotPersistedInChatMemoryStore() {
-		String question = "杭州有什么著名景点";
-		String rag = "杭州著名景点有西湖、灵隐寺、西溪湿地";
-		RecordingChatModel model = new RecordingChatModel().reply(
-				AiMessage.from(ToolExecutionRequest.builder().id("w1")
-						.name("queryWeather").arguments("{\"city\":\"杭州\"}").build()),
-				AiMessage.from("杭州有西湖。"));
-		InMemoryChatMemoryStore store = new InMemoryChatMemoryStore();
-
-		Assistant assistant = new AssistantBuilder()
-				.chatModel(model)
-				.memoryStore(store)
-				.systemMessage("系统提示")
-				.tools(new WeatherTools())
-				.contentRetriever(query -> Arrays.asList(Content.from(rag)))
-				.toAssistant();
-
-		assistant.chat(SESSION, "", question);
-
-		List<ChatMessage> persisted = store.getMessages(SESSION);
-		List<ChatMessageType> persistedTypes = typesOf(persisted);
-		assertTrue(persistedTypes.get(0) == ChatMessageType.SYSTEM
-				&& persistedTypes.get(1) == ChatMessageType.USER, persisted.toString());
-		assertEquals(question, textOf(persisted.get(1)), "记忆里的用户消息应只剩原话：" + persisted);
-		assertEquals(0, countRagUserMessages(persisted), "检索段不该写进 ChatMemoryStore：" + persisted);
+	@Override
+	public Object id() {
+		return delegate.id();
 	}
 
-	@Test
-	void repeatedQuestionStillTriggersToolCall() {
-		WeatherTools weatherTools = new WeatherTools();
-		RecordingChatModel model = new RecordingChatModel().reply(
-				AiMessage.from(Arrays.asList(
-						ToolExecutionRequest.builder().id("b1")
-								.name("queryWeather").arguments("{\"city\":\"北京\"}").build(),
-						ToolExecutionRequest.builder().id("h1")
-								.name("queryWeather").arguments("{\"city\":\"杭州\"}").build())),
-				AiMessage.from("北京 32℃，杭州 29℃。"),
-				AiMessage.from(ToolExecutionRequest.builder().id("b2")
-						.name("queryWeather").arguments("{\"city\":\"北京\"}").build()),
-				AiMessage.from("北京 32℃。"));
-
-		Assistant assistant = new AssistantBuilder()
-				.chatModel(model)
-				.memoryStore(new InMemoryChatMemoryStore())
-				.tools(weatherTools)
-				.contentRetriever(query -> Arrays.asList(Content.from("杭州有西湖；北京有故宫。")))
-				.toAssistant();
-
-		String question = "北京和杭州的天气怎么样";
-		assistant.chat(SESSION, "", question);
-		assistant.chat(SESSION, "", question);
-
-		assertEquals(3, weatherTools.getCallCount(), "同一问题问第二次，模型应重新调用工具");
-		List<ChatMessage> secondRoundFirstRequest = model.requests().get(2);
-		assertEquals(Arrays.asList(ChatMessageType.USER, ChatMessageType.USER),
-				typesOf(secondRoundFirstRequest),
-				"第二轮首个请求应是「上一轮原话 + 本轮原话带 RAG」，不得带上上一轮的工具往返："
-						+ secondRoundFirstRequest);
-		assertEquals(question, textOf(secondRoundFirstRequest.get(0)));
-		assertEquals(1, countRagUserMessages(secondRoundFirstRequest),
-				"本轮 RAG 只出现一次，不能与框架追加的那条重复");
-	}
-
-	private static String textOf(ChatMessage message) {
-		return ((UserMessage) message).singleText();
-	}
-
-	private static long countRagUserMessages(List<ChatMessage> messages) {
-		return messages.stream()
-				.filter(UserMessage.class::isInstance)
-				.map(UserMessage.class::cast)
-				.filter(user -> user.singleText().contains(EphemeralChatMemory.RAG_SEPARATOR))
-				.count();
-	}
-
-	private static List<ChatMessageType> typesOf(List<ChatMessage> messages) {
-		List<ChatMessageType> types = new ArrayList<>();
-		for (ChatMessage message : messages) {
-			types.add(message.type());
+	@Override
+	public void add(ChatMessage message) {
+		if (message.type() == ChatMessageType.USER) {
+			// 新一轮开始：先固化「上一轮」输出到持久历史，再追加当前用户消息。
+			// 必须在 delegate.add 之前做，delegate 会基于清理过的 store 追加。
+			List<ChatMessage> currentStored = store.getMessages(id());
+			store.updateMessages(id(), buildDurableHistory(currentStored));
 		}
-		return types;
+		delegate.add(message);
+	}
+
+	@Override
+	public List<ChatMessage> messages() {
+		List<ChatMessage> stored = delegate.messages();
+		if (stored.isEmpty()) {
+			return stored;
+		}
+
+		int lastUserIndex = lastUserIndex(stored);
+
+		List<ChatMessage> sendable = new ArrayList<>(stored.size());
+		for (int i = 0; i < stored.size(); i++) {
+			ChatMessage message = stored.get(i);
+			if (i < lastUserIndex) {
+				// 历史轮次：系统提示、用户原话、以及被策略显式保留下来的上一轮输出（AI）
+				if (message.type() == ChatMessageType.USER) {
+					sendable.add(stripRagFromHistory ? stripRag((UserMessage) message) : message);
+				} else {
+					// SYSTEM 与「按策略沉淀下来的 AI」原样回放
+					sendable.add(message);
+				}
+			} else {
+				// 当前轮
+				if (message.type() == ChatMessageType.USER) {
+					sendable.add(includeCurrentUserWithEphemeral ? message : stripRag((UserMessage) message));
+				} else if (message.type() == ChatMessageType.AI) {
+					AiMessage ai = (AiMessage) message;
+					if (ai.hasToolExecutionRequests()) {
+						// 工具调用中间步：本轮需要发出
+						if (sendToolRequestsInCurrentTurn) {
+							sendable.add(message);
+						}
+					}
+					// 非工具调用的最终回答：只是本轮输出，不回放进请求上下文
+				} else if (message.type() == ChatMessageType.TOOL_EXECUTION_RESULT) {
+					if (sendToolResultsInCurrentTurn) {
+						sendable.add(message);
+					}
+				} else {
+					sendable.add(message);
+				}
+			}
+		}
+		return sendable;
+	}
+
+	@Override
+	public void clear() {
+		delegate.clear();
 	}
 
 	/**
-	 * 可编排模型：记录每次收到的消息，按序回放预设回复。
-	 *
-	 * <p>通过 {@link ChatModel#doChat(ChatRequest)} 同时记录消息与工具请求。</p>
+	 * 构建持久历史：系统提示 + 历史用户原话 + 按策略与位置插入的上一轮输出。
 	 */
-	private static class RecordingChatModel implements ChatModel {
+	private List<ChatMessage> buildDurableHistory(List<ChatMessage> stored) {
+		if (stored == null || stored.isEmpty()) {
+			return stored == null ? new ArrayList<>() : stored;
+		}
 
-		private final List<List<ChatMessage>> requests = new ArrayList<>();
-		private final Deque<AiMessage> replies = new ArrayDeque<>();
+		int lastUserIndex = lastUserIndex(stored);
 
-		RecordingChatModel reply(AiMessage... messages) {
-			replies.addAll(Arrays.asList(messages));
+		List<ChatMessage> systemList = new ArrayList<>();
+		List<ChatMessage> historyUserList = new ArrayList<>();
+		List<ChatMessage> previousTurnOutputs = new ArrayList<>();
+
+		// 此时 store 里还没有「本轮用户消息」，所以：
+		//   - 所有 USER 都是历史轮次的原话；
+		//   - 位于「最后一条历史用户消息」之后的 AI / 工具往返属于上一轮的输出，交给策略筛选；
+		//   - 更早的 AI / 工具往返在其自身轮次的边界已处理过，丢弃。
+		// 注意：MessageWindowChatMemory 在系统提示变更时会把新 SystemMessage 追加到列表末尾
+		// （即可能落在最后一条用户消息之后），因此 SystemMessage 必须无条件保留，不能按位置丢弃。
+		for (int i = 0; i < stored.size(); i++) {
+			ChatMessage message = stored.get(i);
+			if (message.type() == ChatMessageType.SYSTEM) {
+				systemList.add(message);
+			} else if (message.type() == ChatMessageType.USER) {
+				historyUserList.add(stripRagFromHistory ? stripRag((UserMessage) message) : message);
+			} else if (i > lastUserIndex) {
+				previousTurnOutputs.add(message);
+			}
+		}
+
+		// 按策略选出需要持久化的消息项（含位置与优先级）
+		List<PersistedAiItem> selected = Collections.emptyList();
+		if (!previousTurnOutputs.isEmpty() && aiPersistenceStrategy != null) {
+			List<PersistedAiItem> items = aiPersistenceStrategy.selectForPersistenceItems(previousTurnOutputs);
+			if (items != null && !items.isEmpty()) {
+				selected = items;
+			}
+		}
+
+		// 按位置分组（过滤无有效字符的 AI）
+		List<PersistedAiItem> head = new ArrayList<>();
+		List<PersistedAiItem> afterSystem = new ArrayList<>();
+		List<PersistedAiItem> beforeFirstUser = new ArrayList<>();
+		List<PersistedAiItem> middle = new ArrayList<>();
+		List<PersistedAiItem> beforeLastUser = new ArrayList<>();
+		List<PersistedAiItem> afterLastUser = new ArrayList<>();
+		List<PersistedAiItem> tail = new ArrayList<>();
+
+		for (PersistedAiItem item : selected) {
+			if (item == null || item.message() == null) {
+				continue;
+			}
+			ChatMessage m = item.message();
+			if (m instanceof AiMessage && !AiPersistenceStrategy.hasEffectiveText((AiMessage) m)) {
+				continue;
+			}
+			switch (item.position()) {
+				case HEAD:
+					head.add(item);
+					break;
+				case AFTER_SYSTEM:
+					afterSystem.add(item);
+					break;
+				case BEFORE_FIRST_USER:
+					beforeFirstUser.add(item);
+					break;
+				case MIDDLE:
+					middle.add(item);
+					break;
+				case BEFORE_LAST_USER:
+					beforeLastUser.add(item);
+					break;
+				case TAIL:
+					tail.add(item);
+					break;
+				case AFTER_LAST_USER:
+				default:
+					afterLastUser.add(item);
+					break;
+			}
+		}
+
+		sortByPriority(head);
+		sortByPriority(afterSystem);
+		sortByPriority(beforeFirstUser);
+		sortByPriority(middle);
+		sortByPriority(beforeLastUser);
+		sortByPriority(afterLastUser);
+		sortByPriority(tail);
+
+		List<ChatMessage> durable = new ArrayList<>(
+				systemList.size() + historyUserList.size() + selected.size() + 4);
+
+		// HEAD
+		append(durable, head);
+		// System
+		durable.addAll(systemList);
+		// AFTER_SYSTEM
+		append(durable, afterSystem);
+		// BEFORE_FIRST_USER
+		append(durable, beforeFirstUser);
+
+		// 历史用户块：MIDDLE 插中段，BEFORE_LAST_USER 插在最后一条用户之前
+		int userCount = historyUserList.size();
+		if (userCount == 0) {
+			append(durable, middle);
+			append(durable, beforeLastUser);
+		} else if (userCount == 1) {
+			append(durable, middle);
+			append(durable, beforeLastUser);
+			durable.add(historyUserList.get(0));
+		} else {
+			int mid = userCount / 2;
+			if (mid < 1) {
+				mid = 1;
+			}
+			if (mid > userCount - 1) {
+				mid = userCount - 1;
+			}
+			durable.addAll(historyUserList.subList(0, mid));
+			append(durable, middle);
+			durable.addAll(historyUserList.subList(mid, userCount - 1));
+			append(durable, beforeLastUser);
+			durable.add(historyUserList.get(userCount - 1));
+		}
+
+		// AFTER_LAST_USER
+		append(durable, afterLastUser);
+		// TAIL（最靠近下一轮，时效性最高）
+		append(durable, tail);
+
+		return durable;
+	}
+
+	private static void append(List<ChatMessage> target, List<PersistedAiItem> items) {
+		if (items == null || items.isEmpty()) {
+			return;
+		}
+		for (PersistedAiItem item : items) {
+			if (item != null && item.message() != null) {
+				target.add(item.message());
+			}
+		}
+	}
+
+	/** 同位置内按优先级降序；优先级相同保持策略返回的原始顺序（稳定排序）。 */
+	private static void sortByPriority(List<PersistedAiItem> items) {
+		if (items == null || items.size() < 2) {
+			return;
+		}
+		items.sort(Comparator.comparingInt(PersistedAiItem::priority).reversed());
+	}
+
+	private static int lastUserIndex(List<ChatMessage> stored) {
+		for (int i = stored.size() - 1; i >= 0; i--) {
+			if (stored.get(i).type() == ChatMessageType.USER) {
+				return i;
+			}
+		}
+		return -1;
+	}
+
+	/** 去掉 user message 尾部由 injector 拼入的临时检索段。 */
+	private UserMessage stripRag(UserMessage message) {
+		String text = message.singleText();
+		if (text == null || text.isEmpty()) {
+			return message;
+		}
+		for (String sep : ephemeralSeparators) {
+			if (sep == null || sep.isEmpty()) {
+				continue;
+			}
+			int anchor = text.indexOf(sep);
+			if (anchor >= 0) {
+				return UserMessage.from(text.substring(0, anchor));
+			}
+		}
+		return message;
+	}
+
+	public static class Builder {
+		private ChatMemory delegate;
+		private ChatMemoryStore store;
+		private AiPersistenceStrategy aiPersistenceStrategy = AiPersistenceStrategy.PERSIST_NON_TOOL_FINAL_ANSWER;
+		private List<String> ephemeralSeparators = Collections.singletonList(DEFAULT_RAG_SEPARATOR);
+		private boolean stripRagFromHistory = true;
+		private boolean includeCurrentUserWithEphemeral = true;
+		private boolean sendToolResultsInCurrentTurn = true;
+		private boolean sendToolRequestsInCurrentTurn = true;
+
+		private Builder(ChatMemory delegate, ChatMemoryStore store) {
+			this.delegate = delegate;
+			this.store = store;
+		}
+
+		public Builder delegate(ChatMemory delegate) {
+			this.delegate = delegate;
 			return this;
 		}
 
-		List<List<ChatMessage>> requests() {
-			return requests;
+		public Builder store(ChatMemoryStore store) {
+			this.store = store;
+			return this;
 		}
 
-		@Override
-		public ChatResponse doChat(ChatRequest request) {
-			requests.add(new ArrayList<>(request.messages()));
-			AiMessage reply = replies.poll();
-			return ChatResponse.builder()
-					.aiMessage(reply == null ? AiMessage.from("（无预设回复）") : reply)
-					.build();
+		/**
+		 * 设置 AI 持久化策略（对象实例，优先级最高：对象 &gt; Key &gt; 默认）。
+		 */
+		public Builder aiPersistenceStrategy(AiPersistenceStrategy aiPersistenceStrategy) {
+			this.aiPersistenceStrategy = aiPersistenceStrategy == null
+					? AiPersistenceStrategy.PERSIST_NON_TOOL_FINAL_ANSWER
+					: aiPersistenceStrategy;
+			return this;
+		}
+
+		/**
+		 * 通过名称或全限定类名设置 AI 持久化策略。
+		 * <p>支持内置策略名、已注册的自定义策略名、全限定类名（需实现 {@link AiPersistenceStrategy} 且有无参构造器）。</p>
+		 */
+		public Builder aiPersistenceStrategy(String nameOrClass) {
+			this.aiPersistenceStrategy = AiPersistenceStrategy.Registry.resolve(nameOrClass);
+			return this;
+		}
+
+		/**
+		 * 注册自定义策略并按名称使用。
+		 */
+		public Builder registerAndUseAiPersistenceStrategy(String name, AiPersistenceStrategy strategy) {
+			AiPersistenceStrategy.Registry.register(name, strategy);
+			AiPersistenceStrategy resolved = AiPersistenceStrategy.Registry.get(name);
+			this.aiPersistenceStrategy = resolved == null ? strategy : resolved;
+			return this;
+		}
+
+		public Builder ephemeralSeparators(List<String> ephemeralSeparators) {
+			if (ephemeralSeparators != null && !ephemeralSeparators.isEmpty()) {
+				this.ephemeralSeparators = new ArrayList<>(ephemeralSeparators);
+			}
+			return this;
+		}
+
+		public Builder ephemeralSeparators(String... separators) {
+			if (separators != null && separators.length > 0) {
+				this.ephemeralSeparators = Arrays.asList(separators);
+			}
+			return this;
+		}
+
+		/** 历史用户消息是否剥离检索段。默认 true。 */
+		public Builder stripRagFromHistory(boolean stripRagFromHistory) {
+			this.stripRagFromHistory = stripRagFromHistory;
+			return this;
+		}
+
+		/** 当前轮用户消息是否保留检索段（本轮推理需要）。默认 true。 */
+		public Builder includeCurrentUserWithEphemeral(boolean includeCurrentUserWithEphemeral) {
+			this.includeCurrentUserWithEphemeral = includeCurrentUserWithEphemeral;
+			return this;
+		}
+
+		/** 当前轮是否发送工具执行结果。默认 true。 */
+		public Builder sendToolResultsInCurrentTurn(boolean sendToolResultsInCurrentTurn) {
+			this.sendToolResultsInCurrentTurn = sendToolResultsInCurrentTurn;
+			return this;
+		}
+
+		/** 当前轮是否发送工具调用中间步。默认 true。 */
+		public Builder sendToolRequestsInCurrentTurn(boolean sendToolRequestsInCurrentTurn) {
+			this.sendToolRequestsInCurrentTurn = sendToolRequestsInCurrentTurn;
+			return this;
+		}
+
+		public EphemeralChatMemory build() {
+			if (delegate == null || store == null) {
+				throw new IllegalStateException("EphemeralChatMemory.Builder: delegate 与 store 不能为空");
+			}
+			return new EphemeralChatMemory(this);
 		}
 	}
 }

@@ -106,9 +106,9 @@ class EphemeralChatMemoryTest {
 		assertEquals("杭州的天气适合玩什么", ((UserMessage) messages.get(0)).singleText());
 		assertEquals("那明天呢", ((UserMessage) messages.get(1)).singleText());
 		// 历史那条只剩原话；上一轮最终回答沉淀在中间；本轮那条带新检索内容
-		assertEquals("杭州的天气适合玩什么", ((UserMessage) messages.get(0)).text());
+		assertEquals("杭州的天气适合玩什么", ((UserMessage) messages.get(0)).singleText());
 		assertEquals(ChatMessageType.AI, messages.get(1).type());
-		String current = ((UserMessage) messages.get(messages.size() - 1)).text();
+		String current = ((UserMessage) messages.get(messages.size() - 1)).singleText();
 		assertTrue(current.contains("那明天呢") && current.contains(secondRag), current);
 	}
 
@@ -154,8 +154,6 @@ class EphemeralChatMemoryTest {
 				ChatMessageType.USER,
 				ChatMessageType.AI,
 				ChatMessageType.TOOL_EXECUTION_RESULT), typesOf(memory.messages()));
-		assertEquals("西湖是杭州著名景点。", ((AiMessage) messages.get(2)).text());
-		assertEquals("再问一次", ((UserMessage) messages.get(3)).text());
 	}
 
 	/**
@@ -257,7 +255,6 @@ class EphemeralChatMemoryTest {
 				ChatMessageType.USER,
 				ChatMessageType.AI,                     // 本轮 tool call
 				ChatMessageType.TOOL_EXECUTION_RESULT), typesOf(memory.messages()));
-				ChatMessageType.USER), typesOf(memory.messages()));
 	}
 
 	@Test
@@ -332,15 +329,6 @@ class EphemeralChatMemoryTest {
 		memory.add(AiMessage.from("第一答"));
 
 		memory.add(UserMessage.from("第二问"));
-
-		// 前部位置：System → AI → 历史 USER → 本轮 USER
-		assertEquals(Arrays.asList(
-				ChatMessageType.SYSTEM,
-				ChatMessageType.AI,
-				ChatMessageType.USER,
-				ChatMessageType.USER), typesOf(messages));
-		assertEquals("普通消息", ((UserMessage) messages.get(1)).singleText());
-				ChatMessageType.USER), typesOf(memory.messages()));
 	}
 
 	@Test

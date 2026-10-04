@@ -291,7 +291,7 @@ public class EphemeralChatMemory implements ChatMemory {
 
     /** 去掉 user message 尾部由 injector 拼入的临时检索段。 */
     private UserMessage stripRag(UserMessage message) {
-        String text = message.text();
+        String text = message.singleText();
         if (text == null || text.isEmpty()) {
             return message;
         }
