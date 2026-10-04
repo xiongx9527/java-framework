@@ -4,10 +4,10 @@ import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.data.message.ChatMessageType;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
+import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.listener.ChatModelErrorContext;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.listener.ChatModelRequestContext;
@@ -15,6 +15,7 @@ import dev.langchain4j.model.chat.listener.ChatModelResponseContext;
 import dev.langchain4j.model.output.TokenUsage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
@@ -24,10 +25,12 @@ import java.util.List;
  * <p>覆盖六类内容，对应排查 prompt 拼接效果时最常看的几处：</p>
  * <ul>
  *   <li><b>TOOLS</b>：本轮可用工具清单（{@code ToolSpecification}），即模型能看到的工具能力边界；</li>
- *   <li><b>SYSTEM</b>：系统提示词，由 {@code systemMessageProvider} 生成；</li>
- *   <li><b>USER</b>：用户消息；工具续调时会先记录不带 RAG 的原话，再在工具往返之后附加一条
- *       含 RAG 的当前问题；</li>
- *   <li><b>TOOL_CALL</b>：模型请求执行的工具及参数（{@code AiMessage.toolExecutionRequests}）；</li>
+ *   <li><b>SYSTEM</b>：系统提示词，由 {@code ChatAssistantConfig.systemMessageProvider} 生成，
+ *       <b>末尾的「可参考的资料」就是 RAG 检索结果</b>（经 {@code @V("ragContext")} 注入）；</li>
+ *   <li><b>USER</b>：用户原话（检索内容不在这里）；</li>
+ *   <li><b>TOOL_CALL</b>：工具及参数（{@code AiMessage.toolExecutionRequests}），
+ *       出现在请求上下文里的必然是<b>本轮进行中</b>的调用——内置持久化策略一律排除工具请求消息，
+ *       它不会来自历史；</li>
  *   <li><b>TOOL_RESPONSE</b>：工具执行结果（{@code ToolExecutionResultMessage}）；</li>
  *   <li><b>RESPONSE</b>：模型回复与 token 用量。</li>
  * </ul>
@@ -47,9 +50,9 @@ public class ChatContextLogger implements ChatModelListener {
 
     @Override
 	public void onRequest(ChatModelRequestContext requestContext) {
-		List<ChatMessage> messages = requestContext.chatRequest().messages();
+		List<ChatMessage> messages = requestContext.request().messages();
 		log.info("════════ 模型请求上下文（{} 条消息） ════════", messages.size());
-		logTools(requestContext.chatRequest().toolSpecifications());
+		logTools(requestContext.request().toolSpecifications());
 		int index = 0;
 		for (ChatMessage message : messages) {
 			logMessage(index++, message);
@@ -69,15 +72,15 @@ public class ChatContextLogger implements ChatModelListener {
 
 	@Override
 	public void onResponse(ChatModelResponseContext responseContext) {
-		AiMessage aiMessage = responseContext.chatResponse().aiMessage();
+		AiMessage aiMessage = responseContext.response().aiMessage();
 		if (aiMessage.hasToolExecutionRequests()) {
 			for (ToolExecutionRequest request : aiMessage.toolExecutionRequests()) {
-				log.info("TOOL_CALL    模型请求工具 {} 参数 {}", request.name(), request.arguments());
+				log.info("TOOL_CALL    模型请求工具 {} 参数 {}", request.name(), abbreviate(request.arguments()));
 			}
 		} else {
 			log.info("RESPONSE     模型回复: {}", abbreviate(aiMessage.text()));
 		}
-		TokenUsage tokenUsage = responseContext.chatResponse().tokenUsage();
+		TokenUsage tokenUsage = responseContext.response().tokenUsage();
 		if (tokenUsage != null) {
 			log.info("RESPONSE     token 用量 {}", tokenUsage);
 		}
@@ -92,7 +95,7 @@ public class ChatContextLogger implements ChatModelListener {
 		if (message.type() == ChatMessageType.SYSTEM) {
 			log.info("[{}] SYSTEM      {}", index, abbreviate(((SystemMessage) message).text()));
 		} else if (message.type() == ChatMessageType.USER) {
-			log.info("[{}] USER        {}", index, abbreviate(((UserMessage) message).singleText()));
+			log.info("[{}] USER        {}", index, abbreviate(message.text()));
 		} else if (message.type() == ChatMessageType.TOOL_EXECUTION_RESULT) {
 			ToolExecutionResultMessage result = (ToolExecutionResultMessage) message;
 			log.info("[{}] TOOL_RESPONSE 工具 {} 返回: {}",
@@ -108,7 +111,9 @@ public class ChatContextLogger implements ChatModelListener {
 			return;
 		}
 		for (ToolExecutionRequest request : message.toolExecutionRequests()) {
-			log.info("[{}] TOOL_CALL    历史工具请求 {} 参数 {}", index, request.name(), request.arguments());
+			// 不加「历史」前缀：请求里的工具调用必然是本轮进行中的（内置策略一律排除工具请求 AI 消息，
+			// 它不可能来自历史），标成历史会让人误判工具调用泄漏进了下一轮。
+			log.info("[{}] TOOL_CALL    工具请求 {} 参数 {}", index, request.name(), abbreviate(request.arguments()));
 		}
 	}
 
