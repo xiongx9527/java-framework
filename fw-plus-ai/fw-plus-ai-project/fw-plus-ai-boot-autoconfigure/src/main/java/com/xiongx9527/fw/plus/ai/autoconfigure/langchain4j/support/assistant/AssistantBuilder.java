@@ -1,8 +1,12 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.aggregate.AggregatingToolProvider;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.AiPersistenceStrategy;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.aggregate.WeightedScoringContentAggregator;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.EphemeralChatMemory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.EphemeralChatMemoryProperties;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.LengthBoundedAiPersistenceStrategy;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.PersistToolResultsAiPersistenceStrategy;
 
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
@@ -47,6 +51,10 @@ import java.util.function.Function;
  * 至少配一个；其余能力不配即不参与装配。
  * 记忆二选一：配置 {@link #tokenizer(TokenCountEstimator)} 用 {@code TokenWindowChatMemory}（按 token 截断），
  * 否则用 {@code MessageWindowChatMemory}（按条数截断）——都不配时用进程内窗口记忆（默认 20 条）。
+ * 无论哪种，内置记忆都包一层 {@link EphemeralChatMemory}：默认按 {@code PERSIST_NON_TOOL_FINAL_ANSWER}
+ * 策略把「上一轮未调用工具」的最终回答沉淀进历史、带到下一轮（可用 {@link #aiPersistenceStrategy(AiPersistenceStrategy)}
+ * 或 {@link #ephemeralChatMemory(EphemeralChatMemoryProperties)} 切换/自定义策略与插入位置）；
+ * RAG 检索段与工具往返不进历史，只在本轮请求里带出。无有效字符的 AI 回复一律不沉淀。
  * 无论哪种，内置记忆都包一层 {@link EphemeralChatMemory}：历史只沉淀系统提示与用户原话，
  * RAG 检索段与工具往返不进历史。检索段不进历史由 {@code storeRetrievedContentInChatMemory(false)}
  * 保证——langchain4j 该开关默认 {@code true}，会把拼了检索内容的整条 user message 写进记忆。
@@ -97,6 +105,54 @@ public class AssistantBuilder {
 
 	/** TokenWindowChatMemory 的 token 上限（仅在配置了 tokenizer 时生效，默认 1000） */
 	private Integer maxTokens;
+
+	/** AI 持久化策略对象（优先级最高：对象 > Key > 默认） */
+	private AiPersistenceStrategy aiPersistenceStrategy;
+
+	/** AI 持久化策略 Key（name 或 class，全限定名） */
+	private String aiPersistenceStrategyKey;
+
+	/** 是否严格校验 AI 持久化策略 Key */
+	private boolean strictAiPersistenceStrategy = false;
+
+	/** Ephemeral：是否限制 AI 消息长度 */
+	private boolean ephemeralLimitAiLength = false;
+
+	/** Ephemeral：单条 AI 最大字符数（-1 不限制） */
+	private int ephemeralMaxAiCharsPerMessage = -1;
+
+	/** Ephemeral：AI 总字符数限制（-1 不限制） */
+	private int ephemeralMaxAiTotalChars = -1;
+
+	/** Ephemeral：AI 最大条数（<=0 表示不限制） */
+	private int ephemeralMaxAiMessages = Integer.MAX_VALUE;
+
+	/** Ephemeral：超长是否截断（false：超长直接丢弃） */
+	private boolean ephemeralTruncateAiIfExceeds = false;
+
+	/** Ephemeral：是否持久化 ToolExecutionResultMessage */
+	private boolean ephemeralPersistToolResults = false;
+
+	/** Ephemeral：ToolExecutionResult 最大字符数 */
+	private int ephemeralMaxToolResultChars = 512;
+
+	/** Ephemeral：ToolExecutionResult 最大条数 */
+	private int ephemeralMaxToolResults = 0;
+
+	/** Ephemeral：临时内容分隔符 */
+	private java.util.List<String> ephemeralSeparators;
+
+	/** Ephemeral：历史 User 是否剥离 RAG 临时段 */
+	private boolean ephemeralStripRagFromHistory = true;
+
+	/** Ephemeral：当前轮 User 是否保留临时段 */
+	private boolean ephemeralIncludeCurrentUserWithEphemeral = true;
+
+	/** Ephemeral：当前轮是否发送 ToolExecutionResult */
+	private boolean ephemeralSendToolResultsInCurrentTurn = true;
+
+	/** Ephemeral：当前轮是否发送带工具请求的 AiMessage（中间步） */
+	private boolean ephemeralSendToolRequestsInCurrentTurn = true;
 
 	private ChatMemoryStore memoryStore;
 
@@ -335,6 +391,157 @@ public class AssistantBuilder {
 	 * （{@code chat(message)} 两参即可、{@code streamToSse(...)} 直接推流）；
 	 * 需要底层 {@link Assistant} 类型时用 {@link #toAssistant()}。
 	 */
+
+	/**
+	 * 设置 AI 持久化策略（对象实例，优先级最高：对象 > Key > 默认）。
+	 */
+	public AssistantBuilder aiPersistenceStrategy(AiPersistenceStrategy strategy) {
+		this.aiPersistenceStrategy = strategy;
+		this.aiPersistenceStrategyKey = null;
+		return this;
+	}
+
+	/**
+	 * 设置 AI 持久化策略（名称或全限定类名，优先级次于策略对象）。
+	 * <p>支持内置策略名、自定义注册名、全限定类名。</p>
+	 */
+	public AssistantBuilder aiPersistenceStrategy(String keyOrClass) {
+		if (keyOrClass == null || keyOrClass.trim().isEmpty()) {
+			this.aiPersistenceStrategyKey = null;
+			return this;
+		}
+		this.aiPersistenceStrategyKey = keyOrClass.trim();
+		this.aiPersistenceStrategy = null;
+		return this;
+	}
+
+	/**
+	 * 注册自定义 AI 持久化策略。
+	 */
+	public AssistantBuilder registerAiPersistenceStrategy(String name, AiPersistenceStrategy strategy) {
+		AiPersistenceStrategy.Registry.register(name, strategy);
+		return this;
+	}
+
+	/**
+	 * 注册自定义 AI 持久化策略并立即使用。
+	 */
+	public AssistantBuilder registerAndUseAiPersistenceStrategy(String name, AiPersistenceStrategy strategy) {
+		AiPersistenceStrategy.Registry.register(name, strategy);
+		this.aiPersistenceStrategyKey = name.trim();
+		this.aiPersistenceStrategy = null;
+		return this;
+	}
+
+	/**
+	 * 使用已注册的 AI 持久化策略（按名称或类名）。
+	 */
+	public AssistantBuilder useAiPersistenceStrategy(String nameOrClass) {
+		return aiPersistenceStrategy(nameOrClass);
+	}
+
+	/**
+	 * 是否严格校验 AI 持久化策略 Key。
+	 */
+	public AssistantBuilder strictAiPersistenceStrategy(boolean strict) {
+		this.strictAiPersistenceStrategy = strict;
+		return this;
+	}
+
+	public AssistantBuilder ephemeralLimitAiLength(boolean limit) {
+		this.ephemeralLimitAiLength = limit;
+		return this;
+	}
+
+	public AssistantBuilder ephemeralMaxAiCharsPerMessage(int max) {
+		this.ephemeralMaxAiCharsPerMessage = max;
+		return this;
+	}
+
+	public AssistantBuilder ephemeralMaxAiTotalChars(int max) {
+		this.ephemeralMaxAiTotalChars = max;
+		return this;
+	}
+
+	public AssistantBuilder ephemeralMaxAiMessages(int max) {
+		this.ephemeralMaxAiMessages = max;
+		return this;
+	}
+
+	public AssistantBuilder ephemeralTruncateAiIfExceeds(boolean truncate) {
+		this.ephemeralTruncateAiIfExceeds = truncate;
+		return this;
+	}
+
+	public AssistantBuilder ephemeralPersistToolResults(boolean persist) {
+		this.ephemeralPersistToolResults = persist;
+		return this;
+	}
+
+	public AssistantBuilder ephemeralMaxToolResultChars(int max) {
+		this.ephemeralMaxToolResultChars = max;
+		return this;
+	}
+
+	public AssistantBuilder ephemeralMaxToolResults(int max) {
+		this.ephemeralMaxToolResults = max;
+		return this;
+	}
+
+	public AssistantBuilder ephemeralSeparators(String... separators) {
+		if (separators != null && separators.length > 0) {
+			this.ephemeralSeparators = java.util.Arrays.asList(separators);
+		}
+		return this;
+	}
+
+	public AssistantBuilder ephemeralSeparators(java.util.List<String> separators) {
+		if (separators != null && !separators.isEmpty()) {
+			this.ephemeralSeparators = new java.util.ArrayList<>(separators);
+		}
+		return this;
+	}
+
+	public AssistantBuilder ephemeralStripRagFromHistory(boolean strip) {
+		this.ephemeralStripRagFromHistory = strip;
+		return this;
+	}
+
+	public AssistantBuilder ephemeralIncludeCurrentUserWithEphemeral(boolean include) {
+		this.ephemeralIncludeCurrentUserWithEphemeral = include;
+		return this;
+	}
+
+	public AssistantBuilder ephemeralSendToolResultsInCurrentTurn(boolean send) {
+		this.ephemeralSendToolResultsInCurrentTurn = send;
+		return this;
+	}
+
+	public AssistantBuilder ephemeralSendToolRequestsInCurrentTurn(boolean send) {
+		this.ephemeralSendToolRequestsInCurrentTurn = send;
+		return this;
+	}
+
+	/**
+	 * 用 {@link EphemeralChatMemoryProperties} 一次性配置 Ephemeral 记忆。
+	 * <p>策略解析走 {@link EphemeralChatMemoryProperties#resolveAiPersistenceStrategy()}，
+	 * 已包含「长度限制」与「工具结果持久化」装饰器；同时注册其中的自定义策略。</p>
+	 */
+	public AssistantBuilder ephemeralChatMemory(EphemeralChatMemoryProperties properties) {
+		if (properties == null || !properties.isEnabled()) {
+			return this;
+		}
+		// 直接解析成策略对象（优先级最高），避免与 key 双通道歧义
+		this.aiPersistenceStrategy = properties.resolveAiPersistenceStrategy();
+		this.aiPersistenceStrategyKey = null;
+		this.ephemeralSeparators = new java.util.ArrayList<>(properties.getEphemeralSeparators());
+		this.ephemeralStripRagFromHistory = properties.isStripRagFromHistory();
+		this.ephemeralIncludeCurrentUserWithEphemeral = properties.isIncludeCurrentUserWithEphemeral();
+		this.ephemeralSendToolResultsInCurrentTurn = properties.isSendToolResultsInCurrentTurn();
+		this.ephemeralSendToolRequestsInCurrentTurn = properties.isSendToolRequestsInCurrentTurn();
+		return this;
+	}
+
 	public SimpleAssistant build() {
 		// RetrievalAugmentor 从 builder 装配结果传入：常规模式随 AiServices 一起走检索增强，
 		// 只检索模式（retrievalOnly）则产出仅支持 retrieve(...) 的 SimpleAssistant；
@@ -416,8 +623,10 @@ public class AssistantBuilder {
 			return chatMemoryProvider;
 		}
 		final ChatMemoryStore store = memoryStore == null ? new InMemoryChatMemoryStore() : memoryStore;
-		// 内置记忆包一层 EphemeralChatMemory：历史只沉淀系统提示与用户原话，
-		// RAG 检索段与工具往返不进历史（与样例 ChatAssistantConfig 的行为一致）
+		final AiPersistenceStrategy resolvedStrategy = resolveEphemeralStrategy();
+		final java.util.List<String> separators = ephemeralSeparators != null
+				? ephemeralSeparators
+				: java.util.Collections.singletonList(EphemeralChatMemory.DEFAULT_RAG_SEPARATOR);
 		return memoryId -> {
 			ChatMemory delegate;
 			if (tokenizer != null) {
@@ -434,8 +643,61 @@ public class AssistantBuilder {
 						.chatMemoryStore(store)
 						.build();
 			}
-			return new EphemeralChatMemory(delegate, store);
+			return EphemeralChatMemory.builder(delegate, store)
+					.aiPersistenceStrategy(resolvedStrategy)
+					.ephemeralSeparators(separators)
+					.stripRagFromHistory(ephemeralStripRagFromHistory)
+					.includeCurrentUserWithEphemeral(ephemeralIncludeCurrentUserWithEphemeral)
+					.sendToolResultsInCurrentTurn(ephemeralSendToolResultsInCurrentTurn)
+					.sendToolRequestsInCurrentTurn(ephemeralSendToolRequestsInCurrentTurn)
+					.build();
 		};
+	}
+
+	/**
+	 * 解析 AI 持久化策略，优先级：策略对象 &gt; 策略 Key（name/class）&gt; 默认
+	 * {@link AiPersistenceStrategy#PERSIST_NON_TOOL_FINAL_ANSWER}。
+	 * <p>随后依次叠加「长度限制」与「工具结果持久化」两个装饰器（按开关）。</p>
+	 */
+	private AiPersistenceStrategy resolveEphemeralStrategy() {
+		AiPersistenceStrategy strategy;
+		if (aiPersistenceStrategy != null) {
+			// 优先级 1：显式策略对象
+			strategy = aiPersistenceStrategy;
+		} else if (aiPersistenceStrategyKey != null && !aiPersistenceStrategyKey.trim().isEmpty()) {
+			// 优先级 2：策略 Key（注册名或全限定类名）
+			AiPersistenceStrategy resolved = AiPersistenceStrategy.Registry.tryResolve(aiPersistenceStrategyKey);
+			if (resolved == null) {
+				if (strictAiPersistenceStrategy) {
+					throw new IllegalArgumentException("未知的 AI 持久化策略：'" + aiPersistenceStrategyKey
+							+ "'（未在 AiPersistenceStrategy.Registry 注册，也无法作为 AiPersistenceStrategy 类实例化）");
+				}
+				resolved = AiPersistenceStrategy.PERSIST_NON_TOOL_FINAL_ANSWER;
+			}
+			strategy = resolved;
+		} else {
+			// 优先级 3：默认
+			strategy = AiPersistenceStrategy.PERSIST_NON_TOOL_FINAL_ANSWER;
+		}
+
+		if (ephemeralLimitAiLength) {
+			strategy = LengthBoundedAiPersistenceStrategy.builder(strategy)
+					.maxCharsPerMessage(ephemeralMaxAiCharsPerMessage)
+					.maxTotalChars(ephemeralMaxAiTotalChars)
+					.maxMessages(ephemeralMaxAiMessages <= 0 ? Integer.MAX_VALUE : ephemeralMaxAiMessages)
+					.truncateIfExceeds(ephemeralTruncateAiIfExceeds)
+					.build();
+		}
+
+		if (ephemeralPersistToolResults) {
+			strategy = PersistToolResultsAiPersistenceStrategy.builder(strategy)
+					.persistToolResults(true)
+					.maxToolResultChars(ephemeralMaxToolResultChars)
+					.maxToolResults(ephemeralMaxToolResults)
+					.build();
+		}
+
+		return strategy;
 	}
 
 	/** 检索增强：显式 augmentor → 传入的检索器/注入器组装；都没给则不启用检索 */

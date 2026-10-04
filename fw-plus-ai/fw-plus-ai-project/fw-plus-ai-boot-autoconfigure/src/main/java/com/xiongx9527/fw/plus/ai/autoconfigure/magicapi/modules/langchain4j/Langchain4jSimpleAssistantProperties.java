@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.EphemeralChatMemoryProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.HashMap;
@@ -74,6 +75,9 @@ public class Langchain4jSimpleAssistantProperties {
 
 	/** 语义分权重（0~1，加权混合重排：总分 = 相似度分 × similarityWeight + 语义分 × semanticWeight） */
 	private Double semanticWeight;
+
+	/** Ephemeral 记忆配置：AI 持久化策略、长度限制、RAG/工具往返处理等（见 {@link EphemeralChatMemoryProperties}） */
+	private EphemeralChatMemoryProperties ephemeral = new EphemeralChatMemoryProperties();
 
 	public boolean isEnabled() {
 		return enabled;
@@ -169,5 +173,13 @@ public class Langchain4jSimpleAssistantProperties {
 
 	public void setSemanticWeight(Double semanticWeight) {
 		this.semanticWeight = semanticWeight;
+	}
+
+	public EphemeralChatMemoryProperties getEphemeral() {
+		return ephemeral;
+	}
+
+	public void setEphemeral(EphemeralChatMemoryProperties ephemeral) {
+		this.ephemeral = ephemeral;
 	}
 }

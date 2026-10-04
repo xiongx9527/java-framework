@@ -26,6 +26,10 @@ import org.springframework.context.annotation.Configuration;
  * 检索结果只拼在本轮请求上（工具续调时框架用
  * {@code UserMessage.replaceLast} 把增强后的原话换回请求）。{@link EphemeralChatMemory}
  * 另外按 {@link EphemeralChatMemory#RAG_SEPARATOR} 兜底剥掉历史用户消息里的检索段。</p>
+ * <p><b>RAG 不进记忆</b>：框架把检索结果拼进 user message 后会整条写进 memory；
+ * {@code EphemeralChatMemory} 按 {@code EphemeralChatMemory.DEFAULT_RAG_SEPARATOR} 剥掉检索内容，
+ * 只让用户原话进记忆，本轮请求仍带完整内容。锚点必须与默认注入模板的分隔段一致
+ * （上游改默认模板时需同步 {@code EphemeralChatMemory.DEFAULT_RAG_SEPARATOR}）。</p>
  *
  * <p>未配置 {@code fw.plus.sample.chat.knowledge-base.base-url} 时两个 Bean 都不创建，
  * {@code AiServices} 便不启用检索增强，样例退化为纯对话。</p>

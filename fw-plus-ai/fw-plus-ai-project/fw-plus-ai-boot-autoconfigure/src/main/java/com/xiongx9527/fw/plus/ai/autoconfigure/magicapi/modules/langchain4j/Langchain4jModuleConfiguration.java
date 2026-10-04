@@ -185,6 +185,8 @@ public class Langchain4jModuleConfiguration {
 		if (properties.getSemanticWeight() != null) {
 			assistantBuilder.semanticWeight(properties.getSemanticWeight());
 		}
+		// Ephemeral 记忆：AI 持久化策略（含位置/长度/工具结果开关）等
+		assistantBuilder.ephemeralChatMemory(properties.getEphemeral());
 		return assistantBuilder.build();
 	}
 
