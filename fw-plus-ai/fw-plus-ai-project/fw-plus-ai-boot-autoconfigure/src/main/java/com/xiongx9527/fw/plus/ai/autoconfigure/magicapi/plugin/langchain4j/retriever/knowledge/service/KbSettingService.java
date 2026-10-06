@@ -35,6 +35,9 @@ public class KbSettingService implements InitializingBean {
 	/** 默认 ES 索引名前缀 */
 	public static final String DEFAULT_ES_INDEX_PREFIX = "fw-kb";
 
+	/** 对外 Open API 的默认认证 provider：留空时保持改造前的 Sa-Token 登录态校验 */
+	public static final String DEFAULT_OPEN_API_AUTH_PROVIDER = "sa-token-login";
+
 	/** 分段模式：通用（分段直接嵌入） */
 	public static final String SEGMENT_MODE_GENERAL = "general";
 
@@ -144,6 +147,14 @@ public class KbSettingService implements InitializingBean {
 	}
 
 	/**
+	 * 对外 Open API 当前生效的认证 provider：留空回落 {@link #DEFAULT_OPEN_API_AUTH_PROVIDER}。
+	 */
+	public String openApiAuthProvider() {
+		String provider = current().getOpenApiAuthProvider();
+		return StringUtils.hasText(provider) ? provider.trim() : DEFAULT_OPEN_API_AUTH_PROVIDER;
+	}
+
+	/**
 	 * 保存设置：归一化后落库并热替换快照，返回生效后的设置。
 	 *
 	 * @param input 页面提交内容，{@code id} 与时间字段由本方法补齐
@@ -193,6 +204,7 @@ public class KbSettingService implements InitializingBean {
 		setting.setEsEnabled(Boolean.FALSE);
 		setting.setEsKey(null);
 		setting.setEsIndexPrefix(DEFAULT_ES_INDEX_PREFIX);
+		setting.setOpenApiAuthProvider(DEFAULT_OPEN_API_AUTH_PROVIDER);
 		// 模型默认值不给内置默认：内置一个 key 只会指向一个多半不存在的资源，
 		// 让页面显式配一次更可控（配错的 key 会在建数据集时报「资源不存在」，不会静默走偏）
 		setting.setEmbeddingModelKey(null);
@@ -280,6 +292,10 @@ public class KbSettingService implements InitializingBean {
 
 		String prefix = trimToNull(input.getEsIndexPrefix());
 		setting.setEsIndexPrefix(prefix == null ? DEFAULT_ES_INDEX_PREFIX : prefix);
+
+		// 对外 Open API 认证 provider：留空回落默认；未知取值不在保存期拦截，由请求期 fail-closed。
+		String authProvider = trimToNull(input.getOpenApiAuthProvider());
+		setting.setOpenApiAuthProvider(authProvider == null ? DEFAULT_OPEN_API_AUTH_PROVIDER : authProvider);
 		return setting;
 	}
 

@@ -93,6 +93,7 @@ CREATE TABLE kb_setting (
     es_enabled       TINYINT      NOT NULL DEFAULT 0 COMMENT 'ES 全文检索开关：1 关键词路优先走 ES（需启用 magicapi elasticsearch 插件并配置 ES 数据源）',
     es_key           VARCHAR(255)           DEFAULT NULL COMMENT 'ES 数据源资源 key（空则取 Spring 默认 ES 数据源）',
     es_index_prefix  VARCHAR(255)  NOT NULL DEFAULT 'fw-kb' COMMENT 'ES 索引名前缀（分段全文索引名 = 前缀 + "-segments"）',
+    open_api_auth_provider VARCHAR(32) DEFAULT NULL COMMENT '对外 Open API 认证 provider（留空按 sa-token-login）：permit-all/sa-token-login/sa-token-oauth2/sa-token-jwt/sa-token-apikey/sa-token-sso',
     embedding_model_key   VARCHAR(255)  DEFAULT NULL COMMENT '新建数据集默认使用的嵌入模型资源 key（langchain4j embedding-model）',
     embedding_store_key   VARCHAR(255)  DEFAULT NULL COMMENT '新建数据集默认使用的向量库资源 key（langchain4j embedding-store）',
     scoring_model_key     VARCHAR(255)  DEFAULT NULL COMMENT '新建数据集默认使用的 rerank 模型资源 key（scoring-model），空则不重排',

@@ -161,6 +161,10 @@ export const kbApi = {
     saveSettings: (setting) => new Promise((resolve, reject) => {
         requireRequest().sendJson('/kb/settings', setting).success(unwrap(resolve, reject));
     }),
+    /** 对外 API 可选认证 provider 清单（当前 classpath 实际可用）。 */
+    authProviders: () => new Promise((resolve, reject) => {
+        requireRequest().sendGet('/kb/openapi-auth-providers').success(unwrap(resolve, reject)).error?.(e => reject(new Error(e)));
+    }),
     /** 下载原始文档：XHR blob 触发浏览器保存。 */
     download: (id, fileName) => {
         const xhr = new XMLHttpRequest();

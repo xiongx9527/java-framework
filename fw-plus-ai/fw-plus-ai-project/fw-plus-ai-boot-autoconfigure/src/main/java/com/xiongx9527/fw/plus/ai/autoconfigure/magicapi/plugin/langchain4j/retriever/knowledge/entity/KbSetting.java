@@ -56,6 +56,18 @@ public class KbSetting extends MpBaseEntity<String> {
     /** ES 索引名前缀（分段全文索引名 = 前缀 + "-segments"），默认 fw-kb */
     private String esIndexPrefix;
 
+    /**
+     * 对外 Open API（{@code /v1/*} 与 {@code /settings}）的认证 provider。
+     *
+     * <p>取值与 {@code fw-plus-auth-core} 的内置 provider 清单一致（{@code permit-all}、
+     * {@code sa-token-login}、{@code sa-token-oauth2}、{@code sa-token-jwt}、
+     * {@code sa-token-apikey}、{@code sa-token-sso}），由控制台「设置」页选择。</p>
+     *
+     * <p>留空按 {@code sa-token-login} 处理（保持改造前的默认行为）；provider 模块不在 classpath
+     * 或取值未知时 fail-closed（对外 API 返回 error_code 1002），不回退。</p>
+     */
+    private String openApiAuthProvider;
+
     // ---------------- 新建数据集的模型默认值 ----------------
     // 这四项是「建数据集时不必每次重填」的全局默认：页面上配一次，之后 create 数据集时
     // 对应字段留空即回落这里。数据集自身的值优先（可逐个覆盖），只有为空时才用默认值。

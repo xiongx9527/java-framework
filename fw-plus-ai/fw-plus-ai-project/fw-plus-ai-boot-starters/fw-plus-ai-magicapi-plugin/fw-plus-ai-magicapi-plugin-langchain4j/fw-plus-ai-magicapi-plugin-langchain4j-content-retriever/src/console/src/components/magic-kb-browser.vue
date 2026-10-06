@@ -233,6 +233,13 @@
               <input v-model="settingForm.esIndexPrefix" :placeholder="$i('kb.setting.esIndexPrefixTip')"/>
             </div>
           </template>
+          <div class="kb-form-row">
+            <label>{{ $i('kb.setting.openApiAuthProvider') }}</label>
+            <select v-model="settingForm.openApiAuthProvider">
+              <option v-for="p in authProviders" :key="p" :value="p">{{ p }}</option>
+            </select>
+            <span class="kb-tag">{{ $i('kb.setting.openApiAuthProviderTip') }}</span>
+          </div>
           <div class="kb-state">{{ $i('kb.setting.modelDefaultTitle') }}</div>
           <div class="kb-form-row">
             <label>{{ $i('kb.setting.embeddingModelKey') }}</label>
@@ -477,8 +484,9 @@ const activeView = ref('dataset')
 const datasetForm = ref(null)
 const segmentForm = ref(null)
 const metadataForm = ref(null)
+const authProviders = ref([])
 /** 全局设置表单（对应后端 kb_setting 单行表）；字段与后端 KbSetting 一一对应 */
-const settingForm = ref({ enabled: true, storageType: 'local', storagePath: '', s3Key: '', hybridSearch: true, esEnabled: false, esKey: '', esIndexPrefix: 'fw-kb', embeddingModelKey: '', embeddingStoreKey: '', scoringModelKey: '', chatModelKey: '', defaultRetrievalTopK: 4, defaultRetrievalScoreThreshold: 0, defaultSegmentMaxLength: 1000, defaultSegmentOverlap: 200, defaultSegmentDelimiter: '', defaultSegmentMode: 'general', defaultIndexingTechnique: 'high_quality' })
+const settingForm = ref({ enabled: true, storageType: 'local', storagePath: '', s3Key: '', hybridSearch: true, esEnabled: false, esKey: '', esIndexPrefix: 'fw-kb', openApiAuthProvider: 'sa-token-login', embeddingModelKey: '', embeddingStoreKey: '', scoringModelKey: '', chatModelKey: '', defaultRetrievalTopK: 4, defaultRetrievalScoreThreshold: 0, defaultSegmentMaxLength: 1000, defaultSegmentOverlap: 200, defaultSegmentDelimiter: '', defaultSegmentMode: 'general', defaultIndexingTechnique: 'high_quality' })
 
 const views = [
   { id: 'dataset', label: 'kb.view.dataset' },
@@ -520,6 +528,7 @@ const loadSettings = async () => {
       esEnabled: s.esEnabled === true,
       esKey: s.esKey || '',
       esIndexPrefix: s.esIndexPrefix || 'fw-kb',
+      openApiAuthProvider: s.openApiAuthProvider || 'sa-token-login',
       embeddingModelKey: s.embeddingModelKey || '',
       embeddingStoreKey: s.embeddingStoreKey || '',
       scoringModelKey: s.scoringModelKey || '',
@@ -532,6 +541,15 @@ const loadSettings = async () => {
       defaultSegmentMode: s.defaultSegmentMode || 'general',
       defaultIndexingTechnique: s.defaultIndexingTechnique || 'high_quality'
     }
+  } catch (e) {
+    fail(e)
+  }
+}
+
+/** 读取可选认证 provider 清单（设置页下拉数据源），只展示当前 classpath 实际可用的项 */
+const loadAuthProviders = async () => {
+  try {
+    authProviders.value = (await kbApi.authProviders()) || []
   } catch (e) {
     fail(e)
   }
@@ -947,6 +965,7 @@ const toggleAll = () => {
 
 loadDatasets()
 loadSettings()
+loadAuthProviders()
 </script>
 <style scoped>
 .magic-kb-browser { display: flex; height: 100%; background: var(--magic-background-color, #fff); color: var(--magic-text-color, #333); }

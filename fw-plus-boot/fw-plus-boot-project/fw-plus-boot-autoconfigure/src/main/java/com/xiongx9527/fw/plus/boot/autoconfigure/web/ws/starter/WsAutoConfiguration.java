@@ -1,5 +1,8 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.starter;
 
+import com.xiongx9527.fw.plus.auth.core.InstanceAuthRegistry;
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.auth.WsAuthHandshakeInterceptor;
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.auth.WsAuthSupport;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.common.WsInstanceValidator;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.config.WsConfig;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.handler.AbstractWebSocketHandler;
@@ -96,8 +99,38 @@ public class WsAutoConfiguration {
      * @return 校验器实例
      */
     @Bean
-    public WsInstanceValidator wsInstanceValidator(WsConfig wsConfig) {
+    public WsInstanceValidator wsInstanceValidator(WsConfig wsConfig, InstanceAuthRegistry instanceAuthRegistry) {
         WsInstanceValidator.validate(wsConfig);
+        WsAuthSupport.validateProviders(wsConfig, instanceAuthRegistry);
         return new WsInstanceValidator();
+    }
+
+    /**
+     * 实例认证内核：容器已有（如同时启用 MCP）时不重复创建，供 WS 握手按实例解析 provider。
+     *
+     * @return 实例认证注册表
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public InstanceAuthRegistry instanceAuthRegistry() {
+        return new InstanceAuthRegistry();
+    }
+
+    /**
+     * webmvc 握手认证拦截器：升级前按命中实例的 provider 校验凭据，未通过置 HTTP 401 不升级。
+     *
+     * <p>启动期顺带校验全部实例 provider 是否受支持，未知 provider 直接抛
+     * {@link IllegalArgumentException} 使应用启动失败。</p>
+     *
+     * @param wsConfig              WebSocket 通用配置
+     * @param instanceAuthRegistry  实例认证注册表
+     * @return 握手认证拦截器
+     */
+    @Bean
+    @ConditionalOnMissingBean(name = "wsAuthHandshakeInterceptor")
+    public WsHandshakeInterceptor wsAuthHandshakeInterceptor(WsConfig wsConfig,
+                                                             InstanceAuthRegistry instanceAuthRegistry) {
+        WsAuthSupport.validateProviders(wsConfig, instanceAuthRegistry);
+        return new WsAuthHandshakeInterceptor(new WsAuthSupport(wsConfig, instanceAuthRegistry));
     }
 }

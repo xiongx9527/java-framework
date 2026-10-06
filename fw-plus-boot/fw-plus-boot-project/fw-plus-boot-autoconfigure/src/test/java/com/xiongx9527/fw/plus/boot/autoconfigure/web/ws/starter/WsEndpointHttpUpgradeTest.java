@@ -45,6 +45,8 @@ import static org.assertj.core.api.Assertions.assertThat;
                 "fw.plus.ws.servers[0].key=" + WsEndpointHttpUpgradeTest.INSTANCE_KEY,
                 "fw.plus.ws.servers[0].path=" + WsEndpointHttpUpgradeTest.INSTANCE_ENDPOINT_PATH,
                 "fw.plus.ws.servers[0].appId=" + WsEndpointHttpUpgradeTest.INSTANCE_APP_ID,
+                "fw.plus.ws.auth.provider=permit-all",
+                "fw.plus.ws.servers[0].auth.provider=permit-all",
                 "fw.plus.ws.websocket.trustedDomain=*"
         })
 class WsEndpointHttpUpgradeTest {

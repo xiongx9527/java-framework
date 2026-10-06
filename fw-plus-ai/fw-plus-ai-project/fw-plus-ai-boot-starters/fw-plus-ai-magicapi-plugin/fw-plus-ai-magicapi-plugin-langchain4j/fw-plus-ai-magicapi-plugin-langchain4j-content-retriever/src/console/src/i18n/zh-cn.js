@@ -175,6 +175,8 @@ export default {
                 esKeyTip: '留空则使用 Spring 默认 ES 数据源',
                 esIndexPrefix: 'ES 索引名前缀',
                 esIndexPrefixTip: '分段全文索引名 = 前缀 + "-segments"；修改前缀后需重新同步 ES 才有数据',
+                openApiAuthProvider: '对外 API 认证方式',
+                openApiAuthProviderTip: 'Dify/业务对接 /v1/* 与 /settings 的凭据校验方式；仅列出当前可用项，留空按 sa-token-login 处理',
                 storageDisabledTip: '当前存储介质下此项不生效',
                 modelDefaultTitle: '新建数据集的模型默认值（数据集自身填写的值优先，留空才回落这里）',
                 embeddingModelKey: '默认嵌入模型',

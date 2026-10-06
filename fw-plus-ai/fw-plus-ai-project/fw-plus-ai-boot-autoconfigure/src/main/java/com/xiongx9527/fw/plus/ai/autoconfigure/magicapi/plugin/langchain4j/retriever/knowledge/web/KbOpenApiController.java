@@ -14,6 +14,7 @@ import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.http.MediaType;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -83,11 +84,17 @@ public class KbOpenApiController {
 
 	@GetMapping("/settings")
 	public Object getSettings() {
+		if (!auth(null, null)) {
+			return error(1002, "认证失败");
+		}
 		return ok(settingService.current());
 	}
 
 	@PostMapping("/settings")
 	public Object saveSettings(@RequestBody com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.entity.KbSetting setting) {
+		if (!auth(null, null)) {
+			return error(1002, "认证失败");
+		}
 		try {
 			return ok(settingService.save(setting));
 		} catch (IllegalArgumentException e) {
@@ -505,12 +512,41 @@ public class KbOpenApiController {
 	// ---------------- 内部 ----------------
 
 	private boolean auth(String authorization, String kbToken) {
+		Map<String, String> headers = collectHeaders();
+		// 显式参数优先（兼容直接调用 / 测试），真实请求由 RequestContextHolder 提供全量请求头
+		if (StringUtils.hasText(authorization)) {
+			headers.put("Authorization", authorization);
+		}
+		if (StringUtils.hasText(kbToken)) {
+			headers.put("kb-token", kbToken);
+		}
 		try {
-			authChecker.check(authorization, kbToken);
+			authChecker.check(headers);
 			return true;
 		} catch (KbSaTokenAuthChecker.KbUnauthorizedException e) {
 			return false;
 		}
+	}
+
+	/**
+	 * 读取当前请求的全量请求头：provider 化后不同 provider 从不同 header 取凭据（
+	 * {@code Authorization}、Sa-Token tokenName、{@code apikey}、{@code ticket} 等），
+	 * 因此不能再只透传固定的两个参数。无请求上下文时返回空表。
+	 */
+	private static Map<String, String> collectHeaders() {
+		Map<String, String> headers = new LinkedHashMap<>();
+		org.springframework.web.context.request.RequestAttributes attributes =
+				org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+		if (attributes instanceof org.springframework.web.context.request.ServletRequestAttributes) {
+			javax.servlet.http.HttpServletRequest request =
+					((org.springframework.web.context.request.ServletRequestAttributes) attributes).getRequest();
+			java.util.Enumeration<String> names = request.getHeaderNames();
+			while (names != null && names.hasMoreElements()) {
+				String name = names.nextElement();
+				headers.put(name, request.getHeader(name));
+			}
+		}
+		return headers;
 	}
 
 	private static Object ok(Object data) {

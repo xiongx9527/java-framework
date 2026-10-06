@@ -22,6 +22,7 @@ CREATE TABLE kb_setting (
     es_enabled       TINYINT      NOT NULL DEFAULT 0,
     es_key           VARCHAR(255)           DEFAULT NULL,
     es_index_prefix  VARCHAR(255)  NOT NULL DEFAULT 'fw-kb',
+    open_api_auth_provider VARCHAR(32) DEFAULT NULL,
     embedding_model_key   VARCHAR(255)  DEFAULT NULL,
     embedding_store_key   VARCHAR(255)  DEFAULT NULL,
     scoring_model_key     VARCHAR(255)  DEFAULT NULL,

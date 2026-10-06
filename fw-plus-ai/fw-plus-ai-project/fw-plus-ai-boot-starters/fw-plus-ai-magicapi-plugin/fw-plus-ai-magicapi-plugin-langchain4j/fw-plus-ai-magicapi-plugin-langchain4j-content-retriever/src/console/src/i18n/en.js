@@ -175,6 +175,8 @@ export default {
                 esKeyTip: 'Empty uses the default Spring ES datasource',
                 esIndexPrefix: 'ES Index Prefix',
                 esIndexPrefixTip: 'Segment index name = prefix + "-segments"; after changing the prefix, re-sync ES to populate data',
+                openApiAuthProvider: 'External API auth',
+                openApiAuthProviderTip: 'Credential check for Dify/business /v1/* and /settings; only currently available providers are listed, empty falls back to sa-token-login',
                 storageDisabledTip: 'Not applicable under the current storage medium',
                 modelDefaultTitle: 'Model defaults for new datasets (a value set on the dataset itself wins; only empty fields fall back here)',
                 embeddingModelKey: 'Default Embedding Model',

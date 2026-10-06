@@ -34,6 +34,9 @@ class KbSettingDefaultsTest {
         assertThat(defaults.getEsEnabled()).isFalse();
         assertThat(defaults.getEsKey()).isNull();
         assertThat(defaults.getEsIndexPrefix()).isEqualTo(KbSettingService.DEFAULT_ES_INDEX_PREFIX);
+        // 对外 API 认证默认保持改造前的 Sa-Token 登录态校验
+        assertThat(defaults.getOpenApiAuthProvider())
+                .isEqualTo(KbSettingService.DEFAULT_OPEN_API_AUTH_PROVIDER);
     }
 
     @Test

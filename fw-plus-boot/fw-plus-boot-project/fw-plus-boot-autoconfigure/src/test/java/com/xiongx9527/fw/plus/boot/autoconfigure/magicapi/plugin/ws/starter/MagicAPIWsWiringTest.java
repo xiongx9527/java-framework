@@ -9,6 +9,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.service.WsSu
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.service.WsSubscribeMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.handler.AbstractWebSocketHandler;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.handler.SimpleWebSocketHandler;
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.handler.WsHandshakeInterceptor;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.spi.WsBusinessDispatcher;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.starter.WsAutoConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.starter.WsEndpointRegistrar;
@@ -22,7 +23,6 @@ import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistration;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
-import org.springframework.web.socket.server.HandshakeInterceptor;
 import org.ssssssss.magicapi.core.config.MagicAPIProperties;
 
 import java.lang.reflect.Field;
@@ -145,17 +145,22 @@ class MagicAPIWsWiringTest {
 	}
 
 	@Test
+	@SuppressWarnings("unchecked")
 	void magicHandshakeInterceptorShouldBeAttachedToEndpoint() throws Exception {
         properties.setWeb("");
-        HandshakeInterceptor interceptor = mock(MagicAPIHandshakeInterceptor.class);
-        runner.withBean(MagicAPIHandshakeInterceptor.class, () -> (MagicAPIHandshakeInterceptor) interceptor)
+        MagicAPIHandshakeInterceptor interceptor = mock(MagicAPIHandshakeInterceptor.class);
+        runner.withBean(MagicAPIHandshakeInterceptor.class, () -> interceptor)
                 .run(context -> {
                     WebSocketConfigurer registrar = context.getBean(WebSocketConfigurer.class);
                     Field field = WsEndpointRegistrar.class.getDeclaredField("handshakeInterceptorMap");
                     field.setAccessible(true);
-                    Map<String, ?> interceptorMap = (Map<String, ?>) field.get(registrar);
+                    // 与 WsEndpointRegistrar#handshakeInterceptorMap 的声明类型保持一致，
+                    // 避免通配符捕获类型让 assertThat 重载解析失败。
+                    Map<String, WsHandshakeInterceptor> interceptorMap =
+                            (Map<String, WsHandshakeInterceptor>) field.get(registrar);
 
-                    assertThat(interceptorMap.values()).containsExactly(interceptor);
+                    // 地基新增的握手认证拦截器会与 magic 侧拦截器并存，这里只断言 magic 拦截器已挂上。
+                    assertThat(interceptorMap.values()).contains(interceptor);
                 });
     }
 

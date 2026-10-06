@@ -9,6 +9,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retri
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbDocumentService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSearchHit;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSegmentService;
+import com.xiongx9527.fw.plus.auth.core.InstanceAuthRegistry;
 import org.ssssssss.magicapi.core.config.MagicConfiguration;
 import org.ssssssss.magicapi.core.web.MagicController;
 import org.ssssssss.magicapi.core.web.MagicExceptionHandler;
@@ -49,11 +50,14 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 
 	private final com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSettingService settingService;
 
+	private final InstanceAuthRegistry authRegistry;
+
 	public KbConsoleController(MagicConfiguration configuration, KbDatasetService datasetService,
 			KbDocumentService documentService, KbSegmentService segmentService,
 			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService metadataFieldService,
 			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbIndexingService indexingService,
-			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSettingService settingService) {
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSettingService settingService,
+			InstanceAuthRegistry authRegistry) {
 		super(configuration);
 		this.datasetService = datasetService;
 		this.documentService = documentService;
@@ -61,6 +65,7 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 		this.metadataFieldService = metadataFieldService;
 		this.indexingService = indexingService;
 		this.settingService = settingService;
+		this.authRegistry = authRegistry;
 	}
 
 	// ---------------- 全局设置（kb_setting 单行，保存即热生效） ----------------
@@ -79,6 +84,16 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 		} catch (IllegalArgumentException e) {
 			return error(e.getMessage());
 		}
+	}
+
+	/**
+	 * 对外 API 可选认证 provider 清单（设置页下拉数据源）：只返回当前 classpath 实际可用的
+	 * provider，避免控制台给出选了也只会 fail-closed 的选项。
+	 */
+	@GetMapping("/openapi-auth-providers")
+	@ResponseBody
+	public Object listAuthProviders() {
+		return ok(authRegistry.availableProviders());
 	}
 
 	// ---------------- 元数据字段定义 ----------------

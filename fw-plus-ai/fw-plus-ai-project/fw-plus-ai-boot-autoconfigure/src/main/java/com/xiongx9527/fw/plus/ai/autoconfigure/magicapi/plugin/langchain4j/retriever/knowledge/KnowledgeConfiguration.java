@@ -24,6 +24,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retri
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.store.SettingsAwareKbOriginalFileStore;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.web.KbConsoleController;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.web.KbOpenApiController;
+import com.xiongx9527.fw.plus.auth.core.InstanceAuthRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.resource.Langchain4jContentRetrieverMagicResourceStorage;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -87,6 +88,9 @@ public class KnowledgeConfiguration {
 	@Autowired
 	private ObjectProvider<KbSettingService> settingServices;
 
+	@Autowired
+	private ObjectProvider<InstanceAuthRegistry> authRegistries;
+
 	/**
 	 * knowledge 管理端插件：声明专属前端产物（magic-kb-browser iife.js，toolbars 四视图入口）
 	 * 并注册 {@code /kb/**} Controller。控制台入口经 {@code magic-api.plugin.knowledge.admin.enabled}
@@ -120,8 +124,10 @@ public class KnowledgeConfiguration {
 							|| metadataFieldService == null || indexingService == null || settingService == null) {
 						return;
 					}
+					InstanceAuthRegistry authRegistry = authRegistries.getIfAvailable(InstanceAuthRegistry::new);
 					mapping.registerController(new KbConsoleController(configuration, datasetService,
-							documentService, segmentService, metadataFieldService, indexingService, settingService));
+							documentService, segmentService, metadataFieldService, indexingService, settingService,
+							authRegistry));
 				};
 			}
 		};
@@ -300,10 +306,20 @@ public class KnowledgeConfiguration {
 
 	// ---------------- 对外 API ----------------
 
+	/**
+	 * 实例认证内核：容器已有（如同时启用 MCP/WS）时不重复创建，供知识库对外 API 按 provider 解析。
+	 */
 	@Bean
 	@ConditionalOnMissingBean
-	public KbSaTokenAuthChecker kbSaTokenAuthChecker() {
-		return new KbSaTokenAuthChecker();
+	public InstanceAuthRegistry instanceAuthRegistry() {
+		return new InstanceAuthRegistry();
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	public KbSaTokenAuthChecker kbSaTokenAuthChecker(InstanceAuthRegistry instanceAuthRegistry,
+			KbSettingService kbSettingService) {
+		return new KbSaTokenAuthChecker(instanceAuthRegistry, kbSettingService);
 	}
 
 	@Bean
