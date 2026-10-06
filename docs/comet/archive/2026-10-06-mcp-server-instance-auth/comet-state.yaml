@@ -1,0 +1,458 @@
+schema: comet.native.v4
+name: mcp-server-instance-auth
+language: zh-CN
+phase: archive
+status: done
+state_version: 37
+brief: brief.md
+shape_confirmation_hash: ed0a196e5ec8fa2575b5625553ce57cd6bd567b639781962eb721480ba948b82
+spec_changes:
+  - capability: magicapi-mcp-plugin
+    operation: modify
+    source: specs/magicapi-mcp-plugin/spec.md
+  - capability: mcp-server-starter
+    operation: modify
+    source: specs/mcp-server-starter/spec.md
+workspace:
+  isolation: current
+  change_branch: dev
+  target_branch: dev
+  finish: null
+loop:
+  stage: done
+  goal_cycle: 7
+  iteration: 2
+  attempt: 1
+  retry_epoch: 0
+  failed_iteration_count: 1
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: null
+acceptance:
+  - id: A1
+    source: brief.md
+    text: 每个 MCP runtime 的授权配置独立生效，实例间不能因共享认证组件而互相继承或串用授权规则。
+    result: passed
+    reason:
+      text: fw-plus-auth-core 新增 InstanceAuthRegistry 按 instanceKey 解析 provider，各
+        runtime 独立绑定；McpRuntimeFactory 与 MagicDynamicMcpServer 按实例注入
+        auth；McpRuntimeFactoryTest（含
+        shouldNotInheritTopLevelAuthWhenNamedRuntimeOmitsIt）、MagicApiMcpServerRegistryTest、MagicDynamicMcpServerTest
+        均仍在，命名实例不继承顶层授权。
+      truncated: false
+  - id: A2
+    source: brief.md
+    text: Starter 每个 runtime 可逐实例选择 PermitAll 或任一可用的 Sa-Token 认证方式（登录
+      token、OAuth2、JWT、API Key、SSO ticket），未配置时拒绝。
+    result: passed
+    reason:
+      text: Starter 默认与命名 runtime 逐实例选择 provider：McpProperties/MagicApiMcpProperties
+        增字段；InstanceAuthRegistry.availableProviders() 输出 PermitAll + 5 种
+        Sa-Token 方式（login/oauth2/jwt/apikey/sso）；未配置时 resolve 返回
+        null→401。本轮修复未触及这些文件，无回退。
+      truncated: false
+  - id: A3
+    source: brief.md
+    text: Magic-API 每个实例可选择与 Starter 同一份 provider 清单；控制台表单按 classpath 可用性展示可选项，资源只存
+      provider 与非敏感选择字段。
+    result: passed
+    reason:
+      text: Magic-API 侧复用同一份 InstanceAuthRegistry.availableProviders()；控制台
+        service/magic-mcp-server.js 调
+        /mcp/server/authProviders，magic-mcp-server-info.vue
+        按返回清单渲染；MagicMcpServerInfo/MagicMcpServerInfoMagicResourceStorage 仅存
+        provider 与非敏感字段，MagicMcpServerStorageTest 覆盖 custom 拒绝与 auth 往返。
+      truncated: false
+  - id: A4
+    source: brief.md
+    text: 各 Sa-Token provider 按 classpath 可选装配：对应模块缺失时该 provider 不可选，选中缺失模块的
+      provider 时 fail-closed（拒绝请求而非回退到其他 provider）。
+    result: passed
+    reason:
+      text: "InstanceAuthRegistry 各分支用 available(CLASS_...) ? 实例 : reject(...) 明确
+        fail-closed；classpath 缺失 provider
+        不出现在清单、已配置则恒拒绝不回退；McpAuthServiceRegistryTest 覆盖缺失模块与 custom/unknown。"
+      truncated: false
+  - id: A5
+    source: brief.md
+    text: 认证成功的主体必须携带 scopes，scopes 可为多个值或空集；OAuth2/API Key 取凭据原生 scopes，JWT 取
+      claim，登录 token 与 SSO ticket 无原生 scopes 时为空集。
+    result: passed
+    reason:
+      text: McpPrincipal 复用主体 scopes：OAuth2 取 accessToken.getScopes()，API Key 取
+        ApiKeyModel.getScopes()，JWT 取 scopes/scope claim，登录 token 与 SSO ticket
+        无原生 scopes 时为空集；SaTokenJwtAuthServiceTest 等覆盖多值/空集/畸形。
+      truncated: false
+  - id: A6
+    source: brief.md
+    text: MVC 与 WebFlux 对未认证/无效主体返回 401 且不进入 MCP 内核；认证通过但目标 scope 不足（含空 scopes）时返回
+      403；显式 PermitAll 绕过 scope 检查。
+    result: passed
+    reason:
+      text: 回归证据充分：MagicMcpDiagnosticControllerAuthTest（诊断缺认证 401、无 scope
+        403）、McpAuthEntryMvcTest（SSE 建连前拒绝、Streamable GET/DELETE
+        拒绝且不进内核）、McpAuthEntryFluxTest、McpScopeEntryMvcTest/McpScopeEntryFluxTest（缺
+        scope/空 scopes 拒绝、PermitAll 绕过）均存在；Runtime mcp-autoconfigure-tests 579
+        项全通过。
+      truncated: false
+  - id: A7
+    source: brief.md
+    text: sa-token 升级到 1.46.0 后，`fw-plus-auth-satoken` 覆写的
+      `StpLogic`/`SaTokenConfig` 与上游新版本对齐且保留本地 `tokenNames` 回退补丁，相关模块编译与测试通过。
+    result: passed
+    reason:
+      text: 独立逐行 diff（上游 CRLF 已 tr -d '\r'）：SaTokenConfig 相对上游 1.46.0 仅 tokenNames
+        字段（默认 {"satoken"}）与 getter/setter（19 行），StpLogic 仅
+        getTokenValueByTokenName 辅助方法与 getTokenValueNotCut 中 tokenNames 遍历回退（56
+        行），无其他偏离；fw-plus-auth-satoken/pom.xml 5 个 sa-token 依赖均为
+        ${sa-token.version}，BOM sa-token.version=1.46.0，全仓无 1.44.0 残留；javap 确认
+        target/classes 内 SaTokenConfig.class（含
+        tokenNames/getTokenNames/setTokenNames）与 StpLogic.class（含
+        getTokenValueByTokenName），class 时间晚于源码与 pom，即按当前源码+pom 编译。Runtime
+        satoken-1.46-override-build 与 satoken-tokenNames-patch-present 均 passed。
+      truncated: false
+builder_handoff:
+  candidate_id: 9accde24-8aa2-4baa-ba1c-44d73052fa71
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:85f7d9f1-3ad3-4ae1-81e2-51e70c20739a
+  iteration: 2
+  summary:
+    text: 修复 A7（sa-token 1.46.0 覆写类对齐与 tokenNames 补丁保留）。上一候选将 fw-plus-auth-satoken
+      下同包覆写的 cn.dev33.satoken.config.SaTokenConfig 与
+      cn.dev33.satoken.stp.StpLogic 整体删除，且该模块 pom 将 5 个 sa-token 模块硬编码为 1.44.0，与
+      BOM sa-token.version=1.46.0 冲突，导致 tokenNames 回退补丁完全丢失。本轮修复：(1)
+      重新落回两个覆写类，内容为 sa-token 1.46.0 上游源码逐行对齐 + 本地 tokenNames 补丁（与 /tmp 参考的
+      1.46.0 源码逐行 diff，SaTokenConfig 仅 19 行差异、StpLogic 仅 56 行差异，全部为 tokenNames
+      字段/getter/setter 与 getTokenValueByTokenName 回退逻辑，无其他偏离）；(2)
+      fw-plus-auth-satoken/pom.xml 的 sa-token-core/oauth2/jwt/apikey/sso 由硬编码
+      1.44.0 改为 ${sa-token.version}，交由 fw-plus-dependencies BOM
+      统一管理（=1.46.0），并更新注释；(3) 保留其他 sa-token
+      依赖方（boot-autoconfigure、magicapi-plugin-satoken、AI autoconfigure）对 BOM
+      的统一引用，未改动其版本。已重新编译并跑相关测试。
+    truncated: false
+  addressed_acceptance_ids:
+    - A7
+  checks:
+    - name:
+        text: fw-plus-auth-satoken 在 sa-token 1.46.0 下编译/安装（-am install -DskipTests）
+        truncated: false
+      result: passed
+      note:
+        text: ./mvnw -o -pl
+          fw-plus-core/fw-plus-project/fw-plus-auth/fw-plus-auth-satoken -am
+          install
+          -DskipTests，exit=0；target/classes/cn/dev33/satoken/{config/SaTokenConfig.class,stp/StpLogic.class}
+          已生成。
+        truncated: false
+    - name:
+        text: 覆写类含本地 tokenNames 补丁
+        truncated: false
+      result: passed
+      note:
+        text: 两个文件含 tokenNames（SaTokenConfig 字段+getter/setter、StpLogic
+          getTokenValueByTokenName 回退与遍历）；与上游 1.46.0 逐行 diff 仅本地补丁差异。
+        truncated: false
+    - name:
+        text: fw-plus-ai-boot-autoconfigure 完整测试套件
+        truncated: false
+      result: passed
+      note:
+        text: "./mvnw -o -pl fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure
+          test，Tests run: 579, Failures: 0, Errors: 0，BUILD SUCCESS。"
+        truncated: false
+    - name:
+        text: fw-plus-boot-autoconfigure + fw-plus-magicapi-plugin-satoken 编译安装
+        truncated: false
+      result: passed
+      note:
+        text: ./mvnw -o -pl
+          fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure,fw-plus-boot/.../fw-plus-magicapi-plugin-satoken
+          -am install -DskipTests，exit=0（含插件控制台 vite build 产物
+          magic-satoken.1.0.0.iife.js）。
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: fw-plus-auth-satoken 本身无单元测试；覆写类行为由其编译进产物及下游 AI autoconfigure 579 项测试间接覆盖。
+      truncated: false
+    - text: SSO/OAuth2 未联网、未对接外部 Sa-Token 服务端（SSO 走 isHttp=false 的 redis 模式，测试不联网）。
+      truncated: false
+    - text: 控制台改动仅做 vite 静态构建验证，未在真实 Magic-API 控制台页面交互验证。
+      truncated: false
+    - text: 所有改动仍未提交 Git（isolation=current，分支 dev），按 Comet 协议在 Archive 阶段再按授权提交。
+      truncated: false
+  known_limits_truncated: false
+  review: null
+  submitted_at: 2026-10-06T06:08:31.717Z
+blockers: []
+verification:
+  candidate_id: 9accde24-8aa2-4baa-ba1c-44d73052fa71
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:9888123d-e40f-46fa-ab75-41b7e44a738a
+  iteration: 2
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: satoken-1.46-override-build
+      name:
+        text: fw-plus-auth-satoken 在 sa-token 1.46.0 下编译安装（覆写类对齐）
+        truncated: false
+      argv_display:
+        - text: -o
+          truncated: false
+        - text: -pl
+          truncated: false
+        - text: fw-plus-core/fw-plus-project/fw-plus-auth/fw-plus-auth-satoken
+          truncated: false
+        - text: -am
+          truncated: false
+        - text: install
+          truncated: false
+        - text: -DskipTests
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 5850
+    - id: satoken-tokenNames-patch-present
+      name:
+        text: 覆写类保留本地 tokenNames 回退补丁
+        truncated: false
+      argv_display:
+        - text: -c
+          truncated: false
+        - text: set -e; grep -q tokenNames
+            fw-plus-core/fw-plus-project/fw-plus-auth/fw-plus-auth-satoken/src/main/java/cn/dev33/satoken/config/SaTokenConfig.java;
+            grep -q tokenNames
+            fw-plus-core/fw-plus-project/fw-plus-auth/fw-plus-auth-satoken/src/main/java/cn/dev33/satoken/stp/StpLogic.java;
+            echo tokenNames-patch-present
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 16
+    - id: mcp-autoconfigure-tests
+      name:
+        text: MCP autoconfigure 完整测试套件（579 个测试）
+        truncated: false
+      argv_display:
+        - text: -o
+          truncated: false
+        - text: -pl
+          truncated: false
+        - text: fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure
+          truncated: false
+        - text: test
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 45992
+    - id: mcp-starters-install
+      name:
+        text: 两个 MCP starter 全量编译安装（覆盖 boot 层 sa-token 1.46.0）
+        truncated: false
+      argv_display:
+        - text: -o
+          truncated: false
+        - text: -pl
+          truncated: false
+        - text: fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/fw-plus-ai-magicapi-plugin-mcp-server,fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-mcp-server-spring-boot-starter
+          truncated: false
+        - text: -am
+          truncated: false
+        - text: install
+          truncated: false
+        - text: -DskipTests
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 71353
+    - id: mcp-console-build
+      name:
+        text: Magic-API MCP Server 控制台 vite 构建
+        truncated: false
+      argv_display:
+        - text: run
+          truncated: false
+        - text: build
+          truncated: false
+      argv_truncated: false
+      cwd_ref: fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/fw-plus-ai-magicapi-plugin-mcp-server/src/console
+      status: passed
+      exit_code: 0
+      duration_ms: 2061
+  summary:
+    text: 本轮修复仅改 fw-plus-auth-satoken 的 SaTokenConfig/StpLogic 两个同包覆写类与其
+      pom。独立核对确认两个覆写类已重新落回、与 sa-token 1.46.0 上游逐行对齐，本地 tokenNames
+      回退补丁（字段/getter/setter、getTokenValueByTokenName 与遍历回退）完整保留，与既有 HEAD
+      补丁语义一致；模块依赖统一由 BOM sa-token.version=1.46.0 管理，全仓无 1.44.0 残留，编译产物含补丁。A1–A6
+      核心实现（InstanceAuthRegistry、5 个 SaToken provider、McpAuthService
+      适配、MVC/WebFlux 401/403 与 scope 检查、Magic-API 存储校验与控制台 provider
+      选择、/mcp/server/authProviders）及其测试均在，579 项 autoconfigure 测试通过，无回归。Runtime
+      回执与当前候选（candidateId 9accde24、stateVersion=34、inputFingerprint
+      8eb3cdf0）一致且均为只读/编译命令。A1–A7 逐项判 passed，最终 verdict=pass。
+    truncated: false
+  risks:
+    - text: 低：Runtime satoken-1.46-override-build 日志为 'Nothing to compile - all
+        classes are up to date'（重复 install 而非新鲜重编译）；编译完整性仍成立（class 文件晚于源码/pom
+        且含补丁），独立证据来自逐行 diff + javap。
+      truncated: false
+    - text: 低：satoken-tokenNames-patch-present 为 grep -q 弱断言；独立验收以逐行 diff + javap
+        提供更强证据。
+      truncated: false
+    - text: 低：fw-plus-auth-satoken 自身无单元测试，补丁行为仅由编译产物及下游 AI autoconfigure 579 项测试间接覆盖。
+      truncated: false
+    - text: 低：OAuth2/SSO 未联网、未对接真实 Sa-Token 服务端；控制台仅 vite 静态构建验证。
+      truncated: false
+    - text: 低：所有改动仍未提交 Git（isolation=current，分支 dev），按 Comet 协议待 Archive 阶段提交。
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-10-06T06:15:02.424Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 0
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: Native confirmed acceptance criteria changed
+      truncated: false
+    completed_at: 2026-10-05T09:55:06.256Z
+  - goal_cycle: 2
+    iteration: 1
+    attempt: 1
+    outcome: fail
+    unresolved_ids:
+      - A2
+      - A3
+    summary:
+      text: 独立验收发现 A2 与 A3 存在可复现的授权绕过路径；A1 已通过。Runtime 检查回执对应当前候选且完整 autoconfigure
+        测试通过，但缺少 diagnostics 与 MVC SSE 建连、Streamable GET/DELETE 的拒绝及不调用内核覆盖。需要回
+        Build 修复并补测试。
+      truncated: false
+    completed_at: 2026-10-05T10:02:44.732Z
+  - goal_cycle: 2
+    iteration: 2
+    attempt: 0
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: Native Shape artifacts changed
+      truncated: false
+    completed_at: 2026-10-05T10:07:01.410Z
+  - goal_cycle: 3
+    iteration: 1
+    attempt: 1
+    outcome: fail
+    unresolved_ids:
+      - A2
+      - A3
+    summary:
+      text: A1 通过；A2 的诊断授权和 A3 的 MVC/WebFlux 拒绝一致性仍有 scope 授权缺口。Runtime
+        完整测试回执与当前候选绑定且通过；已有 scope 测试揭示缺失 scope 放行及状态码差异，无需重复全量测试。回 Build 严格执行已启用
+        scope 检查，并在 WebFlux 以 403 表示 scope 拒绝。
+      truncated: false
+    completed_at: 2026-10-05T10:13:37.725Z
+  - goal_cycle: 3
+    iteration: 2
+    attempt: 0
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: Native Shape artifacts changed
+      truncated: false
+    completed_at: 2026-10-05T10:18:42.459Z
+  - goal_cycle: 4
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: 独立审查 brief、完整规格、当前实现、测试和本轮 Runtime 检查回执；三个验收项均通过。Runtime 全量测试日志显示 551
+        项通过，工作区/候选与检查回执匹配。未修改文件。
+      truncated: false
+    completed_at: 2026-10-05T10:28:30.337Z
+  - goal_cycle: 4
+    iteration: 1
+    attempt: 1
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: 用户要求 Magic-API MCP server 表单增加认证凭据配置（如 API key），与已确认的按 key 绑定应用
+        McpAuthService 且凭据不入资源/控制台的设计相冲突；需要返回 Shape 修订需求并评估凭据持久化安全约束。
+      truncated: false
+    completed_at: 2026-10-05T10:45:38.055Z
+  - goal_cycle: 5
+    iteration: 0
+    attempt: 0
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: Native confirmed acceptance criteria changed
+      truncated: false
+    completed_at: 2026-10-05T11:03:48.816Z
+  - goal_cycle: 6
+    iteration: 1
+    attempt: 0
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: Native confirmed acceptance criteria changed
+      truncated: false
+    completed_at: 2026-10-05T16:04:13.773Z
+  - goal_cycle: 7
+    iteration: 1
+    attempt: 1
+    outcome: fail
+    unresolved_ids:
+      - A7
+    summary:
+      text: 独立只读验收 brief、两份 spec、comet-state.yaml(A1–A7)、核心实现、关键测试与 3 份 Runtime
+        回执。A1–A6 逐项有明确实现与测试证据，判 passed；历史缺口（diagnostics 401、MVC SSE
+        建连、Streamable GET/DELETE 拒绝且不进内核、WebFlux scope 不足 403）均已有对应测试覆盖。A7 判
+        failed：fw-plus-auth-satoken 的 StpLogic/SaTokenConfig 覆写类被整体删除（-4216
+        行、无替代、tokenNames 补丁无残留），直接违反验收文字与'不丢弃本地修改'决策，且该模块仍硬编码 sa-token 1.44.0 与
+        BOM 1.46.0 不一致。Runtime
+        检查回执与当前候选（basedOnStateVersion=31、candidateId=f950cc70）一致且无副作用，但不足以支撑
+        A7。最终 verdict=fail。
+      truncated: false
+    completed_at: 2026-10-06T06:01:55.822Z
+  - goal_cycle: 7
+    iteration: 2
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: 本轮修复仅改 fw-plus-auth-satoken 的 SaTokenConfig/StpLogic 两个同包覆写类与其
+        pom。独立核对确认两个覆写类已重新落回、与 sa-token 1.46.0 上游逐行对齐，本地 tokenNames
+        回退补丁（字段/getter/setter、getTokenValueByTokenName 与遍历回退）完整保留，与既有 HEAD
+        补丁语义一致；模块依赖统一由 BOM sa-token.version=1.46.0 管理，全仓无 1.44.0
+        残留，编译产物含补丁。A1–A6 核心实现（InstanceAuthRegistry、5 个 SaToken
+        provider、McpAuthService 适配、MVC/WebFlux 401/403 与 scope 检查、Magic-API
+        存储校验与控制台 provider 选择、/mcp/server/authProviders）及其测试均在，579 项
+        autoconfigure 测试通过，无回归。Runtime 回执与当前候选（candidateId
+        9accde24、stateVersion=34、inputFingerprint 8eb3cdf0）一致且均为只读/编译命令。A1–A7
+        逐项判 passed，最终 verdict=pass。
+      truncated: false
+    completed_at: 2026-10-06T06:15:02.424Z
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pass
+verification_report: verification.md
+archived: true
+created_at: 2026-10-05T09:26:59.294Z
