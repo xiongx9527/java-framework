@@ -1,12 +1,15 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.service;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.config.MagicApiMcpProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.model.MagicMcpServerInfo;
+import com.xiongx9527.fw.plus.auth.core.InstanceAuthRegistry;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 import org.ssssssss.magicapi.core.resource.Resource;
 import org.ssssssss.magicapi.core.service.MagicResourceService;
 import org.ssssssss.magicapi.core.service.MagicResourceStorage;
 import org.ssssssss.magicapi.utils.JsonUtils;
 
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -65,7 +68,24 @@ public class MagicMcpServerInfoMagicResourceStorage implements MagicResourceStor
 		if (transport != null && !"http-sse".equals(transport) && !"streamable-http".equals(transport)) {
 			throw new IllegalArgumentException("transport仅支持 http-sse 或 streamable-http");
 		}
+		validateAuthProvider(entity.getAuth());
 		validateKeyUnique(entity.getKey(), entity.getId());
+	}
+
+	/**
+	 * 校验认证 provider：未配置允许（未认证拒绝访问）；配置时必须是当前 classpath 可用的
+	 * 内置 provider（与 Starter 同一份清单，classpath 缺失的模块不可选，也不允许保存）。
+	 */
+	private void validateAuthProvider(MagicApiMcpProperties.Auth auth) {
+		if (auth == null || auth.getProvider() == null || auth.getProvider().trim().isEmpty()) {
+			return;
+		}
+		String provider = auth.getProvider().trim();
+		List<String> availableProviders = InstanceAuthRegistry.availableProviders(
+				InstanceAuthRegistry.class.getClassLoader());
+		if (!availableProviders.contains(provider)) {
+			throw new IllegalArgumentException("auth.provider仅支持当前 classpath 可用的认证方式: " + provider);
+		}
 	}
 
 	@Override

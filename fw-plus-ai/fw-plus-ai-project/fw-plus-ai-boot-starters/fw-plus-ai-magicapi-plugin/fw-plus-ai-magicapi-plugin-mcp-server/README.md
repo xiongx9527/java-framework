@@ -17,7 +17,7 @@ Magic-API 的 MCP 插件，把 Magic-API 的接口/函数与三类动态资源�
 依赖关系：
 
 - `fw-plus-ai-boot-autoconfigure`：插件后端配置、控制器、资源存储与动态注册。
-- `sa-token-oauth2`（optional）：classpath 存在时 `McpAuthService` 自动选用 Sa-Token OAuth2 校验，否则回落放行实现；也可直接提供自定义 `McpAuthService` bean 替换。
+- `sa-token-core` / `sa-token-oauth2` / `sa-token-jwt` / `sa-token-apikey` / `sa-token-sso`（均 optional）：按实例所选 provider 提供对应的凭据校验实现；classpath 缺失的 provider 控制台不可选，实例配置了缺失模块的 provider 时 fail-closed 拒绝（401）。
 
 ## 启用条件
 
@@ -80,17 +80,16 @@ magic-api:
               enabled: true
 ```
 
-`mcp-server` 资源字段：`key`（必填、字母数字下划线点中划线、唯一）、`name`、`transport`、`endpoint`（必填、以 `/` 开头）、`enabled`、`tools`。新增/修改/删除资源即热创建/更新/销毁实例，动态路由随 web 栈（Servlet/WebFlux）自动注册与注销。
+`mcp-server` 资源字段：`key`（必填、字母数字下划线点中划线、唯一）、`name`、`transport`、`endpoint`（必填、以 `/` 开头）、`enabled`、`auth`（`provider` 认证方式选择）、`tools`。新增/修改/删除资源即热创建/更新/销毁实例，动态路由随 web 栈（Servlet/WebFlux）自动注册与注销。
 
 ## 认证
 
-入口认证统一由 mcp starter 的 `McpAuthService` SPI 承担，插件不再自带实现：
+插件与 mcp starter 使用同一份内置 provider 清单：`permit-all`、`sa-token-login`、`sa-token-oauth2`、`sa-token-jwt`、`sa-token-apikey`、`sa-token-sso`。静态实例（`magic-api.plugin.mcp.servers[].auth.provider`）与控制台维护的动态 `mcp-server` 资源（表单「认证方式」下拉）逐实例选择一种 provider；未选择的实例保持未认证，Servlet MVC 与 WebFlux 均返回 **401**，不进入 MCP 内核，也不会回退到其它实例或放行服务。
 
-- classpath 有 `sa-token-oauth2` → `SaTokenOAuth2McpAuthService`（`SaOAuth2Util.checkAccessToken`，scope 取 token scopes）。
-- 否则 → `PermitAllAuthService` 放行。
-- 提供自定义 `McpAuthService` bean → 用户实现优先。
-
-Servlet 与 WebFlux 入口在认证失败（匿名主体）时直接返回 401，不进入内核分发。
+- 控制台下拉选项来自 `GET /mcp/server/authProviders`，与后端 `McpAuthServiceRegistry.availableProviders()` 同一份清单：classpath 缺失的 Sa-Token 模块不可选，也没有历史 `custom` 选项；保存时后端再次校验（`MagicMcpServerInfoMagicResourceStorage.validate`），非法 provider 拒绝保存。
+- **MCP 只校验请求携带的凭据，不实现认证服务**：不登录、不签发令牌、不保存任何 secret；认证经请求头/参数无界面完成，任何凭据都不写入 `mcp-server` 资源、控制台表单或配置。
+- 实例配置的 provider 对应模块缺失时 fail-closed：请求一律 **401**，不回退、不导致启动失败；未知 provider（含历史 `custom`）拒绝保存，静态配置则启动失败。
+- 认证主体携带 scopes（可多值或空集）：OAuth2/API Key 取凭据原生 scopes，JWT 取 `scopes`/`scope` claim，登录 token 与 SSO ticket 为空集；scope 覆盖不足返回 **403**，`permit-all` 显式绕过 scope 裁剪。
 
 ## 变更通知
 
@@ -110,10 +109,13 @@ Servlet 与 WebFlux 入口在认证失败（匿名主体）时直接返回 401�
 控制台可访问：
 
 - `/mcp/server/list`、`/mcp/server/defined`：全部实例与定义。
+- `/mcp/server/authProviders`：当前 classpath 可用的认证 provider 清单（供表单渲染可选项）。
 - `/mcp/server/test`、`/mcp/server/doDelete`：保存/删除前校验。
 - `/mcp/server/changeConnected`、`/mcp/server/refresh`：启停实例、刷新工具快照。
-- `/mcp/diagnostics/capabilities`：各实例能力清单。
+- `/mcp/diagnostics/capabilities?key=<server-key>`：经该实例认证后的能力清单。
 - `/mcp/diagnostics/execute`、`/mcp/diagnostics/executePrompt`：试运行 `resources/read` / `prompts/get`。
+
+所有诊断接口均须提供有效实例 key，并按该实例配置的 `auth.provider` 通过认证；缺少或无效认证返回 **401**，未知实例返回 **404**。能力清单与试运行不会绕过 runtime 授权。
 
 ## 客户端请求（roots / sampling / elicitation）
 
@@ -131,13 +133,13 @@ Servlet 与 WebFlux 入口在认证失败（匿名主体）时直接返回 401�
 | --- | --- |
 | `fw-plus-magicapi-plugin-mcp` | `fw-plus-ai-magicapi-plugin-mcp-server`（console 前端） |
 | `…boot.autoconfigure.magicapi.plugin.mcp.*` | `…ai.autoconfigure.magicapi.plugin.mcp.*` + `…ai.autoconfigure.mcp.*` |
-| `McpAccessTokenVerifier` / `SaTokenMcpAuthService` | starter 的 `McpAuthService` SPI；classpath 有 `sa-token-oauth2` 时自动用 `SaTokenOAuth2McpAuthService`，或提供自定义 bean |
+| `McpAccessTokenVerifier` / `SaTokenMcpAuthService` | starter 的 `McpAuthService` registry；按实例 `auth.provider` 选择内置认证 |
 | `McpToolsHandler` / `McpResourcesHandler` 等 | 经内核 `FeatureMgr` 的 store 注册 + `MagicApiMcpServerRegistry` 改写响应 |
 
 配置键变化（旧键已无消费者）：
 
 - `magic-api.plugin.mcp.transport` / `session-timeout` / `sse-stream` / `max-request-bytes` / `max-response-chars` / `trusted-origins` / `protocol.*` / `headers.*` → 改用 `fw-plus.ai.mcp.*`（mcp starter）
-- `magic-api.plugin.mcp.auth.*`（原 Boot 层插件自带）→ 不再需要；scope 取 token scopes，能力 scope 名沿用 `mcp:tools`/`mcp:resources`/`mcp:prompts` 等约定
+- `magic-api.plugin.mcp.auth.*`（原 Boot 层插件自带）→ 不再使用；认证按实例 `auth.provider` 从内置 provider 中选择
 - 保留：`enabled`、`tools.*`、`servers[]`
 
 ## 已知限制
@@ -145,5 +147,5 @@ Servlet 与 WebFlux 入口在认证失败（匿名主体）时直接返回 401�
 1. **快照缓存**：`MagicApiMcpToolRegistry` 的工具快照只在收到 Magic-API 资源变更事件后失效。自定义 `MagicApiMcpCapabilityProvider` 若内部状态运行期变化，需自行触发重建（例如注入该 registry 调 `invalidateSnapshot()`）。
 2. **completion 的 resource 侧**：内核按模板名反查拼 key，控制台维护 `template` 时建议让 `name` 与 `template` 保持易对应的关系；两种 ref 形态（模板名 / uriTemplate）均已注册。
 3. **WebFlux 动态路由**：验证到装配级（`ApplicationContextRunner` + 路由探测），未覆盖真实 Netty 端到端。
-4. **认证缺省语义**：未引入 `sa-token-oauth2` 且未提供自定义 `McpAuthService` 时为放行占位，生产环境必须二选一。
+4. **认证缺省语义**：实例未配置 `auth.provider` 或配置的 provider 对应模块缺失时一律返回 401（fail-closed）；生产环境需为每个允许访问的实例显式选择 provider。
 5. **console dist 不入库**：`src/console/dist/` 被 `.gitignore` 排除，jar 中的 `magic-mcp.*.iife.js` 由 `npm run build` 在 `prepare-package` 阶段生成（与 vector/model 插件一致）。

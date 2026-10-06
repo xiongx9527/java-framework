@@ -430,33 +430,9 @@
             <optional>true</optional>
         </dependency>
 
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-report-jimu</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
 
-        <dependency>
-            <groupId>org.jeecgframework.jimureport</groupId>
-            <artifactId>jimureport-spring-boot-starter</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
 
-        <dependency>
-            <groupId>org.jeecgframework.jimureport</groupId>
-            <artifactId>jimureport-nosql-starter</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
 
-        <dependency>
-            <groupId>org.jeecgframework.jimureport</groupId>
-            <artifactId>jimubi-spring-boot-starter</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
 
         <!--
         <dependency>
@@ -867,6 +843,18 @@
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.elasticsearch.client</groupId>
+            <artifactId>elasticsearch-rest-client</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.freemarker</groupId>
+            <artifactId>freemarker</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
         </dependency>
     </dependencies>
 

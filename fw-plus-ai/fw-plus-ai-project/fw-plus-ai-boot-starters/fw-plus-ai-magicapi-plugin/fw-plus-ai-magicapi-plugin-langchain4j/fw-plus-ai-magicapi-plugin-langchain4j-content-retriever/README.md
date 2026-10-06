@@ -3,7 +3,7 @@
 Magic-API 的 LangChain4j **内容检索器** 控制台前端，对应 datasource type `langchain4j-content-retriever`。
 
 - 后端实现：`fw-plus-ai-boot-autoconfigure` 的 `com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever`。
-- 前端产物：`magic-langchain4j-content-retriever.1.0.0.iife.js`，Maven 在 `prepare-package` 阶段构建并复制到 `target/classes/magic-editor/plugins/`；产物缺失时后端只按基础插件标识注册。
+- 前端产物：`magic-langchain4j-content-retriever.1.0.0.iife.js`，Maven 在 `prepare-package` 阶段构建并复制到 `target/classes/magic-editor/plugins/`，并打进 jar；后端始终以「插件标识 + 全局名 + 产物名」三元组注册，控制台据此加载本插件面板，因此使用方必须把本模块声明为依赖（版本由 `fw-plus-ai-boot-dependencies` 纳管），否则控制台请求该产物会 404。
 - 表单字段对应后端 `Langchain4jContentRetrieverInfo`（key/name/provider/enabled + options），五种 provider：
   - `embedding-store` —— 关联向量库 + 向量模型做向量检索；
   - `neo4j` —— 关联对话模型，把问题转成 Cypher 后在图库执行；

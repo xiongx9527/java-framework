@@ -49,22 +49,7 @@
 	</licenses>
 	<!--配置拉取仓库地址-->
 	<repositories>
-		<repository>
-			<id>jeecg</id>
-			<name>jeecg Repository</name>
-			<url>https://maven.jeecg.org/nexus/content/repositories/jeecg</url>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</repository>
-		<repository>
-			<id>jeecg-snapshots</id>
-			<name>jeecg snapshots Repository</name>
-			<url>https://maven.jeecg.org/nexus/content/repositories/snapshots/</url>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-		</repository>
+
 
 		<repository>
 			<id>spring-milestones</id>

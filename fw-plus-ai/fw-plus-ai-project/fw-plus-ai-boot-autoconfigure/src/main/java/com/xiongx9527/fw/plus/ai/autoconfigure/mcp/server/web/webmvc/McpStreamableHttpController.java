@@ -66,7 +66,9 @@ public class McpStreamableHttpController extends McpTransportController {
 			return;
 		}
 
-		authenticate(session, "streamable-http", endpoint(), null, request);
+		if (!isAuthenticated(session, "streamable-http", endpoint(), null, request, response)) {
+			return;
+		}
 		write(transport.delete(session, requestHeaders(request)), response);
 	}
 
@@ -86,7 +88,9 @@ public class McpStreamableHttpController extends McpTransportController {
 			return;
 		}
 
-		authenticate(session, "streamable-http", endpoint(), null, request);
+		if (!isAuthenticated(session, "streamable-http", endpoint(), null, request, response)) {
+			return;
+		}
 
 		response.setCharacterEncoding("UTF-8");
 		javax.servlet.AsyncContext async = request.startAsync();

@@ -153,6 +153,14 @@ export const kbApi = {
         xhr.onerror = () => reject(new Error('上传失败'));
         xhr.send(form);
     }),
+    /** 读取知识库全局设置（kb_setting 单行）。 */
+    settings: () => new Promise((resolve, reject) => {
+        requireRequest().sendGet('/kb/settings').success(unwrap(resolve, reject)).error?.(e => reject(new Error(e)));
+    }),
+    /** 保存知识库全局设置：后端归一化后落库并热替换快照，保存即生效。 */
+    saveSettings: (setting) => new Promise((resolve, reject) => {
+        requireRequest().sendJson('/kb/settings', setting).success(unwrap(resolve, reject));
+    }),
     /** 下载原始文档：XHR blob 触发浏览器保存。 */
     download: (id, fileName) => {
         const xhr = new XMLHttpRequest();

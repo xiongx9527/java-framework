@@ -136,7 +136,7 @@ public abstract class McpTransportController {
 	}
 
 	/**
-	 * 认证 SPI 占位调用点：默认放行，后续认证 change 只替换实现不改签名。
+	 * 使用当前 runtime 按实例 key 绑定的认证服务。
 	 *
 	 * @param sessionId 会话 id
 	 * @param transport 传输类型
@@ -147,15 +147,16 @@ public abstract class McpTransportController {
 	 */
 	protected McpPrincipal authenticate(String sessionId, String transport, String endpoint, String body,
 			HttpServletRequest request) {
-		McpAuthService authService = runtime.getAuthService();
+		com.xiongx9527.fw.plus.auth.core.AuthService authService = runtime.getAuthService();
 		if (authService == null) {
 			return McpPrincipal.ANONYMOUS;
 		}
-		return authService.authenticate(new McpRequest(sessionId, transport, endpoint, body, requestHeaders(request)));
+		return McpAuthService.adapt(authService).authenticate(new McpRequest(runtime.getKey(), sessionId, transport, endpoint, body,
+				requestHeaders(request)));
 	}
 
 	/**
-	 * 认证并处理"匿名即拒绝"：未配置认证时为放行主体，配置了但 token 无效时是匿名主体。
+	 * 认证并处理“未认证即拒绝”：没有绑定认证服务或凭据无效时均为匿名主体。
 	 *
 	 * <p>开启 scope 裁剪时，认证通过后再按请求体对应的 capability 校验主体 scopes，
 	 * 未覆盖返回 403；未开启、非能力操作或主体未携带 scope 信息时一律放行。</p>
@@ -165,7 +166,7 @@ public abstract class McpTransportController {
 	protected boolean isAuthenticated(String sessionId, String transport, String endpoint, String body,
 			HttpServletRequest request, HttpServletResponse response) {
 		McpPrincipal principal = authenticate(sessionId, transport, endpoint, body, request);
-		if (principal == McpPrincipal.ANONYMOUS) {
+		if (principal == null || !principal.isAuthenticated()) {
 			return reject(response, HttpServletResponse.SC_UNAUTHORIZED, "unauthorized");
 		}
 		if (isScopeCheckEnabled() && !McpCapabilities.covers(principal, McpCapabilities.ofBody(body))) {

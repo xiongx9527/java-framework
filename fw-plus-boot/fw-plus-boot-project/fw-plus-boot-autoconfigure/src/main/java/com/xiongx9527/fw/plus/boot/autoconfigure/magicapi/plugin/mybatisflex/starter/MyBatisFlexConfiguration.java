@@ -190,12 +190,15 @@ public class MyBatisFlexConfiguration implements InitializingBean, MagicPluginCo
         }
     }
 
+    /**
+     * 创建 MyBatis-Flex XML 插件。
+     *
+     * <p>始终上报完整三元组（标识 + 全局名 + 前端产物名），不按前端产物是否落在 classpath
+     * 上改变上报内容——产物在不在 classpath 是使用方的依赖配置问题，编码进注册逻辑只会让
+     * 「依赖漏声明」在运行期表现为「插件静默消失」，排查成本远高于控制台直接报 404。
+     */
     @Override
     public Plugin plugin() {
-        if (MyBatisFlexConfiguration.class.getClassLoader()
-                .getResource("magic-editor/plugins/" + JAVASCRIPT_FILENAME) == null) {
-            return new Plugin("mybatisflex-xml");
-        }
         return new Plugin("mybatisflex-xml", "MagicMybatisFlexXml", JAVASCRIPT_FILENAME);
     }
 

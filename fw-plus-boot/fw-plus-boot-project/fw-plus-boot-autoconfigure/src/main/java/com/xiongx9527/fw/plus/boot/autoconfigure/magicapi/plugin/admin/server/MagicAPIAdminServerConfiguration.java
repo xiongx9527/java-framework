@@ -17,7 +17,6 @@ import org.ssssssss.magicapi.core.model.Plugin;
 @Configuration
 public class MagicAPIAdminServerConfiguration implements MagicPluginConfiguration {
 	private static final String JAVASCRIPT_FILENAME = "magic-admin.1.0.0.iife.js";
-	private static final String FRONTEND_RESOURCE = "magic-editor/plugins/" + JAVASCRIPT_FILENAME;
 
     /**
      * Spring Boot Admin的上下文路径，从配置文件中读取
@@ -27,15 +26,17 @@ public class MagicAPIAdminServerConfiguration implements MagicPluginConfiguratio
     private String springbootAdminContextPath = "";
 
     /**
-     * 注册管理服务器插件标识
+     * 注册管理服务器插件标识。
+     *
+     * <p>始终上报完整三元组（标识 + 全局名 + 前端产物名），不按前端产物是否落在 classpath
+     * 上改变上报内容——产物在不在 classpath 是使用方的依赖配置问题，编码进注册逻辑只会让
+     * 「依赖漏声明」在运行期表现为「插件静默消失」，排查成本远高于控制台直接报 404。
      *
      * @return 管理服务器插件对象，名称为"admin"，并包含配置的上下文路径
      */
     @Override
     public Plugin plugin() {
-		Plugin plugin = MagicAPIAdminServerConfiguration.class.getClassLoader().getResource(FRONTEND_RESOURCE) == null
-				? new Plugin("admin")
-				: new Plugin("admin", "MagicAdmin", JAVASCRIPT_FILENAME);
+		Plugin plugin = new Plugin("admin", "MagicAdmin", JAVASCRIPT_FILENAME);
         plugin.getAttributes().put("path", springbootAdminContextPath);
         return plugin;
     }

@@ -63,8 +63,8 @@ public class KbSearchService {
 
 	private final KbKnowledgeState state;
 
-	/** 混合检索开关（向量路 + 关键词路融合；关闭则仅向量路） */
-	private final boolean hybridSearch;
+	/** 知识库全局设置：混合检索开关每次现读，控制台改完立即生效 */
+	private final KbSettingService settings;
 
 	/** ES 全文检索客户端（es.enabled 关闭时内部 no-op，关键词路回落 FULLTEXT/LIKE） */
 	private final com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.es.EsSegmentSearchClient esClient;
@@ -72,7 +72,7 @@ public class KbSearchService {
 	public KbSearchService(KbDatasetMapper datasetMapper, KbDocumentMapper documentMapper,
 			KbSegmentMapper segmentMapper, ContentRetrieverContext retrieverContext,
 			ObjectProvider<Langchain4jScoringModelModule> scoringModels, KbIndexingExecutor executor,
-			KbKnowledgeState state, boolean hybridSearch,
+			KbKnowledgeState state, KbSettingService settings,
 			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.es.EsSegmentSearchClient esClient) {
 		this.datasetMapper = datasetMapper;
 		this.documentMapper = documentMapper;
@@ -81,7 +81,7 @@ public class KbSearchService {
 		this.scoringModels = scoringModels;
 		this.executor = executor;
 		this.state = state;
-		this.hybridSearch = hybridSearch;
+		this.settings = settings;
 		this.esClient = esClient;
 	}
 
@@ -163,7 +163,8 @@ public class KbSearchService {
 		}
 
 		// 多路召回融合：向量路之外补充关键词路（按 segmentId 去重，关键词命中带命中度分）
-		if (hybridSearch) {
+		// 开关每次现读设置，控制台改完立即生效
+		if (settings.hybridSearch()) {
 			hits = mergeKeywordRecall(dataset, query, hits, inMemoryMetadataFilter, documentId,
 					Math.max(topK * 3, 20));
 		}

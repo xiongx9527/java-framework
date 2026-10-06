@@ -4,7 +4,8 @@ import com.ajaxjs.mcp.server.McpServer;
 import com.ajaxjs.mcp.server.common.ServerConfig;
 import com.ajaxjs.mcp.server.feature.FeatureMgr;
 import com.ajaxjs.mcp.transport.McpTransportSync;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.McpAuthService;
+import com.xiongx9527.fw.plus.auth.core.AuthService;
+import com.xiongx9527.fw.plus.auth.core.InstanceAuthRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.cluster.McpRedisBroadcaster;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.cluster.RedisServerSseRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.cluster.RedisServerStreamableHttpRegistry;
@@ -49,16 +50,17 @@ public class McpRuntimeFactory {
      * 构建全部 runtime。
      *
      * @param top               顶层配置
-     * @param authService       认证 SPI；为 {@code null} 时按放行处理
+     * @param authRegistry      按实例 provider 解析认证 SPI；未配置或解析失败时拒绝请求
      * @param broadcasterProvider Redis 广播器提供者；Redis 未就绪时为 {@code null}
      * @return 按顺序排列的 runtime 列表，首位恒为 default
      */
-    public List<McpServerRuntime> createRuntimes(McpProperties top, McpAuthService authService,
+    public List<McpServerRuntime> createRuntimes(McpProperties top, InstanceAuthRegistry authRegistry,
             ObjectProvider<McpRedisBroadcaster> broadcasterProvider) {
         McpRedisBroadcaster broadcaster = broadcasterProvider == null ? null : broadcasterProvider.getIfAvailable();
 
         List<McpServerRuntime> runtimes = new ArrayList<>();
-        runtimes.add(createRuntime(McpFeatureScanner.DEFAULT_KEY, inherited(top, top), authService, broadcaster));
+        runtimes.add(createRuntime(McpFeatureScanner.DEFAULT_KEY, inherited(top, top), authRegistry,
+                broadcaster));
 
         if (top.getServers() != null) {
             for (McpProperties item : top.getServers()) {
@@ -67,7 +69,7 @@ public class McpRuntimeFactory {
                     throw new IllegalArgumentException(
                             "fw-plus.ai.mcp.servers[].key must not be blank");
                 }
-                runtimes.add(createRuntime(key.trim(), inherited(top, item), authService, broadcaster));
+                runtimes.add(createRuntime(key.trim(), inherited(top, item), authRegistry, broadcaster));
             }
         }
 
@@ -77,9 +79,10 @@ public class McpRuntimeFactory {
         return runtimes;
     }
 
-    public McpServerRuntime createRuntime(String key, McpProperties effective, McpAuthService authService,
+    public McpServerRuntime createRuntime(String key, McpProperties effective,
+            InstanceAuthRegistry authRegistry,
             McpRedisBroadcaster broadcaster) {
-        return createRuntime(key, effective, authService, broadcaster, serverFactory);
+        return createRuntime(key, effective, authRegistry, broadcaster, serverFactory);
     }
 
     /**
@@ -87,13 +90,24 @@ public class McpRuntimeFactory {
      *
      * @param key         实例 key
      * @param effective   该实例的生效配置
-     * @param authService 认证 SPI
+     * @param authRegistry 认证 SPI 注册表
      * @param broadcaster Redis 广播器，可为 {@code null}
      * @param factory     server 工厂；为 {@code null} 时回落到默认工厂
      * @return runtime 实例
      */
-    public McpServerRuntime createRuntime(String key, McpProperties effective, McpAuthService authService,
+    public McpServerRuntime createRuntime(String key, McpProperties effective,
+            InstanceAuthRegistry authRegistry,
             McpRedisBroadcaster broadcaster, McpServerFactory factory) {
+        AuthService authService = authRegistry == null
+                ? null : authRegistry.resolve(key, toCoreAuth(effective.getAuth()));
+        return createRuntime(key, effective, broadcaster, factory, authService);
+    }
+
+    /**
+     * 构建 runtime 并绑定已解析的认证服务。
+     */
+    public McpServerRuntime createRuntime(String key, McpProperties effective,
+            McpRedisBroadcaster broadcaster, McpServerFactory factory, AuthService authService) {
         ServerConfig config = new ServerConfig();
         if (effective.getServer() != null) {
             config.setName(effective.getServer().getName());
@@ -109,7 +123,8 @@ public class McpRuntimeFactory {
         if (registry instanceof McpTransportSync) {
             server.setTransport((McpTransportSync) registry);
         }
-        return new McpServerRuntime(key, effective, server, featureMgr, registry, authService,
+        return new McpServerRuntime(key, effective, server, featureMgr, registry,
+                authService,
                 splitBasePackages(effective.getBasePackages()));
     }
 
@@ -118,30 +133,38 @@ public class McpRuntimeFactory {
      *
      * @param top         顶层配置
      * @param item        实例配置
-     * @param authService 认证 SPI
+     * @param authRegistry 按实例 provider 解析的认证 SPI 注册表
      * @param broadcaster Redis 广播器，可为 {@code null}
      * @return runtime 实例
      */
-    public McpServerRuntime createRuntime(McpProperties top, McpProperties item, McpAuthService authService,
+    public McpServerRuntime createRuntime(McpProperties top, McpProperties item,
+            InstanceAuthRegistry authRegistry,
             McpRedisBroadcaster broadcaster) {
-        return createRuntime(top, item, authService, broadcaster, null);
+        return createRuntime(top, item, authRegistry, broadcaster, null);
     }
 
     /**
      * 按顶层配置继承规则构建单个 runtime，允许指定该实例的 server 工厂。
+     * <p>
+     * 认证服务按实例生效配置中的 provider 解析（见 {@link InstanceAuthRegistry#resolve}），
+     * 未配置 provider 时 runtime 保持未认证。
+     * </p>
      *
      * @param top         顶层配置
      * @param item        实例配置
-     * @param authService 认证 SPI
+     * @param authRegistry 认证 SPI 注册表
      * @param broadcaster Redis 广播器，可为 {@code null}
      * @param factory     server 工厂；为 {@code null} 时回落到默认工厂
      * @return runtime 实例
      */
-    public McpServerRuntime createRuntime(McpProperties top, McpProperties item, McpAuthService authService,
+    public McpServerRuntime createRuntime(McpProperties top, McpProperties item,
+            InstanceAuthRegistry authRegistry,
             McpRedisBroadcaster broadcaster, McpServerFactory factory) {
         String key = item.getKey() == null || item.getKey().trim().isEmpty() ? top.getKey() : item.getKey().trim();
-        McpServerRuntime runtime =
-                createRuntime(key, inherited(top, item), authService, broadcaster, factory);
+        McpProperties effective = inherited(top, item);
+        AuthService authService = authRegistry == null
+                ? null : authRegistry.resolve(key, toCoreAuth(effective.getAuth()));
+        McpServerRuntime runtime = createRuntime(key, effective, broadcaster, factory, authService);
         validateTransports(Collections.singletonList(runtime));
         validateEndpoints(Collections.singletonList(runtime));
         validateKeys(Collections.singletonList(runtime));
@@ -179,6 +202,8 @@ public class McpRuntimeFactory {
                 ? item.getEndpoint() : top.getEndpoint());
         effective.setBasePackages(configured(item.isBasePackagesExplicit(), item.getBasePackages())
                 ? item.getBasePackages() : top.getBasePackages());
+        effective.setAuth(item == top ? top.getAuth() : item.getAuth());
+        effective.setScopeCheckEnabled(item.isScopeCheckEnabled() || top.isScopeCheckEnabled());
         effective.setThreadPoolSize(item.getThreadPoolSize() > 0 ? item.getThreadPoolSize() : top.getThreadPoolSize());
         return effective;
     }
@@ -284,5 +309,15 @@ public class McpRuntimeFactory {
      */
     private boolean configured(boolean explicit, String value) {
         return explicit && notBlank(value);
+    }
+
+    private com.xiongx9527.fw.plus.auth.core.config.InstanceAuthProperties toCoreAuth(McpProperties.Auth auth) {
+        if (auth == null) {
+            return null;
+        }
+        com.xiongx9527.fw.plus.auth.core.config.InstanceAuthProperties core =
+                new com.xiongx9527.fw.plus.auth.core.config.InstanceAuthProperties();
+        core.setProvider(auth.getProvider());
+        return core;
     }
 }

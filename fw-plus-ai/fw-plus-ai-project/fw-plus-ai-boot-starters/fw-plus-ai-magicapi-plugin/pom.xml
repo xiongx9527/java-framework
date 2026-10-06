@@ -57,6 +57,29 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-resources-plugin</artifactId>
                     <executions>
+                        <!-- process-resources：与 clean-stale-console-assets（initialize）配对。
+                             产物模块没有 Java 源码，target/classes/magic-editor 是它唯一的产物落点，
+                             而 initialize 的清理是无条件执行的。若只靠下面的 prepare-package 重填，
+                             `mvn compile` / `mvn test` 走不到该阶段，产物会被删掉且不重建
+                             （表现为运行期控制台面板 404、`xxxFrontendClasspathTest` 类断言失败）。
+                             生命周期里 initialize < process-resources < prepare-package 是固定顺序，
+                             不依赖同一 phase 内的插件排序。 -->
+                        <execution>
+                            <id>copy-console-dist-on-compile</id>
+                            <phase>process-resources</phase>
+                            <goals><goal>copy-resources</goal></goals>
+                            <configuration>
+                                <outputDirectory>${project.build.outputDirectory}/magic-editor/plugins</outputDirectory>
+                                <resources>
+                                    <resource>
+                                        <directory>src/console/dist</directory>
+                                        <filtering>false</filtering>
+                                    </resource>
+                                </resources>
+                            </configuration>
+                        </execution>
+                        <!-- prepare-package：npm install / npm run build 刚重建完 dist，
+                             再拷一次，保证打出的 jar 里是本次构建的前端产物而不是上一次编译的旧 dist。 -->
                         <execution>
                             <id>copy-console-dist</id>
                             <phase>prepare-package</phase>

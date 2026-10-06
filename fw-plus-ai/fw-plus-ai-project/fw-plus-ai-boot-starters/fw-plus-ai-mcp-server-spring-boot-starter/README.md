@@ -88,6 +88,37 @@ fw-plus:
 - 命名 runtime 必须显式给出 `key`（缺失或空白时启动即失败），其余字段均有继承路径，单实例向多实例迁移无需为每个 runtime 重复配置。
 - 每个 runtime 独立扫描并通过 `@McpServer("key")` 归属能力，未标注的 `@McpService` 归属 `default`。
 
+### 实例级认证
+
+每个 runtime 通过 `auth.provider` 选择一种内置认证方式；未配置 provider 的 runtime 保持未认证，请求返回 **401**，不回退到其它实例、共享服务或放行服务。内置 provider 清单（Starter 与 Magic-API 插件同一份）：
+
+| provider | 校验方式 | 主体 scopes |
+|----------|----------|-------------|
+| `permit-all` | 显式放行，不校验凭据 | 空集（绕过 scope 裁剪） |
+| `sa-token-login` | Sa-Token 登录 token（`StpUtil.getLoginIdByToken`） | 空集 |
+| `sa-token-oauth2` | Sa-Token OAuth2 access token | 凭据原生 scopes |
+| `sa-token-jwt` | Sa-Token JWT 签名 / loginType / 有效期校验 | JWT `scopes`/`scope` claim，缺失为空集 |
+| `sa-token-apikey` | Sa-Token API Key（`SaApiKeyUtil.checkApiKey`） | Key 原生 scopes |
+| `sa-token-sso` | 客户端向外部 SSO 服务端校验 ticket | 空集 |
+
+```yaml
+fw-plus:
+  ai:
+    mcp:
+      auth:
+        provider: sa-token-jwt        # 默认 runtime
+      servers:
+        - key: weather
+          endpoint: /mcp/weather
+          auth:
+            provider: sa-token-login  # 命名 runtime 不继承顶层，按自身 provider 解析
+```
+
+- 对应 Sa-Token 模块（`sa-token-core` / `sa-token-oauth2` / `sa-token-jwt` / `sa-token-apikey` / `sa-token-sso`）均为 optional 依赖，需按所选 provider 引入。**模块缺失时该 provider 不出现在可用清单中**（控制台不可选）；实例一旦配置该 provider 即 fail-closed——解析为恒匿名的拒绝服务，请求一律 **401**，不回退到其它认证方式，也不导致启动失败。
+- 未知 provider（含历史 `custom`）按配置错误处理，启动失败。
+- **MCP 只校验凭据，不实现认证服务**：不登录、不签发令牌、不保存任何 secret，配置与实例定义中也不存放凭据。凭据经请求头/参数无界面携带（Sa-Token tokenName header、`Authorization: Bearer`、apikey namespace header、`ticket` header），无任何页面式认证交互。
+- 认证主体必须携带 scopes（可多值或空集）：scope 覆盖不足时返回 **403**；`permit-all` 显式选择并绕过 scope 裁剪。
+
 ### 4. 归属能力到指定 runtime
 
 默认情况下 `@McpService` 归入 `default` runtime；通过类级 `@McpServer("key")` 可将该类全部能力归属到命名 runtime：
@@ -165,7 +196,7 @@ WebFlux 依赖为 optional，使用 WebFlux 栈时需按引入：
 - HTTP/SSE 的 `sessionId`（Server-Sent Events URL 参数）与 Streamable HTTP 的 `Mcp-Session-Id` 请求头均按 runtime 校验归属。
 - 使用其他 runtime 的会话凭证访问本端点时直接返回 **404**，不进入能力执行，天然隔离各 runtime 的能力面。
 
-默认使用 `PermitAllAuthService`（不校验身份），会话归属校验始终生效；如需身份校验，可替换 `McpAuthService` 实现。
+实例级认证按各 runtime 自身的 `auth.provider` 独立解析，未配置 provider、认证失败、返回匿名主体或对应模块缺失时默认拒绝并返回 **401**。会话归属校验仍始终生效，且先于能力分发执行。
 
 ## 集群 Redis 广播
 

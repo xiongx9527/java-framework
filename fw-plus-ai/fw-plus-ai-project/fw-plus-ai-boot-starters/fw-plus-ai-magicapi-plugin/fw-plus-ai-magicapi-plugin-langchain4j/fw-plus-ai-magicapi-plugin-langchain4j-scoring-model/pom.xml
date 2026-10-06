@@ -13,7 +13,6 @@
 
     <properties>
         <main.basedir>${basedir}/../../../../..</main.basedir>
-        <langchain4j.console.skip>false</langchain4j.console.skip>
     </properties>
 
 

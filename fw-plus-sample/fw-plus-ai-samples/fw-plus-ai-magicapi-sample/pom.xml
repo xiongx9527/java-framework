@@ -30,6 +30,72 @@
             <artifactId>fw-plus-magicapi-spring-boot-starter</artifactId>
         </dependency>
 
+        <!-- Magic-API 插件前端产物载体模块。这些模块不含 Java 源码，只把 src/console/dist 打成
+             magic-editor/plugins/*.iife.js 放进 jar；插件注册时上报的 javascriptFilename
+             必须能在 classpath 上找到对应文件，控制台面板才会渲染。
+             与 boot 层 fw-plus-magicapi-spring-boot-starter-sample 显式声明
+             fw-plus-magicapi-plugin-* 的做法一致。 -->
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-mcp-server</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-chat-model</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-streaming-chat-model</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-language-model</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-streaming-language-model</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-embedding-model</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-tokenizer</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-embedding-store</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-tool-provider</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-scoring-model</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-aj-mcp-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-system-message</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-chat-memory-store</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-content-retriever</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-content-injector</artifactId>
+        </dependency>
+
         <!-- Dev langchain4j provider jars that the model-factory registry references even when no
              fw-plus wrapper module exists for them (direct upstream deps) -->
         <dependency>
@@ -186,6 +252,34 @@
             <artifactId>poi-ooxml</artifactId>
             <version>4.1.2</version>
             <scope>test</scope>
+        </dependency>
+
+        <!-- 知识库（langchain4j-knowledge 插件）落地所需的最小 JDBC 支撑。
+             KnowledgeConfiguration 带 @ConditionalOnBean(SqlSessionFactory.class)：
+             没有 SqlSessionFactory 时整个配置类不装配，kbBrowserPluginConfiguration bean
+             不存在，控制台就看不到 langchain4j-knowledge 插件（不是前端产物缺失，是插件
+             根本没注册）。因此样例必须提供数据源 + MyBatis-Plus。
+             样例用 H2 内存库，知识库元数据表由 src/main/resources/schema-h2.sql 建；
+             换成 MySQL 时替换两处：驱动 mysql-connector-java + spring.datasource 的
+             url/username/password，并执行 docs/sql/fw-plus-ai-knowledge.sql 建表
+             （那是 MySQL 方言，schema-h2.sql 只服务 H2）。 -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-mp-spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- 知识库的 DocumentPipeline 用 ApacheTikaDocumentParser 做全格式解析。上游
+             fw-plus-ai-boot-autoconfigure 声明该依赖时是 optional=true，不传递，
+             这里必须显式补上，否则 KnowledgeConfiguration 装配后创建 kbDocumentPipeline
+             时直接 NoClassDefFoundError: ApacheTikaDocumentParser 把启动打断。 -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-document-parser-apache-tika</artifactId>
         </dependency>
 
     </dependencies>

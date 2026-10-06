@@ -40,9 +40,6 @@ public class Langchain4jAjMcpClientInfo extends MagicEntity {
 	/** http 系传输：自定义请求头，认证用（如 Authorization: Bearer xxx） */
 	private Map<String, String> customHeaders;
 
-	/** 仅暴露这些工具（缺省全部） */
-	private List<String> filterToolNames;
-
-	/** 认证类失败（如 api-key 过期，401/403 等）时的自动重试次数，缺省 0（不重试） */
+	/** 认证失败（如 api-key 过期，401/403 等）时的自动重试次数，缺省 0（不重试） */
 	private Integer authRetryCount;
 }

@@ -25,7 +25,7 @@
         <vesoft-java-client.version>3.8.4</vesoft-java-client.version>
         <vesoft-java-driver.version>5.3.0</vesoft-java-driver.version>
         <!--sa-token版本号-->
-        <sa-token.version>1.44.0</sa-token.version>
+        <sa-token.version>1.46.0</sa-token.version>
         <!--dynamic-tp版本号-->
         <dynamictp.version>1.2.1</dynamictp.version>
         <!--akali版本号-->
@@ -178,9 +178,7 @@
         <assertj-core.version>3.26.3</assertj-core.version>
         <!--sensitive-word版本号-->
         <sensitive-word.version>0.24.0</sensitive-word.version>
-        <!--jimureport版本号-->
-        <jimureport.version>2.3.4</jimureport.version>
-        <jimureport-echarts.version>2.3.0</jimureport-echarts.version>
+
         <jimunosql.version>2.1.0</jimunosql.version>
         <jimubi.version>2.3.2.1</jimubi.version>
         <!--jsqlparser版本号-->
@@ -1121,27 +1119,7 @@
                 <artifactId>protobuf-java</artifactId>
                 <version>${protobuf-java.version}</version>
             </dependency>
-            <!-- jimureport版本统一管理 -->
-            <dependency>
-                <groupId>org.jeecgframework.jimureport</groupId>
-                <artifactId>jimureport-spring-boot-starter</artifactId>
-                <version>${jimureport.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.jeecgframework.jimureport</groupId>
-                <artifactId>jimureport-echarts-starter</artifactId>
-                <version>${jimureport-echarts.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.jeecgframework.jimureport</groupId>
-                <artifactId>jimureport-nosql-starter</artifactId>
-                <version>${jimunosql.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.jeecgframework.jimureport</groupId>
-                <artifactId>jimubi-spring-boot-starter</artifactId>
-                <version>${jimubi.version}</version>
-            </dependency>
+
             <!-- fw-plus 版本统一管理 -->
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
@@ -1236,16 +1214,6 @@
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-redis</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-report-base</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-report-jimu</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

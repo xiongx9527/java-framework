@@ -14,8 +14,12 @@ public class MagicApiMcpScriptInvoker implements MagicApiMcpToolInvoker.Function
 
 	@Override
 	public Object invoke(MagicApiMcpTool tool, Map<String, Object> arguments) {
+		return invokeFunction(tool.getName(), arguments);
+	}
+
+	public Object invokeFunction(String functionName, Map<String, Object> arguments) {
 		MagicScriptContext context = new MagicScriptContext();
-		context.set("funcName", tool.getName());
+		context.set("funcName", functionName);
 		context.set("args", arguments);
 		return ScriptManager.executeScript("import magic; return magic.invoke(funcName, args);", context);
 	}

@@ -23,7 +23,6 @@ import org.ssssssss.magicapi.datasource.model.MagicDynamicDataSource;
 @Conditional(MagicAPIDbBrowserAdminEnabledCondition.class)
 public class MagicAPIDbBrowserConfiguration implements MagicPluginConfiguration {
 	private static final String DB_BROWSER_JAVASCRIPT = "magic-db.1.0.0.iife.js";
-	private static final String DB_BROWSER_RESOURCE = "magic-editor/plugins/" + DB_BROWSER_JAVASCRIPT;
 
 	private final ObjectProvider<DbBrowserService> dbBrowserServiceProvider;
 
@@ -43,14 +42,16 @@ public class MagicAPIDbBrowserConfiguration implements MagicPluginConfiguration 
 		return new DefaultDbBrowserService(dynamicDataSource, sqlBuilder);
 	}
 
+	/**
+	 * 创建数据库浏览器插件。
+	 *
+	 * <p>始终上报完整三元组（标识 + 全局名 + 前端产物名），不按前端产物是否落在 classpath
+	 * 上改变上报内容——产物在不在 classpath 是使用方的依赖配置问题，编码进注册逻辑只会让
+	 * 「依赖漏声明」在运行期表现为「插件静默消失」，排查成本远高于控制台直接报 404。
+	 */
 	@Override
 	public Plugin plugin() {
-		Plugin plugin;
-		if (MagicAPIDbBrowserConfiguration.class.getClassLoader().getResource(DB_BROWSER_RESOURCE) == null) {
-			plugin = new Plugin("db");
-		} else {
-			plugin = new Plugin("db", "MagicDB", DB_BROWSER_JAVASCRIPT);
-		}
+		Plugin plugin = new Plugin("db", "MagicDB", DB_BROWSER_JAVASCRIPT);
 		String adminEnabled = SpringUtils.getAppConfig("magic-api.plugin.db.admin.enabled", "false");
 		plugin.setAdminEnabled(Boolean.parseBoolean(adminEnabled));
 		return plugin;

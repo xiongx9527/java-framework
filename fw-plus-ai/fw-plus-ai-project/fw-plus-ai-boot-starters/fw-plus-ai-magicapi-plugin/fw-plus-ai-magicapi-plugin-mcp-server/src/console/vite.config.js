@@ -13,8 +13,8 @@ export default {
             target: 'esnext',
             formats: ['iife'],
             entry: path.resolve(__dirname, 'src/index.js'),
-            name: 'MagicMcp',
-            fileName: (format) => `magic-mcp.${pkg.version}.${format}.js`
+            name: 'MagicMcpServer',
+            fileName: (format) => `magic-mcp-server.${pkg.version}.${format}.js`
         },
         rollupOptions: {
             external: ['vue'],

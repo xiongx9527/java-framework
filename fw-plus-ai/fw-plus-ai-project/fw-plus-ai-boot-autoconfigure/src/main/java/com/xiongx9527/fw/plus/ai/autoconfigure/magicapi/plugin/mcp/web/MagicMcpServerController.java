@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.model.MagicDy
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.model.MagicMcpServerInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.service.MagicMcpServerInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.service.MagicMcpServerMagicDynamicRegistry;
+import com.xiongx9527.fw.plus.auth.core.InstanceAuthRegistry;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.ListUtils;
@@ -117,5 +118,16 @@ public class MagicMcpServerController extends MagicController implements MagicEx
 	public JsonBean<Object> defaults() {
 		MagicApiMcpProperties properties = SpringUtils.getBean(MagicApiMcpProperties.class);
 		return new JsonBean<>(ListUtils.emptyIfNull(properties.getServers()));
+	}
+
+	/**
+	 * 当前 classpath 可用的认证 provider 清单：供控制台表单渲染可选项
+	 * （与 Starter 的 InstanceAuthRegistry.availableProviders 同一份清单，缺失模块不可选）。
+	 */
+	@RequestMapping("/mcp/server/authProviders")
+	@ResponseBody
+	public JsonBean<Object> authProviders() {
+		return new JsonBean<>(InstanceAuthRegistry.availableProviders(
+				InstanceAuthRegistry.class.getClassLoader()));
 	}
 }

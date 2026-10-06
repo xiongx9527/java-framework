@@ -15,6 +15,11 @@ fw-plus:
         name: fw-plus-ai-mcp-server-sample
         version: 0.1.0
       transport: streamable-http
+      auth:
+        # 逐实例认证：未配置 provider 的实例一律 401（fail-closed）。
+        # 顶层作用于 default runtime；命名 runtime 不继承顶层 auth，需各自显式选择。
+        # 样例只验证 MCP 能力归属，显式选 permit-all（绕过凭据与 scope 检查）。
+        provider: permit-all
       # 顶层配置即 default runtime（key=default），endpoint=/mcp
       # 下方 servers 追加两个命名 runtime：weather 与 order
       # servers[] 每项只写 key 与 endpoint 即可，transport 未写时继承顶层 streamable-http
@@ -22,6 +27,10 @@ fw-plus:
         - key: weather
           transport: streamable-http
           endpoint: /mcp/weather
+          auth:
+            provider: permit-all
         - key: order
           transport: streamable-http
           endpoint: /mcp/order
+          auth:
+            provider: permit-all

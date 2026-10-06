@@ -170,18 +170,18 @@ class Langchain4jDatasourceConfigurationTest {
     }
 
     @Test
-    void shouldDeclarePluginIdentityMatchingTypeAndDegradeWhenFrontendMissing() {
+    void shouldAlwaysDeclareGlobalNameAndJavascriptFilename() {
         fullRunner.run(context -> {
             for (AbstractLangchain4jPluginConfiguration configuration
                     : context.getBeansOfType(AbstractLangchain4jPluginConfiguration.class).values()) {
                 Plugin plugin = configuration.plugin();
                 assertThat(plugin.getName()).isEqualTo(configuration.pluginName());
-
-                boolean present = configuration.getClass().getClassLoader()
-                        .getResource(configuration.frontendResource()) != null;
+                assertThat(plugin.getGlobalName())
+                        .as("%s 始终上报控制台展示名", configuration.pluginName())
+                        .isEqualTo(configuration.globalName());
                 assertThat(plugin.getJavascriptFilename())
-                        .as("%s 前端产物缺失时只按基础插件标识注册", configuration.pluginName())
-                        .isEqualTo(present ? configuration.javascriptFilename() : null);
+                        .as("%s 始终上报前端产物名", configuration.pluginName())
+                        .isEqualTo(configuration.javascriptFilename());
             }
         });
     }

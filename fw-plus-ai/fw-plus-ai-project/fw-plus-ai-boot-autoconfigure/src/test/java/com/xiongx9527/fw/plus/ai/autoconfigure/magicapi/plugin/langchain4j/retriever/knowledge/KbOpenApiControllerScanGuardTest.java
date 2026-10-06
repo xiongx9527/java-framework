@@ -58,6 +58,8 @@ class KbOpenApiControllerScanGuardTest {
                 .withBean(KbSegmentService.class, () -> mock(KbSegmentService.class))
                 .withBean(KbMetadataFieldService.class, () -> mock(KbMetadataFieldService.class))
                 .withBean(KbSaTokenAuthChecker.class, () -> mock(KbSaTokenAuthChecker.class))
+                .withBean(com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSettingService.class,
+                        () -> mock(com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSettingService.class))
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(KbOpenApiController.class);
@@ -72,13 +74,6 @@ class KbOpenApiControllerScanGuardTest {
         ConditionalOnBean onBean = KbOpenApiController.class.getAnnotation(ConditionalOnBean.class);
         assertThat(onBean).as("服务层未装配时不注册").isNotNull();
         assertThat(onBean.value()).contains(KbDocumentService.class);
-
-        ConditionalOnProperty onProperty = KbOpenApiController.class.getAnnotation(ConditionalOnProperty.class);
-        assertThat(onProperty).as("总开关关闭时不注册").isNotNull();
-        assertThat(onProperty.prefix()).isEqualTo("fw.plus.ai.knowledge");
-        assertThat(onProperty.name()).containsExactly("enabled");
-        assertThat(onProperty.havingValue()).isEqualTo("true");
-        assertThat(onProperty.matchIfMissing()).isTrue();
     }
 
     /** 模拟应用误把 autoconfigure 包纳入组件扫描。 */

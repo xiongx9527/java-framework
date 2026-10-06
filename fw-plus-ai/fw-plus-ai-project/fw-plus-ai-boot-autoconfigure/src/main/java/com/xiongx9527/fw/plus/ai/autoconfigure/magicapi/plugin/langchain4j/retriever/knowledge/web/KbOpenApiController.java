@@ -9,10 +9,10 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retri
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbDocumentService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSearchHit;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSearchService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSettingService;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -41,9 +41,12 @@ import java.util.Map;
  * 加上条件后，误扫描时本类不注册，知识库未装配的应用照常启动。</p>
  */
 @ConditionalOnClass(SqlSessionFactory.class)
-@ConditionalOnBean(KbDocumentService.class)
-@ConditionalOnProperty(prefix = "fw.plus.ai.knowledge", name = "enabled", havingValue = "true",
-		matchIfMissing = true)
+@ConditionalOnBean({KbDocumentService.class, KbSearchService.class,
+		com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbDatasetService.class,
+		com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSegmentService.class,
+		com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService.class,
+		KbSaTokenAuthChecker.class,
+		com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSettingService.class})
 @RestController
 public class KbOpenApiController {
 
@@ -57,19 +60,39 @@ public class KbOpenApiController {
 
 	private final com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService metadataFieldService;
 
+	private final KbSettingService settingService;
+
 	private final KbSaTokenAuthChecker authChecker;
 
 	public KbOpenApiController(KbDocumentService documentService, KbSearchService searchService,
 			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbDatasetService datasetService,
 			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSegmentService segmentService,
 			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService metadataFieldService,
+			KbSettingService settingService,
 			KbSaTokenAuthChecker authChecker) {
 		this.documentService = documentService;
 		this.searchService = searchService;
 		this.datasetService = datasetService;
 		this.segmentService = segmentService;
 		this.metadataFieldService = metadataFieldService;
+		this.settingService = settingService;
 		this.authChecker = authChecker;
+	}
+
+	// ---------------- 控制台设置（kb_setting 单行，保存即热生效） ----------------
+
+	@GetMapping("/settings")
+	public Object getSettings() {
+		return ok(settingService.current());
+	}
+
+	@PostMapping("/settings")
+	public Object saveSettings(@RequestBody com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.entity.KbSetting setting) {
+		try {
+			return ok(settingService.save(setting));
+		} catch (IllegalArgumentException e) {
+			return error(2001, e.getMessage());
+		}
 	}
 
 	// ---------------- 业务对接接口 ----------------

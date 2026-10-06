@@ -859,7 +859,7 @@ public class MyDefaultMagicResourceService extends DefaultMagicResourceService {
                     getGroupCache().remove(g.getId());
                     getGroupMappings().remove(g.getId());
                     getFileCache().values().stream()
-                            .filter(f -> f.getGroupId().equals(g.getId())).peek(entities::add)
+                            .filter(f -> Objects.nonNull(f.getGroupId()) && Objects.nonNull(g.getId()) && f.getGroupId().equals(g.getId())).peek(entities::add)
                             .collect(Collectors.toList())
                             .forEach(file -> {
                                 getFileCache().remove(file.getId());
@@ -922,7 +922,7 @@ public class MyDefaultMagicResourceService extends DefaultMagicResourceService {
                 .findTreeNode(it -> it.getId().equals(group.getId()))
                 .flat()
                 .forEach(g -> getFileCache().values().stream()
-                        .filter(f -> f.getGroupId().equals(g.getId()))
+                        .filter(f -> Objects.nonNull(f.getGroupId()) && Objects.nonNull(g.getId()) && f.getGroupId().equals(g.getId()))
                         .forEach(this::validateDeleteEntity));
     }
 
@@ -958,7 +958,7 @@ public class MyDefaultMagicResourceService extends DefaultMagicResourceService {
             Group group = getGroupCache().get(groupId);
             notNull(group, GROUP_NOT_FOUND);
             return getFileCache().values().stream()
-                    .filter(it -> it.getGroupId().equals(groupId))
+                    .filter(it -> groupId.equals(it.getGroupId()))
                     .map(it -> (T) it)
                     .collect(Collectors.toList());
         });

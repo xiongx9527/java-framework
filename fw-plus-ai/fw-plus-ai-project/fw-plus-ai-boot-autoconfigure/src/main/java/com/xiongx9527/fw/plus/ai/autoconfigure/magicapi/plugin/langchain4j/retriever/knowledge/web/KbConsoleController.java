@@ -47,16 +47,38 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 
 	private final com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbIndexingService indexingService;
 
+	private final com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSettingService settingService;
+
 	public KbConsoleController(MagicConfiguration configuration, KbDatasetService datasetService,
 			KbDocumentService documentService, KbSegmentService segmentService,
 			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService metadataFieldService,
-			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbIndexingService indexingService) {
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbIndexingService indexingService,
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSettingService settingService) {
 		super(configuration);
 		this.datasetService = datasetService;
 		this.documentService = documentService;
 		this.segmentService = segmentService;
 		this.metadataFieldService = metadataFieldService;
 		this.indexingService = indexingService;
+		this.settingService = settingService;
+	}
+
+	// ---------------- 全局设置（kb_setting 单行，保存即热生效） ----------------
+
+	@GetMapping("/settings")
+	@ResponseBody
+	public Object getSettings() {
+		return ok(settingService.current());
+	}
+
+	@PostMapping("/settings")
+	@ResponseBody
+	public Object saveSettings(@RequestBody com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.entity.KbSetting setting) {
+		try {
+			return ok(settingService.save(setting));
+		} catch (IllegalArgumentException e) {
+			return error(e.getMessage());
+		}
 	}
 
 	// ---------------- 元数据字段定义 ----------------

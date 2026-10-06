@@ -31,29 +31,13 @@
 
     <properties>
         <main.basedir>${basedir}/../../..</main.basedir>
-        <!-- 父工程自身非 console 工程：默认跳过前端构建，由七个子工程各自覆盖为 false -->
-        <langchain4j.console.skip>true</langchain4j.console.skip>
     </properties>
 
-    <build>
-        <plugins>
-            <!-- 前端 console 自动编译打包（executions 由 fw-plus-ai-magicapi-plugin 的 pluginManagement 提供） -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <configuration>
-                    <skip>${langchain4j.console.skip}</skip>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-resources-plugin</artifactId>
-                <configuration>
-                    <skip>${langchain4j.console.skip}</skip>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
+    <!-- 前端 console 构建（npm install + npm run build + copy dist）的 executions 由
+         fw-plus-ai-magicapi-plugin 的 pluginManagement 提供；本工程是 pom 聚合父，
+         只做 pluginManagement 传递、不在 <build><plugins> 里启用，避免父工程自身
+         没有 src/console 目录却去跑 npm。14 个子工程各自在自己的 pom 里启用，
+         行为与 boot 层 fw-plus-magicapi-plugin 的 28 个插件子工程一致。 -->
 
     <dependencies>
         <dependency>

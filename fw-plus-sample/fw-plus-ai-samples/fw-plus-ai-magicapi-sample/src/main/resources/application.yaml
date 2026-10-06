@@ -7,8 +7,20 @@ spring:
   main:
     # OpenAI 与 Azure OpenAI 的 langchain4j 自动配置 Bean 名冲突，统一通过应用侧覆盖/禁用
     allow-bean-definition-overriding: true
-  autoconfigure:
-    exclude: org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+  # 知识库（langchain4j-knowledge 插件）需要 SqlSessionFactory：KnowledgeConfiguration 带
+  # @ConditionalOnBean(SqlSessionFactory.class)，没有它整个配置类不装配、插件不注册。
+  # 这里用 H2 内存库让样例零外部依赖即可跑通；换 MySQL 见 pom.xml 中 h2 依赖处的说明。
+  datasource:
+    url: jdbc:h2:mem:fw-plus-ai-kb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  sql:
+    init:
+      mode: always
+      # H2 方言的知识库元数据表（5 张）。MySQL 方言那份在 docs/sql/fw-plus-ai-knowledge.sql，
+      # 需手工执行，列注释/内联索引/表选项等语法两者不通用。
+      schema-locations: classpath:schema-h2.sql
 
 
 fw:
@@ -16,17 +28,11 @@ fw:
     uid:
       enabled: false
     ws:
-      enabled: true
+      enabled: false
     web:
       jackson:
         write_longs_as_strings:
           enabled: true
-    ai:
-      tinyflow:
-        enabled: true
-        dify:
-          external:
-            enabled: true
 
 fw-plus:
   ai:
@@ -43,6 +49,21 @@ fw-plus:
             model-name: gpt-4o-mini
             enabled: true
             properties: {}
+
+magic:
+  api:
+    mybatis-plus:
+      # 关闭 magic 脚本侧的 mybatisplus 插件（mapper/xml 支持）。
+      # fw-plus-mp-spring-boot-starter 自带该插件，其 mybatisPlusModule 工厂方法签名里直接引用
+      # DynamicRoutingDataSource 类型——即使数据源为 null，Spring 也要先解析参数类型，
+      # classpath 没有 dynamic-datasource 时直接 NoClassDefFoundError 把启动打断。
+      # 本样例的知识库走 Java 侧 Mapper，用不到 magic 脚本的 mybatisplus，故显式关掉，
+      # 省掉 dynamic-datasource 依赖（那会把主数据源包成 DynamicRoutingDataSource，
+      # 还需额外的 spring.datasource.dynamic 配置）。需要该插件时改回 true 并补依赖。
+      #
+      # 注意前缀是点分的 magic.api.mybatis-plus，必须写成字面嵌套的 magic.api.*；
+      # 下面 magic-api.* 下的同名键不生效（relaxed binding 不做连字符→点分的转换）。
+      enabled: false
 
 magic-api:
   editor-config: classpath:./magic-editor-config.js
@@ -72,10 +93,14 @@ magic-api:
     logic-delete-column: is_del #逻辑删除列
     logic-delete-value: 1 #逻辑删除值
   plugin:
-    tinyflow:
-      enabled: true
-    model:
-      enabled: true
+    elasticsearch:
+      enabled: false
+    knowledge:
+      # 控制台可见性开关（magicapi s3/kafka/db 等插件的 admin.enabled 惯例），与知识库功能
+      # 本身的启用与否无关——后者已全部迁到 kb_setting 表，由控制台「设置」页读写。
+      # 注意原写法是 admin: true，Spring 取不到 admin.enabled，入口实际一直是关的。
+      admin:
+        enabled: true
     druid:
       aop-patterns:  /*
       stat-view-servlet:

@@ -16,7 +16,7 @@
         <module>fw-plus-mp-spring-boot-starter</module>
         <module>fw-plus-jdbc-spring-boot-starter</module>
         <module>fw-plus-redis-spring-boot-starter</module>
-        <module>fw-plus-jimu-spring-boot-starter</module>
+
         <module>fw-plus-file-storage-spring-boot-starter</module>
         <module>fw-plus-magicapi-spring-boot-starter</module>
         <module>fw-plus-magicapi-plugin</module>

@@ -128,16 +128,17 @@ class Langchain4jDatasourcePluginIntegrationTest {
     }
 
     @Test
-    void shouldFailPluginRegistrationButKeepServerSideAssemblyWhenFrontendMissing() {
+    void shouldAlwaysRegisterPluginWithFrontendIdentity() {
         runner.run(context -> {
             assertThat(context).hasNotFailed();
-            // 每类资源一个插件配置：产物缺失时各自只按基础标识注册，服务端装配不受影响
+            // 每类资源一个插件配置：统一以 (name, globalName, javascriptFilename) 注册，
+            // 上报内容不随前端产物当前是否落在 classpath 上而变化
             for (AbstractLangchain4jPluginConfiguration configuration
                     : context.getBeansOfType(AbstractLangchain4jPluginConfiguration.class).values()) {
-                boolean frontendPresent = configuration.getClass().getClassLoader()
-                        .getResource(configuration.frontendResource()) != null;
+                assertThat(configuration.plugin().getGlobalName())
+                        .isEqualTo(configuration.globalName());
                 assertThat(configuration.plugin().getJavascriptFilename())
-                        .isEqualTo(frontendPresent ? configuration.javascriptFilename() : null);
+                        .isEqualTo(configuration.javascriptFilename());
             }
             assertThat(context).hasSingleBean(MagicDynamicLangchain4jChatModelDataSource.class);
         });

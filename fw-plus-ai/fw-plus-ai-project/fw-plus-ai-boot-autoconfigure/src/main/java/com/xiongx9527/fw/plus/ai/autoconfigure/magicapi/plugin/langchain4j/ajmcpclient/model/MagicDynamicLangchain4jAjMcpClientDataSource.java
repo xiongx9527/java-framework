@@ -112,8 +112,7 @@ public class MagicDynamicLangchain4jAjMcpClientDataSource implements DisposableB
 	 * {@code client.callTool(name, argumentsJson)}。
 	 */
 	private ToolProvider newAjMcpToolProvider(final McpClient client, final Langchain4jAjMcpClientInfo info) {
-		final List<String> filter = info.getFilterToolNames() == null
-				? Collections.<String>emptyList() : info.getFilterToolNames();
+		final List<String> filter = Collections.<String>emptyList();
 		return new ToolProvider() {
 			@Override
 			public ToolProviderResult provideTools(ToolProviderRequest request) {

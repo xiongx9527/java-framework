@@ -1,42 +1,42 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth;
 
+import com.xiongx9527.fw.plus.auth.core.AuthPrincipal;
 import java.util.Collections;
 import java.util.Set;
 
 /**
- * 经过认证的 MCP 主体。
+ * MCP 主体：在 {@link AuthPrincipal} 基础上保留 MCP 专用常量，便于旧代码兼容。
  * <p>
- * 本次不落地认证授权，仅保留占位；后续认证 change 将真实主体与 scope 绑定到会话。
+ * 直接继承核心主体，复用 {@code subject}、{@code scopes} 与 {@code isAuthenticated()}。
  * </p>
  */
-public class McpPrincipal {
+public class McpPrincipal extends AuthPrincipal {
 
-    /**
-     * 未认证主体：认证 SPI 的默认放行结果，恒等效于旧单实例行为。
-     */
+    /** 兼容旧代码：未认证主体。 */
     public static final McpPrincipal ANONYMOUS = new McpPrincipal("anonymous");
 
-    /** 认证关闭时的放行主体。 */
+    /** 兼容旧代码：显式放行主体。 */
     public static final McpPrincipal PERMIT_ALL = new McpPrincipal("permit-all");
 
-    private final String subject;
-
-    private final Set<String> scopes;
-
     public McpPrincipal(String subject) {
-        this(subject, Collections.emptySet());
+        super(subject);
     }
 
     public McpPrincipal(String subject, Set<String> scopes) {
-        this.subject = subject;
-        this.scopes = scopes == null ? Collections.emptySet() : Collections.unmodifiableSet(scopes);
+        super(subject, scopes);
     }
 
-    public String getSubject() {
-        return subject;
+    /**
+     * 兼容旧代码：构造匿名主体。
+     */
+    public static McpPrincipal anonymous() {
+        return ANONYMOUS;
     }
 
-    public Set<String> getScopes() {
-        return scopes;
+    /**
+     * 兼容旧代码：构造放行主体。
+     */
+    public static McpPrincipal permitAll() {
+        return PERMIT_ALL;
     }
 }

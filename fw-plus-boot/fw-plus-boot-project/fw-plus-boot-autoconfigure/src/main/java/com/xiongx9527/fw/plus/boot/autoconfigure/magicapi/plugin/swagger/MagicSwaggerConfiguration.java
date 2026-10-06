@@ -56,7 +56,6 @@ import java.util.Set;
 @EnableConfigurationProperties(SwaggerConfig.class)
 public class MagicSwaggerConfiguration implements MagicPluginConfiguration {
 	private static final String JAVASCRIPT_FILENAME = "magic-swagger.1.0.0.iife.js";
-	private static final String FRONTEND_RESOURCE = "magic-editor/plugins/" + JAVASCRIPT_FILENAME;
 
 	private static Logger logger = LoggerFactory.getLogger(MagicSwaggerConfiguration.class);
 
@@ -85,15 +84,16 @@ public class MagicSwaggerConfiguration implements MagicPluginConfiguration {
 	}
 
 	/**
-	 * 创建Swagger插件实例，与前端资源判定保持一致（产物缺失时降级为无前端插件）。
+	 * 创建 Swagger 插件。
+	 *
+	 * <p>始终上报完整三元组（标识 + 全局名 + 前端产物名），不按前端产物是否落在 classpath
+	 * 上改变上报内容——产物在不在 classpath 是使用方的依赖配置问题，编码进注册逻辑只会让
+	 * 「依赖漏声明」在运行期表现为「插件静默消失」，排查成本远高于控制台直接报 404。
 	 *
 	 * @return Plugin 插件实例
 	 */
 	@Override
 	public Plugin plugin() {
-		if (MagicSwaggerConfiguration.class.getClassLoader().getResource(FRONTEND_RESOURCE) == null) {
-			return new Plugin("swagger");
-		}
 		return new Plugin("swagger", "MagicSwagger", JAVASCRIPT_FILENAME);
 	}
 

@@ -48,10 +48,13 @@ class McpCapabilitiesTest {
 	}
 
 	@Test
-	void shouldPassThroughWhenCapabilityUnknownOrScopesAbsent() {
+	void shouldAllowUnknownCapabilityButRejectMissingScopes() {
 		assertThat(McpCapabilities.covers(principal(Collections.singletonList("tools")), null)).isTrue();
+		assertThat(McpCapabilities.covers(null, "tools")).isFalse();
+		// 显式 PermitAll 主体绕过 scope 裁剪（spec S4）
 		assertThat(McpCapabilities.covers(McpPrincipal.PERMIT_ALL, "tools")).isTrue();
-		assertThat(McpCapabilities.covers(principal(Collections.<String>emptyList()), "tools")).isTrue();
+		assertThat(McpCapabilities.covers(McpPrincipal.PERMIT_ALL, "prompts")).isTrue();
+		assertThat(McpCapabilities.covers(principal(Collections.<String>emptyList()), "tools")).isFalse();
 	}
 
 	@Test
