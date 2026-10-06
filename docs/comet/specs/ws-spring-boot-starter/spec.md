@@ -4,7 +4,7 @@
 
 ## 模块结构
 
-Starter 为 thin starter，仅含 `pom.xml`。实现位于 `fw-plus-boot-autoconfigure` 的 `com.xiongx9527.fw.plus.boot.autoconfigure.web.ws` 包，分包：`config/`、`common/`、`session/`、`broadcast/`、`handler/`、`spi/`、`webmvc/`、`webflux/`、`redis/`、`starter/`。
+Starter 为 thin starter，仅含 `pom.xml`。实现位于 `fw-plus-boot-autoconfigure` 的 `com.xiongx9527.fw.plus.boot.autoconfigure.web.ws` 包，分包：`config/`、`common/`、`session/`、`broadcast/`、`handler/`、`spi/`、`webmvc/`、`webflux/`、`redis/`、`starter/`。握手认证复用 `fw-plus-auth-core` 的 `InstanceAuthRegistry`，不新增 provider 解析实现。
 
 ## 配置项（`fw.plus.ws`）
 
@@ -12,7 +12,9 @@ Starter 为 thin starter，仅含 `pom.xml`。实现位于 `fw-plus-boot-autocon
 | --- | --- | --- |
 | `enabled` | `true` | 总开关 |
 | `appId` | `default` | 默认实例 appId |
-| `servers` | 空 | 命名实例列表，每项含 `key`、`path`、`paths` 与 `appId`；不进入 `flatten()`，由 `WsInstanceResolver` 按请求路径解析 |
+| `auth.provider` | 空 | 默认实例认证 provider；空表示不启用认证（该实例握手一律拒绝） |
+| `servers` | 空 | 命名实例列表，每项含 `key`、`path`、`paths`、`appId` 与 `auth`；不进入 `flatten()`，由 `WsInstanceResolver` 按请求路径解析 |
+| `servers[].auth.provider` | 空 | 命名实例认证 provider；不从顶层 `auth` 继承，空表示该实例握手一律拒绝 |
 | `path` | `/ws/api` | 默认实例主端点路径，相对路径或含基础路径的完整路径均可 |
 | `paths` | 空 | 默认实例追加端点路径，与 `path` 合并去重后全部注册 |
 | `websocket.trustedDomain` | 空 | 受信任来源，逗号分隔；空表示不允许跨域 |
@@ -41,13 +43,24 @@ Starter 为 thin starter，仅含 `pom.xml`。实现位于 `fw-plus-boot-autocon
 | `webflux.scriptThreadPool.maxSize` | `32` | 最大大小 |
 | `webflux.scriptThreadPool.queueCapacity` | `1000` | 队列容量 |
 
-配置类 `WsConfig` 为类型安全嵌套 POJO。对外仍提供 `flatten()` 产出点号扁平键，供内部按既有方式读取。
+配置类 `WsConfig` 为类型安全嵌套 POJO。对外仍提供 `flatten()` 产出点号扁平键，供内部按既有方式读取。`auth` 与 `servers[].auth` 不进入 `flatten()`，由握手解析侧直接按对象读取。
 
 端点键只有顶层 `path` / `paths` 一个来源，与命名实例 `servers[].path` / `servers[].paths` 同形；`websocket:` 下只保留 `trustedDomain`、`subProtocols`、`supportsPartialMessages` 三个握手键。旧键 `websocket.path`、`websocket.paths`、`websocket.endpoint`、`websocket.basePath` 已从配置类删除，写入时既不生效也不告警，端点按顶层键取值（缺省 `/ws/api`）。
 
+## 握手认证（`fw.plus.ws.auth`）
+
+握手阶段在解析 clientId 与会话归属 appId 之前先做认证。
+
+- 认证方式按实例选择：默认实例取顶层 `fw.plus.ws.auth.provider`，命名实例取命中实例的 `servers[].auth.provider`。命名实例不从顶层 `auth` 继承；未配置 provider 的实例不启用认证，握手一律拒绝。
+- provider 清单与 Sa-Token 客户端可验证的全部认证方式一致：`permit-all`、`sa-token-login`、`sa-token-oauth2`、`sa-token-jwt`、`sa-token-apikey`、`sa-token-sso`；由 `InstanceAuthRegistry` 按 classpath 条件解析，模块缺失时该 provider 不可选、已配置则 fail-closed，未知 provider（含历史 `custom`）抛 `IllegalArgumentException`。版本由 `sa-token.version` 统一管理。
+- 凭据来源为握手 query 参数与请求头，二者按同一凭据名解析（如 `Authorization: Bearer <token>`、Sa-Token tokenName（默认 `satoken`）、`apikey`、`ticket`）。浏览器原生 WebSocket 无法自定义请求头时，用同名 query 参数承载（如 `Authorization=Bearer%20<token>`、`satoken=<token>`）。query 参数与同名请求头同时存在时以请求头为准。
+- `permit-all` 必须显式选择才放行，不作为任何实例的默认值。认证只做校验，不做登录、令牌签发、凭据管理，也不提供 Sa-Token 服务端或任何带页面操作的认证入口。
+- 未认证或校验失败时拒绝握手：webmvc 在 `beforeHandshake` 返回 `false` 并置 HTTP 401，不完成协议升级、不进入会话注册与订阅派发；webflux 拒绝并关闭会话。不回退到其他 provider 或其他实例。
+- 本能力只认证、不做授权：不提供 scope/capability 裁剪；业务级权限判断由宿主 `WsBusinessDispatcher` 负责。
+
 ## 连接
 
-握手阶段从 query 解析 clientId：缺失 clientId、clientId 超长时以 `CloseStatus.POLICY_VIOLATION` 拒绝。会话数超限时以 `SERVICE_OVERLOAD` 拒绝。
+握手阶段先后完成认证、clientId 解析与实例解析：认证未通过时先拒绝（见「握手认证」）；从 query 解析 clientId，缺失 clientId、clientId 超长时以 `CloseStatus.POLICY_VIOLATION` 拒绝。会话数超限时以 `SERVICE_OVERLOAD` 拒绝。
 
 会话归属的 appId 由握手请求路径经 `WsInstanceResolver` 解析实例得到：命中实例且实例填写了 `appId` 时取实例值，否则回落 `fw.plus.ws.appId`。
 
@@ -81,6 +94,8 @@ webmvc 栈：`WsEndpointRegistrar implements WebSocketConfigurer`，在 `@Condit
 
 webflux 栈：注册响应式 `WebSocketHandler` 与 `SimpleUrlHandlerMapping`，在 `@ConditionalOnWebApplication(type=REACTIVE)` 下生效。订阅脚本提交到独立有界线程池，不阻塞 Reactor event loop。
 
+握手认证对两条栈行为一致：webmvc 于升级前拒绝，webflux 于处理器入口拒绝并关闭。
+
 ## 多端点与多注册来源
 
 端点注册矩阵 = 全部 `WsBasePathProvider` 的 basePath ×（`path` + `paths`）。默认实例取顶层端点键，命名实例取各自 `path` / `paths`，两者叠加去重后进入同一矩阵。两条栈按同一份配置展开出同一组完整路径。
@@ -95,7 +110,7 @@ webmvc 逐条 `registry.addHandler`，跨域、子协议与握手拦截器对每
 
 `fw.plus.ws.servers` 是命名实例列表，每个实例 = 一个 key + 一组端点 + 一个 appId，配置形态与 `fw-plus.ai.mcp.servers[]` 同构。多个应用共用一套地基时，各实例只认自己路径上的 appId，互不串用；列表在默认实例之外做纯增量，不配时行为与改造前完全一致。
 
-命名实例未显式配置 `appId`（留空）时继承顶层 `fw.plus.ws.appId`；显式配置时取实例值。
+命名实例未显式配置 `appId`（留空）时继承顶层 `fw.plus.ws.appId`；显式配置时取实例值。认证 provider 与 `appId` 相反：`servers[].auth` 不从顶层 `auth` 继承，未配置即拒绝。
 
 启动期由 webmvc `WsAutoConfiguration` 与 webflux `WsWebFluxAutoConfiguration` 在装配路径上各调用一次同一校验，因此不依赖宿主 `@EnableWebSocket` 也能启动即失败。出现以下情形抛 `IllegalArgumentException`：实例 `key` 缺失、空串或纯空白；`key` 在 `servers` 内 trim 后重复；实例端点（`path` 或 `paths`，规范化后）与默认实例端点（`path` + `paths`）或另一实例端点重复；实例只配 `key` 未配任何端点。错误信息含配置键路径（如 `fw.plus.ws.servers[].key`）与冲突双方标识。同一实例内部 `path` 与 `paths` 的重复仍按配置顺序去重，不算冲突。旧键 `instances` 与实例内 `name` 已移除，YAML 继续书写时按 Spring 绑定默认（`ignoreUnknownFields=true`）静默忽略，不产生实例端点；旧端点键 `websocket.path` / `websocket.paths` 同样被忽略，端点只认顶层键。
 
@@ -105,7 +120,7 @@ webmvc 逐条 `registry.addHandler`，跨域、子协议与握手拦截器对每
 2. 后缀命中：请求路径以规则 `path` 结尾且长度严格更长（规则路径本身带斜杠，`/my-api` 不会命中 `/api`）；
 3. 未命中，或命中实例的 `appId` 留空：回落全局 `fw.plus.ws.appId`。
 
-实例端点可写相对路径（靠后缀边界命中带基础路径的请求），也可直接写完整路径；精确匹配整轮优先于后缀匹配整轮，因此写在后面的完整路径实例不会被同尾缀的相对路径抢先。命中实例的 appId 由 `AbstractWebSocketHandler` / `ReactiveWsHandler` 写进 `WsSessionInfo` 与 `WsInvocationContext`，并用于 `findEnabledSubscribes(appId, businessType)` 与 Redis 广播的 appId 过滤。
+实例端点可写相对路径（靠后缀边界命中带基础路径的请求），也可直接写完整路径；精确匹配整轮优先于后缀匹配整轮，因此写在后面的完整路径实例不会被同尾缀的相对路径抢先。命中实例的 appId 由 `AbstractWebSocketHandler` / `ReactiveWsHandler` 写进 `WsSessionInfo` 与 `WsInvocationContext`，并用于 `findEnabledSubscribes(appId, businessType)` 与 Redis 广播的 appId 过滤。认证 provider 由同一路径解析出的命中实例决定。
 
 实例端点同样参与注册：相对路径集合 = 默认实例（`path` + `paths`）叠加各命名实例的 `path` 与 `paths`，按「默认实例、命名实例」顺序去重，与 `WsBasePathProvider` 叉乘后逐条注册。`servers` 不进入 `WsConfig.flatten()`，扁平键保持纯标量契约。
 
@@ -120,9 +135,11 @@ webmvc 逐条 `registry.addHandler`，跨域、子协议与握手拦截器对每
 
 WS 能力在 `spring.factories` 与 `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports` 中只登记 `WsAutoConfiguration` 一项。Redis 跨实例广播（`WsRedisConfiguration`）与 webflux 端点（`WsWebFluxAutoConfiguration`）由 `WsAutoConfiguration` 的 `@Import` 收编，各自条件与 `fw.plus.ws.enabled` 总开关不变：Redis 配置在存在 `StringRedisTemplate` 时生效，否则退化为单机广播；webflux 配置仅在响应式 Web 应用中生效。
 
+`InstanceAuthRegistry` 由 `WsAutoConfiguration` 以 `@ConditionalOnMissingBean` 装配（容器已有则不重复创建），供握手认证按实例解析 provider。
+
 ## Scenario
 
-Scenario 编号延续历史变更：A1 至 A25 为此前 change 已验收的既有场景（其中受端点键提升影响的场景已按新形态重述，行为口径不变），A26 起为端点键提升 change 新增，A33 起为本次 code-review 修复 change 新增。
+Scenario 编号延续历史变更：A1 至 A25 为此前 change 已验收的既有场景（其中受端点键提升影响的场景已按新形态重述，行为口径不变），A26 起为端点键提升 change 新增，A33 起为 code-review 修复 change 新增，A36 起为本次 WS 认证 change 新增。
 
 - **Scenario A1**：WsConfig 为类型安全嵌套 POJO，`fw.plus.ws.*` 下 `path`、`paths` 与其余既有键均可绑定；`flatten()` 扁平键集合为 `path`、`paths` 两个端点键 + `websocket.trustedDomain`、`websocket.subProtocols`、`websocket.supportsPartialMessages` 三个握手键（端点键提升后 `websocket.` 下的四个旧键不再产出扁平键，握手 token 相关键已随鉴权移除）。
 - **Scenario A2**：`WsBaseService` getter 名与返回类型不变，magic-api ws 插件取到相同配置值（历史结论：token 相关 getter 已随握手鉴权移除，magic 插件侧只做了保持编译的最小删除）。
@@ -159,3 +176,9 @@ Scenario 编号延续历史变更：A1 至 A25 为此前 change 已验收的既�
 - **Scenario A33**：`fw-plus-boot-dependencies` 的 dependencyManagement 不包含已删除的 `com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-mcp`；`fw-plus-boot` 层 validate/编译不再尝试解析该构件，全仓 grep `fw-plus-magicapi-plugin-mcp` 仅剩 AI 层 `fw-plus-ai-magicapi-plugin-mcp-server` 与 docs 归档。
 - **Scenario A34**：AGENTS.md 模块树列出 `fw-plus-ai-mcp-server-sample` 与 `fw-plus-ai-chat-sample`；AGENTS.md 与 CLAUDE.md 对构建入口（根 pom + mvnw 聚合，或分层 mvnw）的描述一致，且与仓库实际结构、可执行命令相符。
 - **Scenario A35**：`fw-plus-boot-autoconfigure` 的 mcp 新包主源与 `web.ws.common.WsBaseService` 的缩进风格与同包/同文件主导风格一致（mcp 包主源 Tab，`WsBaseService` 为空格）。
+- **Scenario A36**：默认实例（`fw.plus.ws.auth.provider`）与两个命名实例（`servers[].auth.provider`）分别选择各自 provider（permit-all 与不同 Sa-Token 方式）；实例间不继承、不串用，命名实例未配置 `auth` 时拒绝该实例握手。
+- **Scenario A37**：握手凭据可从 query 参数或请求头读取，二者按同一凭据名解析（`Authorization: Bearer`、tokenName（默认 `satoken`）、`apikey`、`ticket` 等），同名同时存在时以请求头为准；webmvc 与 webflux 两栈解析结果一致。
+- **Scenario A38**：未配置 provider、凭据缺失或校验失败时，webmvc 在 `beforeHandshake` 返回 `false` 并置 HTTP 401（不升级、不进入会话注册与订阅派发），webflux 拒绝并关闭会话；不回退到其他 provider 或其他实例。
+- **Scenario A39**：provider 按 classpath 可选装配（`InstanceAuthRegistry.availableProviders()` 同 MCP 一份）：模块缺失时该 provider 不可选、已配置则 fail-closed；未知 provider（含历史 `custom`）抛 `IllegalArgumentException`；版本由 `sa-token.version` 管理。
+- **Scenario A40**：显式选择 `permit-all` 的实例握手直接放行且不作为默认；WS 只认证不授权，不提供 scope/capability 裁剪，也不暴露任何带页面操作的认证入口或 Sa-Token 服务端端点；业务级权限判断仍由宿主 `WsBusinessDispatcher` 负责。
+- **Scenario A41**：`InstanceAuthRegistry` 由 WS 自动配置以 `@ConditionalOnMissingBean` 装配，容器已有（如同时启用 MCP）时不重复创建；WS 认证不复用或削弱既有端点注册、会话管理、消息派发与广播行为。

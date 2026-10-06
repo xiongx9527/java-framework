@@ -1,6 +1,6 @@
 # easy-rag 知识库 完整目标规格（实现 change）
 
-> **文档角色**：本文档承接设计文档（easy-rag-knowledge 归档定稿）作为实现 change 的完整目标规格，内容与设计定稿一致。实现验收以 brief 的 A1–A17 与本文各章节为准。DDL（§2.2）在 Build 第一批落地为 `META-INF/sql/fw-plus-ai-knowledge.sql`。管理端与对外 API 同属 content-retriever 插件同一服务（§3.3），API 实现 Sa-Token 认证授权。
+> **文档角色**：本文档承接设计文档（easy-rag-knowledge 归档定稿）作为实现 change 的完整目标规格，内容与设计定稿一致。实现验收以 brief 的 A1–A17 与本文各章节为准。DDL（§2.2）在 Build 第一批落地为 `META-INF/sql/fw-plus-ai-knowledge.sql`。管理端与对外 API 同属 content-retriever 插件同一服务（§3.3），对外 API 的认证授权按设置页 provider 选择（复用 `fw-plus-auth-core` 的 `InstanceAuthRegistry`）。
 
 fw-plus-ai 层的知识库能力：Dify 风格的知识库管理 + magic 控制台 UI + 对外 API 服务（业务对接与 Dify External Knowledge API 兼容）+ knowledge 类型检索器。参照 Dify 知识库全功能设计，数据模型采用 数据集 → 文档 → 分段 三层。
 
@@ -17,7 +17,7 @@ fw-plus-ai 层的知识库能力：Dify 风格的知识库管理 + magic 控制�
   - `store/` KbOriginalFileStore 接口 + LocalKbOriginalFileStore
   - `retriever/` KnowledgeContentRetriever、KnowledgeContentRetrieverProvider
   - `web/` KbConsoleController（管理端接口）、KbOpenApiController（对外 API，同一服务）
-  - `auth/` KbSaTokenAuthChecker（对外 API 的 Sa-Token 认证授权校验）
+  - `auth/` 对外 API 认证：复用 `fw-plus-auth-core` 的 `InstanceAuthRegistry` 按设置页 provider 解析；保留 `KbSaTokenAuthChecker` 的凭据兼容读取（`Authorization: Bearer`、明文 `Authorization`、`kb-token`）
 - 前端：现有 `fw-plus-ai-magicapi-plugin-langchain4j-content-retriever` 插件 console 扩展
 - SQL：根目录 `META-INF/sql/fw-plus-ai-knowledge.sql`
 
@@ -162,6 +162,8 @@ CREATE TABLE kb_segment (
 - `GET /document/{id}/download`（下载原始文档）
 - `PUT /document/{id}/metadata`（设置文档 metadata 键值对）
 - `GET /document/{id}/segment`、`PATCH /segment/{id}/enabled`、`PUT /segment/{id}`（含 keywords）、`DELETE /segment/{id}`
+- `GET /settings`、`POST /settings`（知识库全局设置，对应 `kb_setting` 单行表）
+- `GET /openapi-auth-providers`（对外 API 可选的认证 provider 清单，按 classpath 可用性返回，供设置页下拉展示）
 
 行为：
 - 删除数据集前校验 knowledge 类型 retriever 引用并提示（级联删除文档/分段/向量/原始文件）。
@@ -183,7 +185,10 @@ CREATE TABLE kb_segment (
 
 对外 API 与管理端同属 content-retriever 插件同一服务（用户 S20/S21：API 不单独成服务，由本插件直接提供接口）。
 
-- 认证授权：统一使用 Sa-Token——`KbSaTokenAuthChecker` 基于 Sa-Token 校验请求凭证（Bearer/Authorization 中的 Sa-Token token）；凭证/客户端管理复用现有 magicapi satoken 插件资源（管理端已有），本插件不重复实现凭证管理；业务方如何获取凭证不在本需求范围。
+- 认证授权：对外 API 按设置页 `kb_setting.openApiAuthProvider` 选择认证 provider，复用 `fw-plus-auth-core` 的 `InstanceAuthRegistry` 与 MCP 同一份 provider 清单（`permit-all` + `sa-token-login`/`sa-token-oauth2`/`sa-token-jwt`/`sa-token-apikey`/`sa-token-sso`）。provider 按 classpath 可选；未配置或为空时默认取 `sa-token-login`（保持既有行为）；provider 模块缺失或未知时 fail-closed（返回 `error_code 1002`，不回退）；未知 provider 视为配置错误。凭证/客户端管理复用现有 magicapi satoken 插件资源（管理端已有），本插件不重复实现凭证管理；业务方如何获取凭证不在本需求范围。认证只做校验，不做登录、令牌签发、凭据管理，不提供 Sa-Token 服务端或带页面操作的认证入口。
+- 认证覆盖范围：除 `/v1/*` 业务接口外，`GET /settings` 与 `POST /settings` 同样按同一 provider 校验，未通过返回 `error_code 1002`。
+- 凭据兼容：`sa-token-login` 除读取 Sa-Token tokenName（默认 `satoken`）与 `Authorization: Bearer` 外，保留既有 `kb-token` 头与明文 `Authorization` 的兼容读取；其他 provider 读取各自原生凭据名。
+- 仅认证不授权：对外 API 不做 scope/数据级授权裁剪；数据集隔离由 knowledge_id/datasetId 路由保证。
 - `POST /v1/datasets/{datasetId}/document/upload-by-file`：multipart 上传，落 waiting + 存原始文件，异步索引。
 - `POST /v1/datasets/{datasetId}/document/create-by-text`：body{name, text}，同上。
 - `GET /v1/datasets/{datasetId}/document/{documentId}`：文档索引状态查询。
@@ -196,8 +201,8 @@ CREATE TABLE kb_segment (
 - 请求（Dify 规范 S-C）：`{knowledge_id, query, retrieval_setting:{top_k, score_threshold}, metadata_condition?}`；metadata_condition 结构与 §3.1 过滤格式一致。
 - knowledge_id = kb_dataset.id，按其路由数据集。
 - 响应：`{"records":[{"content","score","title","metadata"}]}`；metadata 恒为 JSON 对象（不返回 null）；无命中返回 `{"records":[]}`。
-- 错误：Sa-Token 校验失败 → `{"error_code":1002,"error_msg":...}`；knowledge_id 不存在 → `{"error_code":2001,"error_msg":...}`。
-- 认证经 Sa-Token（Dify 以 Bearer 传递其配置的 API Key，本服务按 Sa-Token 校验）。
+- 错误：认证校验失败 → `{"error_code":1002,"error_msg":...}`；knowledge_id 不存在 → `{"error_code":2001,"error_msg":...}`。
+- 认证按 §3.3 选择的 provider 执行（Dify 以 Bearer 传递其配置的 API Key，`sa-token-login` 默认按 Sa-Token 校验）。
 
 ## 4. magic 控制台前端（content-retriever 插件扩展）
 
@@ -209,8 +214,9 @@ CREATE TABLE kb_segment (
   - 文档：列表（状态轮询）、上传、重建索引、启禁用、归档/取消归档、批量操作、下载、metadata 编辑、删除
   - 分段：列表、编辑（含 keywords/answer）、启禁、删除
   - 召回测试：query 输入 → 命中分段与 score 展示（父子分段附父段预览），可选 metadata 过滤
+  - 设置：对应后端 `kb_setting` 单行表，包含对外 API 认证 provider 下拉；下拉选项来自后端可用 provider 清单接口（§3.1 `GET /openapi-auth-providers`），仅展示 classpath 可用项，保存后热生效
 - 仅管理 knowledge 类型检索器；其它 provider 类型不出现在本页面。
-- i18n 补充 knowledge 相关文案（中英）。
+- i18n 补充 knowledge 相关文案（中英），含认证 provider 下拉文案。
 - 构建沿用该模块现有 exec-maven-plugin + maven-resources-plugin 流程，产物仍为 content-retriever 插件 iife.js，不新增 MagicPluginConfiguration。
 
 ### 4.2 knowledge 类型表单
@@ -219,10 +225,13 @@ CREATE TABLE kb_segment (
 
 ## 5. 配置项汇总
 
+知识库全局设置以 `kb_setting` 单行表为准（取代早期 yaml `magic-api.plugin.knowledge.*`），保存即热生效。与认证相关的新增字段：
+
 ```
-fw.plus.ai.knowledge.enabled          # 总开关，默认 true
-fw.plus.ai.knowledge.storage-path     # 原始文件目录，默认 ${user.home}/.fw-plus/kb
+kb_setting.openApiAuthProvider   # 对外 API 认证 provider，默认 sa-token-login；空值按 sa-token-login 处理
 ```
+
+装配与存储相关键仍以设置页为准：`enabled`（运行期总开关）、`storageType` / `storagePath` / `s3Key`（原始文件存储）等。
 
 ## 6. 非功能约束
 
@@ -250,6 +259,10 @@ fw.plus.ai.knowledge.storage-path     # 原始文件目录，默认 ${user.home}
 - Scenario A15 Sa-Token 认证授权（§3.3）
 - Scenario A16 Dify /retrieval 协议符合性（§3.4）
 - Scenario A17 构建与非功能约束（§6）
+- Scenario A18 对外 API 认证 provider 化与默认值（§3.3）：`openApiAuthProvider` 可选清单内任一 provider，空值默认 `sa-token-login`（保持既有行为）
+- Scenario A19 `/settings` 纳入认证保护（§3.3）：`GET /settings`、`POST /settings` 与 `/v1/*` 同一 provider 校验，未通过返回 `error_code 1002`
+- Scenario A20 认证 provider 可用性与 fail-closed（§3.3）：provider 按 classpath 可选，模块缺失或未知 provider 时对外 API 与 `/settings` 返回 `error_code 1002`，不回退
+- Scenario A21 控制台设置页认证下拉（§4.1）：下拉选项来自后端可用清单接口，仅展示 classpath 可用 provider，保存热生效，i18n 文案齐备
 
 > 范围注记：本 change 只交付设计文档（用户方案 A）；功能实现由后续**一个**实现 change 承接（管理端 + 对外 API 同服务），以本文档为输入。
 > 正文中 §2.3 管道行为、§3.1/§3.2 接口行为、§4 前端行为为实现 change 的验收设计基础（届时其 brief/spec 引用本文档章节）。
