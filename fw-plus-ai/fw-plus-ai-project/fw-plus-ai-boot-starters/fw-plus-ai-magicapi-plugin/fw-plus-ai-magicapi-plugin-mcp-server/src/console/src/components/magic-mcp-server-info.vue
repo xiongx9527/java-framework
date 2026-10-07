@@ -32,15 +32,8 @@
     </div>
     <div class="magic-form-row">
       <label>{{ $i('mcp.server.scope.includeGroups') }}</label>
-      <magic-input v-model:value="fnIncludeGroups" :placeholder="$i('mcp.server.hint.list')" width="100%"/>
-    </div>
-    <div class="magic-form-row">
-      <label>{{ $i('mcp.server.scope.includePaths') }}</label>
-      <magic-input v-model:value="fnIncludePaths" :placeholder="$i('mcp.server.hint.list')" width="100%"/>
-    </div>
-    <div class="magic-form-row">
-      <label>{{ $i('mcp.server.scope.excludePaths') }}</label>
-      <magic-input v-model:value="fnExcludePaths" :placeholder="$i('mcp.server.hint.list')" width="100%"/>
+      <magic-group-select v-model:value="functions.includeGroups" type="function" width="100%"
+                          :placeholder="$i('mcp.server.hint.groupSelect')" :empty-text="$i('mcp.server.hint.groupEmpty')"/>
     </div>
 
     <div class="magic-form-section">{{ $i('mcp.server.form.api') }}</div>
@@ -49,20 +42,9 @@
       <magic-select v-model:value="api.enabled" :options="enabledOptions" :default-select="true" width="100%"/>
     </div>
     <div class="magic-form-row">
-      <label>{{ $i('mcp.server.scope.methods') }}</label>
-      <magic-input v-model:value="apiMethods" :placeholder="$i('mcp.server.hint.methods')" width="100%"/>
-    </div>
-    <div class="magic-form-row">
       <label>{{ $i('mcp.server.scope.includeGroups') }}</label>
-      <magic-input v-model:value="apiIncludeGroups" :placeholder="$i('mcp.server.hint.list')" width="100%"/>
-    </div>
-    <div class="magic-form-row">
-      <label>{{ $i('mcp.server.scope.includePaths') }}</label>
-      <magic-input v-model:value="apiIncludePaths" :placeholder="$i('mcp.server.hint.list')" width="100%"/>
-    </div>
-    <div class="magic-form-row">
-      <label>{{ $i('mcp.server.scope.excludePaths') }}</label>
-      <magic-input v-model:value="apiExcludePaths" :placeholder="$i('mcp.server.hint.list')" width="100%"/>
+      <magic-group-select v-model:value="api.includeGroups" type="api" width="100%"
+                          :placeholder="$i('mcp.server.hint.groupSelect')" :empty-text="$i('mcp.server.hint.groupEmpty')"/>
     </div>
     <div class="magic-form-row">
       <label>{{ $i('mcp.server.scope.requireOptIn') }}</label>
@@ -76,6 +58,7 @@
 </template>
 <script setup>
 import {computed, inject, onMounted, ref} from 'vue'
+import MagicGroupSelect from './magic-group-select.vue'
 
 const $i = inject('i18n.format')
 const services = inject('service', null)
@@ -154,25 +137,6 @@ const authProviderOptions = computed(() => {
     value
   }))
 })
-
-const splitList = (value) => String(value == null ? '' : value)
-  .split(',')
-  .map(s => s.trim())
-  .filter(s => s.length > 0)
-
-// 列表字段：表单内以逗号分隔文本编辑，落到 info 上为字符串数组
-const listField = (scope, key) => computed({
-  get: () => (scope[key] || []).join(', '),
-  set: (value) => { scope[key] = splitList(value) }
-})
-
-const fnIncludeGroups = listField(functions, 'includeGroups')
-const fnIncludePaths = listField(functions, 'includePaths')
-const fnExcludePaths = listField(functions, 'excludePaths')
-const apiMethods = listField(api, 'methods')
-const apiIncludeGroups = listField(api, 'includeGroups')
-const apiIncludePaths = listField(api, 'includePaths')
-const apiExcludePaths = listField(api, 'excludePaths')
 </script>
 <style scoped>
 .magic-mcp-server-form {

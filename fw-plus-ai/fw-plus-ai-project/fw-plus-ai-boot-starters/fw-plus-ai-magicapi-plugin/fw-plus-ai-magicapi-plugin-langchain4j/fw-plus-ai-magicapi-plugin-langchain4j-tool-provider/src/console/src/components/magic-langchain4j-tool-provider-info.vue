@@ -20,19 +20,8 @@
     </div>
     <div class="magic-form-row">
       <label>{{ $i('langchain4j.scope.includeGroups') }}</label>
-      <magic-input v-model:value="fnIncludeGroups" :placeholder="$i('langchain4j.hint.list')" width="100%"/>
-    </div>
-    <div class="magic-form-row">
-      <label>{{ $i('langchain4j.scope.excludeGroups') }}</label>
-      <magic-input v-model:value="fnExcludeGroups" :placeholder="$i('langchain4j.hint.list')" width="100%"/>
-    </div>
-    <div class="magic-form-row">
-      <label>{{ $i('langchain4j.scope.includePaths') }}</label>
-      <magic-input v-model:value="fnIncludePaths" :placeholder="$i('langchain4j.hint.list')" width="100%"/>
-    </div>
-    <div class="magic-form-row">
-      <label>{{ $i('langchain4j.scope.excludePaths') }}</label>
-      <magic-input v-model:value="fnExcludePaths" :placeholder="$i('langchain4j.hint.list')" width="100%"/>
+      <magic-group-select v-model:value="functions.includeGroups" type="function" width="100%"
+                          :placeholder="$i('langchain4j.hint.groupSelect')" :empty-text="$i('langchain4j.hint.groupEmpty')"/>
     </div>
 
     <div class="magic-form-section">{{ $i('langchain4j.common.api') }}</div>
@@ -41,24 +30,9 @@
       <magic-select v-model:value="api.enabled" :options="enabledOptions" :default-select="true" width="100%"/>
     </div>
     <div class="magic-form-row">
-      <label>{{ $i('langchain4j.scope.methods') }}</label>
-      <magic-input v-model:value="apiMethods" :placeholder="$i('langchain4j.hint.methods')" width="100%"/>
-    </div>
-    <div class="magic-form-row">
       <label>{{ $i('langchain4j.scope.includeGroups') }}</label>
-      <magic-input v-model:value="apiIncludeGroups" :placeholder="$i('langchain4j.hint.list')" width="100%"/>
-    </div>
-    <div class="magic-form-row">
-      <label>{{ $i('langchain4j.scope.excludeGroups') }}</label>
-      <magic-input v-model:value="apiExcludeGroups" :placeholder="$i('langchain4j.hint.list')" width="100%"/>
-    </div>
-    <div class="magic-form-row">
-      <label>{{ $i('langchain4j.scope.includePaths') }}</label>
-      <magic-input v-model:value="apiIncludePaths" :placeholder="$i('langchain4j.hint.list')" width="100%"/>
-    </div>
-    <div class="magic-form-row">
-      <label>{{ $i('langchain4j.scope.excludePaths') }}</label>
-      <magic-input v-model:value="apiExcludePaths" :placeholder="$i('langchain4j.hint.list')" width="100%"/>
+      <magic-group-select v-model:value="api.includeGroups" type="api" width="100%"
+                          :placeholder="$i('langchain4j.hint.groupSelect')" :empty-text="$i('langchain4j.hint.groupEmpty')"/>
     </div>
     <div class="magic-form-row">
       <label>{{ $i('langchain4j.scope.requireOptIn') }}</label>
@@ -67,7 +41,8 @@
   </div>
 </template>
 <script setup>
-import {computed, inject} from 'vue'
+import {inject} from 'vue'
+import MagicGroupSelect from './magic-group-select.vue'
 
 const $i = inject('i18n.format')
 
@@ -96,27 +71,6 @@ const enabledOptions = [
   {text: $i('langchain4j.option.yes'), value: true},
   {text: $i('langchain4j.option.no'), value: false}
 ]
-
-const splitList = (value) => String(value == null ? '' : value)
-  .split(',')
-  .map(s => s.trim())
-  .filter(s => s.length > 0)
-
-// 列表字段：表单内以逗号分隔文本编辑，落到 info 上为字符串数组
-const listField = (scope, key) => computed({
-  get: () => (scope[key] || []).join(', '),
-  set: (value) => { scope[key] = splitList(value) }
-})
-
-const fnIncludeGroups = listField(functions, 'includeGroups')
-const fnExcludeGroups = listField(functions, 'excludeGroups')
-const fnIncludePaths = listField(functions, 'includePaths')
-const fnExcludePaths = listField(functions, 'excludePaths')
-const apiMethods = listField(api, 'methods')
-const apiIncludeGroups = listField(api, 'includeGroups')
-const apiExcludeGroups = listField(api, 'excludeGroups')
-const apiIncludePaths = listField(api, 'includePaths')
-const apiExcludePaths = listField(api, 'excludePaths')
 </script>
 <style scoped>
 .magic-langchain4j-form {

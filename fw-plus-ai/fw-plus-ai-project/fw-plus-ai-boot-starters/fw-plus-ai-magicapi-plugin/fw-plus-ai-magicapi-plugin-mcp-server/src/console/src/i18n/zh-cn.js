@@ -20,16 +20,13 @@ export default {
             scope: {
                 enabled: '启用',
                 includeGroups: '包含分组',
-                includePaths: '包含路径',
-                excludePaths: '排除路径',
-                methods: '请求方法',
                 requireOptIn: '需显式声明（opt-in）',
                 optInOptionName: 'opt-in 标识',
                 optInOptionNameHint: '如 mcpTool'
             },
             hint: {
-                list: '英文逗号分隔，如 /a/**, /b/**',
-                methods: '英文逗号分隔，如 GET, POST'
+                groupSelect: '勾选分组，留空不过滤',
+                groupEmpty: '暂无可用分组'
             }
         }
     },

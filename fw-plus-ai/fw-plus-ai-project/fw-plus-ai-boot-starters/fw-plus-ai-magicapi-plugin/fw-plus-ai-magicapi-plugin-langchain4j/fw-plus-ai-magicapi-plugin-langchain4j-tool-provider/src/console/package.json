@@ -4,7 +4,8 @@
   "description": "Magic-API LangChain4j ToolProvider 工具集 Plugin",
   "main": "index.js",
   "scripts": {
-    "build": "vite build"
+    "build": "vite build",
+    "test": "node --test test/"
   },
   "author": "",
   "license": "ISC",

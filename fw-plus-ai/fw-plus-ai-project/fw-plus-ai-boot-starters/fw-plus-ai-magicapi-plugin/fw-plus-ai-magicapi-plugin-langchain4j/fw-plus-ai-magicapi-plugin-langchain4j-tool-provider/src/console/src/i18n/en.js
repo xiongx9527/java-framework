@@ -13,10 +13,6 @@ export default {
         scope: {
             enabled: 'Enabled',
             includeGroups: 'Include Groups',
-            excludeGroups: 'Exclude Groups',
-            includePaths: 'Include Paths',
-            excludePaths: 'Exclude Paths',
-            methods: 'HTTP Methods',
             requireOptIn: 'Require Opt-in'
         },
         option: {
@@ -26,8 +22,8 @@ export default {
         hint: {
             required: 'Required',
             optional: 'Optional',
-            list: 'Comma-separated, supports * wildcard, empty means no limit',
-            methods: 'e.g. GET,POST, empty means no limit'
+            groupSelect: 'Check groups, empty means no filter',
+            groupEmpty: 'No groups available'
         }
     }
 }
