@@ -54,6 +54,8 @@ class Langchain4jDatasourcePluginIntegrationTest {
                 when(service.listFiles(anyString())).thenReturn(Collections.emptyList());
                 return service;
             })
+            // scoring-model 的装配开关 matchIfMissing=false，不显式开启则该插件配置缺席
+            .withPropertyValues("fw.plus.magicapi.langchain4j.scoring-model.enabled=true")
             .withUserConfiguration(Langchain4jDatasourceConfiguration.class);
 
     @Test

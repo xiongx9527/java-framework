@@ -54,6 +54,8 @@ class Langchain4jDatasourceConfigurationTest {
 
     private final ApplicationContextRunner fullRunner = new ApplicationContextRunner()
             .withBean(MagicResourceService.class, () -> mock(MagicResourceService.class))
+            // scoring-model 的装配开关 matchIfMissing=false，不显式开启则该插件配置缺席
+            .withPropertyValues("fw.plus.magicapi.langchain4j.scoring-model.enabled=true")
             .withUserConfiguration(Langchain4jDatasourceConfiguration.class);
 
     @Test
@@ -112,10 +114,7 @@ class Langchain4jDatasourceConfigurationTest {
             assertThat(child.getEnclosingClass()).as("%s 应为顶层类", child.getName()).isNull();
             assertThat(child.getAnnotation(Configuration.class))
                     .as("%s 应标注 @Configuration", child.getName()).isNotNull();
-            if (child != com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.KnowledgeConfiguration.class) {
-                // knowledge 是 content-retriever 插件的后端配置，不携带 langchain4j 插件命名
-                assertThat(child.getName()).contains("Langchain4j");
-            }
+            assertThat(child.getName()).contains("Langchain4j");
         }
     }
 

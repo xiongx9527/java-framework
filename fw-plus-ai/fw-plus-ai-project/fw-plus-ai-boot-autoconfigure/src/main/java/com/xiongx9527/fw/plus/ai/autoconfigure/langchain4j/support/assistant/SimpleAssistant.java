@@ -189,7 +189,7 @@ public class SimpleAssistant {
 		if (filterableRetriever == null) {
 			throw new IllegalStateException(
 					"未注入显式过滤检索回调：仅构建时配置了支持元数据过滤的检索器"
-							+ "（如 knowledge 类型）才支持带过滤参数的 retrieve / chatWithFilter / streamWithFilter");
+							+ "才支持带过滤参数的 retrieve / chatWithFilter / streamWithFilter");
 		}
 		return filterableRetriever;
 	}

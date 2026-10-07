@@ -16,9 +16,6 @@
     </properties>
 
     <dependencies>
-        <!-- 认证内核：知识库（KnowledgeConfiguration）的 @Bean 签名硬引用
-             InstanceAuthRegistry，autoconfigure 里该依赖是 optional 不传递；
-             本插件 starter 必须携带，否则消费方启动内省配置类即 NoClassDefFoundError。 -->
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-auth-core</artifactId>

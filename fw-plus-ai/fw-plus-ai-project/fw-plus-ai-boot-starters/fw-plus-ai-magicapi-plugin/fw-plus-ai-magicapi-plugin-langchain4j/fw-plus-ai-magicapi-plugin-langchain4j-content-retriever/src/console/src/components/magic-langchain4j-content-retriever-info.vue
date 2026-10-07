@@ -45,9 +45,8 @@
   </div>
 </template>
 <script setup>
-import {computed, inject, onMounted, ref, watch} from 'vue'
+import {computed, inject, onMounted} from 'vue'
 import {optionsFields, referenceFields, providerNames, isSensitive, SELECT_HINTS} from '../metadata/providers.js'
-import {kbApi} from '../service/kb-service.js'
 
 const $i = inject('i18n.format')
 const injectResources = inject('injectResources', null)
@@ -63,27 +62,6 @@ const props = defineProps({
 onMounted(() => {
   if (!props.info.options) {
     props.info.options = {}
-  }
-  refreshDatasetOptions()
-})
-
-// knowledge 类型：dataset-id 候选来自知识库管理端数据集列表接口（/kb/dataset）
-const datasetOptions = ref([])
-const refreshDatasetOptions = async () => {
-  if (props.info.provider !== 'knowledge') {
-    return
-  }
-  try {
-    const datasets = await kbApi.listDatasets()
-    datasetOptions.value = (datasets || []).map(d => ({text: d.name || d.id, value: d.id}))
-  } catch (e) {
-    datasetOptions.value = []
-  }
-}
-
-watch(() => props.info.provider, (p) => {
-  if (p === 'knowledge') {
-    refreshDatasetOptions()
   }
 })
 
@@ -115,10 +93,6 @@ const fields = computed(() => optionsFields(props.info.provider)
 const fieldLabel = (f) => fallback('langchain4j.field.' + f.name, f.name)
 
 const referenceOptions = (r) => {
-  // knowledge 数据集引用走管理端接口，而非同类 datasource
-  if (r.resource === 'kb-dataset') {
-    return datasetOptions.value
-  }
   if (typeof injectResources !== 'function') {
     return []
   }
