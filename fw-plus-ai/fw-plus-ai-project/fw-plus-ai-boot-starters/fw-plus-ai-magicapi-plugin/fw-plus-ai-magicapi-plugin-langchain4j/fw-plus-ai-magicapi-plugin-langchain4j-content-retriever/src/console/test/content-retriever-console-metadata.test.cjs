@@ -148,3 +148,29 @@ test('index.js 注册该 datasource type 并绑定组件', () => {
     assert.ok(index.includes('MagicLangchain4jInfo'), 'index.js 缺少组件绑定');
     assert.ok(index.includes('/langchain4j/content-retriever/datasource/test') === false, '连接测试路径应由 service 拼接');
 });
+
+test('index.js 工厂返回含顶层 name（magic-toolbar 反查 adminEnabled 依赖它）', () => {
+    // magic-toolbar.vue: pluginData = PLUGINS_DATA.find(item => item.name === plugin.name)，
+    // 其中 plugin 是工厂返回对象；缺失顶层 name 时 adminOnly 的 kb-browser 入口永远被过滤。
+    const index = fs.readFileSync(path.join(consoleDir, 'src/index.js'), 'utf8');
+    const ret = index.indexOf('return {');
+    assert.ok(ret > -1, 'index.js 缺少工厂 return');
+    const head = index.slice(ret, ret + 400);
+    assert.ok(
+        head.includes("name: '" + TARGET_TYPE + "'"),
+        'index.js 工厂 return 开头缺少顶层 name: ' + TARGET_TYPE
+    );
+});
+
+test('设置视图不受 selectedDataset 守卫（kb_setting 独立于数据集）', () => {
+    const src = fs.readFileSync(path.join(consoleDir, 'src/components/magic-kb-browser.vue'), 'utf8');
+    const tabs = src.indexOf('class="kb-tabs"');
+    const emptyState = src.indexOf('kb.selectDataset');
+    assert.ok(tabs > -1 && emptyState > -1, '缺少 tab 栏或空态');
+    // tab 栏必须在空态守卫之前渲染（常驻），且空态只对非 setting 视图生效
+    assert.ok(tabs < emptyState, 'tab 栏被 selectedDataset 空态守卫包住了');
+    assert.ok(
+        /activeView !== 'setting' && !selectedDataset/.test(src),
+        '空态守卫未排除 setting 视图'
+    );
+});

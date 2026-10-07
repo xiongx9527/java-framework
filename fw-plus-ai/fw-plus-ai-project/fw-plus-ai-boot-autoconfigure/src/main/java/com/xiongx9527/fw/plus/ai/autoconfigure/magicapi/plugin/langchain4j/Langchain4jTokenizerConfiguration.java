@@ -17,7 +17,7 @@ import org.springframework.context.annotation.Configuration;
 /** tokenizer 数据源的装配：实例持有者、资源存储与动态注册器。 */
 @ConditionalOnClass(name = "dev.langchain4j.model.Tokenizer")
 @ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.tokenizer", name = "enabled",
-        havingValue = "true")
+        havingValue = "true", matchIfMissing = true)
 @Configuration(proxyBeanMethods = false)
 public class Langchain4jTokenizerConfiguration extends AbstractLangchain4jPluginConfiguration {
 

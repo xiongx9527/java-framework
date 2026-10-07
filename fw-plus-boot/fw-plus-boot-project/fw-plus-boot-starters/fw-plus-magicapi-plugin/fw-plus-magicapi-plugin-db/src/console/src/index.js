@@ -21,6 +21,10 @@ export default opt => {
     opt.i18n.add('en', localEn)
     setDbBrowserRequest(opt.request)
     return {
+        // 顶层 name 必须与后端 Plugin name("db") 一致：magic-toolbar 用
+        // PLUGINS_DATA.find(item => item.name === plugin.name) 反查 adminEnabled，
+        // 缺失会导致 adminOnly 的 db-browser 入口永远被过滤掉。
+        name: 'db',
         toolbars: [{
             id: 'db-browser',
             title: opt.i18n.format('db.title'),

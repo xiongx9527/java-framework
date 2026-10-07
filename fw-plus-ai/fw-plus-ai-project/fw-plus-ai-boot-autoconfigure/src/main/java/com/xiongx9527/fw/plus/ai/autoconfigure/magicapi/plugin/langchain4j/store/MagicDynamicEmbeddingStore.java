@@ -6,9 +6,7 @@ import com.xiongx9527.fw.plus.common.util.StringUtils;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 
-import java.util.Collections;
 import java.util.List;
 
 public class MagicDynamicEmbeddingStore implements EmbeddingStore<TextSegment> {

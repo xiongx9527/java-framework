@@ -40,6 +40,10 @@ export default (opt) => {
     // 绑 /kb/** 管理端请求（后端 KbConsoleController 装配成功时才可用）
     bindKbRequest(opt.request)
     return {
+        // 顶层 name 必须与后端 Plugin name 一致：magic-toolbar 用
+        // PLUGINS_DATA.find(item => item.name === plugin.name) 反查 adminEnabled，
+        // 缺失会导致 adminOnly 的 kb-browser 入口永远被过滤掉。
+        name: 'langchain4j-content-retriever',
         datasources: [{
             // 完整 datasource type，与后端 Langchain4jContentRetrieverInfo.TYPE 一致
             type: 'langchain4j-content-retriever',

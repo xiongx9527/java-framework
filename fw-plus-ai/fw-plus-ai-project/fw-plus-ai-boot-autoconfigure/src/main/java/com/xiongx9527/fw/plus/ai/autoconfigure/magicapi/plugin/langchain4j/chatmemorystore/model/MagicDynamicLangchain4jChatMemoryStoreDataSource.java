@@ -1,8 +1,5 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.chatmemorystore.model;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.MagicToolInvoker;
-import dev.langchain4j.data.message.ChatMessageJsonCodec;
-import dev.langchain4j.data.message.GsonChatMessageJsonCodec;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,21 +12,20 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * {@code langchain4j-chat-memory-store} 数据源的实例持有者：按 {@code key} 持有并驱逐多个
- * {@link ChatMemoryStore} 实例，每个实例把 get/update/delete 委托给各自配置的函数。
+ * {@link ChatMemoryStore} 实例，实例由 {@link ChatMemoryStoreProviderFactory} 按
+ * 资源定义的 {@code type}（提供商）构建。
  */
 public class MagicDynamicLangchain4jChatMemoryStoreDataSource implements DisposableBean {
 
 	private static final Logger logger =
 			LoggerFactory.getLogger(MagicDynamicLangchain4jChatMemoryStoreDataSource.class);
 
-	private final MagicToolInvoker invoker;
-
-	private final ChatMessageJsonCodec codec = new GsonChatMessageJsonCodec();
+	private final ChatMemoryStoreProviderFactory providerFactory;
 
 	private final Map<String, ChatMemoryStore> stores = new ConcurrentHashMap<>();
 
-	public MagicDynamicLangchain4jChatMemoryStoreDataSource(MagicToolInvoker invoker) {
-		this.invoker = invoker;
+	public MagicDynamicLangchain4jChatMemoryStoreDataSource(ChatMemoryStoreProviderFactory providerFactory) {
+		this.providerFactory = providerFactory;
 	}
 
 	/**
@@ -42,10 +38,9 @@ public class MagicDynamicLangchain4jChatMemoryStoreDataSource implements Disposa
 		}
 		try {
 			destroy(key);
-			MagicApiChatMemoryStore store = new MagicApiChatMemoryStore(invoker, codec,
-					info.getGetFunction(), info.getUpdateFunction(), info.getDeleteFunction());
+			ChatMemoryStore store = providerFactory.create(info);
 			stores.put(key, store);
-			logger.info("注册 LangChain4j ChatMemoryStore: {}", key);
+			logger.info("注册 LangChain4j ChatMemoryStore: {} (type={})", key, info.getType());
 			return true;
 		} catch (Throwable e) {
 			logger.warn("构建 LangChain4j ChatMemoryStore 失败: key={}", key, e);

@@ -1,12 +1,13 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.chatmemorystore.model;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatstore.ChatMemoryStoreProperties;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 
 /**
  * {@code langchain4j-chat-memory-store} 数据源资源定义：每份 JSON 对应一个
- * LangChain4j {@code ChatMemoryStore} 实例，get/update/delete 三个动作委托给三个 magic-api 函数。
+ * LangChain4j {@code ChatMemoryStore} 实例，由 {@code type} 指定的内置提供商实现存取。
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -28,17 +29,20 @@ public class Langchain4jChatMemoryStoreInfo extends MagicEntity {
 	private boolean enabled = true;
 
 	/**
-	 * 查询消息的函数名（{@code getMessages(memoryId)} 逻辑实现处）。
+	 * 提供商类型：in-memory（内存）/ jdbc / redis / mongodb / elasticsearch，默认内存。
 	 */
-	private String getFunction;
+	private String type = ChatMemoryStoreProperties.TYPE_IN_MEMORY;
 
 	/**
-	 * 保存消息的函数名（{@code updateMessages(memoryId, messages)} 逻辑实现处）。
+	 * 提供商数据源实例 Key（除内存外可选）：填写则使用 magic-api 同名命名数据源实例
+	 * （如 {@code db['key']} / {@code redis['key']} / mongo / elasticsearch 数据源）；
+	 * 留空则回退 Spring 容器默认客户端 Bean。
 	 */
-	private String updateFunction;
+	private String datasourceKey;
 
 	/**
-	 * 删除消息的函数名（{@code deleteMessages(memoryId)} 逻辑实现处）。
+	 * 提供商参数（按 type 只读取对应字段，留空回退全局配置）：jdbc 传 tableName、
+	 * redis 传 keyPrefix/ttl、mongodb 传 collectionName、elasticsearch 传 indexName。
 	 */
-	private String deleteFunction;
+	private ChatMemoryStoreInstanceParams params;
 }

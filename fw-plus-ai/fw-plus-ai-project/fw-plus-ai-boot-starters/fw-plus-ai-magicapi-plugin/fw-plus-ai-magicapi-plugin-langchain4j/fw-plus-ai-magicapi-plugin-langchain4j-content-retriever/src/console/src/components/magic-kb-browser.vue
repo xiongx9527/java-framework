@@ -1,34 +1,57 @@
 <template>
   <div class="magic-kb-browser">
-    <aside class="kb-side">
-      <div class="kb-side-header">
-        <strong>{{ $i('kb.dataset.title') }}</strong>
-        <button @click="loadDatasets">{{ $i('kb.refresh') }}</button>
-        <button @click="openDatasetForm()">{{ $i('kb.dataset.create') }}</button>
-        <input ref="importInput" type="file" accept=".json" style="display:none" @change="onImportFile"/>
-        <button @click="$refs.importInput.click()">{{ $i('kb.dataset.import') }}</button>
-      </div>
-      <div v-if="loading.datasets" class="kb-state">{{ $i('kb.loading') }}</div>
-      <div v-else-if="!datasets.length" class="kb-state">{{ $i('kb.empty') }}</div>
-      <button v-for="ds in datasets" :key="ds.id" class="kb-node" :class="{ selected: ds.id === selectedDatasetId }"
-              @click="selectDataset(ds)">
-        <span>{{ ds.name }}</span>
-        <small>{{ ds.status === 'active' ? $i('kb.status.active') : $i('kb.status.disabled') }}</small>
-      </button>
-      <div v-if="error" class="kb-error">{{ error }}</div>
-    </aside>
-
     <main class="kb-main">
-      <div v-if="!selectedDataset" class="kb-state">{{ $i('kb.selectDataset') }}</div>
-      <template v-else>
-        <div class="kb-tabs">
-          <button v-for="t in views" :key="t.id" class="kb-tab" :class="{ active: activeView === t.id }"
-                  @click="activeView = t.id">{{ $i(t.label) }}</button>
-          <span class="kb-tab-tip">{{ selectedDataset.name }}</span>
-        </div>
+      <!-- tab 栏常驻（仅 数据集/设置 两个）：设置页对应 kb_setting 单行表，独立于数据集，未选数据集也要能进入 -->
+      <div class="kb-tabs">
+        <button v-for="t in views" :key="t.id" class="kb-tab" :class="{ active: activeView === t.id }"
+                @click="activeView = t.id">{{ $i(t.label) }}</button>
+        <span class="kb-tab-tip">{{ crumb }}</span>
+      </div>
+      <div v-if="error" class="kb-error">{{ error }}</div>
 
-        <!-- 数据集视图：配置明细 + 编辑/删除 + 引用检索器 -->
-        <section v-if="activeView === 'dataset'" class="kb-view">
+      <!-- 数据集 tab：钻取导航 数据集列表 → 数据集详情 → 文档 → 分片（召回测试基于数据集，从详情进入） -->
+      <template v-if="activeView !== 'setting'">
+        <!-- 层级 1：数据集列表（刷新/新建/导入按钮都在这里） -->
+        <section v-if="datasetStage === 'list'" class="kb-view">
+          <div class="kb-actions">
+            <button @click="loadDatasets">{{ $i('kb.refresh') }}</button>
+            <button @click="openDatasetForm()">{{ $i('kb.dataset.create') }}</button>
+            <input ref="importInput" type="file" accept=".json" style="display:none" @change="onImportFile"/>
+            <button @click="$refs.importInput.click()">{{ $i('kb.dataset.import') }}</button>
+          </div>
+          <div v-if="loading.datasets" class="kb-state">{{ $i('kb.loading') }}</div>
+          <div v-else-if="!datasets.length" class="kb-state">{{ $i('kb.empty') }}</div>
+          <table v-else class="kb-table">
+            <thead>
+              <tr>
+                <th>{{ $i('kb.common.name') }}</th>
+                <th>{{ $i('kb.common.description') }}</th>
+                <th>{{ $i('kb.dataset.status') }}</th>
+                <th>{{ $i('kb.common.actions') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="ds in datasets" :key="ds.id">
+                <td>{{ ds.name }}</td>
+                <td>{{ ds.description || '-' }}</td>
+                <td>{{ ds.status === 'active' ? $i('kb.status.active') : $i('kb.status.disabled') }}</td>
+                <td><button @click="enterDataset(ds)">{{ $i('kb.dataset.enter') }}</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- 非列表层级未选中数据集时给空态；setting 视图在该守卫之外（v-else 兄弟分支） -->
+        <div v-else-if="!selectedDataset" class="kb-state">{{ $i('kb.selectDataset') }}</div>
+
+        <template v-else>
+          <!-- 面包屑 + 返回上一层 -->
+          <div class="kb-actions">
+            <button @click="goBack">← {{ $i('kb.back') }}</button>
+          </div>
+
+          <!-- 层级 2：数据集详情（配置明细 + 文档/召回测试入口 + 编辑/删除 + 引用检索器） -->
+          <section v-if="datasetStage === 'detail'" class="kb-view">
           <table class="kb-table">
             <tbody>
               <tr><th>{{ $i('kb.dataset.embeddingModel') }}</th><td>{{ selectedDataset.embeddingModelKey || '-' }}</td></tr>
@@ -46,6 +69,8 @@
             </tbody>
           </table>
           <div class="kb-actions">
+            <button @click="openDocuments">{{ $i('kb.view.document') }}</button>
+            <button @click="openHitView">{{ $i('kb.view.hit') }}</button>
             <button @click="openDatasetForm(selectedDataset)">{{ $i('kb.edit') }}</button>
             <button @click="openFieldsModal">{{ $i('kb.dataset.metadataFields') }}</button>
             <button @click="syncVectors">{{ $i('kb.dataset.syncVectors') }}</button>
@@ -55,8 +80,8 @@
           </div>
         </section>
 
-        <!-- 文档视图 -->
-        <section v-else-if="activeView === 'document'" class="kb-view">
+        <!-- 层级 3：文档（从数据集详情进入；分段从这里进入） -->
+        <section v-else-if="datasetStage === 'documents'" class="kb-view">
           <div class="kb-actions">
             <input ref="fileInput" type="file" multiple style="display:none" @change="onUpload"/>
             <button @click="$refs.fileInput.click()">{{ $i('kb.document.upload') }}</button>
@@ -93,6 +118,7 @@
                 <td>{{ doc.enabled === '1' ? $i('kb.option.yes') : $i('kb.option.no') }}</td>
                 <td>{{ doc.archived === '1' ? $i('kb.option.yes') : $i('kb.option.no') }}</td>
                 <td>
+                  <button @click="openSegments(doc)">{{ $i('kb.view.segment') }}</button>
                   <button @click="openTextForm(doc)">{{ $i('kb.document.editText') }}</button>
                   <button @click="reindexDocument(doc)">{{ $i('kb.document.reindex') }}</button>
                   <button @click="patchDocument(doc, 'enabled', doc.enabled !== '1')">{{ $i('kb.document.toggleEnabled') }}</button>
@@ -104,20 +130,22 @@
               </tr>
             </tbody>
           </table>
+          <!-- 文档分页（归属文档视图） -->
+          <div v-if="documents.length" class="kb-actions">
+            <span class="kb-tab-tip">{{ $i('kb.pagination.total') }}{{ documentsTotal }}</span>
+            <button :disabled="documentsPage <= 1" @click="changeDocumentsPage(-1)">{{ $i('kb.pagination.prev') }}</button>
+            <span>{{ documentsPage }}</span>
+            <button :disabled="documentsPage * 20 >= documentsTotal" @click="changeDocumentsPage(1)">{{ $i('kb.pagination.next') }}</button>
+          </div>
         </section>
 
-        <!-- 分段视图 -->
-        <section v-else-if="activeView === 'segment'" class="kb-view">
+        <!-- 层级 4：分段（从文档入口进入，分页归属本视图） -->
+        <section v-else-if="datasetStage === 'segments'" class="kb-view">
           <div class="kb-actions">
-            <select v-model="segmentDocumentId">
-              <option value="">{{ $i('kb.segment.selectDocument') }}</option>
-              <option v-for="doc in documents" :key="doc.id" :value="doc.id">{{ doc.name }}</option>
-            </select>
-            <button :disabled="!segmentDocumentId" @click="loadSegments">{{ $i('kb.refresh') }}</button>
-            <button :disabled="!segmentDocumentId" @click="openSegmentCreate">{{ $i('kb.segment.create') }}</button>
+            <button @click="loadSegments">{{ $i('kb.refresh') }}</button>
+            <button @click="openSegmentCreate">{{ $i('kb.segment.create') }}</button>
           </div>
-          <div v-if="!segmentDocumentId" class="kb-state">{{ $i('kb.segment.selectDocumentTip') }}</div>
-          <div v-else-if="loading.segments" class="kb-state">{{ $i('kb.loading') }}</div>
+          <div v-if="loading.segments" class="kb-state">{{ $i('kb.loading') }}</div>
           <div v-else-if="!segments.length" class="kb-state">{{ $i('kb.empty') }}</div>
           <table v-else class="kb-table">
             <thead>
@@ -147,16 +175,16 @@
               </tr>
             </tbody>
           </table>
-          <div class="kb-actions">
-            <span class="kb-tab-tip">{{ $i('kb.pagination.total') }}{{ documentsTotal }}</span>
-            <button :disabled="documentsPage <= 1" @click="changeDocumentsPage(-1)">{{ $i('kb.pagination.prev') }}</button>
-            <span>{{ documentsPage }}</span>
-            <button :disabled="documentsPage * 20 >= documentsTotal" @click="changeDocumentsPage(1)">{{ $i('kb.pagination.next') }}</button>
+          <div v-if="segments.length" class="kb-actions">
+            <span class="kb-tab-tip">{{ $i('kb.pagination.total') }}{{ segmentsTotal }}</span>
+            <button :disabled="segmentsPage <= 1" @click="changeSegmentsPage(-1)">{{ $i('kb.pagination.prev') }}</button>
+            <span>{{ segmentsPage }}</span>
+            <button :disabled="segmentsPage * 20 >= segmentsTotal" @click="changeSegmentsPage(1)">{{ $i('kb.pagination.next') }}</button>
           </div>
         </section>
 
-        <!-- 召回测试视图 -->
-        <section v-else-if="activeView === 'hit'" class="kb-view">
+        <!-- 召回测试视图（基于当前数据集，从数据集详情进入） -->
+        <section v-else-if="datasetStage === 'hit'" class="kb-view">
           <div class="kb-actions">
             <input v-model="hitQuery" style="flex:1" :placeholder="$i('kb.hit.queryTip')" @keyup.enter="runHitTest"/>
             <button :disabled="!hitQuery" @click="runHitTest">{{ $i('kb.hit.run') }}</button>
@@ -189,9 +217,11 @@
             </tbody>
           </table>
         </section>
+        </template>
+      </template>
 
-        <!-- 全局设置视图：对应后端 kb_setting 单行表，保存即热生效 -->
-        <section v-else class="kb-view">
+      <!-- 全局设置视图：对应后端 kb_setting 单行表，保存即热生效；v-else 兄弟分支，渲染在数据集守卫之外 -->
+      <section v-else class="kb-view">
           <div class="kb-state">{{ $i('kb.setting.saveTip') }}</div>
           <div class="kb-form-row">
             <label>{{ $i('kb.setting.enabled') }}</label>
@@ -211,7 +241,10 @@
           </div>
           <div v-else class="kb-form-row">
             <label>{{ $i('kb.setting.s3Key') }}</label>
-            <input v-model="settingForm.s3Key" :placeholder="$i('kb.setting.s3KeyTip')"/>
+            <select v-model="settingForm.s3Key">
+              <option v-for="o in optionsFor('s3', settingForm.s3Key)" :key="o.value" :value="o.value">{{ o.text }}</option>
+            </select>
+            <span class="kb-tag">{{ $i('kb.setting.s3KeyTip') }}</span>
           </div>
           <div class="kb-form-row">
             <label>{{ $i('kb.setting.hybridSearch') }}</label>
@@ -226,7 +259,10 @@
           <template v-if="settingForm.esEnabled">
             <div class="kb-form-row">
               <label>{{ $i('kb.setting.esKey') }}</label>
-              <input v-model="settingForm.esKey" :placeholder="$i('kb.setting.esKeyTip')"/>
+              <select v-model="settingForm.esKey">
+                <option v-for="o in optionsFor('es', settingForm.esKey)" :key="o.value" :value="o.value">{{ o.text }}</option>
+              </select>
+              <span class="kb-tag">{{ $i('kb.setting.esKeyTip') }}</span>
             </div>
             <div class="kb-form-row">
               <label>{{ $i('kb.setting.esIndexPrefix') }}</label>
@@ -243,19 +279,31 @@
           <div class="kb-state">{{ $i('kb.setting.modelDefaultTitle') }}</div>
           <div class="kb-form-row">
             <label>{{ $i('kb.setting.embeddingModelKey') }}</label>
-            <input v-model="settingForm.embeddingModelKey" :placeholder="$i('kb.setting.embeddingModelKeyTip')"/>
+            <select v-model="settingForm.embeddingModelKey">
+              <option v-for="o in optionsFor('embeddingModel', settingForm.embeddingModelKey)" :key="o.value" :value="o.value">{{ o.text }}</option>
+            </select>
+            <span class="kb-tag">{{ $i('kb.setting.embeddingModelKeyTip') }}</span>
           </div>
           <div class="kb-form-row">
             <label>{{ $i('kb.setting.embeddingStoreKey') }}</label>
-            <input v-model="settingForm.embeddingStoreKey" :placeholder="$i('kb.setting.embeddingStoreKeyTip')"/>
+            <select v-model="settingForm.embeddingStoreKey">
+              <option v-for="o in optionsFor('embeddingStore', settingForm.embeddingStoreKey)" :key="o.value" :value="o.value">{{ o.text }}</option>
+            </select>
+            <span class="kb-tag">{{ $i('kb.setting.embeddingStoreKeyTip') }}</span>
           </div>
           <div class="kb-form-row">
             <label>{{ $i('kb.setting.scoringModelKey') }}</label>
-            <input v-model="settingForm.scoringModelKey" :placeholder="$i('kb.setting.scoringModelKeyTip')"/>
+            <select v-model="settingForm.scoringModelKey">
+              <option v-for="o in optionsFor('scoringModel', settingForm.scoringModelKey)" :key="o.value" :value="o.value">{{ o.text }}</option>
+            </select>
+            <span class="kb-tag">{{ $i('kb.setting.scoringModelKeyTip') }}</span>
           </div>
           <div class="kb-form-row">
             <label>{{ $i('kb.setting.chatModelKey') }}</label>
-            <input v-model="settingForm.chatModelKey" :placeholder="$i('kb.setting.chatModelKeyTip')"/>
+            <select v-model="settingForm.chatModelKey">
+              <option v-for="o in optionsFor('chatModel', settingForm.chatModelKey)" :key="o.value" :value="o.value">{{ o.text }}</option>
+            </select>
+            <span class="kb-tag">{{ $i('kb.setting.chatModelKeyTip') }}</span>
           </div>
           <div class="kb-state">{{ $i('kb.setting.paramDefaultTitle') }}</div>
           <div class="kb-form-row">
@@ -297,7 +345,6 @@
             <button @click="saveSettings">{{ $i('kb.save') }}</button>
           </div>
         </section>
-      </template>
     </main>
 
     <!-- 数据集表单 -->

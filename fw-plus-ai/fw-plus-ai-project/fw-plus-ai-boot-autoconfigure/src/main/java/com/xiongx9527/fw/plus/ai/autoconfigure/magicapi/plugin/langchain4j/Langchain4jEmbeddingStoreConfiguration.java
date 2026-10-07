@@ -28,7 +28,7 @@ import org.ssssssss.magicapi.core.service.MagicResourceService;
 @ConditionalOnClass(name = "dev.langchain4j.store.embedding.EmbeddingStore")
 @ConditionalOnBean(MagicDynamicLangchain4jEmbeddingModelDataSource.class)
 @ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.embedding-store", name = "enabled",
-        havingValue = "true")
+        havingValue = "true", matchIfMissing = true)
 @Configuration(proxyBeanMethods = false)
 public class Langchain4jEmbeddingStoreConfiguration extends AbstractLangchain4jPluginConfiguration {
 

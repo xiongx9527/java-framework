@@ -79,6 +79,30 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- ChatMemoryStore JDBC 存储：optional，版本随 Boot BOM -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-jdbc</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- ChatMemoryStore MongoDB 存储：optional，版本随 Boot BOM -->
+        <dependency>
+            <groupId>org.springframework.data</groupId>
+            <artifactId>spring-data-mongodb</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- ChatMemoryStore Elasticsearch 存储：optional，版本由 fw-plus-boot-dependencies 管理 -->
+        <dependency>
+            <groupId>co.elastic.clients</groupId>
+            <artifactId>elasticsearch-java</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
         <dependency>
             <groupId>com.xiongx9527.fw.plus.ai</groupId>
             <artifactId>fw-plus-ai-boot</artifactId>

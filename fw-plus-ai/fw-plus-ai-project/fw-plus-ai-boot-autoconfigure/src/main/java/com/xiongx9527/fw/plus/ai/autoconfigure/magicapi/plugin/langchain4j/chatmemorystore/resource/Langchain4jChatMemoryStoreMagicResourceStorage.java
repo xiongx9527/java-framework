@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.chatmemorystore.resource;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatstore.ChatMemoryStoreProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.chatmemorystore.model.Langchain4jChatMemoryStoreInfo;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 import org.ssssssss.magicapi.core.resource.Resource;
@@ -58,9 +59,18 @@ public class Langchain4jChatMemoryStoreMagicResourceStorage
 		if (!entity.getKey().matches("^[\\w.-]+$")) {
 			throw new IllegalArgumentException("key只能包含字母、数字、下划线、点与中划线");
 		}
-		validateRequired(entity.getGetFunction(), "getFunction");
-		validateRequired(entity.getUpdateFunction(), "updateFunction");
-		validateRequired(entity.getDeleteFunction(), "deleteFunction");
+		String type = entity.getType() == null ? "" : entity.getType().trim().toLowerCase();
+		switch (type) {
+			case ChatMemoryStoreProperties.TYPE_IN_MEMORY:
+			case ChatMemoryStoreProperties.TYPE_JDBC:
+			case ChatMemoryStoreProperties.TYPE_REDIS:
+			case ChatMemoryStoreProperties.TYPE_MONGODB:
+			case ChatMemoryStoreProperties.TYPE_ELASTICSEARCH:
+				break;
+			default:
+				throw new IllegalArgumentException(String.format(
+						"不支持的提供商 type='%s'（可选 in-memory/jdbc/redis/mongodb/elasticsearch）", entity.getType()));
+		}
 		validateKeyUnique(entity.getKey(), entity.getId());
 	}
 

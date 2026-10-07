@@ -6,10 +6,23 @@ export default {
         common: {
             name: '名称',
             key: 'Key',
-            enabled: '启用',
-            getFunction: '查询函数',
-            updateFunction: '保存函数',
-            deleteFunction: '删除函数'
+            type: '提供商',
+            datasourceKey: '数据源 Key',
+            enabled: '启用'
+        },
+        provider: {
+            inMemory: '内存',
+            jdbc: 'JDBC',
+            redis: 'Redis',
+            mongodb: 'MongoDB',
+            elasticsearch: 'Elasticsearch'
+        },
+        params: {
+            tableName: '表名',
+            keyPrefix: '键前缀',
+            ttl: '过期时间',
+            collectionName: '集合名',
+            indexName: '索引名'
         },
         option: {
             yes: '是',
@@ -18,7 +31,9 @@ export default {
         hint: {
             required: '必填',
             optional: '选填',
-            function: 'magic-api 函数名，如 getChatMemory'
+            datasourceKey: '留空使用 Spring 默认客户端；或填 magic-api 数据源 Key，如 redis 数据源',
+            params: '留空使用全局配置默认值',
+            ttl: '留空永不过期，如 30m / 12h / 7d'
         }
     }
 }

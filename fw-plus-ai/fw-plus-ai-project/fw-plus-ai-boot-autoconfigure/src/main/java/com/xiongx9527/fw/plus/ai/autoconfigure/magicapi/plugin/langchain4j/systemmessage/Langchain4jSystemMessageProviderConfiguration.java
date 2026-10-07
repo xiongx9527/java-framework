@@ -22,7 +22,7 @@ import org.ssssssss.magicapi.core.web.MagicControllerRegister;
  */
 @ConditionalOnClass(name = "dev.langchain4j.service.AiServices")
 @ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.system-message", name = "enabled",
-		havingValue = "true")
+		havingValue = "true", matchIfMissing = true)
 @Configuration(proxyBeanMethods = false)
 public class Langchain4jSystemMessageProviderConfiguration extends AbstractLangchain4jPluginConfiguration {
 

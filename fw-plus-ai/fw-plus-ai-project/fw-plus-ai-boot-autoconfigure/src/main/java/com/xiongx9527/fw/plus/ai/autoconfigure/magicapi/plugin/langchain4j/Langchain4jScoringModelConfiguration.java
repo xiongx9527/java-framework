@@ -17,7 +17,7 @@ import org.springframework.context.annotation.Configuration;
 /** scoring-model 数据源的装配：实例持有者、资源存储与动态注册器。 */
 @ConditionalOnClass(name = "dev.langchain4j.model.scoring.ScoringModel")
 @ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.scoring-model", name = "enabled",
-        havingValue = "true")
+        havingValue = "true", matchIfMissing = false)
 @Configuration(proxyBeanMethods = false)
 public class Langchain4jScoringModelConfiguration extends AbstractLangchain4jPluginConfiguration {
 

@@ -22,7 +22,7 @@ import org.springframework.context.annotation.Configuration;
  */
 @ConditionalOnClass(name = "com.ajaxjs.mcp.client.McpClient")
 @ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.aj-mcp-client", name = "enabled",
-		havingValue = "true")
+		havingValue = "true", matchIfMissing = true)
 @Configuration(proxyBeanMethods = false)
 public class Langchain4jAjMcpClientConfiguration extends AbstractLangchain4jPluginConfiguration {
 

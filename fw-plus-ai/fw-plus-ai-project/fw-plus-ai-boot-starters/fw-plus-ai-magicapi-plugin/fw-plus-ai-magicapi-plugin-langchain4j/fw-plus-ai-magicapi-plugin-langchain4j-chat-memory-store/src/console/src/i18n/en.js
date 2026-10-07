@@ -6,10 +6,23 @@ export default {
         common: {
             name: 'Name',
             key: 'Key',
-            enabled: 'Enabled',
-            getFunction: 'Get Function',
-            updateFunction: 'Update Function',
-            deleteFunction: 'Delete Function'
+            type: 'Provider',
+            datasourceKey: 'Datasource Key',
+            enabled: 'Enabled'
+        },
+        provider: {
+            inMemory: 'In-Memory',
+            jdbc: 'JDBC',
+            redis: 'Redis',
+            mongodb: 'MongoDB',
+            elasticsearch: 'Elasticsearch'
+        },
+        params: {
+            tableName: 'Table Name',
+            keyPrefix: 'Key Prefix',
+            ttl: 'TTL',
+            collectionName: 'Collection',
+            indexName: 'Index'
         },
         option: {
             yes: 'Yes',
@@ -18,7 +31,9 @@ export default {
         hint: {
             required: 'Required',
             optional: 'Optional',
-            function: 'magic-api function name, e.g. getChatMemory'
+            datasourceKey: 'Empty for Spring default client; or a magic-api datasource key',
+            params: 'Empty for global default',
+            ttl: 'Empty for no expiry, e.g. 30m / 12h / 7d'
         }
     }
 }
