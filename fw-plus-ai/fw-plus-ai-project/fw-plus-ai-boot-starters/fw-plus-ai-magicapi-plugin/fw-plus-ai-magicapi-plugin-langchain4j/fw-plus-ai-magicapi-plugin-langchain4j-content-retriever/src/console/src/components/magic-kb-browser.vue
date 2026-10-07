@@ -353,10 +353,26 @@
         <h4>{{ datasetForm.id ? $i('kb.dataset.edit') : $i('kb.dataset.create') }}</h4>
         <div class="kb-form-row"><label>{{ $i('kb.common.name') }} *</label><input v-model="datasetForm.name"/></div>
         <div class="kb-form-row"><label>{{ $i('kb.common.description') }}</label><input v-model="datasetForm.description"/></div>
-        <div class="kb-form-row"><label>{{ $i('kb.dataset.embeddingModel') }}</label><input v-model="datasetForm.embeddingModelKey" :placeholder="$i('kb.dataset.modelKeyTip')"/></div>
-        <div class="kb-form-row"><label>{{ $i('kb.dataset.embeddingStore') }}</label><input v-model="datasetForm.embeddingStoreKey" :placeholder="$i('kb.dataset.modelKeyTip')"/></div>
-        <div class="kb-form-row"><label>{{ $i('kb.dataset.scoringModel') }}</label><input v-model="datasetForm.scoringModelKey" :placeholder="$i('kb.dataset.modelKeyTip')"/></div>
-        <div class="kb-form-row"><label>{{ $i('kb.dataset.chatModel') }}</label><input v-model="datasetForm.chatModelKey" :placeholder="$i('kb.dataset.chatModelTip')"/></div>
+        <div class="kb-form-row"><label>{{ $i('kb.dataset.embeddingModel') }}</label>
+          <select v-model="datasetForm.embeddingModelKey" :title="$i('kb.dataset.modelKeyTip')">
+            <option v-for="o in optionsFor('embeddingModel', datasetForm.embeddingModelKey, $i('kb.dataset.useSettingDefault'))" :key="o.value" :value="o.value">{{ o.text }}</option>
+          </select>
+        </div>
+        <div class="kb-form-row"><label>{{ $i('kb.dataset.embeddingStore') }}</label>
+          <select v-model="datasetForm.embeddingStoreKey" :title="$i('kb.dataset.modelKeyTip')">
+            <option v-for="o in optionsFor('embeddingStore', datasetForm.embeddingStoreKey, $i('kb.dataset.useSettingDefault'))" :key="o.value" :value="o.value">{{ o.text }}</option>
+          </select>
+        </div>
+        <div class="kb-form-row"><label>{{ $i('kb.dataset.scoringModel') }}</label>
+          <select v-model="datasetForm.scoringModelKey" :title="$i('kb.dataset.modelKeyTip')">
+            <option v-for="o in optionsFor('scoringModel', datasetForm.scoringModelKey, $i('kb.dataset.useSettingDefault'))" :key="o.value" :value="o.value">{{ o.text }}</option>
+          </select>
+        </div>
+        <div class="kb-form-row"><label>{{ $i('kb.dataset.chatModel') }}</label>
+          <select v-model="datasetForm.chatModelKey" :title="$i('kb.dataset.chatModelTip')">
+            <option v-for="o in optionsFor('chatModel', datasetForm.chatModelKey, $i('kb.dataset.useSettingDefault'))" :key="o.value" :value="o.value">{{ o.text }}</option>
+          </select>
+        </div>
         <div class="kb-form-row"><label>{{ $i('kb.dataset.indexingTechnique') }}</label>
           <select v-model="datasetForm.indexingTechnique">
             <option value="">{{ $i('kb.dataset.useSettingDefault') }}</option>
@@ -528,6 +544,10 @@ const fieldsModal = ref(false)
 const newField = ref({ name: '', type: 'string', description: '' })
 const referencers = ref([])
 const activeView = ref('dataset')
+/** 数据集 tab 内部钻取层级：list 列表 → detail 详情 → documents 文档 → segments 分片；hit 召回测试从详情进入 */
+const datasetStage = ref('list')
+/** 分片视图对应的文档名（面包屑展示用；文档来自 documents 视图，分片视图不再提供文档下拉） */
+const segmentDocumentName = ref('')
 const datasetForm = ref(null)
 const segmentForm = ref(null)
 const metadataForm = ref(null)
@@ -535,11 +555,9 @@ const authProviders = ref([])
 /** 全局设置表单（对应后端 kb_setting 单行表）；字段与后端 KbSetting 一一对应 */
 const settingForm = ref({ enabled: true, storageType: 'local', storagePath: '', s3Key: '', hybridSearch: true, esEnabled: false, esKey: '', esIndexPrefix: 'fw-kb', openApiAuthProvider: 'sa-token-login', embeddingModelKey: '', embeddingStoreKey: '', scoringModelKey: '', chatModelKey: '', defaultRetrievalTopK: 4, defaultRetrievalScoreThreshold: 0, defaultSegmentMaxLength: 1000, defaultSegmentOverlap: 200, defaultSegmentDelimiter: '', defaultSegmentMode: 'general', defaultIndexingTechnique: 'high_quality' })
 
+/** 仅两个 tab：数据集（钻取导航）与设置（常驻，不依赖数据集） */
 const views = [
   { id: 'dataset', label: 'kb.view.dataset' },
-  { id: 'document', label: 'kb.view.document' },
-  { id: 'segment', label: 'kb.view.segment' },
-  { id: 'hit', label: 'kb.view.hit' },
   { id: 'setting', label: 'kb.view.setting' }
 ]
 
@@ -623,11 +641,67 @@ const saveSettings = async () => {
   }
 }
 
-const selectDataset = async (ds) => {
+/** 面包屑：数据集 [/ 数据集名 [/ 文档 [/ 分片名]]]；设置视图不显示 */
+const crumb = computed(() => {
+  if (activeView.value === 'setting') return ''
+  const parts = [$i('kb.view.dataset')]
+  const ds = selectedDataset.value
+  if (datasetStage.value === 'list' || !ds) return parts.join(' / ')
+  parts.push(ds.name || ds.id)
+  if (datasetStage.value === 'documents') {
+    parts.push($i('kb.view.document'))
+  } else if (datasetStage.value === 'segments') {
+    parts.push($i('kb.view.document'), segmentDocumentName.value || $i('kb.view.segment'))
+  } else if (datasetStage.value === 'hit') {
+    parts.push($i('kb.view.hit'))
+  }
+  return parts.join(' / ')
+})
+
+/** 进入数据集详情：引用检索器随选中加载；文档/分片按需在进入对应层级时加载 */
+const enterDataset = async (ds) => {
   selectedDatasetId.value = ds.id
-  activeView.value = 'dataset'
+  datasetStage.value = 'detail'
   hits.value = []
-  await Promise.all([loadDocuments(), loadReferencers()])
+  documents.value = []
+  segments.value = []
+  segmentDocumentId.value = ''
+  segmentDocumentName.value = ''
+  await loadReferencers()
+}
+
+/** 文档从数据集入口进入（层级 3） */
+const openDocuments = async () => {
+  documentsPage.value = 1
+  datasetStage.value = 'documents'
+  await loadDocuments()
+}
+
+/** 分片从文档入口进入（层级 4） */
+const openSegments = async (doc) => {
+  segmentDocumentId.value = doc.id
+  segmentDocumentName.value = doc.name || ''
+  segmentsPage.value = 1
+  datasetStage.value = 'segments'
+  await loadSegments()
+}
+
+/** 召回测试基于当前数据集，从数据集详情进入 */
+const openHitView = () => {
+  hits.value = []
+  datasetStage.value = 'hit'
+}
+
+/** 钻取返回：分片→文档→数据集详情→数据集列表（返回列表时清空选中） */
+const goBack = () => {
+  const back = { documents: 'detail', segments: 'documents', hit: 'detail', detail: 'list' }
+  datasetStage.value = back[datasetStage.value] || 'list'
+  if (datasetStage.value === 'list') {
+    selectedDatasetId.value = ''
+    documents.value = []
+    segments.value = []
+    hits.value = []
+  }
 }
 
 const loadDocuments = async () => {
