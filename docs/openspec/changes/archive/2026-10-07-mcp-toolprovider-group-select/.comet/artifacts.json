@@ -1,5 +1,6 @@
 {
   "openspec_proposal": "docs/openspec/changes/mcp-toolprovider-group-select/proposal.md",
   "openspec_design": "docs/openspec/changes/mcp-toolprovider-group-select/design.md",
-  "openspec_tasks": "docs/openspec/changes/mcp-toolprovider-group-select/tasks.md"
+  "openspec_tasks": "docs/openspec/changes/mcp-toolprovider-group-select/tasks.md",
+  "archive_directory": "docs/openspec/changes/archive/2026-10-07-mcp-toolprovider-group-select"
 }

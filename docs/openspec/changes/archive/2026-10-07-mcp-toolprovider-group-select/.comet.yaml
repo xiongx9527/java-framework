@@ -1,6 +1,6 @@
 workflow: hotfix
 language: zh-CN
-phase: build
+phase: archive
 context_compression: off
 build_mode: direct
 build_pause: null
@@ -13,14 +13,14 @@ auto_transition: true
 base_ref: d676cd51eb38bf55cdd1fa5e19d2aa0e5477f28c
 design_doc: null
 plan: null
-verify_result: pending
+verify_result: pass
 verify_failures: 0
-verification_report: null
-branch_status: pending
+verification_report: docs/superpowers/reports/2026-10-07-mcp-toolprovider-group-select-verify.md
+branch_status: handled
 created_at: 2026-10-07
-verified_at: null
-archive_confirmation: null
-archived: false
+verified_at: 2026-10-07
+archive_confirmation: confirmed
+archived: true
 bound_branch: dev
 direct_override: null
 handoff_context: null
@@ -28,4 +28,4 @@ handoff_hash: null
 classic_profile: hotfix
 classic_migration: 1
 run_id: 33a101d5-1018-4997-91e4-8145babf15cd
-check_epoch: 1
+check_epoch: 5
