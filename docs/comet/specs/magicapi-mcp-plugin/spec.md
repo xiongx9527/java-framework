@@ -1,10 +1,14 @@
 # Magic-API MCP 插件能力规格（magicapi-mcp-plugin）
 
+> **kb-mcp-console-fixes 修订**：本 change 新增控制台连接测试与 Controller 容错（§「控制台连接测试与容错」）、`MagicAPIMcpServerConfiguration` 的 auth-core classpath 条件（§ 模块结构），并重建 mcp-server 前端产物（§ 控制台连接测试与容错）。工具暴露、资源类型、实例认证 provider、传输协议、通知集群与诊断行为不变。
+
 AI 层 `fw-plus-ai-magicapi-plugin-mcp-server` 基于 mcp starter（aj-mcp 内核）把 Magic-API 能力暴露为 MCP 能力：函数与 API 可注册为 MCP 工具，控制台维护 `mcp-resource` / `mcp-prompt` / `mcp-server` 三类资源类型，能力变更经 SSE 通知与 Redis 集群分发跨节点传播，并提供控制台诊断入口。插件不反向依赖任何 Boot 层已删除模块。
 
 ## 模块结构
 
 实现位于 `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure` 的 `magicapi.plugin.mcp` 包，分包：`config/`、`resource/`（`model/`、`service/`、`storage/`）、`spi/`、`starter/`、`cluster/`、`web/`。
+
+`starter/MagicAPIMcpServerConfiguration` 为插件装配入口，条件集为：classpath 含 `McpServer`、`McpServerRuntime` 与 auth-core 的 `com.xiongx9527.fw.plus.auth.core.InstanceAuthRegistry`（auth-core 是 optional 依赖，缺失时本类不得加载，否则 @Bean 方法签名中的 `InstanceAuthRegistry` 会在配置类内省阶段触发 `NoClassDefFoundError`，MCP 插件整体降级为不装配）、`MagicResourceService` Bean 存在、`magic-api.plugin.mcp.enabled=true`（matchIfMissing 默认 true）。插件装配时 `MagicMcpServerController` 与 `MagicMcpDiagnosticController` 随 `controllerRegister` 注册，`MagicDynamicMcpServer` Bean 同时存在。
 
 ## 工具暴露
 
@@ -50,6 +54,14 @@ Redis-backed Magic-API cluster 启用时，本节点先通知本地 SSE 客户�
 
 用户通过 Spring Bean（`MagicApiMcpCapabilityProvider`）提供自定义工具、资源、提示词与 completion 实现，与动态能力并存。诊断入口按必填 server key 解析单个 runtime，并使用该实例绑定的 `McpAuthService` 认证；缺少或无效认证时返回 401，未知 key 返回 404。诊断入口预览 `mcp-resource` / `mcp-prompt` 时分别调用 `resources/read` 与 `prompts/get`，不绕过实例认证、scope 检查或 provider 过滤。
 
+## 控制台连接测试与容错
+
+控制台可对 `mcp-server` 类型数据源执行「测试连接」而不落库、不注册：`MagicMcpServerController.datasourceTest`（`POST /mcp/datasource/test`）按表单构建**一次性** runtime（`MagicDynamicMcpServer.testConnection`），发起传输层连通性探测后立即释放，成功返回 `"ok"`，失败返回可读错误描述；测试不写库、不影响运行中实例、不进入注册表。
+
+控制器对 `MagicDynamicMcpServer` Bean 采取容错访问（ObjectProvider 注入，而非直接 `SpringUtils.getBean`）：插件未装配或 Bean 缺失时，`GET /mcp/server/list` 返回空列表 + 可读提示，`datasourceTest` 返回明确错误描述，均不抛 `NoSuchBeanDefinitionException`（用户报障场景，D7）。
+
+控制台前端产物 `magic-mcp-server.{version}.iife.js`：datasource service 含 `doTest`（调 `/mcp/datasource/test`）；图标以 `magic-mcp-server` SVG symbol 手动注入，构建不再依赖 `vite-plugin-svg-icons`；`mcp-server` 类型数据源表单提供「测试连接」操作。
+
 ## Scenario
 
 以下为本 change 新增或修正的可验收场景；现有工具、资源、通知与诊断行为保持不变。
@@ -59,3 +71,7 @@ Redis-backed Magic-API cluster 启用时，本节点先通知本地 SSE 客户�
 - **Scenario M3**：未配置认证方式或所选认证失败时，Servlet MVC 与 WebFlux 均返回 401，工具、资源、提示词及诊断能力均不执行；scope 不足（包括空 scopes）返回 403。
 - **Scenario M4**：控制台可为 `mcp-server` 实例选择与 Starter 一致的 provider 清单（PermitAll + 可用的 Sa-Token 认证方式，classpath 缺失的不可选，无 Custom 选项）；资源只存 provider 与必要的非敏感选择字段，不存 API key 等任何凭据。
 - **Scenario M5**：插件侧不存在带页面操作的认证授权入口与 Sa-Token 服务端端点；各 Sa-Token provider 认证成功返回携带 scopes 的主体（原生 scopes、JWT claim 或空集）。
+- **Scenario M6**（本 change）：`POST /mcp/datasource/test` 按表单构建一次性 runtime 探测连通性，成功返回 `"ok"`、失败返回可读错误；不落库、不注册、不影响运行中实例。
+- **Scenario M7**（本 change）：`MagicDynamicMcpServer` Bean 缺失时 `list()` 返回空列表 + 提示、`datasourceTest` 返回明确错误，不抛 `NoSuchBeanDefinitionException`。
+- **Scenario M8**（本 change）：重建后的 `magic-mcp-server` iife 含 `doTest`（调 `/mcp/datasource/test`）与 `magic-mcp-server` 图标 symbol；`mcp-server` 类型数据源表单可「测试连接」。
+- **Scenario M9**（本 change）：classpath 缺 auth-core 时 `MagicAPIMcpServerConfiguration` 整体降级不装配，不抛 `NoClassDefFoundError`；装配时 Controller 与 `MagicDynamicMcpServer` Bean 同时存在。
