@@ -151,6 +151,22 @@
                             </filesets>
                         </configuration>
                     </execution>
+                    <!-- mvn clean 时同步删除源码内的前端构建产物 src/console/dist，避免 dist 残留在工作区 -->
+                    <execution>
+                        <id>clean-console-dist</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                        <configuration>
+                            <excludeDefaultDirectories>true</excludeDefaultDirectories>
+                            <filesets>
+                                <fileset>
+                                    <directory>src/console/dist</directory>
+                                </fileset>
+                            </filesets>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
         </plugins>

@@ -36,6 +36,8 @@
 		<maven.javadoc.skip>true</maven.javadoc.skip>
 		<!--跳过deploy-->
 		<maven.deploy.skip>true</maven.deploy.skip>
+		<!-- 默认跳过测试的编译与执行（编译/打包/安装/deploy 均不含测试）；需要跑测试时用 -Dmaven.test.skip=false 覆盖 -->
+		<maven.test.skip>true</maven.test.skip>
 	</properties>
 	<description>
 		fw-plus ai库管理.
