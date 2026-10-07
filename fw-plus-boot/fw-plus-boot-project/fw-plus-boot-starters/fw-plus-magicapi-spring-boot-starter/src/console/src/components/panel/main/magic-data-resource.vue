@@ -114,6 +114,16 @@ const doSaveObj = (saveObj, msgId, msg) => {
   })
 }
 const doSave = () => {
+  // 可选的保存前校验钩子：插件 service 定义 validate 时先执行，
+  // 抛错则提示并阻止保存请求；未定义该方法的插件行为保持不变
+  if (service && typeof service.validate === 'function') {
+    try {
+      service.validate(dataResourceObj.value)
+    } catch (e) {
+      proxy.$alert(e && e.message ? e.message : String(e))
+      return
+    }
+  }
   const saveObj = { ...dataResourceObj.value }
   doSaveObj(saveObj, 'message.save',`${props.title}「${getFullPath(saveObj)}」`)
 }
