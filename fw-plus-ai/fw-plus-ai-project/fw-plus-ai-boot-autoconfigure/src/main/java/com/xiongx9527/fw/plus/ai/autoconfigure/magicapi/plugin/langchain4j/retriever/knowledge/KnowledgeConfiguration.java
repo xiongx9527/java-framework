@@ -26,7 +26,6 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retri
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.web.KbOpenApiController;
 import com.xiongx9527.fw.plus.auth.core.InstanceAuthRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.resource.Langchain4jContentRetrieverMagicResourceStorage;
-import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.mapper.MapperFactoryBean;
 import org.ssssssss.magicapi.core.config.MagicPluginConfiguration;
@@ -58,13 +57,18 @@ import org.springframework.context.annotation.Configuration;
  * <p>knowledge 检索器工厂以 {@code ContentRetrieverProvider} bean 注册，经
  * {@code Langchain4jContentRetrieverConfiguration} 的分发表收集进入短名 {@code knowledge}。</p>
  *
- * <p>管理端 UI 为独立插件产物（magic-kb-browser iife.js）：本装配生效（知识库启动）时才声明
- * {@code langchain4j-knowledge} 插件并注册 {@code /kb/**} Controller；控制台入口按
- * {@code magic-api.plugin.knowledge.admin.enabled} 开关激活（默认关闭，与 s3/kafka/db 等插件
- * 的 admin.enabled 惯例一致——不启动，不激活）。该开关属控制台可见性惯例，不在知识库设置页范围内。</p>
+ * <p>管理端 UI 并入 content-retriever 主插件产物（src/console/src/index.js 单一导出
+ * datasources + toolbars）：本装配生效（知识库启动）时注册 {@code /kb/**} Controller，
+ * 并声明一个隐身插件（javascriptFilename 为空，控制台不加载任何脚本——避免指向已消失的
+ * 独立产物导致 404）；toolbars 入口由 content-retriever 插件统一注册，显示与否由前端
+ * {@code adminOnly} 控制。未装配知识库时 /kb/** 接口 404，入口点击会显式报错。</p>
  */
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnClass(SqlSessionFactory.class)
+// auth-core 是 optional 依赖（kb 管理端与认证强耦合）：缺失时本类不得加载，否则
+// @Bean 方法签名中的 InstanceAuthRegistry 会在配置类内省阶段触发
+// NoClassDefFoundError，知识库整体降级为不装配
+@ConditionalOnClass(value = SqlSessionFactory.class,
+        name = "com.xiongx9527.fw.plus.auth.core.InstanceAuthRegistry")
 @ConditionalOnBean(SqlSessionFactory.class)
 @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.knowledge", name = "enabled",
 		havingValue = "true", matchIfMissing = true)
@@ -92,9 +96,11 @@ public class KnowledgeConfiguration {
 	private ObjectProvider<InstanceAuthRegistry> authRegistries;
 
 	/**
-	 * knowledge 管理端插件：声明专属前端产物（magic-kb-browser iife.js，toolbars 四视图入口）
-	 * 并注册 {@code /kb/**} Controller。控制台入口经 {@code magic-api.plugin.knowledge.admin.enabled}
-	 * 激活（默认关闭）；仅知识库装配成功时本 bean 存在，插件声明随之生效。
+	 * knowledge 管理端 UI 载体：toolbars 入口已并入 content-retriever 主产物
+	 * （src/console/src/index.js 单一导出 datasources + toolbars），本 bean 不再声明
+	 * 独立前端产物（隐身插件，javascriptFilename 为空 → 控制台不加载任何脚本），
+	 * 仅注册 {@code /kb/**} Controller。plugin() 不得返回 null —— 官方收集器
+	 * （MagicAPIAutoConfiguration）会把 null 直接塞入 /plugins 列表，前端遍历时崩溃。
 	 */
 	@Bean
 	public MagicPluginConfiguration kbBrowserPluginConfiguration() {
@@ -102,11 +108,9 @@ public class KnowledgeConfiguration {
 
 			@Override
 			public Plugin plugin() {
-				Plugin plugin = new Plugin("langchain4j-knowledge", "MagicKbBrowser",
-						"magic-kb-browser.1.0.0.iife.js");
-				String adminEnabled = SpringUtils.getAppConfig("magic-api.plugin.knowledge.admin.enabled", "true");
-				plugin.setAdminEnabled(Boolean.parseBoolean(adminEnabled));
-				return plugin;
+				// 隐身插件：globalName/javascriptFilename 为空，控制台 filter(ne => ne.javascriptFilename)
+				// 自动跳过，不加载 iife；知识库 toolbars 由 content-retriever 主插件统一注册
+				return new Plugin("langchain4j-knowledge", "", "");
 			}
 
 			@Override

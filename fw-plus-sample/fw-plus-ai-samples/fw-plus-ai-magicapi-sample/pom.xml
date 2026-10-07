@@ -30,6 +30,11 @@
             <artifactId>fw-plus-magicapi-spring-boot-starter</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-s3</artifactId>
+        </dependency>
+
         <!-- Magic-API 插件前端产物载体模块。这些模块不含 Java 源码，只把 src/console/dist 打成
              magic-editor/plugins/*.iife.js 放进 jar；插件注册时上报的 javascriptFilename
              必须能在 classpath 上找到对应文件，控制台面板才会渲染。
@@ -280,6 +285,15 @@
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-document-parser-apache-tika</artifactId>
+        </dependency>
+
+        <!-- 认证内核：fw-plus-ai-boot-autoconfigure 声明的 fw-plus-auth-core 是
+             optional=true 不传递，且其 @Bean 方法签名直接引用 InstanceAuthRegistry。
+             缺失时 Spring 内省配置类即 NoClassDefFoundError 启动失败（MCP/knowledge/
+             McpAutoConfiguration 均受影响）。starter 会携带，这里显式声明防回归。 -->
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-auth-core</artifactId>
         </dependency>
 
     </dependencies>

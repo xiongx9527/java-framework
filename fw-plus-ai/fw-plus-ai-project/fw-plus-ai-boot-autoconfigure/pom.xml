@@ -84,6 +84,14 @@
             <artifactId>fw-plus-ai-boot</artifactId>
         </dependency>
 
+        <!-- 编译期注解处理：实体（KbSetting 等）依赖 Lombok @Data 生成访问器，
+             与 core 层 fw-plus-ai-langchain4j-* 各模块一致，显式声明 provided -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
 		<dependency>
 			<groupId>com.xiongx9527.fw.plus</groupId>
 			<artifactId>fw-plus-dify</artifactId>

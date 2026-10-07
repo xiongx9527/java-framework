@@ -5,6 +5,8 @@ import localZhCN from './i18n/zh-cn.js'
 import localEn from './i18n/en.js'
 import createDatasourceService from './service/magic-langchain4j-datasource.js'
 import MagicLangchain4jInfo from './components/magic-langchain4j-content-retriever-info.vue'
+import { bindKbRequest } from './service/kb-service.js'
+import MagicKbBrowser from './components/magic-kb-browser.vue'
 
 const ICON_ID = 'magic-langchain4j'
 
@@ -28,10 +30,15 @@ if (typeof window !== 'undefined') {
     }
 }
 
+// 单一入口产物：datasources（langchain4j-content-retriever）+ toolbars（知识库管理页）。
+// 原独立 index-kb.js（magic-kb-browser iife）已并入本文件，构建只产出
+// magic-langchain4j-content-retriever.1.0.0.iife.js；后端不再声明独立的 knowledge 前端插件。
 export default (opt) => {
     const i18n = opt.i18n
     i18n.add('zh-cn', localZhCN)
     i18n.add('en', localEn)
+    // 绑 /kb/** 管理端请求（后端 KbConsoleController 装配成功时才可用）
+    bindKbRequest(opt.request)
     return {
         datasources: [{
             // 完整 datasource type，与后端 Langchain4jContentRetrieverInfo.TYPE 一致
@@ -41,8 +48,20 @@ export default (opt) => {
             name: i18n.format('langchain4j.type.content-retriever'),
             service: createDatasourceService(opt.request, i18n.format, opt.modal, 'content-retriever'),
             component: MagicLangchain4jInfo
+        }],
+        toolbars: [{
+            // 顶部工具栏知识库管理页（数据集/文档/分段/召回测试四视图）。
+            // 后端 /kb/** 仅在知识库装配成功时注册；入口走 adminOnly——自维护 magic-api jar 的
+            // Plugin#setAdminEnabled 已到位（运行 /plugins 返回本插件 adminEnabled=true），
+            // 自维护版控制台 isPluginToolbarVisible 按 adminOnly 过滤，仅管理员可见。
+            id: 'kb-browser',
+            title: i18n.format('kb.dataset.title'),
+            icon: '#' + ICON_ID,
+            order: 210,
+            component: MagicKbBrowser,
+            adminOnly: true,
+            allowClose: true,
+            fullscreen: true
         }]
-        // 知识库管理页 toolbars 在独立产物 index-kb.js（magic-kb-browser iife.js）中，
-        // 由后端 KnowledgeConfiguration 在知识库装配成功时才声明插件加载（不启动，不激活）
     }
 }

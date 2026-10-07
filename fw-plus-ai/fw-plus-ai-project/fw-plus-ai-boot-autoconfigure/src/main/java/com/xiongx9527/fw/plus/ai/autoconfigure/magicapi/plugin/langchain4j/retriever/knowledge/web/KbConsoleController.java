@@ -33,9 +33,9 @@ import java.util.Map;
 
 /**
  * 知识库管理端接口（设计 §3.1，前缀 {@code /magic/web/kb/}，随 MagicController 鉴权）。
- * 返回统一包装 {code, message, data}；code=200 成功。
+ * 返回统一包装 {code, message, data}；code=1 成功、code=-1 失败——与 Magic-API 控制台
+ * request.js 的 {@code data.code === 1} 成功判定对齐（判定不匹配会走全局异常弹窗）。
  */
-@RequestMapping("/kb")
 public class KbConsoleController extends MagicController implements MagicExceptionHandler {
 
 	private final KbDatasetService datasetService;
@@ -70,13 +70,13 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 
 	// ---------------- 全局设置（kb_setting 单行，保存即热生效） ----------------
 
-	@GetMapping("/settings")
+	@GetMapping("/kb/settings")
 	@ResponseBody
 	public Object getSettings() {
 		return ok(settingService.current());
 	}
 
-	@PostMapping("/settings")
+	@PostMapping("/kb/settings")
 	@ResponseBody
 	public Object saveSettings(@RequestBody com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.entity.KbSetting setting) {
 		try {
@@ -90,7 +90,7 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 	 * 对外 API 可选认证 provider 清单（设置页下拉数据源）：只返回当前 classpath 实际可用的
 	 * provider，避免控制台给出选了也只会 fail-closed 的选项。
 	 */
-	@GetMapping("/openapi-auth-providers")
+	@GetMapping("/kb/openapi-auth-providers")
 	@ResponseBody
 	public Object listAuthProviders() {
 		return ok(authRegistry.availableProviders());
@@ -98,13 +98,13 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 
 	// ---------------- 元数据字段定义 ----------------
 
-	@GetMapping("/dataset/{id}/metadata-fields")
+	@GetMapping("/kb/dataset/{id}/metadata-fields")
 	@ResponseBody
 	public Object listMetadataFields(@PathVariable("id") String id) {
 		return ok(metadataFieldService.list(id));
 	}
 
-	@PostMapping("/dataset/{id}/metadata-fields")
+	@PostMapping("/kb/dataset/{id}/metadata-fields")
 	@ResponseBody
 	public Object createMetadataField(@PathVariable("id") String id, @RequestBody Map<String, Object> body) {
 		String name = body.get("name") == null ? null : String.valueOf(body.get("name"));
@@ -113,7 +113,7 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 		return ok(metadataFieldService.create(id, name, type, description));
 	}
 
-	@RequestMapping(value = "/metadata-fields/{fieldId}", method = {RequestMethod.PUT, RequestMethod.POST})
+	@RequestMapping(value = "/kb/metadata-fields/{fieldId}", method = {RequestMethod.PUT, RequestMethod.POST})
 	@ResponseBody
 	public Object updateMetadataField(@PathVariable("fieldId") String fieldId,
 			@RequestBody Map<String, Object> body) {
@@ -122,14 +122,14 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 		return ok(metadataFieldService.update(fieldId, type, description));
 	}
 
-	@DeleteMapping("/metadata-fields/{fieldId}")
+	@DeleteMapping("/kb/metadata-fields/{fieldId}")
 	@ResponseBody
 	public Object deleteMetadataField(@PathVariable("fieldId") String fieldId) {
 		metadataFieldService.delete(fieldId);
 		return ok(null);
 	}
 
-	@PostMapping("/metadata-fields/{fieldId}/delete")
+	@PostMapping("/kb/metadata-fields/{fieldId}/delete")
 	@ResponseBody
 	public Object deleteMetadataFieldPost(@PathVariable("fieldId") String fieldId) {
 		metadataFieldService.delete(fieldId);
@@ -138,31 +138,31 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 
 	// ---------------- 数据集 ----------------
 
-	@GetMapping("/dataset")
+	@GetMapping("/kb/dataset")
 	@ResponseBody
 	public Object listDatasets() {
 		return ok(datasetService.list());
 	}
 
-	@PostMapping("/dataset")
+	@PostMapping("/kb/dataset")
 	@ResponseBody
 	public Object createDataset(@RequestBody KbDataset dataset) {
 		return ok(datasetService.create(dataset));
 	}
 
-	@GetMapping("/dataset/{id}")
+	@GetMapping("/kb/dataset/{id}")
 	@ResponseBody
 	public Object getDataset(@PathVariable("id") String id) {
 		return ok(datasetService.get(id));
 	}
 
-	@RequestMapping(value = "/dataset/{id}", method = {RequestMethod.PUT, RequestMethod.POST})
+	@RequestMapping(value = "/kb/dataset/{id}", method = {RequestMethod.PUT, RequestMethod.POST})
 	@ResponseBody
 	public Object updateDataset(@PathVariable("id") String id, @RequestBody KbDataset dataset) {
 		return ok(datasetService.update(id, dataset));
 	}
 
-	@RequestMapping(value = "/dataset/{id}", method = {RequestMethod.DELETE, RequestMethod.POST})
+	@RequestMapping(value = "/kb/dataset/{id}", method = {RequestMethod.DELETE, RequestMethod.POST})
 	@ResponseBody
 	public Object deleteDataset(@PathVariable("id") String id) {
 		Map<String, Object> data = new LinkedHashMap<>();
@@ -171,7 +171,7 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 	}
 
 	/** 召回测试（支持 metadata 过滤条件，格式对齐 Dify metadata_condition）。 */
-	@PostMapping("/dataset/{id}/hitTest")
+	@PostMapping("/kb/dataset/{id}/hitTest")
 	@ResponseBody
 	public Object hitTest(@PathVariable("id") String id, @RequestBody Map<String, Object> body) {
 		String query = body.get("query") == null ? null : String.valueOf(body.get("query"));
@@ -185,7 +185,7 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 	}
 
 	/** 切分预览（Dry-run，不落库不嵌入）：body {text, segmentMode?, segmentMaxLength?, segmentOverlap?, segmentDelimiter?} */
-	@PostMapping("/dataset/preview-split")
+	@PostMapping("/kb/dataset/preview-split")
 	@ResponseBody
 	public Object previewSplit(@RequestBody Map<String, Object> body) {
 		String text = body.get("text") == null ? null : String.valueOf(body.get("text"));
@@ -199,7 +199,7 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 	}
 
 	/** 导出数据集（不含向量）：JSON 附件下载。 */
-	@GetMapping("/dataset/{id}/export")
+	@GetMapping("/kb/dataset/{id}/export")
 	@ResponseBody
 	public void exportDataset(@PathVariable("id") String id, HttpServletResponse response) throws IOException {
 		com.alibaba.fastjson2.JSONObject payload = datasetService.export(id);
@@ -211,7 +211,7 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 	}
 
 	/** 导入数据集（POST 导出 JSON）：返回新数据集 id，全部文档重新入队嵌入。 */
-	@PostMapping("/dataset/import")
+	@PostMapping("/kb/dataset/import")
 	@ResponseBody
 	public Object importDataset(@RequestBody com.alibaba.fastjson2.JSONObject payload) {
 		Map<String, Object> data = new LinkedHashMap<>();
@@ -220,7 +220,7 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 	}
 
 	/** 引用该数据集的 knowledge 类型 retriever 资源列表。 */
-	@GetMapping("/dataset/{id}/retrievers")
+	@GetMapping("/kb/dataset/{id}/retrievers")
 	@ResponseBody
 	public Object retrievers(@PathVariable("id") String id) {
 		return ok(datasetService.referencedRetrieverResources(id));
@@ -228,7 +228,7 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 
 	// ---------------- 文档 ----------------
 
-	@GetMapping("/dataset/{id}/document")
+	@GetMapping("/kb/dataset/{id}/document")
 	@ResponseBody
 	public Object listDocuments(@PathVariable("id") String id,
 			@RequestParam(value = "page", defaultValue = "1") int page,
@@ -236,7 +236,7 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 		return ok(datasetService.listDocuments(id, page, pageSize));
 	}
 
-	@PostMapping(value = "/document/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@PostMapping(value = "/kb/document/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@ResponseBody
 	public Object upload(@RequestParam("datasetId") String datasetId,
 			@RequestParam("file") MultipartFile file,
@@ -245,39 +245,47 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 	}
 
 	/** 文档详情。 */
-	@GetMapping("/document/{id}")
+	@GetMapping("/kb/document/{id}")
 	@ResponseBody
 	public Object getDocument(@PathVariable("id") String id) {
 		return ok(documentService.get(id));
 	}
 
+	/** 删除文档：与分段删除对称（控制台删除按钮发 POST）；批量删除走 /kb/dataset/{id}/document/batch。 */
+	@RequestMapping(value = "/kb/document/{id}", method = {RequestMethod.DELETE, RequestMethod.POST})
+	@ResponseBody
+	public Object deleteDocument(@PathVariable("id") String id) {
+		documentService.deleteDocument(id);
+		return ok(null);
+	}
+
 	/** 分段详情。 */
-	@GetMapping("/segment/{id}")
+	@GetMapping("/kb/segment/{id}")
 	@ResponseBody
 	public Object getSegment(@PathVariable("id") String id) {
 		return ok(segmentService.getSegment(id));
 	}
 
-	@PostMapping("/document/{id}/reindex")
+	@PostMapping("/kb/document/{id}/reindex")
 	@ResponseBody
 	public Object reindex(@PathVariable("id") String id) {
 		return ok(documentService.reindex(id));
 	}
 
-	@RequestMapping(value = "/document/{id}/enabled", method = {RequestMethod.PATCH, RequestMethod.POST})
+	@RequestMapping(value = "/kb/document/{id}/enabled", method = {RequestMethod.PATCH, RequestMethod.POST})
 	@ResponseBody
 	public Object patchEnabled(@PathVariable("id") String id, @RequestParam("value") boolean value) {
 		return ok(documentService.patchEnabled(id, value));
 	}
 
-	@RequestMapping(value = "/document/{id}/archived", method = {RequestMethod.PATCH, RequestMethod.POST})
+	@RequestMapping(value = "/kb/document/{id}/archived", method = {RequestMethod.PATCH, RequestMethod.POST})
 	@ResponseBody
 	public Object patchArchived(@PathVariable("id") String id, @RequestParam("value") boolean value) {
 		return ok(documentService.patchArchived(id, value));
 	}
 
 	/** 批量操作：body {documentIds, action}（enable/disable/archive/unarchive/delete）。 */
-	@PostMapping("/dataset/{id}/document/batch")
+	@PostMapping("/kb/dataset/{id}/document/batch")
 	@ResponseBody
 	@SuppressWarnings("unchecked")
 	public Object batch(@PathVariable("id") String id, @RequestBody Map<String, Object> body) {
@@ -289,7 +297,7 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 		return ok(documentService.batch((List<String>) ids, action));
 	}
 
-	@GetMapping("/document/{id}/download")
+	@GetMapping("/kb/document/{id}/download")
 	@ResponseBody
 	public void download(@PathVariable("id") String id, HttpServletResponse response) throws IOException {
 		KbDocument document = documentService.get(id);
@@ -302,7 +310,7 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 		response.getOutputStream().write(bytes);
 	}
 
-	@RequestMapping(value = "/document/{id}/metadata", method = {RequestMethod.PUT, RequestMethod.POST})
+	@RequestMapping(value = "/kb/document/{id}/metadata", method = {RequestMethod.PUT, RequestMethod.POST})
 	@ResponseBody
 	public Object setMetadata(@PathVariable("id") String id, @RequestBody Map<String, Object> metadata) {
 		return ok(documentService.setMetadata(id, metadata));
@@ -311,7 +319,7 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 	// ---------------- 分段 ----------------
 
 	/** 手动新增分段：body {content, keywords?, answer?}，position 自动追加，嵌入写入向量。 */
-	@PostMapping("/document/{id}/segment")
+	@PostMapping("/kb/document/{id}/segment")
 	@ResponseBody
 	public Object createSegment(@PathVariable("id") String id, @RequestBody Map<String, Object> body) {
 		String content = body.get("content") == null ? null : String.valueOf(body.get("content"));
@@ -321,7 +329,7 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 	}
 
 	/** 文档文本更新（create-by-text 类型）：body {text, metadata?}，重算 hash 并重新入队索引。 */
-	@RequestMapping(value = "/document/{id}/text", method = {RequestMethod.PUT, RequestMethod.POST})
+	@RequestMapping(value = "/kb/document/{id}/text", method = {RequestMethod.PUT, RequestMethod.POST})
 	@ResponseBody
 	public Object updateText(@PathVariable("id") String id, @RequestBody Map<String, Object> body) {
 		String text = body.get("text") == null ? "" : String.valueOf(body.get("text"));
@@ -331,7 +339,7 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 	}
 
 	/** 跨数据集迁移：body {datasetId}，触发重建索引（目标数据集嵌入模型/向量库可能不同）。 */
-	@PostMapping("/document/{id}/move")
+	@PostMapping("/kb/document/{id}/move")
 	@ResponseBody
 	public Object moveDocument(@PathVariable("id") String id, @RequestBody Map<String, Object> body) {
 		String targetDatasetId = body.get("datasetId") == null ? null : String.valueOf(body.get("datasetId"));
@@ -339,27 +347,27 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 	}
 
 	/** 数据集批量同步到 ES（异步执行，中途启用 ES 的补数据场景）。 */
-	@PostMapping("/dataset/{id}/sync-es")
+	@PostMapping("/kb/dataset/{id}/sync-es")
 	@ResponseBody
 	public Object syncDatasetToEs(@PathVariable("id") String id) {
 		return ok(indexingService.syncDatasetToEs(id));
 	}
 
 	/** 数据集批量补向量（异步执行）：对 completed 且无向量的分段补嵌入（economy 切 high_quality 等场景）。 */
-	@PostMapping("/dataset/{id}/sync-vectors")
+	@PostMapping("/kb/dataset/{id}/sync-vectors")
 	@ResponseBody
 	public Object syncDatasetVectors(@PathVariable("id") String id) {
 		return ok(indexingService.syncDatasetVectors(id));
 	}
 
 	/** 文档级同步到 ES（同步执行）。 */
-	@PostMapping("/document/{id}/sync-es")
+	@PostMapping("/kb/document/{id}/sync-es")
 	@ResponseBody
 	public Object syncDocumentToEs(@PathVariable("id") String id) {
 		return ok(indexingService.syncDocumentToEs(id));
 	}
 
-	@GetMapping("/document/{id}/segment")
+	@GetMapping("/kb/document/{id}/segment")
 	@ResponseBody
 	public Object listSegments(@PathVariable("id") String id,
 			@RequestParam(value = "page", defaultValue = "1") int page,
@@ -367,13 +375,13 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 		return ok(segmentService.listSegments(id, page, pageSize));
 	}
 
-	@RequestMapping(value = "/segment/{id}/enabled", method = {RequestMethod.PATCH, RequestMethod.POST})
+	@RequestMapping(value = "/kb/segment/{id}/enabled", method = {RequestMethod.PATCH, RequestMethod.POST})
 	@ResponseBody
 	public Object patchSegmentEnabled(@PathVariable("id") String id, @RequestParam("value") boolean value) {
 		return ok(segmentService.patchEnabled(id, value));
 	}
 
-	@RequestMapping(value = "/segment/{id}", method = {RequestMethod.PUT, RequestMethod.POST})
+	@RequestMapping(value = "/kb/segment/{id}", method = {RequestMethod.PUT, RequestMethod.POST})
 	@ResponseBody
 	public Object updateSegment(@PathVariable("id") String id, @RequestBody Map<String, Object> body) {
 		String content = body.get("content") == null ? null : String.valueOf(body.get("content"));
@@ -382,7 +390,7 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 		return ok(segmentService.update(id, content, keywords, answer));
 	}
 
-	@RequestMapping(value = "/segment/{id}", method = {RequestMethod.DELETE, RequestMethod.POST})
+	@RequestMapping(value = "/kb/segment/{id}", method = {RequestMethod.DELETE, RequestMethod.POST})
 	@ResponseBody
 	public Object deleteSegment(@PathVariable("id") String id) {
 		segmentService.delete(id);
@@ -407,7 +415,7 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 
 	public static Object ok(Object data) {
 		Map<String, Object> result = new LinkedHashMap<>();
-		result.put("code", 200);
+		result.put("code", 1);
 		result.put("message", "success");
 		result.put("data", data);
 		return result;
@@ -415,7 +423,7 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 
 	public static Object error(String message) {
 		Map<String, Object> result = new LinkedHashMap<>();
-		result.put("code", 500);
+		result.put("code", -1);
 		result.put("message", message);
 		return result;
 	}

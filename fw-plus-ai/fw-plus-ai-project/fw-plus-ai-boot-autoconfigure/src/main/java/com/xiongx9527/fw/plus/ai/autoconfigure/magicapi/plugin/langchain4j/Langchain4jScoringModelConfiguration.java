@@ -17,14 +17,14 @@ import org.springframework.context.annotation.Configuration;
 /** scoring-model 数据源的装配：实例持有者、资源存储与动态注册器。 */
 @ConditionalOnClass(name = "dev.langchain4j.model.scoring.ScoringModel")
 @ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.scoring-model", name = "enabled",
-        havingValue = "true", matchIfMissing = true)
+        havingValue = "true")
 @Configuration(proxyBeanMethods = false)
 public class Langchain4jScoringModelConfiguration extends AbstractLangchain4jPluginConfiguration {
 
     private static final String JAVASCRIPT_FILENAME = "magic-langchain4j-scoring-model.1.0.0.iife.js";
 
     public Langchain4jScoringModelConfiguration() {
-        super("langchain4j-scoring-model", "MagicLangchain4jScoringModel", JAVASCRIPT_FILENAME);
+        super("langchain4j-scoring-model", "MagicLangchain4jScoringModel", JAVASCRIPT_FILENAME, false);
     }
 
     @Bean

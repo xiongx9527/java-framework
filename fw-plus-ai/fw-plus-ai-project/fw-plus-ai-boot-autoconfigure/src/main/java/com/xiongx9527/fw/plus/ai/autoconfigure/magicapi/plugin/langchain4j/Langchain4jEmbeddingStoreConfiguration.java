@@ -28,14 +28,14 @@ import org.ssssssss.magicapi.core.service.MagicResourceService;
 @ConditionalOnClass(name = "dev.langchain4j.store.embedding.EmbeddingStore")
 @ConditionalOnBean(MagicDynamicLangchain4jEmbeddingModelDataSource.class)
 @ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.embedding-store", name = "enabled",
-        havingValue = "true", matchIfMissing = true)
+        havingValue = "true")
 @Configuration(proxyBeanMethods = false)
 public class Langchain4jEmbeddingStoreConfiguration extends AbstractLangchain4jPluginConfiguration {
 
     private static final String JAVASCRIPT_FILENAME = "magic-langchain4j-embedding-store.1.0.0.iife.js";
 
     public Langchain4jEmbeddingStoreConfiguration() {
-        super("langchain4j-embedding-store", "MagicLangchain4jEmbeddingStore", JAVASCRIPT_FILENAME);
+        super("langchain4j-embedding-store", "MagicLangchain4jEmbeddingStore", JAVASCRIPT_FILENAME, false);
     }
 
     @Bean

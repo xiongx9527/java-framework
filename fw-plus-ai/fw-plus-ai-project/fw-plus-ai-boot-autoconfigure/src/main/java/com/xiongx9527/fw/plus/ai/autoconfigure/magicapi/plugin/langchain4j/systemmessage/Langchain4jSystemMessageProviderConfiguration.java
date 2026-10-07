@@ -22,14 +22,14 @@ import org.ssssssss.magicapi.core.web.MagicControllerRegister;
  */
 @ConditionalOnClass(name = "dev.langchain4j.service.AiServices")
 @ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.system-message", name = "enabled",
-		havingValue = "true", matchIfMissing = true)
+		havingValue = "true")
 @Configuration(proxyBeanMethods = false)
 public class Langchain4jSystemMessageProviderConfiguration extends AbstractLangchain4jPluginConfiguration {
 
 	private static final String JAVASCRIPT_FILENAME = "magic-langchain4j-system-message.1.0.0.iife.js";
 
 	public Langchain4jSystemMessageProviderConfiguration() {
-		super("langchain4j-system-message", "MagicLangchain4jSystemMessage", JAVASCRIPT_FILENAME);
+		super("langchain4j-system-message", "MagicLangchain4jSystemMessage", JAVASCRIPT_FILENAME, false);
 	}
 
 	/** 执行测试 Controller：POST /langchain4j/system-message/execute 返回系统提示词文本。 */

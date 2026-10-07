@@ -24,14 +24,14 @@ import org.springframework.context.annotation.Configuration;
  */
 @ConditionalOnClass(name = "dev.langchain4j.store.memory.chat.ChatMemoryStore")
 @ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.chat-memory-store", name = "enabled",
-		havingValue = "true", matchIfMissing = true)
+		havingValue = "true")
 @Configuration(proxyBeanMethods = false)
 public class Langchain4jChatMemoryStoreConfiguration extends AbstractLangchain4jPluginConfiguration {
 
 	private static final String JAVASCRIPT_FILENAME = "magic-langchain4j-chat-memory-store.1.0.0.iife.js";
 
 	public Langchain4jChatMemoryStoreConfiguration() {
-		super("langchain4j-chat-memory-store", "MagicLangchain4jChatMemoryStore", JAVASCRIPT_FILENAME);
+		super("langchain4j-chat-memory-store", "MagicLangchain4jChatMemoryStore", JAVASCRIPT_FILENAME, false);
 	}
 
 	/** 数据源实例持有者：按 key 持有多个 ChatMemoryStore 实例。 */

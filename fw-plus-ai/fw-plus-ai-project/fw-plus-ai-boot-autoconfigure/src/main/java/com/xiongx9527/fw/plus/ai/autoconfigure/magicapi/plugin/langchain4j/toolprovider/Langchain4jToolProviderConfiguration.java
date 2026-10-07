@@ -23,14 +23,14 @@ import org.ssssssss.magicapi.core.service.MagicResourceService;
  */
 @ConditionalOnClass(name = "dev.langchain4j.service.tool.ToolProvider")
 @ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.tool-provider", name = "enabled",
-		havingValue = "true", matchIfMissing = true)
+		havingValue = "true")
 @Configuration(proxyBeanMethods = false)
 public class Langchain4jToolProviderConfiguration extends AbstractLangchain4jPluginConfiguration {
 
 	private static final String JAVASCRIPT_FILENAME = "magic-langchain4j-tool-provider.1.0.0.iife.js";
 
 	public Langchain4jToolProviderConfiguration() {
-		super("langchain4j-tool-provider", "MagicLangchain4jToolProvider", JAVASCRIPT_FILENAME);
+		super("langchain4j-tool-provider", "MagicLangchain4jToolProvider", JAVASCRIPT_FILENAME, false);
 	}
 
 	/** 脚本执行器：function 走 magic.invoke，api 走脚本执行；可用自定义实现覆盖。 */

@@ -95,10 +95,13 @@ magic-api:
   plugin:
     elasticsearch:
       enabled: false
+    s3:
+      admin:
+        enabled: true
     knowledge:
-      # 控制台可见性开关（magicapi s3/kafka/db 等插件的 admin.enabled 惯例），与知识库功能
-      # 本身的启用与否无关——后者已全部迁到 kb_setting 表，由控制台「设置」页读写。
-      # 注意原写法是 admin: true，Spring 取不到 admin.enabled，入口实际一直是关的。
+      # 知识库管理端 toolbars 已并入 content-retriever 主插件（src/console/src/index.js），
+      # 入口显示由前端 adminOnly 控制；本配置不再被后端插件声明消费（隐身插件不带 adminEnabled）。
+      # 知识库功能本身的启用与否与该配置无关——已全部迁到 kb_setting 表，由控制台「设置」页读写。
       admin:
         enabled: true
     druid:

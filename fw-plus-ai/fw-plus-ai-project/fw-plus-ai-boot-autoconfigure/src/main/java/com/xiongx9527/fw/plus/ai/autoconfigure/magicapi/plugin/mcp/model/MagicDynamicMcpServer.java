@@ -151,14 +151,53 @@ public class MagicDynamicMcpServer implements DisposableBean, SmartInitializingS
 		if (routeBinder != null) {
 			routeBinder.unbind(runtime);
 		}
-		if (runtime.getServer().getTransport() != null) {
-			try {
-				runtime.getServer().getTransport().close();
-			} catch (Exception e) {
-				log.warn("关闭 MCP server {} 的 transport 时发生异常", key, e);
-			}
-		}
+		closeTransportQuietly(key, runtime);
 		log.info("已关闭 MCP server: {}", key);
+	}
+
+	/**
+	 * 数据源连接测试：按资源定义构建一次性 runtime 探测配置可用性。
+	 *
+	 * <p>复用 {@link #createClient} 的装配路径，但不注册 serverMap、不绑定路由、不注册
+	 * 工具与能力；探测后立即关闭 transport 释放资源，不影响现有运行实例。</p>
+	 *
+	 * @param info 待测试的资源定义
+	 * @return {@code "ok"} 或错误描述
+	 */
+	public synchronized String testConnection(MagicMcpServerInfo info) {
+		String key = info.getKey();
+		if (key == null || key.trim().isEmpty()) {
+			return "key不能为空";
+		}
+		if (info.getEndpoint() == null || info.getEndpoint().trim().isEmpty()) {
+			return "endpoint不能为空";
+		}
+		McpServerRuntime runtime = null;
+		try {
+			McpProperties effective = toMcpProperties(info);
+			runtime = runtimeFactory.createRuntime(effective, effective, authRegistry, broadcaster,
+					(config, featureMgr) -> new MagicApiMcpServerRegistry(toolInvoker));
+			return "ok";
+		} catch (Throwable e) {
+			log.error("MCP server:[{}]连接测试失败", key, e);
+			return "连接失败: " + e.getMessage();
+		} finally {
+			closeTransportQuietly(key, runtime);
+		}
+	}
+
+	/**
+	 * 关闭 MCP server 的 transport（存在时），异常仅告警不抛出。
+	 */
+	private void closeTransportQuietly(String key, McpServerRuntime runtime) {
+		if (runtime == null || runtime.getServer() == null || runtime.getServer().getTransport() == null) {
+			return;
+		}
+		try {
+			runtime.getServer().getTransport().close();
+		} catch (Exception e) {
+			log.warn("关闭 MCP server {} 的 transport 时发生异常", key, e);
+		}
 	}
 
 	/**

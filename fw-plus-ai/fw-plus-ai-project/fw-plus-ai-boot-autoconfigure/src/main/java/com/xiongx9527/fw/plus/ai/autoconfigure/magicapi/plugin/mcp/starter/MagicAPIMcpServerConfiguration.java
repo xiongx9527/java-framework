@@ -47,7 +47,11 @@ import java.util.List;
 
 @Configuration
 @Import(MagicMcpClusterConfiguration.class)
-@ConditionalOnClass({McpServer.class, McpServerRuntime.class})
+// auth-core 是 optional 依赖（缺失模块不可选）：缺失时本类不得加载，否则 @Bean
+// 方法签名中的 InstanceAuthRegistry 会在配置类内省阶段触发 NoClassDefFoundError，
+// MCP 插件整体降级为不装配
+@ConditionalOnClass(value = {McpServer.class, McpServerRuntime.class},
+        name = "com.xiongx9527.fw.plus.auth.core.InstanceAuthRegistry")
 @ConditionalOnBean(MagicResourceService.class)
 @ConditionalOnProperty(prefix = "magic-api.plugin.mcp", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(MagicApiMcpProperties.class)

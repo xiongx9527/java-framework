@@ -17,14 +17,14 @@ import org.springframework.context.annotation.Configuration;
 /** tokenizer 数据源的装配：实例持有者、资源存储与动态注册器。 */
 @ConditionalOnClass(name = "dev.langchain4j.model.Tokenizer")
 @ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.tokenizer", name = "enabled",
-        havingValue = "true", matchIfMissing = true)
+        havingValue = "true")
 @Configuration(proxyBeanMethods = false)
 public class Langchain4jTokenizerConfiguration extends AbstractLangchain4jPluginConfiguration {
 
     private static final String JAVASCRIPT_FILENAME = "magic-langchain4j-tokenizer.1.0.0.iife.js";
 
     public Langchain4jTokenizerConfiguration() {
-        super("langchain4j-tokenizer", "MagicLangchain4jTokenizer", JAVASCRIPT_FILENAME);
+        super("langchain4j-tokenizer", "MagicLangchain4jTokenizer", JAVASCRIPT_FILENAME, false);
     }
 
     @Bean

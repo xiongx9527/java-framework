@@ -37,7 +37,11 @@ import java.util.List;
  * </p>
  */
 @Configuration
-@ConditionalOnClass(name = "com.xiongx9527.fw.plus.ai.mcp.server.feature.McpFeatureScanner")
+// auth-core 是 optional 依赖（见 RedisClusterConfiguration 同款处理）：缺失时本类
+// 不得加载，否则 @Bean 方法签名中的 InstanceAuthRegistry 会在配置类内省阶段触发
+// NoClassDefFoundError（MCP runtime 依赖认证 fail-closed，缺失即整体不装配）
+@ConditionalOnClass(name = {"com.xiongx9527.fw.plus.ai.mcp.server.feature.McpFeatureScanner",
+        "com.xiongx9527.fw.plus.auth.core.InstanceAuthRegistry"})
 @EnableConfigurationProperties(McpProperties.class)
 @ConditionalOnProperty(prefix = "fw-plus.ai.mcp", name = "enabled", havingValue = "true", matchIfMissing = true)
 @AutoConfigureAfter(name = "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration")

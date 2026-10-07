@@ -412,6 +412,9 @@ public class MyDefaultMagicResourceService extends DefaultMagicResourceService {
             // 遍历文件缓存，为每个实体发布加载事件
             getFileCache().values().forEach(entity -> {
                 Group group = getGroupCache().get(entity.getGroupId());
+                if (group == null) {
+                    return;
+                }
                 getPublisher().publishEvent(new FileEvent(group.getType(), EventAction.LOAD, entity));
             });
             return null;
@@ -1315,6 +1318,9 @@ public class MyDefaultMagicResourceService extends DefaultMagicResourceService {
             //this.readAll();
             getFileCache().values().forEach((entity) -> {
                 Group group = (Group)getGroupCache().get(entity.getGroupId());
+                if (group == null) {
+                    return;
+                }
                 if (group.getType().equalsIgnoreCase(resource)) {
                     getPublisher().publishEvent(new FileEvent(group.getType(), EventAction.LOAD, entity,resource));
                 }

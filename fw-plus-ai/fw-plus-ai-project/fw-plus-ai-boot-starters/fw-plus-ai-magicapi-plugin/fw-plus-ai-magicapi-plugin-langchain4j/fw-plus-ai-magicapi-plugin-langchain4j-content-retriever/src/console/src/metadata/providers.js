@@ -14,7 +14,7 @@ export const PROVIDER_FIELDS = {
     'web-search': [{ name: 'search-function', type: 'text' }, { name: 'max-results', type: 'number' }],
     'filtering': [{ name: 'content-retriever-key', type: 'text' }, { name: 'filter-function', type: 'text' }, { name: 'min-score', type: 'number' }, { name: 'filters', type: 'map' }],
     'aggregating': [{ name: 'content-retriever-keys', type: 'tags' }, { name: 'max-results', type: 'number' }, { name: 'deduplicate', type: 'switch' }],
-    'knowledge': [{ name: 'dataset-id', type: 'text' }, { name: 'document-id', type: 'text' }, { name: 'max-results', type: 'number' }, { name: 'min-score', type: 'number' }, { name: 'metadata-condition', type: 'text' }],
+    'knowledge': [{ name: 'dataset-id', type: 'text' }, { name: 'document-id', type: 'text' }, { name: 'max-results', type: 'number' }, { name: 'min-score', type: 'number' }, { name: 'metadata-condition', type: 'text' }, { name: 'metadata-filter-mode', type: 'select' }],
 };
 
 /**
@@ -62,4 +62,5 @@ export function isSensitive(name) {
  */
 export const SELECT_HINTS = {
     'query-type': ['VECTOR', 'FULL_TEXT', 'HYBRID', 'HYBRID_WITH_RERANKING'],
+    'metadata-filter-mode': ['none', 'auto'],
 };

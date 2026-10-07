@@ -1,5 +1,4 @@
 import vue from '@vitejs/plugin-vue'
-import viteSvgIcons from 'vite-plugin-svg-icons'
 import path from 'path'
 import pkg from './package.json'
 
@@ -27,9 +26,5 @@ export default {
     },
     plugins: [
         vue(),
-        viteSvgIcons({
-            iconDirs: [path.resolve(process.cwd(), 'src/icons')],
-            symbolId: 'magic-mcp-[name]'
-        }),
     ]
 }

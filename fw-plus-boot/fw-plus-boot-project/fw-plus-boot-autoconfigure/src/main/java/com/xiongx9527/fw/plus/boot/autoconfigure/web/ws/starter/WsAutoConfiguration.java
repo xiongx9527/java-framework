@@ -43,7 +43,11 @@ import java.util.List;
  */
 @Configuration
 @ConditionalOnProperty(prefix = "fw.plus.ws", name = "enabled", havingValue = "true")
-@ConditionalOnClass(name = {"org.springframework.web.socket.WebSocketHandler"})
+// auth-core 是 optional 依赖：缺少时 WS 基建不可用（握手鉴权强依赖 InstanceAuthRegistry），
+// 且 @Bean 签名里的 InstanceAuthRegistry 会在配置类内省阶段触发 NoClassDefFoundError，
+// 因此随 ws.enabled 一并纳入 classpath 条件
+@ConditionalOnClass(name = {"org.springframework.web.socket.WebSocketHandler",
+        "com.xiongx9527.fw.plus.auth.core.InstanceAuthRegistry"})
 @EnableConfigurationProperties(WsConfig.class)
 @AutoConfigureAfter(name = {"org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration"})
 @Import({WsRedisConfiguration.class, WsWebFluxAutoConfiguration.class})
