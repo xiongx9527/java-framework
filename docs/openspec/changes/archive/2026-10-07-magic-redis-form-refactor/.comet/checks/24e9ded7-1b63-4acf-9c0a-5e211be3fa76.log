@@ -1,0 +1,25 @@
+
+> magic-redis@1.0.0 test
+> node --test test/
+
+(node:97002) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-redis/src/console/src/metadata/redis-datasource.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-redis/src/console/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 元数据字段与后端 RedisDataSourceInfo（含 MagicEntity 的 name）一致 (4.532927ms)
+✔ 元数据必填口径与后端 BaseService.validateField 一致 (0.716596ms)
+✔ 字段类型属于已声明的集合，敏感字段与枚举字段定义完整 (0.245634ms)
+✔ 字段都有中英文文案 (0.277999ms)
+✔ 枚举候选值都有中英文展示名 (0.270303ms)
+✔ 中英文案键集合完全一致 (0.33926ms)
+✔ index.js 注册该 datasource type 并绑定组件 (0.401619ms)
+✔ service 不再引用失效代码，并提供保存前校验钩子 (0.460149ms)
+✔ 组件未直接绑定 propertiesText，回显走 properties 序列化 (0.468184ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 155.891287
