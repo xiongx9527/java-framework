@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.LinkedHashMap;
@@ -156,18 +157,26 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 		return ok(datasetService.get(id));
 	}
 
-	@RequestMapping(value = "/kb/dataset/{id}", method = {RequestMethod.PUT, RequestMethod.POST})
+	/**
+	 * 更新或删除数据集（规格 §3.1：PUT=更新、DELETE=删除；控制台 sendJson 统一 POST——
+	 * body 为数据体则更新，body 为空对象 {@code {}} 则删除）。
+	 * <p>更新与删除若拆成两个都含 POST 的 handler，Spring 会因
+	 * "Ambiguous handler methods" 对 POST 一律返回 500，故必须单 handler 内按 method + body 分发。</p>
+	 */
+	@RequestMapping(value = "/kb/dataset/{id}", method = {RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.POST})
 	@ResponseBody
-	public Object updateDataset(@PathVariable("id") String id, @RequestBody KbDataset dataset) {
+	public Object updateOrDeleteDataset(@PathVariable("id") String id,
+			@RequestBody(required = false) String body, HttpServletRequest request) {
+		if (isDeleteInvocation(request.getMethod(), body)) {
+			Map<String, Object> data = new LinkedHashMap<>();
+			data.put("referencedRetrievers", datasetService.delete(id));
+			return ok(data);
+		}
+		KbDataset dataset = body == null || body.trim().isEmpty() ? null : JSON.parseObject(body, KbDataset.class);
+		if (dataset == null) {
+			return error("请求体不能为空");
+		}
 		return ok(datasetService.update(id, dataset));
-	}
-
-	@RequestMapping(value = "/kb/dataset/{id}", method = {RequestMethod.DELETE, RequestMethod.POST})
-	@ResponseBody
-	public Object deleteDataset(@PathVariable("id") String id) {
-		Map<String, Object> data = new LinkedHashMap<>();
-		data.put("referencedRetrievers", datasetService.delete(id));
-		return ok(data);
 	}
 
 	/** 召回测试（支持 metadata 过滤条件，格式对齐 Dify metadata_condition）。 */
@@ -381,20 +390,27 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 		return ok(segmentService.patchEnabled(id, value));
 	}
 
-	@RequestMapping(value = "/kb/segment/{id}", method = {RequestMethod.PUT, RequestMethod.POST})
+	/**
+	 * 更新或删除分段（规格 §3.1：PUT=更新、DELETE=删除；控制台 POST body 为空对象则删除，
+	 * 含 content/keywords/answer 数据则更新——与数据集同一分发规则）。
+	 */
+	@RequestMapping(value = "/kb/segment/{id}", method = {RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.POST})
 	@ResponseBody
-	public Object updateSegment(@PathVariable("id") String id, @RequestBody Map<String, Object> body) {
-		String content = body.get("content") == null ? null : String.valueOf(body.get("content"));
-		String keywords = body.get("keywords") == null ? null : String.valueOf(body.get("keywords"));
-		String answer = body.get("answer") == null ? null : String.valueOf(body.get("answer"));
+	public Object updateOrDeleteSegment(@PathVariable("id") String id,
+			@RequestBody(required = false) String body, HttpServletRequest request) {
+		if (isDeleteInvocation(request.getMethod(), body)) {
+			segmentService.delete(id);
+			return ok(null);
+		}
+		Map<String, Object> parsed = body == null || body.trim().isEmpty()
+				? null : JSON.parseObject(body, Map.class);
+		if (parsed == null) {
+			return error("请求体不能为空");
+		}
+		String content = parsed.get("content") == null ? null : String.valueOf(parsed.get("content"));
+		String keywords = parsed.get("keywords") == null ? null : String.valueOf(parsed.get("keywords"));
+		String answer = parsed.get("answer") == null ? null : String.valueOf(parsed.get("answer"));
 		return ok(segmentService.update(id, content, keywords, answer));
-	}
-
-	@RequestMapping(value = "/kb/segment/{id}", method = {RequestMethod.DELETE, RequestMethod.POST})
-	@ResponseBody
-	public Object deleteSegment(@PathVariable("id") String id) {
-		segmentService.delete(id);
-		return ok(null);
 	}
 
 	/** multipart 上传的 metadata JSON 字符串解析；空/非法返回 null（不入库）。 */
@@ -412,6 +428,21 @@ public class KbConsoleController extends MagicController implements MagicExcepti
 	}
 
 	// ---------------- 统一响应 ----------------
+
+	/**
+	 * 删除语义判定：DELETE 恒为删除；POST 时仅当 body 缺失/空白/空对象 {@code {}} 才视为删除
+	 * （规格 §3.1「POST body {} = 删除」），其余 body 为更新。
+	 */
+	private static boolean isDeleteInvocation(String httpMethod, String rawBody) {
+		if (RequestMethod.DELETE.name().equals(httpMethod)) {
+			return true;
+		}
+		if (!RequestMethod.POST.name().equals(httpMethod)) {
+			return false;
+		}
+		String trimmed = rawBody == null ? "" : rawBody.trim();
+		return trimmed.isEmpty() || "{}".equals(trimmed);
+	}
 
 	public static Object ok(Object data) {
 		Map<String, Object> result = new LinkedHashMap<>();
