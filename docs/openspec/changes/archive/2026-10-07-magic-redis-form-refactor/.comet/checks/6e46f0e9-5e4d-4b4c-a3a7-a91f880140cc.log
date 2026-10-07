@@ -1,0 +1,11 @@
+
+> magic-redis@1.0.0 build
+> vite build
+
+(node:6938) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+vite v2.9.18 building for production...
+transforming...
+✓ 8 modules transformed.
+rendering chunks...
+dist/magic-redis.1.0.0.iife.js   12.31 KiB / gzip: 3.98 KiB

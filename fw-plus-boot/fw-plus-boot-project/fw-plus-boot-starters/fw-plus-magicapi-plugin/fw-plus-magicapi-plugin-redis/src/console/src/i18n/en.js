@@ -1,20 +1,19 @@
 export default {
     redis: {
         datasource: {
-            title: 'Redis DataSource',
-            name: 'Redis',
-            extra: {
-                mode: {
-                    standalone: 'Standalone',
-                    sentinel: 'Sentinel',
-                    cluster: 'Cluster'
-                },
-                clientType: {
-                    lettuce: 'Lettuce',
-                    jedis: 'Jedis'
-                }
+            common: {
+                title: 'Redis DataSource',
+                name: 'Redis'
             },
-            form: {
+            hint: {
+                required: 'Required',
+                optional: 'Optional',
+                select: 'Type-in allowed',
+                json: 'JSON object, for example: {"key": "value"}',
+                jsonInvalid: 'Properties is not a valid JSON object',
+                requiredField: '{0} is required'
+            },
+            field: {
                 name: 'Name',
                 key: 'Key',
                 hostname: 'Hostname',
@@ -24,18 +23,17 @@ export default {
                 database: 'Database',
                 mode: 'Mode',
                 clientType: 'Client',
-                properties: 'Properties',
-                placeholder: {
-                    name: 'DataSource Name, Only Display Use',
-                    key: 'DataSource Key, Required',
-                    hostname: 'Please Enter Server ip, Required',
-                    port: 'Please Enter Server port, Required',
-                    username: 'Please Enter username, Option',
-                    password: 'Please Enter password, Option',
-                    database: 'Please Enter database, Required',
-                    mode: 'Please Enter mode, Option',
-                    clientType: 'Please Enter clientType, Option',
-                    properties: 'JSON object, for example: {"key": "value"}'
+                properties: 'Properties'
+            },
+            extra: {
+                mode: {
+                    standalone: 'Standalone',
+                    sentinel: 'Sentinel',
+                    cluster: 'Cluster'
+                },
+                clientType: {
+                    lettuce: 'Lettuce',
+                    jedis: 'Jedis'
                 }
             }
         }

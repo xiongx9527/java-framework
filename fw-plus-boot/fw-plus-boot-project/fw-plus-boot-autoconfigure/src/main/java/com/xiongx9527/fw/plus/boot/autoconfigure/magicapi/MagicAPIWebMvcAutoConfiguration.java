@@ -14,7 +14,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasourc
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.starter.MagicAPIDbTxConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.seata.starter.MagicAPISeataConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mybatisflex.starter.MyBatisFlexConfiguration;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mybatisplus.starter.MybatisPlusModuleConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mybatisplus.starter.MybatisPlusConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.template.TemplateModuleConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.trace.TraceModuleConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.uid.UidModuleConfiguration;
@@ -66,7 +66,7 @@ import java.util.*;
          UidModuleConfiguration.class,
 		 LockModuleConfiguration.class,
 		 MyBatisFlexConfiguration.class,
-		 MybatisPlusModuleConfiguration.class,
+		 MybatisPlusConfiguration.class,
 		 TemplateModuleConfiguration.class,
          MagicApiPluginAutoConfiguration.class,
 		 DifyModuleConfiguration.class,
@@ -170,18 +170,21 @@ public class MagicAPIWebMvcAutoConfiguration implements ApplicationRunner {
 
 	@Bean
 	@ConditionalOnMissingBean
+	@org.springframework.boot.autoconfigure.condition.ConditionalOnClass(name = "com.alibaba.csp.sentinel.slots.block.flow.FlowRule")
 	public MagicApiSentinelResourceResolver magicApiSentinelResourceResolver() {
 		return new MagicApiSentinelResourceResolver();
 	}
 
 	@Bean
 	@ConditionalOnMissingBean
+	@org.springframework.boot.autoconfigure.condition.ConditionalOnClass(name = "com.alibaba.csp.sentinel.slots.block.flow.FlowRule")
 	public MagicApiSentinelRuleManager magicApiSentinelRuleManager() {
 		return new MagicApiSentinelRuleManager();
 	}
 
 	@Bean
 	@ConditionalOnMissingBean
+	@org.springframework.boot.autoconfigure.condition.ConditionalOnClass(name = "com.alibaba.csp.sentinel.slots.block.flow.FlowRule")
 	public MagicApiSentinelGuardRequestInterceptor magicApiSentinelGuardRequestInterceptor(
 			org.ssssssss.magicapi.core.interceptor.ResultProvider resultProvider,
 			MagicApiRequestKeyResolver keyResolver,

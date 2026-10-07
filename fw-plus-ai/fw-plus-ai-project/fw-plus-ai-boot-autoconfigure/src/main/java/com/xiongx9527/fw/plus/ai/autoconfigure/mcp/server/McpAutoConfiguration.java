@@ -1,8 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.McpAuthService;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.SaTokenOAuth2McpAuthService;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.PermitAllAuthService;
+import com.xiongx9527.fw.plus.auth.core.InstanceAuthRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.cluster.McpRedisBroadcaster;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.cluster.McpRedisMessageConsumer;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties;
@@ -20,7 +18,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
-import org.springframework.util.ClassUtils;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -40,7 +37,11 @@ import java.util.List;
  * </p>
  */
 @Configuration
-@ConditionalOnClass(name = "com.xiongx9527.fw.plus.ai.mcp.server.feature.McpFeatureScanner")
+// auth-core 是 optional 依赖（见 RedisClusterConfiguration 同款处理）：缺失时本类
+// 不得加载，否则 @Bean 方法签名中的 InstanceAuthRegistry 会在配置类内省阶段触发
+// NoClassDefFoundError（MCP runtime 依赖认证 fail-closed，缺失即整体不装配）
+@ConditionalOnClass(name = {"com.xiongx9527.fw.plus.ai.mcp.server.feature.McpFeatureScanner",
+        "com.xiongx9527.fw.plus.auth.core.InstanceAuthRegistry"})
 @EnableConfigurationProperties(McpProperties.class)
 @ConditionalOnProperty(prefix = "fw-plus.ai.mcp", name = "enabled", havingValue = "true", matchIfMissing = true)
 @AutoConfigureAfter(name = "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration")
@@ -48,26 +49,13 @@ import java.util.List;
 public class McpAutoConfiguration {
 
 	/**
-	 * sa-token-oauth2 是否在 classpath 上：未引入时 {@link SaTokenOAuth2McpAuthService} 不会被实例化。
-	 */
-	private static final boolean SA_TOKEN_OAUTH2_PRESENT = ClassUtils.isPresent(
-			"cn.dev33.satoken.oauth2.template.SaOAuth2Util", McpAutoConfiguration.class.getClassLoader());
-
-
-	/**
-	 * 认证 SPI：三种形态择一，用户提供自定义 {@link McpAuthService} bean 时本方法整体让位。
-	 * <ol>
-	 *     <li>classpath 有 sa-token-oauth2 → {@link SaTokenOAuth2McpAuthService}</li>
-	 *     <li>否则 → {@link PermitAllAuthService} 放行占位</li>
-	 * </ol>
+	 * 按实例 provider 解析认证服务。未配置 provider 的 runtime 保持未认证并拒绝请求，
+	 * 不回退到全局或放行服务；provider 对应模块缺失时 fail-closed 拒绝请求。
 	 */
 	@Bean
-	@ConditionalOnMissingBean(McpAuthService.class)
-	public McpAuthService mcpAuthService() {
-		if (SA_TOKEN_OAUTH2_PRESENT) {
-			return new SaTokenOAuth2McpAuthService();
-		}
-		return new PermitAllAuthService();
+	@ConditionalOnMissingBean
+	public InstanceAuthRegistry instanceAuthRegistry() {
+		return new InstanceAuthRegistry();
 	}
 
 	/**
@@ -83,9 +71,10 @@ public class McpAutoConfiguration {
 	 * 构建全部 runtime：default（顶层配置）+ 命名 servers；endpoint 唯一性在此校验。
 	 */
 	@Bean
-	public List<McpServerRuntime> mcpServerRuntimes(McpProperties properties, McpAuthService authService,
+	public List<McpServerRuntime> mcpServerRuntimes(McpProperties properties,
+			InstanceAuthRegistry authRegistry,
 			ObjectProvider<McpRedisBroadcaster> broadcasterProvider, McpRuntimeFactory runtimeFactory) {
-		return runtimeFactory.createRuntimes(properties, authService, broadcasterProvider);
+		return runtimeFactory.createRuntimes(properties, authRegistry, broadcasterProvider);
 	}
 
 	@Bean

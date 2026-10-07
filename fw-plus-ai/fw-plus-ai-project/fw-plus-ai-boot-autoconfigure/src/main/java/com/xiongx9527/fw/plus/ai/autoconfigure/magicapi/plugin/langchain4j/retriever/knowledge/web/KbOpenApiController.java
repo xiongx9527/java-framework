@@ -9,7 +9,12 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retri
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbDocumentService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSearchHit;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSearchService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSettingService;
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.http.MediaType;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,7 +33,21 @@ import java.util.Map;
  * 对外 REST API（设计 §3.3/§3.4）：业务对接 + Dify External Knowledge API 兼容，同一服务。
  * 认证统一走 {@link KbSaTokenAuthChecker}（Sa-Token）；未认证返回 error_code 1002，
  * 数据集不存在返回 error_code 2001。
+ *
+ * <p>类级装配条件与 {@code KnowledgeConfiguration} 对齐（本控制器唯一注册入口是该配置的
+ * {@code kbOpenApiController} Bean 方法，条件对它不生效，仅约束组件扫描）：应用若误将
+ * {@code com.xiongx9527.fw.plus.ai.autoconfigure.**} 纳入 {@code @ComponentScan}，本类会被当作应用
+ * 自己的控制器注册，而此时知识库服务层可能整体未装配（无 SqlSessionFactory 或开关关闭），
+ * 导致启动期缺 {@link KbDocumentService} 报 "required a bean of type ... that could not be found"。
+ * 加上条件后，误扫描时本类不注册，知识库未装配的应用照常启动。</p>
  */
+@ConditionalOnClass(SqlSessionFactory.class)
+@ConditionalOnBean({KbDocumentService.class, KbSearchService.class,
+		com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbDatasetService.class,
+		com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSegmentService.class,
+		com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService.class,
+		KbSaTokenAuthChecker.class,
+		com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSettingService.class})
 @RestController
 public class KbOpenApiController {
 
@@ -42,19 +61,45 @@ public class KbOpenApiController {
 
 	private final com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService metadataFieldService;
 
+	private final KbSettingService settingService;
+
 	private final KbSaTokenAuthChecker authChecker;
 
 	public KbOpenApiController(KbDocumentService documentService, KbSearchService searchService,
 			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbDatasetService datasetService,
 			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSegmentService segmentService,
 			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService metadataFieldService,
+			KbSettingService settingService,
 			KbSaTokenAuthChecker authChecker) {
 		this.documentService = documentService;
 		this.searchService = searchService;
 		this.datasetService = datasetService;
 		this.segmentService = segmentService;
 		this.metadataFieldService = metadataFieldService;
+		this.settingService = settingService;
 		this.authChecker = authChecker;
+	}
+
+	// ---------------- 控制台设置（kb_setting 单行，保存即热生效） ----------------
+
+	@GetMapping("/settings")
+	public Object getSettings() {
+		if (!auth(null, null)) {
+			return error(1002, "认证失败");
+		}
+		return ok(settingService.current());
+	}
+
+	@PostMapping("/settings")
+	public Object saveSettings(@RequestBody com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.entity.KbSetting setting) {
+		if (!auth(null, null)) {
+			return error(1002, "认证失败");
+		}
+		try {
+			return ok(settingService.save(setting));
+		} catch (IllegalArgumentException e) {
+			return error(2001, e.getMessage());
+		}
 	}
 
 	// ---------------- 业务对接接口 ----------------
@@ -467,12 +512,41 @@ public class KbOpenApiController {
 	// ---------------- 内部 ----------------
 
 	private boolean auth(String authorization, String kbToken) {
+		Map<String, String> headers = collectHeaders();
+		// 显式参数优先（兼容直接调用 / 测试），真实请求由 RequestContextHolder 提供全量请求头
+		if (StringUtils.hasText(authorization)) {
+			headers.put("Authorization", authorization);
+		}
+		if (StringUtils.hasText(kbToken)) {
+			headers.put("kb-token", kbToken);
+		}
 		try {
-			authChecker.check(authorization, kbToken);
+			authChecker.check(headers);
 			return true;
 		} catch (KbSaTokenAuthChecker.KbUnauthorizedException e) {
 			return false;
 		}
+	}
+
+	/**
+	 * 读取当前请求的全量请求头：provider 化后不同 provider 从不同 header 取凭据（
+	 * {@code Authorization}、Sa-Token tokenName、{@code apikey}、{@code ticket} 等），
+	 * 因此不能再只透传固定的两个参数。无请求上下文时返回空表。
+	 */
+	private static Map<String, String> collectHeaders() {
+		Map<String, String> headers = new LinkedHashMap<>();
+		org.springframework.web.context.request.RequestAttributes attributes =
+				org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+		if (attributes instanceof org.springframework.web.context.request.ServletRequestAttributes) {
+			javax.servlet.http.HttpServletRequest request =
+					((org.springframework.web.context.request.ServletRequestAttributes) attributes).getRequest();
+			java.util.Enumeration<String> names = request.getHeaderNames();
+			while (names != null && names.hasMoreElements()) {
+				String name = names.nextElement();
+				headers.put(name, request.getHeader(name));
+			}
+		}
+		return headers;
 	}
 
 	private static Object ok(Object data) {

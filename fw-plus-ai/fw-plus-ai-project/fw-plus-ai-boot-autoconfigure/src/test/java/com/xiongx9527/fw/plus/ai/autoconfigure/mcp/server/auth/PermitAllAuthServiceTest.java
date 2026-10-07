@@ -1,5 +1,9 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth;
 
+import com.xiongx9527.fw.plus.auth.core.AuthPrincipal;
+import com.xiongx9527.fw.plus.auth.core.AuthRequest;
+import com.xiongx9527.fw.plus.auth.core.AuthService;
+import com.xiongx9527.fw.plus.auth.core.PermitAllAuthService;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -10,28 +14,28 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class PermitAllAuthServiceTest {
 
-	private final PermitAllAuthService service = new PermitAllAuthService();
+    private final AuthService service = new PermitAllAuthService();
 
-	@Test
-	void shouldAlwaysAuthenticateToPermitAll() {
-		Map<String, String> headers = new HashMap<>();
-		headers.put("Authorization", "Bearer evil-token");
+    @Test
+    void shouldAlwaysAuthenticateToPermitAll() {
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Authorization", "Bearer evil-token");
 
-		McpPrincipal principal = service.authenticate(
-				new McpRequest("session-1", "http-sse", "/mcp", "{\"id\":1}", headers));
+        AuthPrincipal principal = service.authenticate(
+                new AuthRequest("session-1", "http-sse", "/mcp", "{\"id\":1}", headers));
 
-		assertThat(principal).isSameAs(McpPrincipal.PERMIT_ALL);
-		assertThat(principal).isNotSameAs(McpPrincipal.ANONYMOUS);
-		assertThat(principal.getSubject()).isEqualTo("permit-all");
-		assertThat(principal.getScopes()).isEmpty();
-	}
+        assertThat(principal).isSameAs(AuthPrincipal.PERMIT_ALL);
+        assertThat(principal).isNotSameAs(AuthPrincipal.ANONYMOUS);
+        assertThat(principal.getSubject()).isEqualTo("permit-all");
+        assertThat(principal.getScopes()).isEmpty();
+    }
 
-	@Test
-	void shouldAcceptEveryRequestShape() {
-		// 空 body / 空 headers / 空 sessionId 均不抛异常
-		McpPrincipal principal = service.authenticate(new McpRequest(null, "streamable-http", "/mcp",
-				"", Collections.emptyMap()));
+    @Test
+    void shouldAcceptEveryRequestShape() {
+        // 空 body / 空 headers / 空 sessionId 均不抛异常
+        AuthPrincipal principal = service.authenticate(new AuthRequest(null, "streamable-http", "/mcp",
+                "", Collections.emptyMap()));
 
-		assertThat(principal.getSubject()).isEqualTo("permit-all");
-	}
+        assertThat(principal.getSubject()).isEqualTo("permit-all");
+    }
 }

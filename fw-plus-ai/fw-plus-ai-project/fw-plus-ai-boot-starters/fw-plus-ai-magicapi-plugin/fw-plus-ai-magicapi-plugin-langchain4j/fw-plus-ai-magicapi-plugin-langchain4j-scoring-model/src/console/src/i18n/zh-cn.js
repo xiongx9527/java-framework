@@ -1,7 +1,7 @@
 export default {
     langchain4j: {
         type: {
-            'scoring-model': '重排模型（Rerank）'
+            'scoring-model': '重排模型'
         },
         common: {
             name: '名称',

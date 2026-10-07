@@ -43,7 +43,6 @@ export default (opt) => {
             type: 'langchain4j-content-injector',
             title: i18n.format('langchain4j.form.title'),
             icon: '#' + ICON_ID,
-            order: 310,
             component: MagicLangchain4jContentInjectorInfo
         }]
     }

@@ -44,6 +44,9 @@ public class McpSseController extends McpTransportController {
 			response.sendError(HttpServletResponse.SC_FORBIDDEN);
 			return;
 		}
+		if (!isAuthenticated(null, "http-sse", endpoint(), null, request, response)) {
+			return;
+		}
 
 		response.setContentType(MediaType.TEXT_EVENT_STREAM_VALUE);
 		response.setCharacterEncoding("UTF-8");

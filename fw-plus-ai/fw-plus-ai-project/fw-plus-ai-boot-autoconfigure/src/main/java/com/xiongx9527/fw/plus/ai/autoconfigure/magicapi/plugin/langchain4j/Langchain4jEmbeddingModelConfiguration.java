@@ -17,14 +17,14 @@ import org.springframework.context.annotation.Configuration;
 /** embedding-model 数据源的装配：实例持有者、资源存储与动态注册器。 */
 @ConditionalOnClass(name = "dev.langchain4j.model.embedding.EmbeddingModel")
 @ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.embedding-model", name = "enabled",
-        havingValue = "true", matchIfMissing = true)
+        havingValue = "true")
 @Configuration(proxyBeanMethods = false)
 public class Langchain4jEmbeddingModelConfiguration extends AbstractLangchain4jPluginConfiguration {
 
     private static final String JAVASCRIPT_FILENAME = "magic-langchain4j-embedding-model.1.0.0.iife.js";
 
     public Langchain4jEmbeddingModelConfiguration() {
-        super("langchain4j-embedding-model", "MagicLangchain4jEmbeddingModel", JAVASCRIPT_FILENAME);
+        super("langchain4j-embedding-model", "MagicLangchain4jEmbeddingModel", JAVASCRIPT_FILENAME, false);
     }
 
     @Bean

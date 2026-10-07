@@ -35,6 +35,11 @@ public class McpProperties {
     private Headers headers = new Headers();
 
     /**
+     * 当前 runtime 的认证 provider；不会从顶层配置继承到命名 runtime。
+     */
+    private Auth auth;
+
+    /**
      * 是否开启 capability scope 裁剪：开启后入口按已认证主体的 token scopes 拒绝
      * 未覆盖目标能力（tools/resources/prompts）的请求。缺省 {@code false} 即不裁剪，
      * 行为与改造前一致。
@@ -158,6 +163,14 @@ public class McpProperties {
         this.headers = headers == null ? new Headers() : headers;
     }
 
+    public Auth getAuth() {
+        return auth;
+    }
+
+    public void setAuth(Auth auth) {
+        this.auth = auth;
+    }
+
     public boolean isScopeCheckEnabled() {
         return scopeCheckEnabled;
     }
@@ -213,6 +226,19 @@ public class McpProperties {
 
         public void setOrigin(String origin) {
             this.origin = origin;
+        }
+    }
+
+    public static class Auth {
+
+        private String provider;
+
+        public String getProvider() {
+            return provider;
+        }
+
+        public void setProvider(String provider) {
+            this.provider = provider;
         }
     }
 

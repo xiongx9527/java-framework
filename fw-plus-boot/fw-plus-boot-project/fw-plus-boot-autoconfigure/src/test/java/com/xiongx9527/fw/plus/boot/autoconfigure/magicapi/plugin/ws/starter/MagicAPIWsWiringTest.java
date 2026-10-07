@@ -9,6 +9,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.service.WsSu
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.service.WsSubscribeMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.handler.AbstractWebSocketHandler;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.handler.SimpleWebSocketHandler;
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.handler.WsHandshakeInterceptor;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.spi.WsBusinessDispatcher;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.starter.WsAutoConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.starter.WsEndpointRegistrar;
@@ -22,7 +23,6 @@ import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistration;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
-import org.springframework.web.socket.server.HandshakeInterceptor;
 import org.ssssssss.magicapi.core.config.MagicAPIProperties;
 
 import java.lang.reflect.Field;
@@ -48,10 +48,18 @@ class MagicAPIWsWiringTest {
     private final MagicAPIProperties properties = new MagicAPIProperties();
 
     // fw.plus.ws.enabled 无 matchIfMissing：未配置时装配关闭，测试统一显式开启。
+    //
+    // 注册顺序必须让 WS 地基先于 magic 侧插件配置被解析：MagicAPIWsConfiguration 用
+    // @ConditionalOnBean(AbstractWebSocketHandler.class) 决定是否装配，而该条件只能看到
+    // "此刻已解析完的配置"里声明过的 @Bean。生产里这条顺序由
+    // MagicAPIBaseAutoConfiguration 上的 @AutoConfigureAfter(WsAutoConfiguration.class) 保证；
+    // 这里用 withUserConfiguration 的先后顺序复现同一前提。若把 WsAutoConfiguration 放进
+    // AutoConfigurations.of(...)，它会成为延迟自动配置（在用户配置之后解析），
+    // MagicAPIWsConfiguration 会被静默跳过，wsModule bean 数为 0。
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
             .withPropertyValues("fw.plus.ws.enabled=true")
-            .withConfiguration(AutoConfigurations.of(RefreshAutoConfiguration.class, WsAutoConfiguration.class))
-            .withUserConfiguration(MagicAPIWsConfiguration.class)
+            .withConfiguration(AutoConfigurations.of(RefreshAutoConfiguration.class))
+            .withUserConfiguration(WsAutoConfiguration.class, MagicAPIWsConfiguration.class)
             .withBean(MagicAPIProperties.class, () -> properties)
             .withBean(SpringUtils.class);
 
@@ -138,17 +146,22 @@ class MagicAPIWsWiringTest {
 	}
 
 	@Test
+	@SuppressWarnings("unchecked")
 	void magicHandshakeInterceptorShouldBeAttachedToEndpoint() throws Exception {
         properties.setWeb("");
-        HandshakeInterceptor interceptor = mock(MagicAPIHandshakeInterceptor.class);
-        runner.withBean(MagicAPIHandshakeInterceptor.class, () -> (MagicAPIHandshakeInterceptor) interceptor)
+        MagicAPIHandshakeInterceptor interceptor = mock(MagicAPIHandshakeInterceptor.class);
+        runner.withBean(MagicAPIHandshakeInterceptor.class, () -> interceptor)
                 .run(context -> {
                     WebSocketConfigurer registrar = context.getBean(WebSocketConfigurer.class);
                     Field field = WsEndpointRegistrar.class.getDeclaredField("handshakeInterceptorMap");
                     field.setAccessible(true);
-                    Map<String, ?> interceptorMap = (Map<String, ?>) field.get(registrar);
+                    // 与 WsEndpointRegistrar#handshakeInterceptorMap 的声明类型保持一致，
+                    // 避免通配符捕获类型让 assertThat 重载解析失败。
+                    Map<String, WsHandshakeInterceptor> interceptorMap =
+                            (Map<String, WsHandshakeInterceptor>) field.get(registrar);
 
-                    Assertions.<Object>assertThat(interceptorMap.values()).containsExactly(interceptor);
+                    // 地基新增的握手认证拦截器会与 magic 侧拦截器并存，这里只断言 magic 拦截器已挂上。
+                    Assertions.<Object>assertThat(interceptorMap.values()).contains(interceptor);
                 });
     }
 

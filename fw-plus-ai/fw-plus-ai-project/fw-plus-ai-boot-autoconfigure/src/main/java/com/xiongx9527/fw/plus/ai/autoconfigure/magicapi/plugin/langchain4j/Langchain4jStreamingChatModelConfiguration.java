@@ -17,14 +17,14 @@ import org.springframework.context.annotation.Configuration;
 /** streaming-chat-model 数据源的装配：实例持有者、资源存储与动态注册器。 */
 @ConditionalOnClass(name = "dev.langchain4j.model.chat.StreamingChatModel")
 @ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.streaming-chat-model", name = "enabled",
-        havingValue = "true", matchIfMissing = true)
+        havingValue = "true")
 @Configuration(proxyBeanMethods = false)
 public class Langchain4jStreamingChatModelConfiguration extends AbstractLangchain4jPluginConfiguration {
 
     private static final String JAVASCRIPT_FILENAME = "magic-langchain4j-streaming-chat-model.1.0.0.iife.js";
 
     public Langchain4jStreamingChatModelConfiguration() {
-        super("langchain4j-streaming-chat-model", "MagicLangchain4jStreamingChatModel", JAVASCRIPT_FILENAME);
+        super("langchain4j-streaming-chat-model", "MagicLangchain4jStreamingChatModel", JAVASCRIPT_FILENAME, false);
     }
 
     @Bean

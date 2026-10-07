@@ -24,7 +24,7 @@ import org.ssssssss.magicapi.core.web.MagicControllerRegister;
  */
 @ConditionalOnClass(name = "dev.langchain4j.rag.content.injector.ContentInjector")
 @ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.content-injector", name = "enabled",
-		havingValue = "true", matchIfMissing = true)
+		havingValue = "true")
 @Configuration(proxyBeanMethods = false)
 public class Langchain4jContentInjectorConfiguration extends AbstractLangchain4jPluginConfiguration {
 
@@ -34,7 +34,7 @@ public class Langchain4jContentInjectorConfiguration extends AbstractLangchain4j
 	private final ObjectProvider<Langchain4jContentInjectorModule> moduleProvider;
 
 	public Langchain4jContentInjectorConfiguration(ObjectProvider<Langchain4jContentInjectorModule> moduleProvider) {
-		super("langchain4j-content-injector", "MagicLangchain4jContentInjector", JAVASCRIPT_FILENAME);
+		super("langchain4j-content-injector", "MagicLangchain4jContentInjector", JAVASCRIPT_FILENAME, false);
 		this.moduleProvider = moduleProvider;
 	}
 

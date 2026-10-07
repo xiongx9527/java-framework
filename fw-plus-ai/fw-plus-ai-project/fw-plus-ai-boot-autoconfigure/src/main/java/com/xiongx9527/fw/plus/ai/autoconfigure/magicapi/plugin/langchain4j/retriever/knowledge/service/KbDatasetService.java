@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.entity.KbDataset;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.entity.KbDocument;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.entity.KbSegment;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.entity.KbSetting;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.mapper.KbDatasetMapper;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.mapper.KbDocumentMapper;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.mapper.KbSegmentMapper;
@@ -43,13 +44,16 @@ public class KbDatasetService {
 
 	private final KbKnowledgeState state;
 
+	/** 全局设置：提供新建数据集时的模型默认值（每次现读，改完设置立即影响下一个新建的数据集） */
+	private final KbSettingService settings;
+
 	public KbDatasetService(KbDatasetMapper datasetMapper, KbDocumentMapper documentMapper,
 			KbSegmentMapper segmentMapper,
 			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.pipeline.DocumentPipeline documentPipeline,
 			KbSearchService searchService, KbIndexingService indexingService,
 			ObjectProvider<MagicResourceService> resourceServices,
 			ObjectProvider<com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.resource.Langchain4jContentRetrieverMagicResourceStorage> retrieverStorages,
-			KbKnowledgeState state) {
+			KbKnowledgeState state, KbSettingService settings) {
 		this.datasetMapper = datasetMapper;
 		this.documentMapper = documentMapper;
 		this.segmentMapper = segmentMapper;
@@ -59,6 +63,7 @@ public class KbDatasetService {
 		this.resourceServices = resourceServices;
 		this.retrieverStorages = retrieverStorages;
 		this.state = state;
+		this.settings = settings;
 	}
 
 	public List<KbDataset> list() {
@@ -73,29 +78,18 @@ public class KbDatasetService {
 
 	public KbDataset create(KbDataset dataset) {
 		state.checkReady();
+		// 先补全局默认再校验：页面只配一次，建数据集时留空即可
+		applyDatasetDefaults(dataset, null);
 		validate(dataset);
 		if (dataset.getId() == null || dataset.getId().isEmpty()) {
 			dataset.setId(UUID.randomUUID().toString().replace("-", ""));
 		}
-		if (dataset.getIndexingTechnique() == null || dataset.getIndexingTechnique().isEmpty()) {
-			dataset.setIndexingTechnique("high_quality");
+		// active 初始等于配置值：这样后续换模型时 update 的「已切换」提示才生效
+		// （原实现留空，active 为 null 时该分支被跳过，第一次换模型不会提示重建索引）
+		if (isBlank(dataset.getEmbeddingModelActive())) {
+			dataset.setEmbeddingModelActive(dataset.getEmbeddingModelKey());
 		}
-		if (dataset.getRetrievalTopK() == null) {
-			dataset.setRetrievalTopK(4);
-		}
-		if (dataset.getRetrievalScoreThreshold() == null) {
-			dataset.setRetrievalScoreThreshold(new java.math.BigDecimal("0.0000"));
-		}
-		if (dataset.getSegmentMaxLength() == null) {
-			dataset.setSegmentMaxLength(1000);
-		}
-		if (dataset.getSegmentOverlap() == null) {
-			dataset.setSegmentOverlap(200);
-		}
-		if (dataset.getSegmentMode() == null || dataset.getSegmentMode().isEmpty()) {
-			dataset.setSegmentMode("general");
-		}
-		if (dataset.getStatus() == null || dataset.getStatus().isEmpty()) {
+		if (isBlank(dataset.getStatus())) {
 			dataset.setStatus("active");
 		}
 		Date now = new Date();
@@ -144,6 +138,8 @@ public class KbDatasetService {
 		update.setSegmentMode(dataset.getSegmentMode() != null ? dataset.getSegmentMode() : existing.getSegmentMode());
 		update.setStatus(dataset.getStatus() != null ? dataset.getStatus() : existing.getStatus());
 		update.setUpdateTime(new Date());
+		// 回落顺序：本次提交 > 数据集现有值 > 全局设置默认（老数据集建在设置页之前，字段可能为空）
+		applyDatasetDefaults(update, existing);
 		// 嵌入模型切换提示重建索引（设计 §2.3：active 与配置不一致时）
 		if (existing.getEmbeddingModelActive() != null && !existing.getEmbeddingModelActive().isEmpty()
 				&& !existing.getEmbeddingModelActive().equals(newModelKey)) {
@@ -257,23 +253,123 @@ public class KbDatasetService {
 		return keys;
 	}
 
+	/**
+	 * 补齐数据集的空值字段：模型 key 与切分/召回参数，取自全局设置页配的默认值。
+	 *
+	 * <p>回落顺序为「传入值 → {@code fallback}（更新场景下的数据集现有值）→ 全局设置 → 硬编码兜底」。
+	 * 只填空值，绝不覆盖调用方显式给的内容——设置页改的是<b>新建数据集</b>的默认，
+	 * 不该回头篡改已有数据集的模型绑定（那会让已建好的向量与配置悄悄脱节）。
+	 *
+	 * @param dataset  待补齐的数据集（原地修改）
+	 * @param fallback 更新场景下的现有数据集，可为 null
+	 *
+	 * <p>包级可见以便 {@code KbDatasetDefaultsTest} 直接覆盖回落顺序。
+	 */
+	void applyDatasetDefaults(KbDataset dataset, KbDataset fallback) {
+		KbSetting current = currentSetting();
+		dataset.setEmbeddingModelKey(firstNonBlank(dataset.getEmbeddingModelKey(),
+				fallback == null ? null : fallback.getEmbeddingModelKey(),
+				current == null ? null : current.getEmbeddingModelKey()));
+		dataset.setEmbeddingStoreKey(firstNonBlank(dataset.getEmbeddingStoreKey(),
+				fallback == null ? null : fallback.getEmbeddingStoreKey(),
+				current == null ? null : current.getEmbeddingStoreKey()));
+		dataset.setScoringModelKey(firstNonBlank(dataset.getScoringModelKey(),
+				fallback == null ? null : fallback.getScoringModelKey(),
+				current == null ? null : current.getScoringModelKey()));
+		dataset.setChatModelKey(firstNonBlank(dataset.getChatModelKey(),
+				fallback == null ? null : fallback.getChatModelKey(),
+				current == null ? null : current.getChatModelKey()));
+		// 切分/召回参数：设置页也允许留空，留空才落到原有的硬编码兜底，
+		// 保证「设置表一行都没配」时行为与改动前完全一致
+		dataset.setRetrievalTopK(firstNonNull(dataset.getRetrievalTopK(),
+				fallback == null ? null : fallback.getRetrievalTopK(),
+				current == null ? null : current.getDefaultRetrievalTopK(),
+				KbSettingService.DEFAULT_RETRIEVAL_TOP_K));
+		dataset.setRetrievalScoreThreshold(firstNonNull(dataset.getRetrievalScoreThreshold(),
+				fallback == null ? null : fallback.getRetrievalScoreThreshold(),
+				current == null ? null : current.getDefaultRetrievalScoreThreshold(),
+				new java.math.BigDecimal("0.0000")));
+		dataset.setSegmentMaxLength(firstNonNull(dataset.getSegmentMaxLength(),
+				fallback == null ? null : fallback.getSegmentMaxLength(),
+				current == null ? null : current.getDefaultSegmentMaxLength(),
+				KbSettingService.DEFAULT_SEGMENT_MAX_LENGTH));
+		dataset.setSegmentOverlap(firstNonNull(dataset.getSegmentOverlap(),
+				fallback == null ? null : fallback.getSegmentOverlap(),
+				current == null ? null : current.getDefaultSegmentOverlap(),
+				KbSettingService.DEFAULT_SEGMENT_OVERLAP));
+		// 分隔符与分段模式按「非空」判定（空串与 null 同义：都用默认）
+		dataset.setSegmentDelimiter(firstNonBlank(dataset.getSegmentDelimiter(),
+				fallback == null ? null : fallback.getSegmentDelimiter(),
+				current == null ? null : current.getDefaultSegmentDelimiter()));
+		dataset.setSegmentMode(firstNonBlank(dataset.getSegmentMode(),
+				fallback == null ? null : fallback.getSegmentMode(),
+				current == null ? null : current.getDefaultSegmentMode(),
+				KbSettingService.SEGMENT_MODE_GENERAL));
+		dataset.setIndexingTechnique(firstNonBlank(dataset.getIndexingTechnique(),
+				fallback == null ? null : fallback.getIndexingTechnique(),
+				current == null ? null : current.getDefaultIndexingTechnique(),
+				KbSettingService.INDEXING_TECHNIQUE_HIGH_QUALITY));
+	}
+
+	/** 取全局设置快照；未注入或读表异常时返回 null（不阻断，交给 validate 报明确错误）。 */
+	private KbSetting currentSetting() {
+		if (settings == null) {
+			return null;
+		}
+		try {
+			return settings.current();
+		} catch (Throwable e) {
+			return null;
+		}
+	}
+
+	private static String firstNonBlank(String... values) {
+		for (String value : values) {
+			if (!isBlank(value)) {
+				return value;
+			}
+		}
+		return null;
+	}
+
+	/** 取第一个非 null 的值（数值项没有「空串」概念，null 即未提供）。 */
+	private static <T> T firstNonNull(T... values) {
+		for (T value : values) {
+			if (value != null) {
+				return value;
+			}
+		}
+		return null;
+	}
+
+	private static boolean isBlank(String value) {
+		return value == null || value.trim().isEmpty();
+	}
+
 	private void validate(KbDataset dataset) {
-		if (dataset.getName() == null || dataset.getName().isEmpty()) {
+		if (isBlank(dataset.getName())) {
 			throw new IllegalArgumentException("数据集名称不能为空");
 		}
-		if (dataset.getEmbeddingModelKey() == null || dataset.getEmbeddingModelKey().isEmpty()) {
-			throw new IllegalArgumentException("嵌入模型资源 key（embedding-model-key）不能为空");
+		if (isBlank(dataset.getEmbeddingModelKey())) {
+			throw new IllegalArgumentException("嵌入模型资源 key（embedding-model-key）不能为空；"
+					+ "可在知识库控制台「设置」页配置新建数据集的默认值，之后留空即可");
 		}
-		if (dataset.getEmbeddingStoreKey() == null || dataset.getEmbeddingStoreKey().isEmpty()) {
-			throw new IllegalArgumentException("向量库资源 key（embedding-store-key）不能为空");
+		if (isBlank(dataset.getEmbeddingStoreKey())) {
+			throw new IllegalArgumentException("向量库资源 key（embedding-store-key）不能为空；"
+					+ "可在知识库控制台「设置」页配置新建数据集的默认值，之后留空即可");
 		}
 		String mode = dataset.getSegmentMode();
-		if (mode != null && !mode.isEmpty() && !"general".equals(mode) && !"parent-child".equals(mode)
-				&& !"qa".equals(mode)) {
+		if (!isBlank(mode) && !KbSettingService.SEGMENT_MODES.contains(mode)) {
 			throw new IllegalArgumentException("不支持的分段模式: " + mode + "（general / parent-child / qa）");
 		}
-		if ("qa".equals(mode) && (dataset.getChatModelKey() == null || dataset.getChatModelKey().isEmpty())) {
-			throw new IllegalArgumentException("QA 分段模式需要配置对话模型资源 key（chat-model-key）");
+		if (KbSettingService.SEGMENT_MODE_QA.equals(mode) && isBlank(dataset.getChatModelKey())) {
+			throw new IllegalArgumentException("QA 分段模式需要配置对话模型资源 key（chat-model-key）；"
+					+ "可在知识库控制台「设置」页配置新建数据集的默认值");
+		}
+		String technique = dataset.getIndexingTechnique();
+		if (!isBlank(technique) && !KbSettingService.INDEXING_TECHNIQUES.contains(technique)) {
+			throw new IllegalArgumentException("不支持的索引技术: " + technique
+					+ "（high_quality / economy）");
 		}
 	}
 

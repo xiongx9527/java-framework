@@ -4,7 +4,7 @@
   "description": "Magic-API LangChain4j 内容检索器 Plugin",
   "main": "index.js",
   "scripts": {
-    "build": "vite build && vite build --config vite.kb.config.js",
+    "build": "vite build",
     "test": "node --test test/"
   },
   "author": "",

@@ -14,6 +14,8 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.star
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mongo.starter.MagicAPIMongoConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.server.starter.MagicAPIMqttConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.starter.MagicAPIMqttClientConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mybatisflex.starter.MyBatisFlexConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mybatisplus.starter.MybatisPlusConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.starter.MagicAPIPulsarConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.starter.MagicAPIRabbitMqConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.redis.starter.MagicAPIRedisConfiguration;
@@ -55,6 +57,8 @@ import org.springframework.context.annotation.Import;
          MagicAPIInfluxConfiguration.class,
          MagicAPIAdminServerConfiguration.class,
          MagicAPISaTokenConfiguration.class,
+         MybatisPlusConfiguration.class,
+         MyBatisFlexConfiguration.class,
 
 })
 public class MagicApiPluginAutoConfiguration {

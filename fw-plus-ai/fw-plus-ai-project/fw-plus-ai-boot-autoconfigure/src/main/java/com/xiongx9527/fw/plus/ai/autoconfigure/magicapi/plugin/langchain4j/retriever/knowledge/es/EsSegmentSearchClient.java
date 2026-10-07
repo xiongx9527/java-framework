@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.es;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSettingService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.elasticsearch.module.ElasticSearchModule;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.util.StringUtils;
@@ -12,28 +13,46 @@ import java.util.Map;
 
 /**
  * 知识库分段 ES 检索客户端：复用 fw-plus-boot magicapi elasticsearch 插件
- * （按 {@code fw.plus.ai.knowledge.es-key} 指定 ES 数据源资源，空则取默认数据源）。
- * 索引名 {@code {es-index-prefix}-segments}（默认 fw-kb-segments）。
+ * （按知识库设置里的 {@code esKey} 指定 ES 数据源资源，空则取默认数据源）。
+ * 索引名 {@code {esIndexPrefix}-segments}（默认 fw-kb-segments）。
  *
  * <p>负责分段全文索引的写入/删除/检索；混合检索关键词路在 ES 启用时优先走本客户端。</p>
+ *
+ * <p>{@code esKey} / {@code esIndexPrefix} / {@code esEnabled} 三项每次调用都从
+ * {@link KbSettingService#current()} 现读，控制台改完立即生效——原实现把它们固化在构造
+ * 参数里，只有重启才生效。注意 {@code esIndexPrefix} 改后旧索引下的数据不会自动迁移，
+ * 需要调用方重新走一次同步。
  */
 public class EsSegmentSearchClient {
 
+	/** ES 数据源模块提供器 */
 	private final ObjectProvider<ElasticSearchModule> esModules;
 
-	private final String esKey;
+	/** 知识库全局设置（每次现读，实现 esKey / esIndexPrefix / esEnabled 热生效） */
+	private final KbSettingService settings;
 
-	private final String index;
+	/** ES 索引名后缀，固定为 -segments */
+	private static final String INDEX_SUFFIX = "-segments";
 
-	/** ES 全文检索开关（fw.plus.ai.knowledge.es-enabled）；关闭时所有方法 no-op */
-	private final boolean enabled;
-
-	public EsSegmentSearchClient(ObjectProvider<ElasticSearchModule> esModules, String esKey, String indexPrefix,
-			boolean enabled) {
+	public EsSegmentSearchClient(ObjectProvider<ElasticSearchModule> esModules, KbSettingService settings) {
 		this.esModules = esModules;
-		this.esKey = esKey;
-		this.enabled = enabled;
-		this.index = (StringUtils.hasText(indexPrefix) ? indexPrefix : "fw-kb") + "-segments";
+		this.settings = settings;
+	}
+
+	/** ES 全文检索开关；关闭时所有方法 no-op。每次现读设置。 */
+	private boolean enabled() {
+		return settings != null && settings.esEnabled();
+	}
+
+	/** 当前 ES 数据源 key（空则取默认数据源）。每次现读设置。 */
+	private String esKey() {
+		return settings == null ? null : settings.current().getEsKey();
+	}
+
+	/** 当前分段全文索引名。每次现读设置，前缀变化即换索引。 */
+	private String index() {
+		String prefix = settings == null ? null : settings.current().getEsIndexPrefix();
+		return (StringUtils.hasText(prefix) ? prefix : KbSettingService.DEFAULT_ES_INDEX_PREFIX) + INDEX_SUFFIX;
 	}
 
 	private ElasticSearchModule resolve() {
@@ -42,17 +61,18 @@ public class EsSegmentSearchClient {
 			throw new IllegalStateException("storage 检索 ES 路需要启用 fw-plus-boot 的 magicapi elasticsearch 插件"
 					+ "（fw.plus.magicapi.elasticsearch.enabled）并配置 ES 数据源");
 		}
-		return StringUtils.hasText(esKey) ? module.getDynamicAttribute(esKey) : module;
+		String key = esKey();
+		return StringUtils.hasText(key) ? module.getDynamicAttribute(key) : module;
 	}
 
 	/** 启动时创建索引与 mapping（已存在时 ES 返回 resource_already_exists_exception，忽略）。 */
 	public void ensureIndex() {
-		if (!enabled) {
+		if (!enabled()) {
 			return;
 		}
 		try {
 			Map<String, Object> mappings = createMappings();
-			resolve().rest("/" + index).put(mappings);
+			resolve().rest("/" + index()).put(mappings);
 		} catch (Exception ignored) {
 			// 已存在或暂时不可达：忽略，写入/检索时再暴露
 		}
@@ -60,7 +80,7 @@ public class EsSegmentSearchClient {
 
 	/** 写入/更新分段文档（按 segment_id 覆盖）。 */
 	public void index(String datasetId, String documentId, String segmentId, String content, String keywords) {
-		if (!enabled) {
+		if (!enabled()) {
 			return;
 		}
 		Map<String, Object> doc = new LinkedHashMap<>();
@@ -70,7 +90,7 @@ public class EsSegmentSearchClient {
 		doc.put("content", content == null ? "" : content);
 		doc.put("keywords", keywords == null ? "" : keywords);
 		try {
-			resolve().index(index).save(segmentId, doc);
+			resolve().index(index()).save(segmentId, doc);
 		} catch (Exception e) {
 			throw new IllegalStateException("写入 ES 分段索引失败: " + e.getMessage(), e);
 		}
@@ -78,11 +98,11 @@ public class EsSegmentSearchClient {
 
 	/** 删除分段文档。 */
 	public void delete(String segmentId) {
-		if (!enabled) {
+		if (!enabled()) {
 			return;
 		}
 		try {
-			resolve().index(index).delete(segmentId);
+			resolve().index(index()).delete(segmentId);
 		} catch (Exception e) {
 			throw new IllegalStateException("删除 ES 分段索引失败: " + segmentId, e);
 		}
@@ -90,14 +110,14 @@ public class EsSegmentSearchClient {
 
 	/** 按文档批量删除分段（delete_by_query）。 */
 	public void deleteByDocument(String documentId) {
-		if (!enabled) {
+		if (!enabled()) {
 			return;
 		}
 		try {
 			Map<String, Object> body = java.util.Collections.singletonMap("query",
 					java.util.Collections.singletonMap("term",
 							java.util.Collections.singletonMap("document_id", documentId)));
-			resolve().rest("/" + index + "/_delete_by_query").post(body);
+			resolve().rest("/" + index() + "/_delete_by_query").post(body);
 		} catch (Exception e) {
 			throw new IllegalStateException("按文档删除 ES 分段索引失败: " + documentId, e);
 		}
@@ -129,7 +149,7 @@ public class EsSegmentSearchClient {
 	 * 返回按 _score 降序的命中（segmentId + 原始相关度分，调用方归一化）。
 	 */
 	public List<EsHit> search(String datasetId, String query, String documentId, int limit) {
-		if (!enabled) {
+		if (!enabled()) {
 			return new ArrayList<>();
 		}
 		try {
@@ -151,7 +171,7 @@ public class EsSegmentSearchClient {
 					}}));
 			dsl.put("size", limit);
 
-			Object result = resolve().index(index).search(dsl);
+			Object result = resolve().index(index()).search(dsl);
 			List<EsHit> hits = new ArrayList<>();
 			if (result instanceof Map) {
 				Object hitsObj = ((Map<?, ?>) result).get("hits");

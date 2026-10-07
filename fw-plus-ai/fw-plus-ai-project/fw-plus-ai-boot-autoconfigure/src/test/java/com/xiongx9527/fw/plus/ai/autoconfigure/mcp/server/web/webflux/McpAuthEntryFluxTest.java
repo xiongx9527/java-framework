@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.web.webflux;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.contracts.ContractRuntime;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.contracts.RejectAuthService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.McpAuthService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime.McpServerRuntime;
 import com.xiongx9527.fw.plus.ai.mcp.server.spi.ServerSseRegistry;
 import com.xiongx9527.fw.plus.ai.mcp.server.spi.ServerStreamableHttpRegistry;
@@ -25,13 +26,37 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * WebFlux 栈认证入口契约：与 MVC 一致——放行主体进入内核，匿名主体在入口即被拒。
+ * WebFlux 栈认证入口契约：显式绑定的放行主体进入内核，认证失败或缺少服务时拒绝请求。
  */
 class McpAuthEntryFluxTest {
 
 	@Test
 	void shouldRejectAnonymousBeforeKernelOnPost() throws Exception {
-		McpServerRuntime runtime = ContractRuntime.streamableRuntime(true, new RejectAuthService());
+		McpServerRuntime runtime = ContractRuntime.streamableRuntimeSpi(true, new RejectAuthService());
+		McpFluxTransportHandler handler = new McpFluxTransportHandler(runtime, Schedulers.immediate());
+
+		ServerResponse response = invoke(handler, "post", request("known-session")).block();
+
+		assertEquals(HttpStatus.UNAUTHORIZED, response.statusCode());
+		verify((ServerStreamableHttpRegistry) runtime.getRegistry(), never()).post(any(), anyMap());
+	}
+
+	@Test
+	void shouldRejectWhenRuntimeHasNoMatchingAuthServiceOnPost() throws Exception {
+		McpServerRuntime runtime = ContractRuntime.streamableRuntimeCore(true, null);
+		McpFluxTransportHandler handler = new McpFluxTransportHandler(runtime, Schedulers.immediate());
+
+		ServerResponse response = invoke(handler, "post", request("known-session")).block();
+
+		assertEquals(HttpStatus.UNAUTHORIZED, response.statusCode());
+		verify((ServerStreamableHttpRegistry) runtime.getRegistry(), never()).post(any(), anyMap());
+	}
+
+	@Test
+	void shouldRejectWhenAuthServiceReturnsNullOnPost() throws Exception {
+		McpAuthService authService = mock(McpAuthService.class);
+		when(authService.authenticate(any())).thenReturn(null);
+		McpServerRuntime runtime = ContractRuntime.streamableRuntimeSpi(true, authService);
 		McpFluxTransportHandler handler = new McpFluxTransportHandler(runtime, Schedulers.immediate());
 
 		ServerResponse response = invoke(handler, "post", request("known-session")).block();
@@ -42,7 +67,7 @@ class McpAuthEntryFluxTest {
 
 	@Test
 	void shouldRejectAnonymousBeforeKernelOnSseMessage() throws Exception {
-		McpServerRuntime runtime = ContractRuntime.sseRuntime(true, new RejectAuthService());
+		McpServerRuntime runtime = ContractRuntime.sseRuntimeSpi(true, new RejectAuthService());
 		McpFluxTransportHandler handler = new McpFluxTransportHandler(runtime, Schedulers.immediate());
 
 		ServerResponse response = invoke(handler, "handleMessage", messageRequest("known-uuid")).block();
@@ -52,7 +77,7 @@ class McpAuthEntryFluxTest {
 	}
 
 	@Test
-	void shouldEnterKernelOnPostWhenAuthDisabled() throws Exception {
+	void shouldEnterKernelOnPostWhenPermitAllIsExplicitlyBound() throws Exception {
 		McpServerRuntime runtime = ContractRuntime.streamableRuntime(true);
 		McpFluxTransportHandler handler = new McpFluxTransportHandler(runtime, Schedulers.immediate());
 

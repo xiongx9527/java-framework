@@ -41,4 +41,9 @@ public class MagicMcpServerInfo extends MagicEntity {
 	 * 该实例的工具过滤配置，缺省继承插件顶层配置。
 	 */
 	private MagicApiMcpProperties.Tools tools;
+
+	/**
+	 * 认证 provider 与自定义实现选择；不包含认证凭据。
+	 */
+	private MagicApiMcpProperties.Auth auth;
 }

@@ -19,7 +19,6 @@
         <module>fw-plus-poi</module>
         <module>fw-plus-jdbc</module>
         <module>fw-plus-nosql</module>
-        <module>fw-plus-report</module>
         <module>fw-plus-auth</module>
         <module>fw-plus-template</module>
         <module>fw-plus-ai</module>

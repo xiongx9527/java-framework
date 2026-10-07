@@ -21,6 +21,7 @@
 | Magic-API | 2.2.2 | **3.0.0** | 中（内部维护版，需同步发 jakarta 版） |
 | knife4j | 4.5.0（SB2 坐标） | 4.6.0（jakarta 坐标） | 中（上游活跃度低） |
 | 自动配置注册 | `spring.factories` + `.imports` 并存 | 仅 `.imports` | 低（`.imports` 已就位） |
+| Magic-API 插件前端产物 | AI 层 8 处「产物缺失即降级」+ 产物模块未纳管/未声明 | 统一无条件上报三元组 + 产物模块纳管并声明 | 中（与 SB3 无耦合，springboot3 已带 3 个额外子模块需按 17 个对齐） |
 
 **整体判断**：这不是一次「改个版本号」的升级。真正的成本集中在三处：
 **① `javax` → `jakarta` 的机械改造；② MyBatis-Plus 3.3.2 → 3.5.x 的 API 断裂；③ Magic-API 内部维护版的 jakarta 化。**
@@ -131,7 +132,7 @@
 
 | 模块 | 现状坐标 | SB3 坐标 | 版本 |
 |---|---|---|---|
-| 认证 | `cn.dev33:sa-token-spring-boot-starter` | `sa-token-spring-boot3-starter` | 1.44.0 保持 |
+| 认证 | `cn.dev33:sa-token-spring-boot-starter` | `sa-token-spring-boot3-starter` | 1.46.0 保持 |
 | 报表 | `org.jeecgframework.jimureport:jimureport-spring-boot-starter` | `jimureport-spring-boot3-starter` | 2.3.4 保持 |
 | 报表(BI) | `jimubi-spring-boot-starter` | `jimubi-spring-boot3-starter` | 保持 |
 | 文档 | `com.github.xiaoymin:knife4j-openapi3-spring-boot-starter` | `knife4j-openapi3-jakarta-spring-boot-starter` | 4.5.0 → **4.6.0** |
@@ -237,11 +238,155 @@ JDK 17 下 `--illegal-access` 等已移除；使用 `javax.tools.JavaCompiler` �
 明确记录「保留 `AntPathMatcher` 并关闭新策略」：
 `spring.mvc.pathmatch.matching-strategy=ant_path_matcher`。
 
+### 2.7 Magic-API 插件前端产物与 `Plugin` 上报口径
+
+> **与 SB3 无技术耦合**，但 springboot3 分支上已经存在，建议在本轮一并收口。
+
+**问题本质**：一个 Magic-API 插件由两半构成，缺一不可。
+
+| 半边 | 位置 | 缺了会怎样 |
+|---|---|---|
+| 后端注册类（提供 `Plugin` 三元组） | 各 `*-autoconfigure` 模块 | 插件不出现在控制台插件列表 |
+| 前端产物载体模块（提供 `magic-editor/plugins/*.iife.js`） | 各 `*-magicapi-plugin-*` 模块（**没有 `src/main/java`**，是纯静态资源载体） | 控制台列出了插件，但面板加载 404 |
+
+两半必须同时在 classpath 上。boot 层的约定是「**谁用面板谁声明产物模块**」：
+`fw-plus-magicapi-spring-boot-starter-sample/pom.xml` 显式声明 28 个
+`fw-plus-magicapi-plugin-*` 依赖，版本由 `fw-plus-boot-dependencies` 纳管。
+
+**AI 层此前偏离了这个约定**，导致 `fw-plus-ai-magicapi-sample` 控制台里 13 个
+langchain4j 插件面板全部 404。三处成因：
+
+1. `fw-plus-ai-magicapi-plugin-langchain4j/pom.xml` 定义了
+   `<langchain4j.console.skip>true</langchain4j.console.skip>`，并把它绑到
+   `exec-maven-plugin` 与 `maven-resources-plugin` 的 `<skip>`，14 个子工程因此
+   默认跳过 `npm install` / `npm run build` / `copy-console-dist`，打出的 jar
+   **里没有任何 `.iife.js`**（Maven 会告警 `JAR will be empty`）。
+   这个开关只有 true/false 两态，无法表达「pom 聚合父跳过、13 个子工程执行」——
+   而聚合父本身没有 `src/console` 目录，跑 npm 必然失败。
+2. `fw-plus-ai-boot-dependencies` 未纳管任何 `fw-plus-ai-magicapi-plugin-*`。
+3. `fw-plus-ai-magicapi-sample/pom.xml` 未声明任何产物模块依赖。
+
+**dev 分支已完成的修复**（可直接照搬）：
+
+| 改动 | 文件 |
+|---|---|
+| `plugin()` 改为无条件 `new Plugin(pluginName, globalName, javascriptFilename)`，`displayName` 更名为 `globalName`，删除 `frontendResource()` | `AbstractLangchain4jPluginConfiguration.java` |
+| 删除 `langchain4j.console.skip` 属性与 `<build><plugins>` 段，回归纯 pluginManagement 继承 | `fw-plus-ai-magicapi-plugin-langchain4j/pom.xml` |
+| 删除两处 `console.skip=false` 覆盖 | `…-scoring-model/pom.xml`、`…-aj-mcp-client/pom.xml` |
+| 纳管 15 个产物模块（14 个 langchain4j + mcp-server） | `fw-plus-ai-boot-dependencies/pom.xml` |
+| 声明 15 个产物模块依赖 | `fw-plus-ai-magicapi-sample/pom.xml` |
+| 修 `magic-kb-browser.vue` 中重复的 `const hitDocumentId` 声明（此前被 skip 掩盖，构建时才暴露） | `…-content-retriever/src/console/src/components/magic-kb-browser.vue` |
+
+口径统一后又按同一口径改掉了 boot / cloud 层的 7 处判定
+（`MagicAPIAdminServerConfiguration`、`MagicAPIDbBrowserConfiguration`、
+`MagicAPIDruidConfiguration`、`MyBatisFlexConfiguration`、`MybatisPlusModuleConfiguration`、
+`MagicSwaggerConfiguration`、`MagicAPIEurekaConfiguration`），
+删掉随之失去引用的 `FRONTEND_RESOURCE` / `DB_BROWSER_RESOURCE` 常量；
+另给三个 `*-magicapi-plugin` 聚合 pom 的 `copy-console-dist` 补了
+`process-resources` 阶段的 execution（见下方「构建层面的坑」）。
+配套测试从「断言降级为 null」改为「断言三元组恒定齐全」：
+`PluginFrontendMetadataTest`、`MagicDbBrowserControllerTest`。
+
+验证结果：15 个 jar 全部含 `magic-editor/plugins/*.iife.js`；`GET /magic-api/web/plugins`
+返回的每个插件都带 `globalName` + `javascriptFilename`；16 个产物 URL 全部 200；
+`fw-plus-ai-boot-autoconfigure` 518 个、`fw-plus-boot-autoconfigure` 636 个用例全绿。
+
+**springboot3 现状**（`origin/springboot3` @ `763b57d9`，均已实测确认）：
+
+| 项 | 现状 | 需要做什么 |
+|---|---|---|
+| `AbstractLangchain4jPluginConfiguration.java` | 与 dev 修复前**逐字相同**，仍带降级判定 | 照搬 dev 改动 |
+| langchain4j 插件子模块数 | **17 个**（dev 14 个），多出 `agentic-script`、`mcp-client`、`skill`（提交 `0594d11d0`、`30254da84` 为 springboot3-only） | 纳管/依赖清单按 **17** 个写，不要照抄 dev 的 14 个 |
+| `fw-plus-ai-magicapi-plugin/pom.xml` | pluginManagement 只有 `npm-install` / `npm-build` / `copy-console-dist`，三者都绑 `prepare-package`；**没有 `clean-stale-console-assets`** | dev 侧的 `clean-stale-console-assets` 由提交 `e46ecdac` 引入，不在 springboot3 上，需一并移植（注意下方副作用说明） |
+| `fw-plus-ai-boot-dependencies`（84 行） | **0 条** `fw-plus-ai-magicapi-plugin-*` | 按 17 个补齐 |
+| `fw-plus-ai-magicapi-sample/pom.xml`（192 行） | **0 条**产物模块依赖 | 按 17 个补齐 |
+| `fw-plus-magicapi-spring-boot-starter-sample/pom.xml`（286 行） | 已声明 28 个 boot 产物模块且不带 `<version>` | 无需改，参考范式已在 |
+
+**这 8 处（含下表 7 处）在 springboot3 上都要改**（逐个实测确认仍带
+「产物缺失 → `new Plugin(name)`」判定）：
+
+| 文件 | 降级后的 `Plugin` |
+|---|---|
+| `MagicAPIAdminServerConfiguration` | `new Plugin("admin")` |
+| `MagicAPIDbBrowserConfiguration` | `new Plugin("db")` |
+| `MagicAPIDruidConfiguration` | `new Plugin("druid")` |
+| `MyBatisFlexConfiguration` | `new Plugin("mybatisflex-xml")` |
+| `MybatisPlusModuleConfiguration` | `new Plugin("mybatisplus-xml")` |
+| `MagicSwaggerConfiguration` | `new Plugin("swagger")` |
+| `MagicAPIEurekaConfiguration`（cloud 层） | `new Plugin("eureka")` |
+
+加上 `AbstractLangchain4jPluginConfiguration`（一处覆盖 17 个插件），共 **8 个文件**。
+
+**判定口径统一为：后端始终上报完整三元组，不按产物是否存在改变上报内容。**
+理由：产物在不在 classpath 是**部署与依赖配置问题**，不是插件语义问题。把它编码进注册逻辑，
+只会让「依赖漏声明」这类配置错误在运行期表现为「插件静默消失」，
+排查成本远高于控制台直接报 404。boot 层 `MagicAPIS3Configuration` 的无条件
+`new Plugin("s3", ...)` 就是这个口径，可作参照。
+
+**构建层面的坑：`clean-stale-console-assets` 与产物拷贝必须成对出现**
+
+三个 `*-magicapi-plugin` 聚合 pom（boot / ai / cloud）都定义了
+`clean-stale-console-assets`（`maven-clean-plugin:clean`，绑 `initialize`，
+删 `${project.build.outputDirectory}/magic-editor`）。它的目的是清掉 vite 换 hash 后
+遗留在 `target/classes` 与 jar 里的历史产物。问题在于**产物模块没有 Java 源码，
+`target/classes/magic-editor` 是它唯一的产物落点**，一旦清理执行了而拷贝没跟上，
+产物就没了：
+
+| 声明 `src/console/dist` 为 `<resources>` 的模块 | `mvn compile` 后产物还在吗 |
+|---|---|
+| 有（dev 上仅 `plugin-admin` / `plugin-druid` / `plugin-swagger` 三个） | ✅ 在 —— `default-resources` 在 `process-resources` 重填 |
+| 没有（其余 40 个） | ❌ 被删光 —— 唯一重填点是 `prepare-package` 的 `copy-console-dist`，compile/test 走不到 |
+
+dev 上的修法：给 `copy-console-dist` **再绑一个 `process-resources` 阶段的 execution**
+（`copy-console-dist-on-compile`）。于是
+
+- `compile` / `test`：clean（initialize）→ 重填（process-resources），配对；
+- `package`：clean → 重填 → `npm install` / `npm run build`（prepare-package）→ 再重填，
+  jar 里是**本次构建**的 dist 而不是上一次编译留下的旧 dist。
+
+这样不依赖同一 phase 内的插件排序（`initialize` < `process-resources` < `prepare-package`
+是生命周期固定顺序），也不必把 npm 提到 `generate-resources`，
+`mvn compile` 仍然不跑前端构建（保留原作者的性能意图）。
+`fw-plus-magicapi-spring-boot-starter` 本来就是这个形态（npm 在 `generate-resources`、
+`<resources>` 在 `process-resources` 拷贝），可作参照。
+
+> 若只想临时保住产物而不改构建配置，逃生开关是 `-Dmaven.clean.skip=true`。
+
+另一个坑：首次构建这些前端模块需要逐个 `npm install`（走 npm registry），
+  离线环境必须先确认各模块 `src/console/node_modules` 是否就位。
+
+**404 排查路径**（固定三步）：
+
+1. `curl http://<host>:<port>/magic-api/web/plugins` —— 看该插件的
+   `globalName` / `javascriptFilename` 是否非 null（现在应恒为非 null）；
+2. 字段非 null 就说明后端正常，问题在依赖：确认使用方 pom 是否声明了对应产物模块，
+   再确认该模块 jar 里是否真有 `magic-editor/plugins/<javascriptFilename>`；
+3. 字段为 null 说明该分支尚未按新口径改造，回到上表逐个改。
+
+**待核实**（本仓是 partial clone 且 GitHub 当前不可达，以下 blob 不在本地）：
+
+```bash
+# springboot3 的 langchain4j 父 pom 是否仍含 console.skip（blob c38c08a2）
+git show origin/springboot3:fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/fw-plus-ai-magicapi-plugin-langchain4j/pom.xml | grep -n console.skip
+
+# springboot3 的 boot BOM 是否纳管 28 个 boot 产物模块
+git show origin/springboot3:fw-plus-boot/fw-plus-boot-project/fw-plus-boot-dependencies/pom.xml | grep -c '<artifactId>fw-plus-magicapi-plugin-'
+```
+
+- 第一条：其祖先链经 `f030c1f43` 合并自 dev 上含 skip 的 `6ce6590d`，后续 3 次提交
+  （`a0d539319` / `f58c596b6` / `c38c08a2`）从标题看只新增子模块，故**高概率仍在**，
+  但仍需按上述命令确认后再动手。
+- 第二条：样例 pom 不带 `<version>` 地引用了这 28 个 artifactId，纳管方必然存在，
+  只是本次未能读到该 blob。
+- springboot3 的 Magic-API 版本号（不在 AI BOM 内，需查 boot BOM / core BOM）
+  也需确认；若与 dev 同为 `2.2.2`，则 `Plugin` 三元组 API 一致，dev 改动可原样照搬；
+  若已切到 `3.0.0`，需先核对 `Plugin` 的构造器与 getter 签名。
+
 ---
 
 ## 3. 推荐升级路径
 
-分四阶段，每阶段可独立编译验证，**不要一次性全改**。
+分五阶段，每阶段可独立编译验证，**不要一次性全改**。
 
 ### 阶段 0：建分支 + 冻结基线
 
@@ -286,6 +431,29 @@ git switch -c springboot3
 
 见附录 A。这部分是独立的破坏性升级，与 SB3 无耦合，可最后做。
 
+### 阶段 5：Magic-API 插件前端产物收口
+
+见 §2.7。也在阶段 4 之后做（要先知道 17 个子模块的真实清单），但同样是独立可验证的。
+
+```bash
+# 1. 先确认待核实项（partial clone 需联网补 blob）
+git show origin/springboot3:fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/fw-plus-ai-magicapi-plugin-langchain4j/pom.xml | grep -n console.skip
+git show origin/springboot3:fw-plus-boot/fw-plus-boot-project/fw-plus-boot-dependencies/pom.xml | grep -c '<artifactId>fw-plus-magicapi-plugin-'
+
+# 2. 8 处注册类改成无条件上报三元组
+#    AbstractLangchain4jPluginConfiguration + admin/db/druid/mybatisflex/
+#    mybatisplus/swagger/eureka 七个 Configuration
+
+# 3. 按 springboot3 的 17 个子模块更新 BOM 纳管与样例声明
+#    （不要照抄 dev 的 14 个清单）
+
+# 4. 移植 clean-stale-console-assets，并给它配一个 process-resources 阶段的
+#    copy-console-dist execution（否则 mvn compile 会把产物删光且不重建）
+
+# 5. 全量安装产物模块，确认 jar 不再为空
+./mvnw -o clean install -DskipTests
+```
+
 ---
 
 ## 4. 验证清单
@@ -294,6 +462,7 @@ git switch -c springboot3
 |---|---|
 | 无 javax EE 残留 | `grep -rl "javax\.\(servlet\|validation\|persistence\)" --include="*.java"` 为空 |
 | 自动配置加载正常 | 启动后 `ConditionEvaluationReport` 中 fw-plus 的 AutoConfiguration 均为 `Matched` |
+| compile 不误删前端产物 | 对任一产物模块跑 `mvn -o compile`，随后 `ls target/classes/magic-editor/plugins/` 应仍有 `.iife.js`（回归 `clean-stale-console-assets` 与 `copy-console-dist-on-compile` 的配对） |
 | Redis 单实例/集群 | 分别用 `spring.data.redis.*` 与 `spring.data.redis.cluster.nodes` 启动样例，验证 `RedisTemplate` 分支 |
 | Magic-API 控制台 | 访问 `/magic/web`，确认脚本执行与静态资源正常 |
 | Swagger 文档 | 访问 `/doc.html` 与 `/v3/api-docs` |
@@ -303,6 +472,10 @@ git switch -c springboot3
 | MQ / 存储插件 | Kafka、Pulsar、RocketMQ、RabbitMQ、MQTT、ES、InfluxDB 各连一次 |
 | 云层 | Eureka Server/Client、灰度负载均衡、Gateway |
 | AI 层 | chat / embedding / rerank / MCP server / 向量库（Milvus、Qdrant、Weaviate） |
+| 插件清单三元组 | `curl http://<host>:<port>/magic-api/web/plugins \| jq '.data[] \| select(.javascriptFilename == null)'` 为空——任何插件都不应缺 `globalName` / `javascriptFilename` |
+| 插件前端产物 | 逐个访问 `.data[].javascriptFilename` 对应的 `/magic-api/web/plugins/<file>`，全部 200（不能有 404） |
+| 产物模块打包 | 逐个 `unzip -l <artifact>-<version>.jar \| grep magic-editor/plugins`，产物模块不应出现 `JAR will be empty` |
+| 产物模块对齐 | `git diff --name-only <base>..HEAD -- '*fw-plus-*-magicapi-plugin*/pom.xml'`，确认 BOM 纳管数 = 样例声明数 = 实际子模块数（springboot3 应为 17） |
 
 ---
 
@@ -371,6 +544,7 @@ git switch -c springboot3
 | Nebula / Neo4j JDBC | 自维护 | `javax.sql.rowset` 属保留包，无需迁移，但需实测 |
 | EasyTrans | 1.2.6 | 与 MP 3.5.x 的兼容性 |
 | Hutool | 5.8.34 | 若使用 `cn.hutool.extra.servlet` 需换 `JakartaServletUtil`（当前仓库未命中） |
+| Magic-API（springboot3 分支） | 待查（不在 AI BOM 内） | 是否仍为 `2.2.2`；若已切 `3.0.0` 需核对 `Plugin` 构造器与 getter 签名是否变化（见 §2.7） |
 
 验证命令：
 

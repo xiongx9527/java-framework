@@ -13,6 +13,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retri
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.provider.NebulaContentRetrieverProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.provider.Neo4jContentRetrieverProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.provider.WebSearchContentRetrieverProvider;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbKnowledgeState;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.registry.Langchain4jContentRetrieverMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.resource.Langchain4jContentRetrieverMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.web.Langchain4jContentRetrieverController;
@@ -39,6 +40,10 @@ import org.springframework.context.annotation.Configuration;
  * <p>五种 provider 即五种 {@link ContentRetriever} 实现：embedding-store / neo4j /
  * azure-ai-search / web-search / filtering。被引用的向量库与模型按各自 datasource key 取用，
  * 这些类型可独立停用，故一律用 {@link ObjectProvider} 装配，缺失时在构建期给出可操作提示。</p>
+ *
+ * <p>插件管理员可见性（adminEnabled）跟随知识库装配：KnowledgeConfiguration 生效
+ * （SqlSessionFactory + auth-core 就绪且 knowledge.enabled 未关闭）时该插件仅管理员可见，
+ * 否则普通可见。</p>
  */
 @ConditionalOnClass(name = "dev.langchain4j.rag.content.retriever.ContentRetriever")
 @ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.content-retriever", name = "enabled",
@@ -53,11 +58,17 @@ public class Langchain4jContentRetrieverConfiguration extends AbstractLangchain4
 
 	private final ObjectProvider<ContentRetrieverContext> context;
 
+	/** 知识库装配标志：KnowledgeConfiguration 装配时强制注册，缺失即知识库未启动 */
+	private final ObjectProvider<KbKnowledgeState> knowledgeStates;
+
 	public Langchain4jContentRetrieverConfiguration(ObjectProvider<ContentRetrieverProviderRegistry> providers,
-			ObjectProvider<ContentRetrieverContext> context) {
-		super("langchain4j-content-retriever", "MagicLangchain4jContentRetriever", JAVASCRIPT_FILENAME);
+			ObjectProvider<ContentRetrieverContext> context,
+			ObjectProvider<KbKnowledgeState> knowledgeStates) {
+		super("langchain4j-content-retriever", "MagicLangchain4jContentRetriever", JAVASCRIPT_FILENAME,
+				knowledgeStates.getIfAvailable() != null);
 		this.providers = providers;
 		this.context = context;
+		this.knowledgeStates = knowledgeStates;
 	}
 
 	/** 连接测试 Controller 由本类承载：路径 {@code /langchain4j/content-retriever/datasource/test}。 */

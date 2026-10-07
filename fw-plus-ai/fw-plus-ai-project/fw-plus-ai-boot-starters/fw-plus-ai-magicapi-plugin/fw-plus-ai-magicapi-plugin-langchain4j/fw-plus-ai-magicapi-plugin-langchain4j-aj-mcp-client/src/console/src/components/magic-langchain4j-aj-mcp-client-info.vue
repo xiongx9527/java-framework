@@ -33,10 +33,6 @@
       <magic-input v-model:value="headersText" :placeholder="$i('langchain4j.headers-hint')" width="100%"/>
     </div>
     <div class="magic-form-row">
-      <label>{{ $i('langchain4j.filter-tool-names') }}</label>
-      <magic-input v-model:value="filterToolNamesText" :placeholder="$i('langchain4j.filter-tool-names-hint')" width="100%"/>
-    </div>
-    <div class="magic-form-row">
       <label>{{ $i('langchain4j.auth-retry-count') }}</label>
       <magic-input v-model:value="info.authRetryCount" :placeholder="$i('langchain4j.auth-retry-count-hint')" width="100%"/>
     </div>
@@ -104,7 +100,7 @@ const jsonField = (key) => computed({
 const commandText = listField('command')
 const environmentText = jsonField('environment')
 const headersText = jsonField('customHeaders')
-const filterToolNamesText = listField('filterToolNames')
+
 </script>
 <style scoped>
 .magic-langchain4j-form {

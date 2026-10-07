@@ -56,6 +56,29 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-resources-plugin</artifactId>
                     <executions>
+                        <!-- process-resources：与 clean-stale-console-assets（initialize）配对。
+                             产物模块没有 Java 源码，target/classes/magic-editor 是它唯一的产物落点，
+                             而 initialize 的清理是无条件执行的。若只靠下面的 prepare-package 重填，
+                             `mvn compile` / `mvn test` 走不到该阶段，产物会被删掉且不重建
+                             （表现为运行期控制台面板 404）。生命周期里
+                             initialize < process-resources < prepare-package 是固定顺序，
+                             不依赖同一 phase 内的插件排序。 -->
+                        <execution>
+                            <id>copy-console-dist-on-compile</id>
+                            <phase>process-resources</phase>
+                            <goals><goal>copy-resources</goal></goals>
+                            <configuration>
+                                <outputDirectory>${project.build.outputDirectory}/magic-editor/plugins</outputDirectory>
+                                <resources>
+                                    <resource>
+                                        <directory>src/console/dist</directory>
+                                        <filtering>false</filtering>
+                                    </resource>
+                                </resources>
+                            </configuration>
+                        </execution>
+                        <!-- prepare-package：npm install / npm run build 刚重建完 dist，
+                             再拷一次，保证打出的 jar 里是本次构建的前端产物而不是上一次编译的旧 dist。 -->
                         <execution>
                             <id>copy-console-dist</id>
                             <phase>prepare-package</phase>
@@ -74,6 +97,51 @@
                 </plugin>
             </plugins>
         </pluginManagement>
+        <plugins>
+            <!-- 清理上一轮构建遗留的前端产物。vite 每次 build 都会生成新的 hash 文件名（index.<hash>.js），
+                 而 copy-resources 只做覆盖、不删除已不存在的旧文件，导致 target/classes/magic-editor
+                 以及最终打出的 jar 里堆积多份历史产物。这里在 initialize 阶段先清空该目录，
+                 让本次构建的 dist 成为唯一来源。
+                 excludeDefaultDirectories=true 保证只删下面显式列出的目录，不会连带删掉整个 target。 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-clean-plugin</artifactId>
+                <version>3.2.0</version>
+                <executions>
+                    <execution>
+                        <id>clean-stale-console-assets</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                        <configuration>
+                            <excludeDefaultDirectories>true</excludeDefaultDirectories>
+                            <filesets>
+                                <fileset>
+                                    <directory>${project.build.outputDirectory}/magic-editor</directory>
+                                </fileset>
+                            </filesets>
+                        </configuration>
+                    </execution>
+                    <!-- mvn clean 时同步删除源码内的前端构建产物 src/console/dist，避免 dist 残留在工作区 -->
+                    <execution>
+                        <id>clean-console-dist</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                        <configuration>
+                            <excludeDefaultDirectories>true</excludeDefaultDirectories>
+                            <filesets>
+                                <fileset>
+                                    <directory>src/console/dist</directory>
+                                </fileset>
+                            </filesets>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
     </build>
 
     <dependencies>

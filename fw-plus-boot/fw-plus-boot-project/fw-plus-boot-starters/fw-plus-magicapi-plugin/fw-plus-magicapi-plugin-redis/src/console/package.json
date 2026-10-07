@@ -4,7 +4,8 @@
   "description": "Magic-API Redis Plugin",
   "main": "index.js",
   "scripts": {
-    "build": "vite build"
+    "build": "vite build",
+    "test": "node --test test/"
   },
   "author": "",
   "license": "ISC",

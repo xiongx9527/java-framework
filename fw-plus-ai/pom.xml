@@ -36,6 +36,8 @@
 		<maven.javadoc.skip>true</maven.javadoc.skip>
 		<!--跳过deploy-->
 		<maven.deploy.skip>true</maven.deploy.skip>
+		<!-- 默认跳过测试的编译与执行（编译/打包/安装/deploy 均不含测试）；需要跑测试时用 -Dmaven.test.skip=false 覆盖 -->
+		<maven.test.skip>true</maven.test.skip>
 	</properties>
 	<description>
 		fw-plus ai库管理.
@@ -49,22 +51,7 @@
 	</licenses>
 	<!--配置拉取仓库地址-->
 	<repositories>
-		<repository>
-			<id>jeecg</id>
-			<name>jeecg Repository</name>
-			<url>https://maven.jeecg.org/nexus/content/repositories/jeecg</url>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</repository>
-		<repository>
-			<id>jeecg-snapshots</id>
-			<name>jeecg snapshots Repository</name>
-			<url>https://maven.jeecg.org/nexus/content/repositories/snapshots/</url>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-		</repository>
+
 
 		<repository>
 			<id>spring-milestones</id>

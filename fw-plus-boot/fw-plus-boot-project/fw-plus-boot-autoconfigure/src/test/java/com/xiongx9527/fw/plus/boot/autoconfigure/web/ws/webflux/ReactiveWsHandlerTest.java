@@ -57,6 +57,39 @@ class ReactiveWsHandlerTest {
 		assertThat(session.sentText).isEmpty();
 	}
 
+	@Test
+	void handshakeWithUnconfiguredProviderShouldBeRejectedWithPolicyViolation() {
+		WsConfig config = new WsConfig();
+		config.setPath("/ws/api");
+		// 未配置 provider：fail-closed，认证先于 clientId 校验
+		ReactiveWsHandler handler = new ReactiveWsHandler(config);
+		TestReactiveSession session = new TestReactiveSession("s-auth", uri("c1"), Flux.empty());
+
+		handler.handle(session).block(Duration.ofSeconds(5));
+
+		assertThat(session.closedStatus.get()).isNotNull();
+		assertThat(session.closedStatus.get().getCode()).isEqualTo(1008);
+		assertThat(session.sentText).isEmpty();
+	}
+
+	@Test
+	void instanceWithoutProviderShouldBeRejectedEvenIfDefaultConfigured() {
+		WsConfig config = wsConfig();
+		WsConfig.WsInstance instance = new WsConfig.WsInstance();
+		instance.setKey("report");
+		instance.setPath("/ws/api2");
+		// 命名实例不从顶层 auth 继承，未配置即拒绝
+		config.getServers().add(instance);
+		ReactiveWsHandler handler = new ReactiveWsHandler(config);
+		TestReactiveSession session = new TestReactiveSession("s-inst-auth",
+				uri("c1", "/ws/api2"), Flux.empty());
+
+		handler.handle(session).block(Duration.ofSeconds(5));
+
+		assertThat(session.closedStatus.get()).isNotNull();
+		assertThat(session.closedStatus.get().getCode()).isEqualTo(1008);
+	}
+
 	/**
 	 * 一个实例 = 一个名字 + 一组端点 + 一个 appId：请求命中实例端点时，派发上下文带上实例 appId。
 	 */
@@ -251,6 +284,8 @@ class ReactiveWsHandlerTest {
 	private static WsConfig wsConfig() {
 		WsConfig config = new WsConfig();
 		config.setPath("/ws/api");
+		// WS 未配置 provider 即拒绝握手（fail-closed）；测试统一显式放行。
+		config.getAuth().setProvider("permit-all");
 		return config;
 	}
 
@@ -263,6 +298,8 @@ class ReactiveWsHandlerTest {
 		instance.setKey(key);
 		instance.setPath(path);
 		instance.setAppId(appId);
+		// 命名实例不从顶层 auth 继承，需各自显式配置。
+		instance.getAuth().setProvider("permit-all");
 		config.getServers().add(instance);
 		return config;
 	}

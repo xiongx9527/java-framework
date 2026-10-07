@@ -157,14 +157,10 @@
         </section>
 
         <!-- 召回测试视图 -->
-        <section v-else class="kb-view">
+        <section v-else-if="activeView === 'hit'" class="kb-view">
           <div class="kb-actions">
             <input v-model="hitQuery" style="flex:1" :placeholder="$i('kb.hit.queryTip')" @keyup.enter="runHitTest"/>
             <button :disabled="!hitQuery" @click="runHitTest">{{ $i('kb.hit.run') }}</button>
-          </div>
-          <div class="kb-form-row">
-            <label>{{ $i('kb.hit.documentId') }}</label>
-            <input v-model="hitDocumentId" :placeholder="$i('kb.hit.documentIdTip')"/>
           </div>
           <div class="kb-form-row">
             <label>{{ $i('kb.hit.documentId') }}</label>
@@ -194,6 +190,114 @@
             </tbody>
           </table>
         </section>
+
+        <!-- 全局设置视图：对应后端 kb_setting 单行表，保存即热生效 -->
+        <section v-else class="kb-view">
+          <div class="kb-state">{{ $i('kb.setting.saveTip') }}</div>
+          <div class="kb-form-row">
+            <label>{{ $i('kb.setting.enabled') }}</label>
+            <input type="checkbox" v-model="settingForm.enabled"/>
+            <span class="kb-tag">{{ $i('kb.setting.enabledTip') }}</span>
+          </div>
+          <div class="kb-form-row">
+            <label>{{ $i('kb.setting.storageType') }}</label>
+            <select v-model="settingForm.storageType">
+              <option value="local">{{ $i('kb.setting.storageTypeLocal') }}</option>
+              <option value="s3">{{ $i('kb.setting.storageTypeS3') }}</option>
+            </select>
+          </div>
+          <div v-if="settingForm.storageType === 'local'" class="kb-form-row">
+            <label>{{ $i('kb.setting.storagePath') }}</label>
+            <input v-model="settingForm.storagePath" :placeholder="$i('kb.setting.storagePathTip')"/>
+          </div>
+          <div v-else class="kb-form-row">
+            <label>{{ $i('kb.setting.s3Key') }}</label>
+            <input v-model="settingForm.s3Key" :placeholder="$i('kb.setting.s3KeyTip')"/>
+          </div>
+          <div class="kb-form-row">
+            <label>{{ $i('kb.setting.hybridSearch') }}</label>
+            <input type="checkbox" v-model="settingForm.hybridSearch"/>
+            <span class="kb-tag">{{ $i('kb.setting.hybridSearchTip') }}</span>
+          </div>
+          <div class="kb-form-row">
+            <label>{{ $i('kb.setting.esEnabled') }}</label>
+            <input type="checkbox" v-model="settingForm.esEnabled"/>
+            <span class="kb-tag">{{ $i('kb.setting.esEnabledTip') }}</span>
+          </div>
+          <template v-if="settingForm.esEnabled">
+            <div class="kb-form-row">
+              <label>{{ $i('kb.setting.esKey') }}</label>
+              <input v-model="settingForm.esKey" :placeholder="$i('kb.setting.esKeyTip')"/>
+            </div>
+            <div class="kb-form-row">
+              <label>{{ $i('kb.setting.esIndexPrefix') }}</label>
+              <input v-model="settingForm.esIndexPrefix" :placeholder="$i('kb.setting.esIndexPrefixTip')"/>
+            </div>
+          </template>
+          <div class="kb-form-row">
+            <label>{{ $i('kb.setting.openApiAuthProvider') }}</label>
+            <select v-model="settingForm.openApiAuthProvider">
+              <option v-for="p in authProviders" :key="p" :value="p">{{ p }}</option>
+            </select>
+            <span class="kb-tag">{{ $i('kb.setting.openApiAuthProviderTip') }}</span>
+          </div>
+          <div class="kb-state">{{ $i('kb.setting.modelDefaultTitle') }}</div>
+          <div class="kb-form-row">
+            <label>{{ $i('kb.setting.embeddingModelKey') }}</label>
+            <input v-model="settingForm.embeddingModelKey" :placeholder="$i('kb.setting.embeddingModelKeyTip')"/>
+          </div>
+          <div class="kb-form-row">
+            <label>{{ $i('kb.setting.embeddingStoreKey') }}</label>
+            <input v-model="settingForm.embeddingStoreKey" :placeholder="$i('kb.setting.embeddingStoreKeyTip')"/>
+          </div>
+          <div class="kb-form-row">
+            <label>{{ $i('kb.setting.scoringModelKey') }}</label>
+            <input v-model="settingForm.scoringModelKey" :placeholder="$i('kb.setting.scoringModelKeyTip')"/>
+          </div>
+          <div class="kb-form-row">
+            <label>{{ $i('kb.setting.chatModelKey') }}</label>
+            <input v-model="settingForm.chatModelKey" :placeholder="$i('kb.setting.chatModelKeyTip')"/>
+          </div>
+          <div class="kb-state">{{ $i('kb.setting.paramDefaultTitle') }}</div>
+          <div class="kb-form-row">
+            <label>{{ $i('kb.setting.defaultIndexingTechnique') }}</label>
+            <select v-model="settingForm.defaultIndexingTechnique">
+              <option value="high_quality">high_quality</option>
+              <option value="economy">economy</option>
+            </select>
+          </div>
+          <div class="kb-form-row">
+            <label>{{ $i('kb.setting.defaultSegmentMode') }}</label>
+            <select v-model="settingForm.defaultSegmentMode">
+              <option value="general">general</option>
+              <option value="parent-child">parent-child</option>
+              <option value="qa">qa</option>
+            </select>
+          </div>
+          <div class="kb-form-row">
+            <label>{{ $i('kb.setting.defaultSegmentMaxLength') }}</label>
+            <input v-model="settingForm.defaultSegmentMaxLength" type="number"/>
+          </div>
+          <div class="kb-form-row">
+            <label>{{ $i('kb.setting.defaultSegmentOverlap') }}</label>
+            <input v-model="settingForm.defaultSegmentOverlap" type="number"/>
+          </div>
+          <div class="kb-form-row">
+            <label>{{ $i('kb.setting.defaultSegmentDelimiter') }}</label>
+            <input v-model="settingForm.defaultSegmentDelimiter" :placeholder="$i('kb.setting.defaultSegmentDelimiterTip')"/>
+          </div>
+          <div class="kb-form-row">
+            <label>{{ $i('kb.setting.defaultRetrievalTopK') }}</label>
+            <input v-model="settingForm.defaultRetrievalTopK" type="number"/>
+          </div>
+          <div class="kb-form-row">
+            <label>{{ $i('kb.setting.defaultRetrievalScoreThreshold') }}</label>
+            <input v-model="settingForm.defaultRetrievalScoreThreshold" type="number" step="0.0001"/>
+          </div>
+          <div class="kb-actions">
+            <button @click="saveSettings">{{ $i('kb.save') }}</button>
+          </div>
+        </section>
       </template>
     </main>
 
@@ -203,22 +307,30 @@
         <h4>{{ datasetForm.id ? $i('kb.dataset.edit') : $i('kb.dataset.create') }}</h4>
         <div class="kb-form-row"><label>{{ $i('kb.common.name') }} *</label><input v-model="datasetForm.name"/></div>
         <div class="kb-form-row"><label>{{ $i('kb.common.description') }}</label><input v-model="datasetForm.description"/></div>
-        <div class="kb-form-row"><label>{{ $i('kb.dataset.embeddingModel') }} *</label><input v-model="datasetForm.embeddingModelKey"/></div>
-        <div class="kb-form-row"><label>{{ $i('kb.dataset.embeddingStore') }} *</label><input v-model="datasetForm.embeddingStoreKey"/></div>
-        <div class="kb-form-row"><label>{{ $i('kb.dataset.scoringModel') }}</label><input v-model="datasetForm.scoringModelKey"/></div>
+        <div class="kb-form-row"><label>{{ $i('kb.dataset.embeddingModel') }}</label><input v-model="datasetForm.embeddingModelKey" :placeholder="$i('kb.dataset.modelKeyTip')"/></div>
+        <div class="kb-form-row"><label>{{ $i('kb.dataset.embeddingStore') }}</label><input v-model="datasetForm.embeddingStoreKey" :placeholder="$i('kb.dataset.modelKeyTip')"/></div>
+        <div class="kb-form-row"><label>{{ $i('kb.dataset.scoringModel') }}</label><input v-model="datasetForm.scoringModelKey" :placeholder="$i('kb.dataset.modelKeyTip')"/></div>
         <div class="kb-form-row"><label>{{ $i('kb.dataset.chatModel') }}</label><input v-model="datasetForm.chatModelKey" :placeholder="$i('kb.dataset.chatModelTip')"/></div>
+        <div class="kb-form-row"><label>{{ $i('kb.dataset.indexingTechnique') }}</label>
+          <select v-model="datasetForm.indexingTechnique">
+            <option value="">{{ $i('kb.dataset.useSettingDefault') }}</option>
+            <option value="high_quality">high_quality</option>
+            <option value="economy">economy</option>
+          </select>
+        </div>
         <div class="kb-form-row"><label>{{ $i('kb.dataset.segmentMode') }}</label>
           <select v-model="datasetForm.segmentMode">
+            <option value="">{{ $i('kb.dataset.useSettingDefault') }}</option>
             <option value="general">general</option>
             <option value="parent-child">parent-child</option>
             <option value="qa">qa</option>
           </select>
         </div>
-        <div class="kb-form-row"><label>{{ $i('kb.dataset.segmentMaxLength') }}</label><input v-model="datasetForm.segmentMaxLength" type="number"/></div>
-        <div class="kb-form-row"><label>{{ $i('kb.dataset.segmentOverlap') }}</label><input v-model="datasetForm.segmentOverlap" type="number"/></div>
-        <div class="kb-form-row"><label>{{ $i('kb.dataset.segmentDelimiter') }}</label><input v-model="datasetForm.segmentDelimiter"/></div>
-        <div class="kb-form-row"><label>{{ $i('kb.dataset.topK') }}</label><input v-model="datasetForm.retrievalTopK" type="number"/></div>
-        <div class="kb-form-row"><label>{{ $i('kb.dataset.scoreThreshold') }}</label><input v-model="datasetForm.retrievalScoreThreshold" type="number" step="0.0001"/></div>
+        <div class="kb-form-row"><label>{{ $i('kb.dataset.segmentMaxLength') }}</label><input v-model="datasetForm.segmentMaxLength" type="number" :placeholder="$i('kb.dataset.modelKeyTip')"/></div>
+        <div class="kb-form-row"><label>{{ $i('kb.dataset.segmentOverlap') }}</label><input v-model="datasetForm.segmentOverlap" type="number" :placeholder="$i('kb.dataset.modelKeyTip')"/></div>
+        <div class="kb-form-row"><label>{{ $i('kb.dataset.segmentDelimiter') }}</label><input v-model="datasetForm.segmentDelimiter" :placeholder="$i('kb.dataset.modelKeyTip')"/></div>
+        <div class="kb-form-row"><label>{{ $i('kb.dataset.topK') }}</label><input v-model="datasetForm.retrievalTopK" type="number" :placeholder="$i('kb.dataset.modelKeyTip')"/></div>
+        <div class="kb-form-row"><label>{{ $i('kb.dataset.scoreThreshold') }}</label><input v-model="datasetForm.retrievalScoreThreshold" type="number" step="0.0001" :placeholder="$i('kb.dataset.modelKeyTip')"/></div>
         <div class="kb-form-row"><label>{{ $i('kb.dataset.similarityWeight') }}</label><input v-model="datasetForm.retrievalSimilarityWeight" type="number" step="0.0001" min="0" max="1" :placeholder="$i('kb.dataset.weightTip')"/></div>
         <div class="kb-form-row"><label>{{ $i('kb.dataset.semanticWeight') }}</label><input v-model="datasetForm.retrievalSemanticWeight" type="number" step="0.0001" min="0" max="1" :placeholder="$i('kb.dataset.weightTip')"/></div>
         <div class="kb-modal-actions">
@@ -363,7 +475,6 @@ const hits = ref([])
 const hitQuery = ref('')
 const hitMetadata = ref('')
 const hitDocumentId = ref('')
-const hitDocumentId = ref('')
 const dragOver = ref(false)
 const previewItems = ref(null)
 const moveForm = ref(null)
@@ -376,12 +487,16 @@ const activeView = ref('dataset')
 const datasetForm = ref(null)
 const segmentForm = ref(null)
 const metadataForm = ref(null)
+const authProviders = ref([])
+/** 全局设置表单（对应后端 kb_setting 单行表）；字段与后端 KbSetting 一一对应 */
+const settingForm = ref({ enabled: true, storageType: 'local', storagePath: '', s3Key: '', hybridSearch: true, esEnabled: false, esKey: '', esIndexPrefix: 'fw-kb', openApiAuthProvider: 'sa-token-login', embeddingModelKey: '', embeddingStoreKey: '', scoringModelKey: '', chatModelKey: '', defaultRetrievalTopK: 4, defaultRetrievalScoreThreshold: 0, defaultSegmentMaxLength: 1000, defaultSegmentOverlap: 200, defaultSegmentDelimiter: '', defaultSegmentMode: 'general', defaultIndexingTechnique: 'high_quality' })
 
 const views = [
   { id: 'dataset', label: 'kb.view.dataset' },
   { id: 'document', label: 'kb.view.document' },
   { id: 'segment', label: 'kb.view.segment' },
-  { id: 'hit', label: 'kb.view.hit' }
+  { id: 'hit', label: 'kb.view.hit' },
+  { id: 'setting', label: 'kb.view.setting' }
 ]
 
 const selectedDataset = computed(() => datasets.value.find(d => d.id === selectedDatasetId.value) || null)
@@ -400,6 +515,67 @@ const loadDatasets = async () => {
     fail(e)
   } finally {
     loading.value.datasets = false
+  }
+}
+
+/** 读取全局设置：设置页独立于数据集，未选数据集也能打开 */
+const loadSettings = async () => {
+  try {
+    const s = (await kbApi.settings()) || {}
+    settingForm.value = {
+      enabled: s.enabled !== false,
+      storageType: s.storageType || 'local',
+      storagePath: s.storagePath || '',
+      s3Key: s.s3Key || '',
+      hybridSearch: s.hybridSearch !== false,
+      esEnabled: s.esEnabled === true,
+      esKey: s.esKey || '',
+      esIndexPrefix: s.esIndexPrefix || 'fw-kb',
+      openApiAuthProvider: s.openApiAuthProvider || 'sa-token-login',
+      embeddingModelKey: s.embeddingModelKey || '',
+      embeddingStoreKey: s.embeddingStoreKey || '',
+      scoringModelKey: s.scoringModelKey || '',
+      chatModelKey: s.chatModelKey || '',
+      defaultRetrievalTopK: s.defaultRetrievalTopK == null ? 4 : s.defaultRetrievalTopK,
+      defaultRetrievalScoreThreshold: s.defaultRetrievalScoreThreshold == null ? 0 : Number(s.defaultRetrievalScoreThreshold),
+      defaultSegmentMaxLength: s.defaultSegmentMaxLength == null ? 1000 : s.defaultSegmentMaxLength,
+      defaultSegmentOverlap: s.defaultSegmentOverlap == null ? 200 : s.defaultSegmentOverlap,
+      defaultSegmentDelimiter: s.defaultSegmentDelimiter || '',
+      defaultSegmentMode: s.defaultSegmentMode || 'general',
+      defaultIndexingTechnique: s.defaultIndexingTechnique || 'high_quality'
+    }
+  } catch (e) {
+    fail(e)
+  }
+}
+
+/** 读取可选认证 provider 清单（设置页下拉数据源），只展示当前 classpath 实际可用的项 */
+const loadAuthProviders = async () => {
+  try {
+    authProviders.value = (await kbApi.authProviders()) || []
+  } catch (e) {
+    fail(e)
+  }
+}
+
+/** 保存全局设置：后端归一化后落库并热替换快照，此处回填后端实际生效值 */
+const saveSettings = async () => {
+  try {
+    // 数值项空串转 null：留空即「不提供默认」，由后端硬编码兜底
+    const payload = { ...settingForm.value }
+    ;['defaultRetrievalTopK', 'defaultRetrievalScoreThreshold', 'defaultSegmentMaxLength',
+      'defaultSegmentOverlap'].forEach((k) => {
+      const v = payload[k]
+      payload[k] = v === '' || v === undefined || v === null ? null : Number(v)
+      if (Number.isNaN(payload[k])) payload[k] = null
+    })
+    const saved = (await kbApi.saveSettings(payload)) || {}
+    await loadSettings()
+    if (saved.storageType) {
+      settingForm.value = { ...settingForm.value, storageType: saved.storageType }
+    }
+  } catch (e) {
+    fail(e)
   }
 }
 
@@ -437,17 +613,32 @@ const loadReferencers = async () => {
 const openDatasetForm = (ds) => {
   datasetForm.value = ds
     ? { ...ds }
+    // 新建时全部留空：留空才回落「设置」页的默认值，预填数字反而会把设置页架空
     : { name: '', description: '', embeddingModelKey: '', embeddingStoreKey: '', scoringModelKey: '',
-        segmentMode: 'general', segmentMaxLength: 1000, segmentOverlap: 200, segmentDelimiter: '',
-        retrievalTopK: 4, retrievalScoreThreshold: 0, retrievalSimilarityWeight: null, retrievalSemanticWeight: null }
+        chatModelKey: '', indexingTechnique: '', segmentMode: '', segmentMaxLength: '', segmentOverlap: '',
+        segmentDelimiter: '', retrievalTopK: '', retrievalScoreThreshold: '',
+        retrievalSimilarityWeight: '', retrievalSemanticWeight: '' }
+}
+
+/** 空串 → null：数值框留空时不能把 '' 发给后端（Integer/BigDecimal 反序列化会报错） */
+const normalizeDatasetForm = (ds) => {
+  const out = { ...ds }
+  ;['segmentMaxLength', 'segmentOverlap', 'retrievalTopK', 'retrievalScoreThreshold',
+    'retrievalSimilarityWeight', 'retrievalSemanticWeight'].forEach((k) => {
+    const v = out[k]
+    out[k] = v === '' || v === undefined || v === null ? null : Number(v)
+  })
+  if (Number.isNaN(out.retrievalScoreThreshold)) out.retrievalScoreThreshold = null
+  return out
 }
 
 const saveDataset = async () => {
   try {
-    if (datasetForm.value.id) {
-      await kbApi.updateDataset(datasetForm.value.id, datasetForm.value)
+    const payload = normalizeDatasetForm(datasetForm.value)
+    if (payload.id) {
+      await kbApi.updateDataset(payload.id, payload)
     } else {
-      await kbApi.createDataset(datasetForm.value)
+      await kbApi.createDataset(payload)
     }
     datasetForm.value = null
     await loadDatasets()
@@ -778,6 +969,8 @@ const toggleAll = () => {
 }
 
 loadDatasets()
+loadSettings()
+loadAuthProviders()
 </script>
 <style scoped>
 .magic-kb-browser { display: flex; height: 100%; background: var(--magic-background-color, #fff); color: var(--magic-text-color, #333); }

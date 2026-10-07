@@ -19,12 +19,13 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retri
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbKnowledgeState;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSearchService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSegmentService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSettingService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.store.KbOriginalFileStore;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.store.LocalKbOriginalFileStore;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.store.SettingsAwareKbOriginalFileStore;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.web.KbConsoleController;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.web.KbOpenApiController;
+import com.xiongx9527.fw.plus.auth.core.InstanceAuthRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.resource.Langchain4jContentRetrieverMagicResourceStorage;
-import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.mapper.MapperFactoryBean;
 import org.ssssssss.magicapi.core.config.MagicPluginConfiguration;
@@ -36,8 +37,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -45,23 +44,34 @@ import org.springframework.context.annotation.Configuration;
  * knowledge 知识库装配（设计 §2.1）：content-retriever 插件的知识库后端实现（管理端、索引管道、
  * knowledge 检索器、对外 API）。
  *
- * <p>装配条件：SqlSessionFactory 存在（元数据表落应用主数据源）、总开关
- * {@code fw.plus.ai.knowledge.enabled} 未关闭（默认开启）。应用未配置 JDBC 数据源时知识库
- * 整体不装配，不影响其余 langchain4j 功能。启动时校验三张元数据表存在性，缺失时警告并禁用。</p>
+ * <p>装配条件：SqlSessionFactory 存在（元数据表落应用主数据源）。应用未配置 JDBC 数据源时知识库
+ * 整体不装配，不影响其余 langchain4j 功能。启动时校验四张业务元数据表存在性，缺失时警告并禁用
+ * （{@code kb_setting} 不在其中：该表缺失只回落默认设置，不影响检索功能）。</p>
+ *
+ * <p><b>无 yaml 总开关</b>：原先的 {@code magic-api.plugin.knowledge.enabled} 是
+ * {@code @ConditionalOnProperty} 装配条件，装配期决策、控制台页面上配不到。现全部设置项落
+ * {@code kb_setting} 单行表，由 {@link KbSettingService} 持有快照并热替换，各消费方每次现读，
+ * 控制台「设置」页保存即生效。其中 {@code enabled} 降级为**运行期**开关（控制
+ * {@link KbKnowledgeState#checkReady()}），停用后 Bean 仍装配、控制台仍可进入以便重新启用。</p>
  *
  * <p>knowledge 检索器工厂以 {@code ContentRetrieverProvider} bean 注册，经
  * {@code Langchain4jContentRetrieverConfiguration} 的分发表收集进入短名 {@code knowledge}。</p>
  *
- * <p>管理端 UI 为独立插件产物（magic-kb-browser iife.js）：本装配生效（知识库启动）时才声明
- * {@code langchain4j-knowledge} 插件并注册 {@code /kb/**} Controller；控制台入口按
- * {@code magic-api.plugin.knowledge.admin.enabled} 开关激活（默认关闭，与 s3/kafka/db 等插件
- * 的 admin.enabled 惯例一致——不启动，不激活）。</p>
+ * <p>管理端 UI 并入 content-retriever 主插件产物（src/console/src/index.js 单一导出
+ * datasources + toolbars）：本装配生效（知识库启动）时注册 {@code /kb/**} Controller，
+ * 并声明一个隐身插件（javascriptFilename 为空，控制台不加载任何脚本——避免指向已消失的
+ * 独立产物导致 404）；toolbars 入口由 content-retriever 插件统一注册，显示与否由前端
+ * {@code adminOnly} 控制。未装配知识库时 /kb/** 接口 404，入口点击会显式报错。</p>
  */
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnClass(SqlSessionFactory.class)
+// auth-core 是 optional 依赖（kb 管理端与认证强耦合）：缺失时本类不得加载，否则
+// @Bean 方法签名中的 InstanceAuthRegistry 会在配置类内省阶段触发
+// NoClassDefFoundError，知识库整体降级为不装配
+@ConditionalOnClass(value = SqlSessionFactory.class,
+        name = "com.xiongx9527.fw.plus.auth.core.InstanceAuthRegistry")
 @ConditionalOnBean(SqlSessionFactory.class)
-@ConditionalOnProperty(prefix = "fw.plus.ai.knowledge", name = "enabled", havingValue = "true",
-		matchIfMissing = true)
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.knowledge", name = "enabled",
+		havingValue = "true", matchIfMissing = true)
 public class KnowledgeConfiguration {
 
 	@Autowired
@@ -79,10 +89,18 @@ public class KnowledgeConfiguration {
 	@Autowired
 	private ObjectProvider<com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbIndexingService> indexingServices;
 
+	@Autowired
+	private ObjectProvider<KbSettingService> settingServices;
+
+	@Autowired
+	private ObjectProvider<InstanceAuthRegistry> authRegistries;
+
 	/**
-	 * knowledge 管理端插件：声明专属前端产物（magic-kb-browser iife.js，toolbars 四视图入口）
-	 * 并注册 {@code /kb/**} Controller。控制台入口经 {@code magic-api.plugin.knowledge.admin.enabled}
-	 * 激活（默认关闭）；仅知识库装配成功时本 bean 存在，插件声明随之生效。
+	 * knowledge 管理端 UI 载体：toolbars 入口已并入 content-retriever 主产物
+	 * （src/console/src/index.js 单一导出 datasources + toolbars），本 bean 不再声明
+	 * 独立前端产物（隐身插件，javascriptFilename 为空 → 控制台不加载任何脚本），
+	 * 仅注册 {@code /kb/**} Controller。plugin() 不得返回 null —— 官方收集器
+	 * （MagicAPIAutoConfiguration）会把 null 直接塞入 /plugins 列表，前端遍历时崩溃。
 	 */
 	@Bean
 	public MagicPluginConfiguration kbBrowserPluginConfiguration() {
@@ -90,11 +108,9 @@ public class KnowledgeConfiguration {
 
 			@Override
 			public Plugin plugin() {
-				Plugin plugin = new Plugin("langchain4j-knowledge", "MagicKbBrowser",
-						"magic-kb-browser.1.0.0.iife.js");
-				String adminEnabled = SpringUtils.getAppConfig("magic-api.plugin.knowledge.admin.enabled", "false");
-				plugin.setAdminEnabled(Boolean.parseBoolean(adminEnabled));
-				return plugin;
+				// 隐身插件：globalName/javascriptFilename 为空，控制台 filter(ne => ne.javascriptFilename)
+				// 自动跳过，不加载 iife；知识库 toolbars 由 content-retriever 主插件统一注册
+				return new Plugin("langchain4j-knowledge", "", "");
 			}
 
 			@Override
@@ -107,12 +123,15 @@ public class KnowledgeConfiguration {
 							metadataFieldServices.getIfAvailable();
 					com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbIndexingService indexingService =
 							indexingServices.getIfAvailable();
+					KbSettingService settingService = settingServices.getIfAvailable();
 					if (datasetService == null || documentService == null || segmentService == null
-							|| metadataFieldService == null || indexingService == null) {
+							|| metadataFieldService == null || indexingService == null || settingService == null) {
 						return;
 					}
+					InstanceAuthRegistry authRegistry = authRegistries.getIfAvailable(InstanceAuthRegistry::new);
 					mapping.registerController(new KbConsoleController(configuration, datasetService,
-							documentService, segmentService, metadataFieldService, indexingService));
+							documentService, segmentService, metadataFieldService, indexingService, settingService,
+							authRegistry));
 				};
 			}
 		};
@@ -121,20 +140,16 @@ public class KnowledgeConfiguration {
 	// ---------------- 配置与存储 ----------------
 
 	@Bean
-	@ConfigurationProperties(prefix = "fw.plus.ai.knowledge")
-	public KnowledgeConfiguration.KnowledgeProperties knowledgeProperties() {
-		return new KnowledgeConfiguration.KnowledgeProperties();
+	public KbSettingService kbSettingService(
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.mapper.KbSettingMapper settingMapper) {
+		return new KbSettingService(settingMapper);
 	}
 
 	@Bean
-	public KbOriginalFileStore kbOriginalFileStore(KnowledgeConfiguration.KnowledgeProperties properties,
+	public KbOriginalFileStore kbOriginalFileStore(KbSettingService settingService,
 			ObjectProvider<com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.module.S3Module> s3Modules) {
-		// 文件存储介质可配置：local 本地目录 / s3 复用 fw-plus-boot magicapi s3 插件（s3 数据源）
-		if ("s3".equalsIgnoreCase(properties.getStorageType())) {
-			return new com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.store.PluginS3KbOriginalFileStore(
-					s3Modules, properties.getS3Key(), "kb");
-		}
-		return new LocalKbOriginalFileStore(properties.getStoragePath());
+		// 按当前设置委派，实现 storageType/storagePath/s3Key 的页面热生效
+		return new SettingsAwareKbOriginalFileStore(settingService, s3Modules);
 	}
 
 	// ---------------- Mapper 显式注册（应用 MapperScan 不覆盖本包） ----------------
@@ -152,6 +167,13 @@ public class KnowledgeConfiguration {
 	@Bean
 	public MapperFactoryBean<KbSegmentMapper> kbSegmentMapper(SqlSessionFactory sqlSessionFactory) {
 		return mapper(KbSegmentMapper.class, sqlSessionFactory);
+	}
+
+	@Bean
+	public MapperFactoryBean<com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.mapper.KbSettingMapper> kbSettingMapper(
+			SqlSessionFactory sqlSessionFactory) {
+		return mapper(com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.mapper.KbSettingMapper.class,
+				sqlSessionFactory);
 	}
 
 	@Bean
@@ -185,8 +207,9 @@ public class KnowledgeConfiguration {
 	@Bean
 	public KbKnowledgeState kbKnowledgeState(KbDatasetMapper datasetMapper, KbDocumentMapper documentMapper,
 			KbSegmentMapper segmentMapper,
-			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.mapper.KbMetadataFieldMapper metadataFieldMapper) {
-		return new KbKnowledgeState(datasetMapper, documentMapper, segmentMapper, metadataFieldMapper);
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.mapper.KbMetadataFieldMapper metadataFieldMapper,
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSettingService settingService) {
+		return new KbKnowledgeState(datasetMapper, documentMapper, segmentMapper, metadataFieldMapper, settingService);
 	}
 
 	/** 全部单例就绪后启动 waiting 轮询兜底（设计 §2.3）并初始化 ES 索引（es.enabled 时）。 */
@@ -217,19 +240,20 @@ public class KnowledgeConfiguration {
 	@Bean
 	public com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.es.EsSegmentSearchClient esSegmentSearchClient(
 			org.springframework.beans.factory.ObjectProvider<com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.elasticsearch.module.ElasticSearchModule> esModules,
-			KnowledgeConfiguration.KnowledgeProperties properties) {
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSettingService settingService) {
 		return new com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.es.EsSegmentSearchClient(
-				esModules, properties.getEsKey(), properties.getEsIndexPrefix(), properties.isEsEnabled());
+				esModules, settingService);
 	}
 
 	@Bean
 	public KbSearchService kbSearchService(KbDatasetMapper datasetMapper, KbDocumentMapper documentMapper,
 			KbSegmentMapper segmentMapper, ContentRetrieverContext retrieverContext,
 			ObjectProvider<Langchain4jScoringModelModule> scoringModels, KbIndexingExecutor executor,
-			KbKnowledgeState state, KnowledgeConfiguration.KnowledgeProperties properties,
+			KbKnowledgeState state,
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSettingService settingService,
 			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.es.EsSegmentSearchClient esClient) {
 		return new KbSearchService(datasetMapper, documentMapper, segmentMapper, retrieverContext, scoringModels,
-				executor, state, properties.isHybridSearch(), esClient);
+				executor, state, settingService, esClient);
 	}
 
 	@Bean
@@ -263,9 +287,9 @@ public class KnowledgeConfiguration {
 			KbSegmentMapper segmentMapper, DocumentPipeline documentPipeline, KbSearchService searchService,
 			KbIndexingService indexingService, ObjectProvider<MagicResourceService> resourceServices,
 			ObjectProvider<Langchain4jContentRetrieverMagicResourceStorage> retrieverStorages,
-			KbKnowledgeState state) {
+			KbKnowledgeState state, KbSettingService settingService) {
 		return new KbDatasetService(datasetMapper, documentMapper, segmentMapper, documentPipeline,
-				searchService, indexingService, resourceServices, retrieverStorages, state);
+				searchService, indexingService, resourceServices, retrieverStorages, state, settingService);
 	}
 
 	// ---------------- 检索器与脚本入口 ----------------
@@ -286,116 +310,31 @@ public class KnowledgeConfiguration {
 
 	// ---------------- 对外 API ----------------
 
+	/**
+	 * 实例认证内核：容器已有（如同时启用 MCP/WS）时不重复创建，供知识库对外 API 按 provider 解析。
+	 */
 	@Bean
 	@ConditionalOnMissingBean
-	public KbSaTokenAuthChecker kbSaTokenAuthChecker() {
-		return new KbSaTokenAuthChecker();
+	public InstanceAuthRegistry instanceAuthRegistry() {
+		return new InstanceAuthRegistry();
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	public KbSaTokenAuthChecker kbSaTokenAuthChecker(InstanceAuthRegistry instanceAuthRegistry,
+			KbSettingService kbSettingService) {
+		return new KbSaTokenAuthChecker(instanceAuthRegistry, kbSettingService);
 	}
 
 	@Bean
 	public KbOpenApiController kbOpenApiController(KbDocumentService documentService, KbSearchService searchService,
 			KbDatasetService datasetService, KbSegmentService segmentService,
 			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbMetadataFieldService metadataFieldService,
+			com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.service.KbSettingService settingService,
 			KbSaTokenAuthChecker authChecker) {
 		return new KbOpenApiController(documentService, searchService, datasetService, segmentService,
-				metadataFieldService, authChecker);
+				metadataFieldService, settingService, authChecker);
 	}
 
-	/** 知识库配置项（设计 §5）：总开关与原始文件目录。 */
-	public static class KnowledgeProperties {
 
-		/** 总开关（由 @ConditionalOnProperty 读取，此处保留绑定供扩展） */
-		private boolean enabled = true;
-
-		/** 原始文件目录（storage-type=local 时生效），默认 ${user.home}/.fw-plus/kb */
-		private String storagePath;
-
-		/** 文件存储介质：local 本地目录（默认）/ s3 复用 fw-plus-boot magicapi s3 插件（s3 数据源） */
-		private String storageType = "local";
-
-		/** s3 数据源资源 key（storage-type=s3 时生效；空则取 Spring 默认 s3 数据源） */
-		private String s3Key;
-
-		/** 混合检索开关：向量路 + 关键词路融合（默认开启；关闭则仅向量路） */
-		private boolean hybridSearch = true;
-
-		/** ES 全文检索开关：开启后关键词路优先走 ES（需启用 magicapi elasticsearch 插件并配置 ES 数据源） */
-		private boolean esEnabled = false;
-
-		/** ES 数据源资源 key（空则取 Spring 默认 ES 数据源） */
-		private String esKey;
-
-		/** ES 索引名前缀（分段全文索引名 = 前缀 + "-segments"），默认 fw-kb */
-		private String esIndexPrefix = "fw-kb";
-
-		public boolean isHybridSearch() {
-			return hybridSearch;
-		}
-
-		public void setHybridSearch(boolean hybridSearch) {
-			this.hybridSearch = hybridSearch;
-		}
-
-		public boolean isEnabled() {
-			return enabled;
-		}
-
-		public void setEnabled(boolean enabled) {
-			this.enabled = enabled;
-		}
-
-		public String getStoragePath() {
-			return storagePath;
-		}
-
-		public void setStoragePath(String storagePath) {
-			this.storagePath = storagePath;
-		}
-
-		public String getStorageType() {
-			return storageType;
-		}
-
-		public void setStorageType(String storageType) {
-			this.storageType = storageType;
-		}
-
-		public String getS3Key() {
-			return s3Key;
-		}
-
-		public void setS3Key(String s3Key) {
-			this.s3Key = s3Key;
-		}
-
-		public boolean isEsEnabled() {
-			return esEnabled;
-		}
-
-		public void setEsEnabled(boolean esEnabled) {
-			this.esEnabled = esEnabled;
-		}
-
-		public String getEsKey() {
-			return esKey;
-		}
-
-		public void setEsKey(String esKey) {
-			this.esKey = esKey;
-		}
-
-		public String getEsIndexPrefix() {
-			return esIndexPrefix;
-		}
-
-		public void setEsIndexPrefix(String esIndexPrefix) {
-			this.esIndexPrefix = esIndexPrefix;
-		}
-
-
-
-
-
-
-	}
 }

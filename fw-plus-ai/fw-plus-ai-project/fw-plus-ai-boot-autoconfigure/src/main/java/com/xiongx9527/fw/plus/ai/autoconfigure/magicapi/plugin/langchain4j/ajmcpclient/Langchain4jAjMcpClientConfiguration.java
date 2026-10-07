@@ -22,14 +22,14 @@ import org.springframework.context.annotation.Configuration;
  */
 @ConditionalOnClass(name = "com.ajaxjs.mcp.client.McpClient")
 @ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.aj-mcp-client", name = "enabled",
-		havingValue = "true", matchIfMissing = true)
+		havingValue = "true")
 @Configuration(proxyBeanMethods = false)
 public class Langchain4jAjMcpClientConfiguration extends AbstractLangchain4jPluginConfiguration {
 
 	private static final String JAVASCRIPT_FILENAME = "magic-langchain4j-aj-mcp-client.1.0.0.iife.js";
 
 	public Langchain4jAjMcpClientConfiguration() {
-		super("langchain4j-aj-mcp-client", "MagicLangchain4jAjMcpClient", JAVASCRIPT_FILENAME);
+		super("langchain4j-aj-mcp-client", "MagicLangchain4jAjMcpClient", JAVASCRIPT_FILENAME, false);
 	}
 
 	/** 数据源实例持有者：按 key 持有多个 aj-mcp 客户端实例。 */

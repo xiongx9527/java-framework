@@ -2,7 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime;
 
 import com.ajaxjs.mcp.server.McpServer;
 import com.ajaxjs.mcp.server.feature.FeatureMgr;
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.McpAuthService;
+import com.xiongx9527.fw.plus.auth.core.AuthService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties;
 import com.xiongx9527.fw.plus.ai.mcp.server.spi.BaseServerRegistry;
 import com.xiongx9527.fw.plus.ai.mcp.server.spi.ServerSseRegistry;
@@ -30,12 +30,12 @@ public class McpServerRuntime {
 
     private final BaseServerRegistry registry;
 
-    private final McpAuthService authService;
+    private final AuthService authService;
 
     private final List<String> basePackages;
 
     public McpServerRuntime(String key, McpProperties properties, McpServer server, FeatureMgr featureMgr,
-                            BaseServerRegistry registry, McpAuthService authService, List<String> basePackages) {
+                            BaseServerRegistry registry, AuthService authService, List<String> basePackages) {
         this.key = key;
         this.properties = properties;
         this.server = server;
@@ -65,7 +65,7 @@ public class McpServerRuntime {
         return registry;
     }
 
-    public McpAuthService getAuthService() {
+    public AuthService getAuthService() {
         return authService;
     }
 
