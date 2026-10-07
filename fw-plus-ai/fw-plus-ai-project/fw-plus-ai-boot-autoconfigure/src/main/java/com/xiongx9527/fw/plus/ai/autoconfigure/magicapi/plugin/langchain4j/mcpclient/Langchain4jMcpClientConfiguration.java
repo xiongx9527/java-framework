@@ -28,7 +28,7 @@ public class Langchain4jMcpClientConfiguration extends AbstractLangchain4jPlugin
 	private static final String JAVASCRIPT_FILENAME = "magic-langchain4j-mcp-client.1.0.0.iife.js";
 
 	public Langchain4jMcpClientConfiguration() {
-		super("langchain4j-mcp-client", "MagicLangchain4jMcpClient", JAVASCRIPT_FILENAME);
+		super("langchain4j-mcp-client", "MagicLangchain4jMcpClient", JAVASCRIPT_FILENAME, false);
 	}
 
 	/** 数据源实例持有者：按 key 持有多个 MCP 客户端实例。 */

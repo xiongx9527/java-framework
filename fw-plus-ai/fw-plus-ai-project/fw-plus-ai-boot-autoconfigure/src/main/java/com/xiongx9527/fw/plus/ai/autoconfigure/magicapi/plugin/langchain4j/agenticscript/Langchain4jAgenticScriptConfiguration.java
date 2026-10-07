@@ -27,7 +27,7 @@ public class Langchain4jAgenticScriptConfiguration extends AbstractLangchain4jPl
 	private static final String JAVASCRIPT_FILENAME = "magic-langchain4j-agentic-script.1.0.0.iife.js";
 
 	public Langchain4jAgenticScriptConfiguration() {
-		super("langchain4j-agentic-script", "MagicLangchain4jAgenticScript", JAVASCRIPT_FILENAME);
+		super("langchain4j-agentic-script", "MagicLangchain4jAgenticScript", JAVASCRIPT_FILENAME, false);
 	}
 
 	/** 执行测试 Controller：POST /langchain4j/agentic-script/execute 返回脚本节点输出。 */

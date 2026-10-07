@@ -538,7 +538,7 @@ public class KbOpenApiController {
 		org.springframework.web.context.request.RequestAttributes attributes =
 				org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
 		if (attributes instanceof org.springframework.web.context.request.ServletRequestAttributes) {
-			javax.servlet.http.HttpServletRequest request =
+			jakarta.servlet.http.HttpServletRequest request =
 					((org.springframework.web.context.request.ServletRequestAttributes) attributes).getRequest();
 			java.util.Enumeration<String> names = request.getHeaderNames();
 			while (names != null && names.hasMoreElements()) {

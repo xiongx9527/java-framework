@@ -28,7 +28,7 @@ public class Langchain4jSkillConfiguration extends AbstractLangchain4jPluginConf
 	private static final String JAVASCRIPT_FILENAME = "magic-langchain4j-skill.1.0.0.iife.js";
 
 	public Langchain4jSkillConfiguration() {
-		super("langchain4j-skill", "MagicLangchain4jSkill", JAVASCRIPT_FILENAME);
+		super("langchain4j-skill", "MagicLangchain4jSkill", JAVASCRIPT_FILENAME, false);
 	}
 
 	/** 数据源实例持有者：按 key 持有多个 Skill 实例。 */
