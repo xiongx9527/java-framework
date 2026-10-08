@@ -15,9 +15,14 @@
 
 ## 框架/业务边界（用户 2026-10-01 确认：框架提供能力，业务实现接口）
 
-**框架提供（开箱即用）**：问数核心编排（agentic 流水线/自检提示词/行数限制/多方言/regenerate 自愈）、管理端 magic 插件（全部 toolbars 管理页 + 资源链）、数据权限注入器（SPI 调用方 + 执行前强制注入 + 提示词约束）、用户端 UI 与 SSE 对话 API（Servlet/WebFlux 双栈）、对话记录存储、图表/dashboard/MCP/Excel 导入。
+**框架提供（开箱即用）**：问数核心编排（agentic 流水线/自检提示词/行数限制/多方言/regenerate 自愈）、管理端 magic 插件（全部 toolbars 管理页 + 资源链）、数据权限注入器（SPI 调用方 + 执行前强制注入 + 提示词约束）、用户端 UI、**对外 API 服务（REST/SSE 对话 API，Servlet/WebFlux 双栈；同时对外提供 MCP Server 接口）**、对话记录存储、图表/dashboard/Excel 导入。
 
 - 用户端 UI 含会话管理：会话列表/重命名/删除/历史回看（记录库数据）
+- **对外 API 对齐 SQLBot 对外接口能力全量**（用户明确 2026-10-07）：SQLBot `/api/v1` 中**业务消费类**接口能力（问数对话与记录、数据源查询/执行、表关系、推荐问题、看板、MCP、API-Key、术语、数据训练）在本框架对外 API 中全部提供；**平台账号类接口（用户/工作区/助手/模型/系统参数）不提供**（沿用既有非目标「不做用户管理」）
+- **图表服务**（用户明确 2026-10-07）：问数结果由 LLM 自动产出图表配置（类型/轴，柱/条/线/饼/表），前端据此渲染；同时提供服务端图表图片渲染（对齐 SQLBot `g2-ssr` 的能力），供导出/非流式场景产出 PNG
+- **图表 + 数据分页列表**（用户明确 2026-10-07）：问数结果同时提供图表与数据列表；数据列表采用**后端服务分页**（API 接受 page/size，返回当前页数据与总行数）
+- **数据导出补全**（用户明确 2026-10-07）：问数结果导出（Excel/CSV + 图表图片 PNG）、术语/训练示例的模板导入导出、数据源 schema 导入导出
+- **SQL 人工调整**（用户明确 2026-10-07）：用户可对已生成 SQL 手动修改后重新执行（不限确认模式），调整后仍过只读校验与数据权限回调
 
 **业务侧仅需（按需、可选）**：
 - SQL 回调（数据权限自定义的唯一业务点）：注册回调则框架把原始 SQL + 用户标识交业务转换后执行；**不注册则 API 服务开箱即用**（原样执行，只读校验 + 行数限制仍生效）
@@ -31,17 +36,20 @@
 
 | 来源条目与位置 | 读取状态 | 需要保留的内容 | Spec 位置 | 验收 ID | 覆盖状态 | 理由或替代关系 |
 | --- | --- | --- | --- | --- | --- | --- |
-| S1: backend/apps/chat/task/llm.py 问数流水线（关键词提取→术语扩展→表匹配→生成→校验→执行→解读） | complete | 全链路编排（agentic 实现）与 JSON 输出契约 | 待 Spec | 待定 | needs-clarification | — |
-| S2: backend/templates/template.yaml 提示词工程（process_check 11 步自检、行数限制零容忍、多表字段限定） | complete | 生成时自检提示词体系（Java 模板重写） | 待 Spec | 待定 | needs-clarification | — |
-| S3: backend/templates/sql_examples/（11 种方言 bad/good few-shot） | complete | 方言示例库（Java 模板重写） | 待 Spec | 待定 | needs-clarification | — |
-| S4: backend/apps/terminology 术语库 | complete | 术语→标准词映射，扩展关键词与注入提示词 | 待 Spec | 待定 | needs-clarification | — |
-| S5: backend/apps/data_training 数据训练（人工保存正确 SQL 作 few-shot） | complete | 校准示例管理 + 注入 | 待 Spec | 待定 | needs-clarification | — |
-| S6: backend/apps/datasource + ai_model（数据源/模型管理） | complete | 管理端维护数据源与模型配置 → 共享配置存储 → API 服务自建连接池与模型实例（langchain4j 工厂） | 待 Spec（共享配置存储 + 自建实例） | 待定 | needs-clarification | 架构调整：API 服务与 magicapi 解耦（D23/D24） |
-| S7: 数据权限（用户明确：SQL 查询数据权限，可自定义策略；**回调模式**——框架给业务原始 SQL，业务转换后返回） | complete | SQL 回调 SPI：框架将原始 SQL + UserContext + 表元数据交给业务回调，业务转换后返回；框架执行前只读复检 + fail-closed | 待 Spec | 待定 | needs-clarification | 用户明确要求，采用回调模式（SQL 改写权归业务） |
-| S8: 前端（frontend/：chat 对话、ds 管理、dashboard、work 训练/术语） | complete | 管理端 magic 插件 + 用户端独立 UI（D7） | 待 Spec | 待定 | needs-clarification | — |
-| S9: regenerate 重新生成（错误提示前置 + 保留对话上下文自愈） | complete | 自愈机制 | 待 Spec | 待定 | needs-clarification | — |
-| S10: MCP 集成 / 嵌入集成（企微/钉钉/飞书）/ Excel 导入 / dashboard | complete | 首版纳入（全功能对齐） | 待 Spec | 待定 | needs-clarification | — |
-| S11: 多方言（sql_examples 11 种：MySQL/PG/Oracle/SQLServer/Redshift/ClickHouse/Doris/Hive/DM/Kingbase/ES） | complete | 首版多方言同步（提示词示例 + 执行层方言适配） | 待 Spec | 待定 | needs-clarification | — |
+| S1: backend/apps/chat/task/llm.py 问数流水线（关键词提取→术语扩展→表匹配→生成→校验→执行→解读） | complete | 全链路编排（agentic 实现）与 JSON 输出契约 | specs/nl2sql-core/spec.md §3 | A1–A16 | covered | — |
+| S2: backend/templates/template.yaml 提示词工程（process_check 11 步自检、行数限制零容忍、多表字段限定） | complete | 生成时自检提示词体系（Java 模板重写） | specs/nl2sql-core/spec.md §5 | A1、A13 | covered | — |
+| S3: backend/templates/sql_examples/（11 种方言 bad/good few-shot） | complete | 方言示例库（Java 模板重写） | specs/nl2sql-core/spec.md §3.10、§5 | A13 | covered | — |
+| S4: backend/apps/terminology 术语库 | complete | 术语→标准词映射，扩展关键词与注入提示词 | specs/nl2sql-admin/spec.md §4 | A18 | covered | — |
+| S5: backend/apps/data_training 数据训练（人工保存正确 SQL 作 few-shot） | complete | 校准示例管理 + 注入 | specs/nl2sql-admin/spec.md §5 | A19 | covered | — |
+| S6: backend/apps/datasource + ai_model（数据源/模型管理） | complete | 管理端维护数据源与模型配置 → 共享配置存储 → API 服务自建连接池与模型实例（langchain4j 工厂） | specs/nl2sql-admin/spec.md §1、§12 | A17 | covered | 架构调整：API 服务与 magicapi 解耦（D23/D24） |
+| S7: 数据权限（用户明确：SQL 查询数据权限，可自定义策略；**回调模式**——框架给业务原始 SQL，业务转换后返回） | complete | SQL 回调 SPI：框架将原始 SQL + UserContext + 表元数据交给业务回调，业务转换后返回；框架执行前只读复检 + fail-closed | specs/nl2sql-security/spec.md §1–§3 | A29、A30、A31 | covered | 用户明确要求，采用回调模式（SQL 改写权归业务） |
+| S8: 前端（frontend/：chat 对话、ds 管理、dashboard、work 训练/术语） | complete | 管理端 magic 插件 + 用户端独立 UI（D7） | specs/nl2sql-admin/spec.md §1、specs/nl2sql-user-ui/spec.md | A17、A36 | covered | — |
+| S9: regenerate 重新生成（错误提示前置 + 保留对话上下文自愈） | complete | 自愈机制 | specs/nl2sql-core/spec.md §3.5 | A4、A5 | covered | — |
+| S10: MCP 集成 / 嵌入集成（企微/钉钉/飞书）/ Excel 导入 / dashboard | complete | 首版纳入（全功能对齐） | specs/nl2sql-integrations/spec.md、specs/nl2sql-chart-dashboard/spec.md | A41、A42、A44 | covered | — |
+| S11: 多方言（sql_examples 11 种：MySQL/PG/Oracle/SQLServer/Redshift/ClickHouse/Doris/Hive/DM/Kingbase/ES） | complete | 首版多方言同步（提示词示例 + 执行层方言适配） | specs/nl2sql-core/spec.md §3.10 | A13 | covered | — |
+| S12: 图表生成与服务端出图（backend/apps/chat/task/llm.py `chart_sys_question` 出图表配置；`g2-ssr/` `@antv/g2-ssr` 出 PNG，端口 3000；frontend `charts/{Bar,Column,Line,Pie,Table}.ts` 渲染） | complete | LLM 自动图表配置 + 前端渲染 + 服务端出图 | specs/nl2sql-chart-dashboard/spec.md §2–§4 | A38、A39 | covered | 用户 2026-10-07 明确纳入（D42） |
+| S13: 导出族（`apps/chat/api/chat.py` record/{id}/excel/export；`apps/terminology`、`apps/data_training` 的 export/template/uploadExcel；`apps/datasource` exportDsSchema/{id} + uploadDsSchema/{id}） | complete | 结果导出 + 术语/示例模板导入导出 + 数据源 schema 导入导出 | specs/nl2sql-admin/spec.md §9 | A24、A25、A26 | covered | 用户 2026-10-07 明确纳入（D43） |
+| S14: SQL 展示与人工调整 + 结果数据呈现（frontend `SQLComponent.vue` 只读高亮；`api/chat.ts` record/{id}/{data,predict_data,analysis,predict}；`charts/Table.ts` `@antv/s2` TableSheet） | complete | SQL 人工调整后重执行 + 结果数据列表（后端服务分页） | specs/nl2sql-core/spec.md §3.8、specs/nl2sql-chart-dashboard/spec.md §5 | A6、A7、A40 | covered | 用户 2026-10-07 明确纳入（D44/D45） |
 
 # 非目标
 
@@ -62,6 +70,7 @@
 - Scenario: regenerate 自愈——WHEN 执行失败后触发重新生成 THEN 新一轮携带上一次错误信息与完整上下文
 - Scenario: ReAct 自主修复——WHEN SQL 生成自愈环节启动 THEN ReAct agent 可调用 get_table_schema / execute_readonly_sql / validate_sql 工具自主查证与修正，最终 SQL 通过校验；达到轮数上限则如实报告失败与已尝试轨迹
 - Scenario: SQL 预览确认——WHEN 实例配置为确认执行模式 THEN 生成的 SQL 先展示给用户（可编辑），用户确认后才执行；自动执行模式不受影响
+- Scenario: SQL 人工调整——WHEN 用户对已生成（含自动执行模式）的 SQL 手动修改并提交 THEN 系统执行调整后的 SQL（仍过只读校验与数据权限回调），返回新结果并保存为记录；调整后为非 SELECT/非法 SQL 时拒绝执行
 - Scenario: EXPLAIN 预检——WHEN 确认模式下用户确认执行 THEN 先 EXPLAIN 检查执行成本，命中全表扫描等高风险特征时警告并可拒绝
 - Scenario: 多轮指代改写——WHEN 多轮对话中出现指代（如"那 3 月份呢"） THEN 经上下文改写后正确理解指代并生成 SQL
 - Scenario: 闲聊兜底——WHEN 开启闲聊兜底（chitchat-enabled）且用户闲聊 THEN 通用对话 agent 自然回复（不查库不生成 SQL）；WHEN 关闭该开关 THEN 返回无法回答数据问题的提示
@@ -81,7 +90,9 @@
 - Scenario: 提示词版本化——WHEN 提示词/方言示例修改后 THEN 可查看历史版本并回滚
 - Scenario: 管理端操作审计——WHEN 管理端变更配置（表结构/策略/提示词等） THEN 记录操作人与变更前后快照，可查询
 - Scenario: 结果反馈——WHEN 用户对问数结果点赞/点踩 THEN 反馈入待改进池（点踩自动收集问题与生成的 SQL），管理员可据此补术语/校准示例
-- Scenario: 结果导出——WHEN 用户对问数结果导出 THEN 生成 Excel/CSV 文件下载
+- Scenario: 结果导出——WHEN 用户对问数结果导出 THEN 生成 Excel/CSV 文件下载，并可同时导出图表图片（PNG）
+- Scenario: 术语/示例模板导入导出——WHEN 管理员导出术语库/训练示例 THEN 得到可按模板回填再导入的 Excel 文件；导入后按最新配置生效
+- Scenario: 数据源 schema 导入导出——WHEN 管理员导出某数据源的 schema 配置 THEN 可在另一实例导入，复用表结构登记与本地注释
 - Scenario: schema 变更检测——WHEN 触发变更检测（定时/手动） THEN 对比业务库实际 schema 与已登记表结构，差异（新表/新列/类型变更）提醒管理员补登记/重向量化
 - Scenario: 成本看板——WHEN 管理员查看成本看板 THEN 按用户/实例/时间段展示 token 消耗与问数次数统计
 
@@ -102,11 +113,15 @@
 
 ## 图表与看板（nl2sql-chart-dashboard）
 
+- Scenario: LLM 图表推荐——WHEN 问数返回结果 THEN LLM 依据结果自动产出图表配置（类型/轴，柱/条/线/饼/表），前端据此渲染
+- Scenario: 服务端出图——WHEN 需要图片形态（导出/非流式场景） THEN 服务端按图表配置渲染为 PNG（对齐 SQLBot g2-ssr 能力）
+- Scenario: 数据分页列表——WHEN 用户查看问数结果数据列表 THEN 后端按 page/size 服务端分页返回当前页数据与总行数，翻页结果正确
 - Scenario: dashboard——WHEN 用户将多次问数结果保存到看板 THEN 看板按配置展示图表
 
 ## 集成（nl2sql-integrations）
 
-- Scenario: MCP 问数——WHEN 通过 MCP 协议调用问数能力 THEN 返回与对话一致的问数结果
+- Scenario: MCP 问数——WHEN MCP 客户端通过对外 API 服务的 MCP 接口调用问数能力 THEN 返回与对话通道一致的问数结果（复用同一问数核心与配置）
+- Scenario: MCP 对外能力全覆盖——WHEN MCP 客户端通过 MCP 接口调用会话历史与图表数据能力 THEN 返回与 REST/SSE 通道一致的结果（会话列表/消息历史、问数结果图表数据）
 - Scenario: Excel 导入——WHEN 导入 Excel 数据 THEN 生成可查询表并可问数
 - Scenario: API 对接——WHEN 业务方用自己的 UI 调用问数 API THEN 依据公开接口契约完成对话问数（含流式），不依赖我们的用户端 UI
 - Scenario: UI 对接——WHEN 业务系统以嵌入/弹窗方式集成我们提供的用户端对话 UI THEN 对话功能在嵌入环境中可用
@@ -121,7 +136,7 @@
 - 共享配置存储中的敏感字段（数据源密码、api-key、回调密钥）加密存储
 - agentic 的使用收口到核心编排模块的少量类（隔离层），必要时可退化为手写编排
 - ReAct 循环必须有轮数上限与工具白名单（全部只读），工具调用轨迹完整入审计日志
-- 记录库只存 SQL + 结果摘要/前 N 行 + 总行数，不存全量结果集
+- 记录库保存 SQL + 受行数限制上限约束的结果集快照（默认 ≤1000 行）+ 总行数，用于历史回看与后端分页；不存超出上限的全量结果集
 - 问数编排全链路对接 OpenTelemetry（各节点耗时/token 用量/调用轨迹）
 - 确认执行模式下未确认的 SQL 不得执行；EXPLAIN 预检失败（解析失败/高风险）按实例配置拒绝或警告
 - 闲聊兜底 agent 不携带任何工具（不触 SQL 生成/执行），安全边界不变
@@ -171,10 +186,16 @@
 - D26: **API 服务交付形态**（采纳建议）：核心做成 starter（业务应用引入即得问数 API 服务）+ 可选独立 server 装配（演示/独立部署）；magic 插件为可选叠加的管理端
 - D27: **外部资源实例统一自建管理器**（采纳建议）：连接池/ChatModel/EmbeddingModel/向量库客户端统一按配置自建，配置变更→重建实例→旧实例关闭（对齐 magic 插件多实例动态重建语义）
 - D28: **分期交付**（采纳建议）：第一批 core+admin+security（可问数、有权限）；第二批 user-ui+chart；第三批 dashboard+integrations；多方言按成熟度分级（MySQL/PG/Oracle/达梦首批精调，其余提供示例框架随用随补）；提示词/示例带版本与启停
+- D40: **对外 API 必须提供 MCP 接口，且暴露全部对外能力**（用户明确 2026-10-07）：问数 API 服务除 REST/SSE 通道外，必须对外提供 MCP Server 接口，供 MCP 客户端 / AI Agent 以工具（tools/resources）形式调用对外 API 的**全部能力**——问数对话、会话历史、图表数据；复用框架 `fw-plus-ai-mcp-server` 与既有 SaTokenOAuth2 认证体系，MCP 通道与 REST/SSE 通道共享同一问数核心与共享配置；管理端能力不通过 MCP 暴露
+- D41: **对外 API 对齐 SQLBot 全部对外接口能力（业务消费类）**（用户明确 2026-10-07）：以 SQLBot `/api/v1` 接口清单为基线，业务消费类能力全量提供——问数对话与记录、数据源查询/执行、表关系、推荐问题、看板、MCP、API-Key、术语、数据训练；**平台账号类接口（用户/工作区/助手/模型/系统参数）不提供**（用户 2026-10-07 确认，沿用非目标「不做用户管理」）；接口以 REST/SSE + MCP 两种形态交付
+- D42: **图表服务**（用户明确 2026-10-07）：问数结果由 LLM 自动产出图表配置（类型/轴：柱/条/线/饼/表），前端按配置渲染（G2/S2 思路）；同时提供服务端图表图片渲染（对齐 SQLBot `g2-ssr` 的能力），供导出/非流式场景产出 PNG。**不引入 Node 出图服务**——服务端出图用 Java 侧渲染实现（Build 时定方案）
+- D43: **数据导出补全**（用户明确 2026-10-07）：问数结果导出 Excel/CSV + 图表图片 PNG；术语库/训练示例支持按模板导入导出（Excel）；数据源 schema 支持导入导出（表结构登记与本地注释迁移）
+- D44: **SQL 人工调整（改后重执行）**（用户明确 2026-10-07）：用户可对已生成 SQL 手动修改并重新执行，**不限确认模式**；调整后的 SQL 仍强制走只读校验与数据权限回调；执行成功保存为一条记录（体现人工调整）
+- D45: **数据分页列表（后端服务分页）**（用户明确 2026-10-07）：问数结果数据列表 API 接受 page/size，**后端服务分页**，返回当前页数据与总行数；分页在受行数限制（默认 ≤1000 行）的结果集快照上进行——记录库保存该快照以支持历史回看与翻页（取代原「只存前 N 行」表述，仍不存超出上限的全量结果集）
 
 # 待解决问题
 
-（当前无 [blocking] 项；待用户确认完整 Shape 后进入 Build）
+（本轮无 [blocking] 用户问题；待补齐完整目标 Spec 与来源覆盖表后，重新准备最终 Shape 确认）
 
 # 验证预期
 

@@ -17,12 +17,13 @@
     "SimpleAssistantTest: 15 passed; StreamingThinkingFactoryTest: 7 passed; Langchain4jOllamaModelFactoryTest: 3 passed; StreamingThinkingAdapterAuditTest: 3 passed.",
     "Streaming console npm test: 4 passed; Maven package built the IIFE and copied it into the plugin JAR.",
     "ChatAssistantConfigTest: 3 passed when compiled and run directly; full sample test compilation remains blocked by unrelated/stale test sources.",
-    "Independent review reported a Medium concern on broad byte scans; positive audit now uses Spring ASM to verify actual onPartialThinking invoke instructions in exact handler classes and model/client linkage; focused and full targeted tests pass. One recheck round used.",
-    "Provider factory option tests were added after the implementation in prior context; historical RED evidence is unavailable and was not recreated by reverting code."
+    "Autoconfigure main sources compile with Maven offline; ChatAssistantConfigTest surefire:test passes through Comet Runtime.",
+    "Build Guard fails its inferred root Maven build before compilation because fw-plus-ai-magicapi-sample declares 16 dependencies without managed versions; those POMs are unchanged by this change."
   ],
   "unresolved": [
     "TDD process evidence gap: provider-factory implementation has GREEN coverage but no historical RED proof; do not claim complete RED/GREEN for that work.",
-    "Full autoconfigure/sample test compilation is blocked by pre-existing or stale test-source/API mismatches; changed targeted tests pass."
+    "Full autoconfigure/sample test compilation is blocked by pre-existing or stale test-source/API mismatches; changed targeted tests pass.",
+    "Build Guard cannot pass the root Maven build because the unrelated, unchanged fw-plus-ai-magicapi-sample POM has 16 unresolved dependency versions; phase remains build."
   ],
   "reviewRounds": 1
 }
