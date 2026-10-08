@@ -525,6 +525,67 @@ git show origin/springboot3:fw-plus-boot/fw-plus-boot-project/fw-plus-boot-depen
   memoryId，检索器可按 memoryId 查「会话 → 条件」映射动态解析（与 ChatMemoryStore 同构，
   非编码进 memoryId、非 ThreadLocal）；业务侧在会话建立时登记租户条件即可单实例服务全部会话。
 
+### A.6 检索器：AzureAiSearchContentRetriever 与 WebSearchContentRetriever
+
+**结论：两个 Provider 的构建代码与 langchain4j 1.20.2 API 完全兼容（javap 实测），调用零改动；
+真正变化在装配体系收口与配置载体迁移。**
+
+- **装配体系收口（破坏性）**：springboot3 分支已删除 dev 的顶层 `LangChain4jAutoConfiguration` 及 11 个
+  `LangChain4j*AutoConfiguration`（含 `LangChain4jAzureAiSearchContentRetrieverAutoConfiguration`），core 的
+  `fw-plus-ai-langchain4j-azure-ai-search`（占官方包名 `dev.langchain4j.azure.aisearch.spring` 的
+  `AutoConfig` / `Properties`）模块一并移除；`AutoConfiguration.imports` 中 LangChain4j 条目只剩
+  `support.LangChain4jSupportAutoConfiguration`。
+- **检索器新载体**：`…/magicapi/plugin/langchain4j/retriever/provider/` 的 content-retriever Provider 体系
+  （`ContentRetrieverProviderRegistry` 按 `provider` key 装配，content-retriever 资源 JSON 的 `type` 字段路由）。
+- **配置迁移（破坏性）**：Azure 检索从配置属性 `langchain4j.azure.ai-search.content-retriever.*`（dev 的
+  `Properties.PREFIX`）迁到 content-retriever 资源 options：`endpoint` / `api-key` / `index-name` /
+  `embedding-model-key`（四项必填）、`dimensions`（建索引时必填，缺省 0）、`query-type`（缺省 vector）、
+  `max-results`（缺省 5）、`min-score`（缺省 0.0）、`create-or-update-index`（缺省 false）。
+
+#### A.6.1 AzureAiSearchContentRetriever（provider key：`azure-ai-search`）
+
+- **类位置**：`AzureAiSearchContentRetrieverProvider`（分支 `fw-plus-ai-boot-autoconfigure` 的
+  `magicapi/plugin/langchain4j/retriever/provider/`）。
+- **API 验证**：`dev.langchain4j:langchain4j-azure-ai-search` 实测解析版本 **1.20.2-beta30**（该模块使用独立
+  版本号，由 langchain4j-bom 纳管，非 `1.20.2`）；`javap` 确认 builder 九方法
+  `endpoint / apiKey / indexName / embeddingModel / dimensions / maxResults / minScore / queryType /
+  createOrUpdateIndex` 与 0.35.0 完全一致 → **Provider 代码零改动**。
+- **依赖**：boot-autoconfigure 已声明 `langchain4j-azure-ai-search`（compile + optional）。
+
+#### A.6.2 WebSearchContentRetriever（provider key：`web-search`）
+
+- **类位置**：`WebSearchContentRetrieverProvider`；引擎实现 `MagicApiWebSearchEngine`（把搜索请求交给
+  magic-api 函数执行，脚本可接任意搜索服务）。
+- **artifact 变化**：`WebSearchContentRetriever` 位于 **`langchain4j-core` 1.20.2**（核心 jar 自带），
+  无需新增依赖；0.35.0 时期则随主 artifact——升级后类坐标不变、来源 jar 变化。
+- **API 验证**（javap langchain4j-core 1.20.2）：
+  - builder 仅 `webSearchEngine(WebSearchEngine)` + `maxResults(Integer)` + `build()` → 与 Provider 代码一致；
+  - `WebSearchEngine` 接口唯一抽象方法为 `search(WebSearchRequest)`，`search(String)` / `searchAsync`
+    是 default 方法——`MagicApiWebSearchEngine` 实现抽象方法并覆写 `search(String)` 转发。
+- **options**：`search-function`（magic-api 函数名 → `MagicApiWebSearchEngine`；未配置时回落 Spring 容器中的
+  `WebSearchEngine` bean）、`max-results`（未配置则不调用 builder，走默认）。
+- **引擎 SDK（optional，按需引入）**：`langchain4j-community-web-search-engine-duckduckgo` /
+  `langchain4j-web-search-engine-tavily` / `-google-custom` / `-searchapi`
+  （boot-autoconfigure 已声明 compile + optional，实际选用哪个由部署侧按需引入）。
+
+#### A.6.3 遗留待办
+
+- `LangChain4jAutoConfigurationRegistrationTest`（test 目录，分支仍在）仍以字符串引用已删除的 11 个
+  `LangChain4j*AutoConfiguration`（含 AzureAiSearch）——需与 `AutoConfiguration.imports` 的收口同步
+  改写或删除，否则该测试断言失败。
+- 存量 `langchain4j.azure.ai-search.*` 配置的使用方迁移（配置属性 → content-retriever 资源 options），
+  属配置破坏性变更，发布说明需注明。
+
+验证命令：
+
+```bash
+# builder 方法签名（1.20.2-beta30 / 1.20.2 实测）
+javap -cp ~/.m2/repository/dev/langchain4j/langchain4j-azure-ai-search/1.20.2-beta30/langchain4j-azure-ai-search-1.20.2-beta30.jar \
+  'dev.langchain4j.rag.content.retriever.azure.search.AzureAiSearchContentRetriever$Builder'
+javap -cp ~/.m2/repository/dev/langchain4j/langchain4j-core/1.20.2/langchain4j-core-1.20.2.jar \
+  'dev.langchain4j.rag.content.retriever.WebSearchContentRetriever$WebSearchContentRetrieverBuilder'
+```
+
 ---
 
 ## 附录 B：待验证项
