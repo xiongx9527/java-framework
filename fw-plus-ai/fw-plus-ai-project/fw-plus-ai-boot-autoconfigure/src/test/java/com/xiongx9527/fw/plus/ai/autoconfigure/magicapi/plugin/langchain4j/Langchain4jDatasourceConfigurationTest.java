@@ -15,7 +15,6 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.regis
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.registry.Langchain4jStreamingChatModelMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.registry.Langchain4jStreamingLanguageModelMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.registry.Langchain4jTokenizerMagicDynamicRegistry;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.systemmessage.Langchain4jSystemMessageProviderConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resource.Langchain4jChatModelMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resource.Langchain4jEmbeddingModelMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resource.Langchain4jEmbeddingStoreMagicResourceStorage;
@@ -143,7 +142,7 @@ class Langchain4jDatasourceConfigurationTest {
                     context.getBeansOfType(AbstractLangchain4jPluginConfiguration.class).values().stream()
                             .collect(Collectors.toList());
 
-            assertThat(plugins).as("每类资源各一个插件配置 + 工具提供者插件").hasSize(14);
+            assertThat(plugins).as("八类资源各一个插件配置").hasSize(8);
             assertThat(plugins.stream().map(AbstractLangchain4jPluginConfiguration::pluginName)
                     .collect(Collectors.toList()))
                     .as("插件标识与 datasource type 同源")
@@ -155,13 +154,7 @@ class Langchain4jDatasourceConfigurationTest {
                             "langchain4j-embedding-model",
                             "langchain4j-scoring-model",
                             "langchain4j-tokenizer",
-                            "langchain4j-embedding-store",
-                            "langchain4j-tool-provider",
-                            "langchain4j-aj-mcp-client",
-                            "langchain4j-system-message",
-                            "langchain4j-chat-memory-store",
-                            "langchain4j-content-retriever",
-                            "langchain4j-content-injector");
+                            "langchain4j-embedding-store");
             assertThat(plugins.stream().map(AbstractLangchain4jPluginConfiguration::javascriptFilename)
                     .collect(Collectors.toList()))
                     .allMatch(name -> name.startsWith("magic-langchain4j-") && name.endsWith(".1.0.0.iife.js"));
@@ -195,8 +188,7 @@ class Langchain4jDatasourceConfigurationTest {
 
                 configuration.controllerRegister().register(mapping, magicConfiguration);
 
-                if (configuration instanceof Langchain4jChatModelConfiguration
-                        || configuration instanceof Langchain4jSystemMessageProviderConfiguration) {
+                if (configuration instanceof Langchain4jChatModelConfiguration) {
                     verify(mapping, atLeastOnce()).registerController(any());
                 }
             }

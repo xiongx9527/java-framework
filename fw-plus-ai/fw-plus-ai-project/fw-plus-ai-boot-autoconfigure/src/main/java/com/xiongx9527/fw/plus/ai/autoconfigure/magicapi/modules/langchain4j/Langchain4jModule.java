@@ -6,16 +6,12 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLanguageModel;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicStreamingChatModel;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicStreamingLanguageModel;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.MagicDynamicContentRetriever;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jChatModelModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jLanguageModelModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jStreamingLanguageModelModule;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.module.Langchain4jContentRetrieverModule;
 import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.model.language.StreamingLanguageModel;
 import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.rag.DefaultRetrievalAugmentor;
-import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import org.ssssssss.magicapi.core.annotation.MagicModule;
 import org.springframework.beans.factory.ObjectProvider;
 
@@ -30,12 +26,11 @@ import java.util.function.Function;
  * <li>{@code langchain4j.simpleAssistant()}：由容器注入的全能力 {@code SimpleAssistant} bean
  * （按 {@code fw.plus.magicapi.langchain4j.simple-assistant.*} 配置装配）。</li>
  * <li>单能力便捷方法：{@code chatAssistant()}（仅对话）、{@code languageAssistant()}（仅
- * 文本补全）、{@code streamingLanguageAssistant()}（仅流式补全）、{@code retrievalAssistant()}
- * （仅检索）。</li>
+ * 文本补全）、{@code streamingLanguageAssistant()}（仅流式补全）。</li>
  * </ul>
  *
- * <p>4 个单能力对象在构造方法里获取：MagicDynamic 动态代理包装（module + key，每次调用实时
- * 解析，magic 实例热更新/注销后不持有失效引用）；插件缺席时为 null，方法侧提示。第 5 个
+ * <p>3 个单能力对象在构造方法里获取：MagicDynamic 动态代理包装（module + key，每次调用实时
+ * 解析，magic 实例热更新/注销后不持有失效引用）；插件缺席时为 null，方法侧提示。第 4 个
  * 全能力助手由外面的 bean 注入（{@code Langchain4jModuleConfiguration#simpleAssistant}）。</p>
  *
  * <pre>{@code
@@ -56,24 +51,21 @@ public class Langchain4jModule {
 
 	private final SimpleAssistant streamingLanguageAssistant;
 
-	private final SimpleAssistant retrievalAssistant;
-
 	/** 全能力助手：由容器注入（{@code Langchain4jModuleConfiguration#simpleAssistant}） */
 	private final SimpleAssistant simpleAssistant;
 
 	/** 无依赖构造：仅 {@code assistant()} 可用；其余方法会提示未配置 */
 	public Langchain4jModule() {
-		this(null, null, null, null, null, null);
+		this(null, null, null, null, null);
 	}
 
 	public Langchain4jModule(Langchain4jSimpleAssistantProperties properties,
 			ObjectProvider<Langchain4jChatModelModule> chatModelModules,
 			ObjectProvider<Langchain4jLanguageModelModule> languageModelModules,
 			ObjectProvider<Langchain4jStreamingLanguageModelModule> streamingLanguageModelModules,
-			ObjectProvider<Langchain4jContentRetrieverModule> contentRetrieverModules,
 			SimpleAssistant simpleAssistant) {
 		String key = properties == null ? null : properties.getKey();
-		// 4 个单能力对象在构造方法里获取：MagicDynamic 代理包装（module + key，实时解析防实例失效），
+		// 3 个单能力对象在构造方法里获取：MagicDynamic 代理包装（module + key，实时解析防实例失效），
 		// 插件缺席时为 null（方法侧提示）
 		this.chatAssistant = create(
 				module(chatModelModules),
@@ -84,12 +76,7 @@ public class Langchain4jModule {
 		this.streamingLanguageAssistant = create(
 				module(streamingLanguageModelModules),
 				module -> new SimpleAssistant(new MagicDynamicStreamingLanguageModel(module, key)));
-		this.retrievalAssistant = create(
-				module(contentRetrieverModules),
-				module -> new SimpleAssistant(DefaultRetrievalAugmentor.builder()
-						.contentRetriever(new MagicDynamicContentRetriever(module, key))
-						.build()));
-		// 第 5 个：全能力助手由外面的 bean 注入（Langchain4jModuleConfiguration#simpleAssistant）
+		// 第 4 个：全能力助手由外面的 bean 注入（Langchain4jModuleConfiguration#simpleAssistant）
 		this.simpleAssistant = simpleAssistant;
 	}
 
@@ -121,12 +108,7 @@ public class Langchain4jModule {
 		return require(streamingLanguageAssistant, "streaming-language-model");
 	}
 
-	/** 仅检索助手（构造时创建）：{@code retrieve(...)} 不调用对话大模型。 */
-	public SimpleAssistant retrievalAssistant() {
-		return require(retrievalAssistant, "content-retriever");
-	}
-
-	/** 全能力助手（容器注入）：chat / stream / 补全 / 检索 / 记忆 / 工具。 */
+	/** 全能力助手（容器注入）：chat / stream / 补全 / 记忆。 */
 	public SimpleAssistant simpleAssistant() {
 		return require(simpleAssistant, "simple-assistant（请配置 fw.plus.magicapi.langchain4j.simple-assistant.enabled=true "
 				+ "及 keys.<类型>）");

@@ -56,7 +56,9 @@ public class MagicMcpServerMagicDynamicRegistry extends AbstractMagicDynamicRegi
 	}
 
 	/**
-	 * 默认映射只用于控制台资源树展示：列出已创建实例与配置项里尚未创建的实例。
+	 * 默认映射只用于控制台资源树展示：只列配置项驱动、尚未落盘为文件的实例
+	 * （{@code id == null}）。文件创建的实例已由控制器 {@code listFiles → simple()} 列出，
+	 * 这里再返回会造成同一 JSON 在树上重复。
 	 *
 	 * <p>不能在此触发创建——{@code defaultMappings} 仅在打开控制台资源树时被调用，
 	 * 配置项驱动的实例已由 {@code MagicDynamicMcpServer#afterSingletonsInstantiated()}
@@ -64,6 +66,12 @@ public class MagicMcpServerMagicDynamicRegistry extends AbstractMagicDynamicRegi
 	 */
 	@Override
 	public List<MagicMcpServerInfo> defaultMappings() {
-		return dataSource.serverInfos();
+		List<MagicMcpServerInfo> result = new ArrayList<>();
+		for (MagicMcpServerInfo info : dataSource.serverInfos()) {
+			if (info.getId() == null) {
+				result.add(info);
+			}
+		}
+		return result;
 	}
 }

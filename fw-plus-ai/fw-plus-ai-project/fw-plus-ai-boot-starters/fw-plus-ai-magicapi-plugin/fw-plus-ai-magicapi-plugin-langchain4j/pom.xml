@@ -20,13 +20,7 @@
         <module>fw-plus-ai-magicapi-plugin-langchain4j-embedding-model</module>
         <module>fw-plus-ai-magicapi-plugin-langchain4j-tokenizer</module>
         <module>fw-plus-ai-magicapi-plugin-langchain4j-embedding-store</module>
-        <module>fw-plus-ai-magicapi-plugin-langchain4j-tool-provider</module>
         <module>fw-plus-ai-magicapi-plugin-langchain4j-scoring-model</module>
-        <module>fw-plus-ai-magicapi-plugin-langchain4j-aj-mcp-client</module>
-        <module>fw-plus-ai-magicapi-plugin-langchain4j-system-message</module>
-        <module>fw-plus-ai-magicapi-plugin-langchain4j-chat-memory-store</module>
-        <module>fw-plus-ai-magicapi-plugin-langchain4j-content-retriever</module>
-        <module>fw-plus-ai-magicapi-plugin-langchain4j-content-injector</module>
     </modules>
 
     <properties>
@@ -36,7 +30,7 @@
     <!-- 前端 console 构建（npm install + npm run build + copy dist）的 executions 由
          fw-plus-ai-magicapi-plugin 的 pluginManagement 提供；本工程是 pom 聚合父，
          只做 pluginManagement 传递、不在 <build><plugins> 里启用，避免父工程自身
-         没有 src/console 目录却去跑 npm。14 个子工程各自在自己的 pom 里启用，
+         没有 src/console 目录却去跑 npm。8 个子工程各自在自己的 pom 里启用，
          行为与 boot 层 fw-plus-magicapi-plugin 的 28 个插件子工程一致。 -->
 
     <dependencies>

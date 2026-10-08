@@ -19,11 +19,6 @@ import java.util.Map;
  *   keys:                        # 分类型专属 key（每个类型建议都配置）
  *     chatModel: qwen-main
  *     streamingModel: qwen-stream
- *     chatMemoryStore: redis-store
- *     toolProvider: weather-tools
- *     contentRetriever: kb-retriever
- *     contentInjector: prompt-injector
- *     systemMessage: prompt/assistant
  *     tokenizer: openai
  *     scoringModel: jina
  *   memory-max-messages: 20      # 进程内记忆窗口（条）；配置 tokenizer 后改按 token 截断
@@ -49,8 +44,8 @@ public class Langchain4jSimpleAssistantProperties {
 	/** 默认 key：所有资源类型共用 */
 	private String key;
 
-	/** 分类型专属 key：类型名（chatModel / streamingModel / chatMemoryStore / toolProvider /
-	 * contentRetriever / contentInjector / systemMessage / tokenizer / scoringModel）→ 资源 key，
+	/** 分类型专属 key：类型名（chatModel / streamingModel / languageModel /
+	 * streamingLanguageModel / tokenizer / scoringModel）→ 资源 key，
 	 * 未配置的类型回落 {@link #key}。 */
 	private Map<String, String> keys = new HashMap<>();
 

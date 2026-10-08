@@ -29,7 +29,6 @@
             <groupId>com.xiongx9527.fw.plus.boot</groupId>
             <artifactId>fw-plus-magicapi-spring-boot-starter</artifactId>
         </dependency>
-
         <dependency>
             <groupId>com.xiongx9527.fw.plus.boot</groupId>
             <artifactId>fw-plus-magicapi-plugin-s3</artifactId>
@@ -74,33 +73,8 @@
         </dependency>
         <dependency>
             <groupId>com.xiongx9527.fw.plus.ai</groupId>
-            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-tool-provider</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus.ai</groupId>
             <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-scoring-model</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus.ai</groupId>
-            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-aj-mcp-client</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus.ai</groupId>
-            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-system-message</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus.ai</groupId>
-            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-chat-memory-store</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus.ai</groupId>
-            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-content-retriever</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus.ai</groupId>
-            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-content-injector</artifactId>
-        </dependency>
-
         <!-- Dev langchain4j provider jars that the model-factory registry references even when no
              fw-plus wrapper module exists for them (direct upstream deps) -->
         <dependency>
@@ -147,12 +121,10 @@
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-embeddings-all-minilm-l6-v2-q</artifactId>
         </dependency>
-
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-ai-langchain4j-core</artifactId>
         </dependency>
-
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-ai-langchain4j-openai</artifactId>
@@ -234,13 +206,11 @@
             <artifactId>nebula-jdbc</artifactId>
             <version>3.3.0</version>
         </dependency>
-
         <dependency>
             <groupId>org.nebula-contrib</groupId>
             <artifactId>ngbatis</artifactId>
             <version>2.0.1</version>
         </dependency>
-
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

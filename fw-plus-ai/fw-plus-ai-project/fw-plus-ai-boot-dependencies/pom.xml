@@ -127,43 +127,7 @@
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.ai</groupId>
-                <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-tool-provider</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus.ai</groupId>
                 <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-scoring-model</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus.ai</groupId>
-                <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-aj-mcp-client</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus.ai</groupId>
-                <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-system-message</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus.ai</groupId>
-                <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-chat-memory-store</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus.ai</groupId>
-                <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-content-retriever</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus.ai</groupId>
-                <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-content-injector</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

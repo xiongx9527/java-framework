@@ -1,0 +1,19 @@
+{
+  "properties" : { },
+  "id" : "aa6da8a2b3964c91b2e761a423e9f7f8",
+  "script" : null,
+  "groupId" : "langchain4j-streaming-chat-model:0",
+  "name" : "gemma4",
+  "createTime" : 1791422804487,
+  "updateTime" : null,
+  "lock" : null,
+  "createBy" : null,
+  "updateBy" : null,
+  "key" : "gemma4",
+  "provider" : "ollama",
+  "enabled" : true,
+  "options" : {
+    "base-url" : "http://localhost:11434",
+    "model-name" : "gemma4:31b-cloud"
+  }
+}
