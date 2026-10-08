@@ -7,151 +7,111 @@ import java.time.Duration;
 /**
  * ChatMemoryStore 存储配置项。
  *
- * <p>{@code type} 决定注入哪种存储后端：{@code in-memory}（默认）/ {@code jdbc} /
- * {@code redis} / {@code mongodb} / {@code elasticsearch}。后者的客户端 Bean
- * （JdbcTemplate / StringRedisTemplate / MongoTemplate / ElasticsearchClient 或 RestClient）
- * 由使用方环境提供。</p>
+ * <p>{@code type} 决定注入哪种存储后端：{@code in-memory}（默认，进程内兜底）/
+ * {@code mem0}（mem0 兼容 REST 服务，本地部署或云端均可，连接参数见 {@link Mem0}）。</p>
+ *
+ * <p>memId 契约为 {@code {tenantId}:{appId}:{agentId}:{userId}} 四段拼接
+ * （见 {@link ChatMemoryIds}），段数不足时各维度回退以下默认值。</p>
  */
 @ConfigurationProperties(ChatMemoryStoreProperties.PREFIX)
 public class ChatMemoryStoreProperties {
 
-    public static final String PREFIX = "fw.plus.ai.langchain4j.chat-memory";
+	public static final String PREFIX = "fw.plus.ai.langchain4j.chat-memory";
 
-    public static final String TYPE_IN_MEMORY = "in-memory";
+	public static final String TYPE_IN_MEMORY = "in-memory";
 
-    public static final String TYPE_JDBC = "jdbc";
+	public static final String TYPE_MEM0 = "mem0";
 
-    public static final String TYPE_REDIS = "redis";
+	/** 存储后端类型，默认进程内存储 */
+	private String type = TYPE_IN_MEMORY;
 
-    public static final String TYPE_MONGODB = "mongodb";
+	/** memId 段[1]（app_id）缺失时的默认值 */
+	private String defaultAppId = ChatMemoryIds.DEFAULT_APP_ID;
 
-    public static final String TYPE_ELASTICSEARCH = "elasticsearch";
+	/** memId 段[0]（tenant_id）缺失且租户解析器未提供时的默认值 */
+	private String defaultTenantId = ChatMemoryStoreDefaults.DEFAULT_TENANT_ID;
 
-    /** 存储后端类型，默认进程内存储 */
-    private String type = TYPE_IN_MEMORY;
+	private final Mem0 mem0 = new Mem0();
 
-    /** memoryId 不含业务类型前缀时使用的默认业务类型 */
-    private String defaultBizType = ChatMemoryIds.DEFAULT_BIZ_TYPE;
+	public String getType() {
+		return type;
+	}
 
-    /** 默认租户 ID（{@link ChatMemoryTenantResolver} 未注册或解析为空时使用） */
-    private String defaultTenantId = ChatMemoryStoreDefaults.DEFAULT_TENANT_ID;
+	public void setType(String type) {
+		this.type = type;
+	}
 
-    private final Jdbc jdbc = new Jdbc();
+	public String getDefaultAppId() {
+		return defaultAppId;
+	}
 
-    private final Redis redis = new Redis();
+	public void setDefaultAppId(String defaultAppId) {
+		this.defaultAppId = defaultAppId;
+	}
 
-    private final Mongo mongo = new Mongo();
+	public String getDefaultTenantId() {
+		return defaultTenantId;
+	}
 
-    private final Elasticsearch elasticsearch = new Elasticsearch();
+	public void setDefaultTenantId(String defaultTenantId) {
+		this.defaultTenantId = defaultTenantId;
+	}
 
-    public String getType() {
-        return type;
-    }
+	public Mem0 getMem0() {
+		return mem0;
+	}
 
-    public void setType(String type) {
-        this.type = type;
-    }
+	/** mem0 REST 存储配置 */
+	public static class Mem0 {
 
-    public String getDefaultBizType() {
-        return defaultBizType;
-    }
+		/** 默认服务根地址（本地部署） */
+		public static final String DEFAULT_BASE_URL = "http://localhost:8000";
 
-    public void setDefaultBizType(String defaultBizType) {
-        this.defaultBizType = defaultBizType;
-    }
+		/**
+		 * mem0 服务根地址（可含版本前缀）：部署在根路径写 {@code http://host:8000}，
+		 * 网关要求 {@code /v1} 前缀时写 {@code http://host:8000/v1}
+		 */
+		private String baseUrl = DEFAULT_BASE_URL;
 
-    public String getDefaultTenantId() {
-        return defaultTenantId;
-    }
+		/** API Key；本地部署未开启鉴权时留空（不发送 Authorization 头） */
+		private String apiKey = "";
 
-    public void setDefaultTenantId(String defaultTenantId) {
-        this.defaultTenantId = defaultTenantId;
-    }
+		/** 连接超时，默认 5s */
+		private Duration connectTimeout = Duration.ofSeconds(5);
 
-    public Jdbc getJdbc() {
-        return jdbc;
-    }
+		/** 读取超时，默认 10s */
+		private Duration readTimeout = Duration.ofSeconds(10);
 
-    public Redis getRedis() {
-        return redis;
-    }
+		public String getBaseUrl() {
+			return baseUrl;
+		}
 
-    public Mongo getMongo() {
-        return mongo;
-    }
+		public void setBaseUrl(String baseUrl) {
+			this.baseUrl = baseUrl;
+		}
 
-    public Elasticsearch getElasticsearch() {
-        return elasticsearch;
-    }
+		public String getApiKey() {
+			return apiKey;
+		}
 
-    /** JDBC 存储配置 */
-    public static class Jdbc {
+		public void setApiKey(String apiKey) {
+			this.apiKey = apiKey;
+		}
 
-        /** 消息表名（仅允许字母、数字、下划线），每条消息一行 */
-        private String tableName = "ai_chat_memory_message";
+		public Duration getConnectTimeout() {
+			return connectTimeout;
+		}
 
-        public String getTableName() {
-            return tableName;
-        }
+		public void setConnectTimeout(Duration connectTimeout) {
+			this.connectTimeout = connectTimeout;
+		}
 
-        public void setTableName(String tableName) {
-            this.tableName = tableName;
-        }
-    }
+		public Duration getReadTimeout() {
+			return readTimeout;
+		}
 
-    /** Redis 存储配置 */
-    public static class Redis {
-
-        /** 键前缀，实际 key 为 {@code keyPrefix + memoryId} */
-        private String keyPrefix = RedisChatMemoryStore.DEFAULT_KEY_PREFIX;
-
-        /** 过期时间，如 30m / 12h / 7d；缺省永不过期 */
-        private Duration ttl;
-
-        public String getKeyPrefix() {
-            return keyPrefix;
-        }
-
-        public void setKeyPrefix(String keyPrefix) {
-            this.keyPrefix = keyPrefix;
-        }
-
-        public Duration getTtl() {
-            return ttl;
-        }
-
-        public void setTtl(Duration ttl) {
-            this.ttl = ttl;
-        }
-    }
-
-    /** MongoDB 存储配置 */
-    public static class Mongo {
-
-        /** 集合名，每条消息一篇文档 */
-        private String collectionName = MongoChatMemoryStore.DEFAULT_COLLECTION_NAME;
-
-        public String getCollectionName() {
-            return collectionName;
-        }
-
-        public void setCollectionName(String collectionName) {
-            this.collectionName = collectionName;
-        }
-    }
-
-    /** Elasticsearch 存储配置 */
-    public static class Elasticsearch {
-
-        /** 索引名，每条消息一篇文档 */
-        private String indexName = ElasticsearchChatMemoryStore.DEFAULT_INDEX_NAME;
-
-        public String getIndexName() {
-            return indexName;
-        }
-
-        public void setIndexName(String indexName) {
-            this.indexName = indexName;
-        }
-    }
+		public void setReadTimeout(Duration readTimeout) {
+			this.readTimeout = readTimeout;
+		}
+	}
 }

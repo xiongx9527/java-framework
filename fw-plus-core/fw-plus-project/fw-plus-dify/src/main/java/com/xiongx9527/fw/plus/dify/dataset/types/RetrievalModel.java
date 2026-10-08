@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.dify.dataset.types;
 
 import com.alibaba.fastjson2.PropertyNamingStrategy;
 import com.alibaba.fastjson2.annotation.JSONType;
+import com.xiongx9527.fw.plus.dify.dataset.types.external.KnowledgeMetadataCondition;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -15,6 +16,12 @@ public class RetrievalModel {
      * 检索方法
      */
     private SearchMethod searchMethod;
+
+    /**
+     * 元数据过滤条件（dify v1.10+ 的 metadata_filtering_conditions，
+     * 结构与外部知识库 metadata_condition 一致，复用同一模型）
+     */
+    private KnowledgeMetadataCondition metadataFilteringConditions;
 
     /**
      * 是否开启rerank

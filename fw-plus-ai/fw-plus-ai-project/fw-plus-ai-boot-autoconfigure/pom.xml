@@ -48,33 +48,10 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Redis（MCP 集群广播/消费使用；ChatMemoryStore 不再依赖） -->
         <dependency>
             <groupId>org.springframework.data</groupId>
             <artifactId>spring-data-redis</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <!-- ChatMemoryStore JDBC 存储：optional，版本随 Boot BOM -->
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-jdbc</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <!-- ChatMemoryStore MongoDB 存储：optional，版本随 Boot BOM -->
-        <dependency>
-            <groupId>org.springframework.data</groupId>
-            <artifactId>spring-data-mongodb</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <!-- ChatMemoryStore Elasticsearch 存储：optional，版本由 fw-plus-boot-dependencies 管理 -->
-        <dependency>
-            <groupId>co.elastic.clients</groupId>
-            <artifactId>elasticsearch-java</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>

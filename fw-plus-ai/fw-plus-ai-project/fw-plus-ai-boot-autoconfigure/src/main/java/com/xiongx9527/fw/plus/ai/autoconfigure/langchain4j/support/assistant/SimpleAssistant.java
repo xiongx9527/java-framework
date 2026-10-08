@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatstore.ChatMemoryIds;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -86,6 +87,21 @@ public class SimpleAssistant {
 
 	private final RetrievalAugmentor retrievalAugmentor;
 
+	/** memId 段[0]：租户（三参数入口缺省 {@link ChatMemoryIds#DEFAULT_TENANT_ID}） */
+	private String tenantId;
+
+	/** memId 段[1]：应用 */
+	private String appId;
+
+	/** memId 段[2]：AI 主体 */
+	private String agentId;
+
+	/** memId 段[3]：用户 */
+	private String userId;
+
+	/** 是否调用过 {@link #dimensions} 设置维度 */
+	private boolean dimensionsConfigured;
+
 	/**
 	 * 全量构造：底层 {@link Assistant} 与各模型、检索增强都由调用方给定（不需要的可传 null），
 	 * 便于把外部已有的模型实例装配进同一个封装对象。
@@ -132,6 +148,53 @@ public class SimpleAssistant {
 		return assistant;
 	}
 
+	// -------------------------------------------------- memId 维度入口（四段契约）
+
+	/**
+	 * 维度入口（四参数）：设置 memId 的四个维度，此后无 memoryId 的调用
+	 * （{@code chat/stream/streamToSse/retrieve} 的单参 message 形态）自动使用
+	 * {@link ChatMemoryIds#build} 拼接的 memId：{@code {tenantId}:{appId}:{agentId}:{userId}}。
+	 * 同一维度组合共用一个记忆集合，历史记忆跨会话天然连续、加载历史无需特殊处理。
+	 *
+	 * @throws IllegalArgumentException 任一维度为空或包含分隔符 {@code :}
+	 */
+	public SimpleAssistant dimensions(String tenantId, String appId, String agentId, String userId) {
+		this.tenantId = requireDimension("tenantId", tenantId);
+		this.appId = requireDimension("appId", appId);
+		this.agentId = requireDimension("agentId", agentId);
+		this.userId = requireDimension("userId", userId);
+		this.dimensionsConfigured = true;
+		return this;
+	}
+
+	/**
+	 * 维度入口（三参数）：tenant_id 缺省为 {@link ChatMemoryIds#DEFAULT_TENANT_ID}（{@code "0"}），
+	 * memId = {@code 0:{appId}:{agentId}:{userId}}。
+	 *
+	 * @throws IllegalArgumentException 任一维度为空或包含分隔符 {@code :}
+	 */
+	public SimpleAssistant dimensions(String appId, String agentId, String userId) {
+		return dimensions(ChatMemoryIds.DEFAULT_TENANT_ID, appId, agentId, userId);
+	}
+
+	/** 当前 memId：设置过 {@link #dimensions} 时为四段拼接值（实例内固定），否则返回 {@value #DEFAULT_MEMORY_ID} */
+	public String memoryId() {
+		return dimensionsConfigured
+				? ChatMemoryIds.build(tenantId, appId, agentId, userId)
+				: DEFAULT_MEMORY_ID;
+	}
+
+	private static String requireDimension(String name, String value) {
+		if (value == null || value.trim().isEmpty()) {
+			throw new IllegalArgumentException("SimpleAssistant.dimensions: " + name + " 不能为空");
+		}
+		if (value.contains(ChatMemoryIds.SEPARATOR)) {
+			throw new IllegalArgumentException("SimpleAssistant.dimensions: " + name
+					+ " 不允许包含分隔符 '" + ChatMemoryIds.SEPARATOR + "': " + value);
+		}
+		return value.trim();
+	}
+
 	// -------------------------------------------------- 只检索（不调用对话大模型）
 
 	/**
@@ -141,7 +204,7 @@ public class SimpleAssistant {
 	 * {@code AssistantBuilder.retrievalOnly()}）下可用。
 	 */
 	public List<Content> retrieve(String message) {
-		return retrieve(DEFAULT_MEMORY_ID, message);
+		return retrieve(memoryId(), message);
 	}
 
 	/** 只检索：memoryId 自定（可做检索侧会话区分），返回命中的内容列表 */
@@ -358,9 +421,9 @@ public class SimpleAssistant {
 		}
 	}
 
-	/** 一次性对话：memoryId 取 {@value #DEFAULT_MEMORY_ID}，context 为空 */
+	/** 一次性对话：memoryId 取 {@link #memoryId()}（维度拼接值，未设置维度时为 {@value #DEFAULT_MEMORY_ID}），context 为空 */
 	public String chat(String message) {
-		return chat(DEFAULT_MEMORY_ID, message);
+		return chat(memoryId(), message);
 	}
 
 	/** 会话对话：memoryId 自定（决定会话记忆），context 为空 */
@@ -373,9 +436,9 @@ public class SimpleAssistant {
 		return requireAssistant().chat(memoryId, normalizeContext(context), message);
 	}
 
-	/** 流式：memoryId 取 {@value #DEFAULT_MEMORY_ID}，context 为空，返回原始 {@link TokenStream} */
+	/** 流式：memoryId 取 {@link #memoryId()}（未设置维度时为 {@value #DEFAULT_MEMORY_ID}），context 为空，返回原始 {@link TokenStream} */
 	public TokenStream stream(String message) {
-		return stream(DEFAULT_MEMORY_ID, message);
+		return stream(memoryId(), message);
 	}
 
 	/** 流式：返回原始 {@link TokenStream}，需要自定义回调时用 */
@@ -582,7 +645,7 @@ public class SimpleAssistant {
 	 * SseEmitter 不设超时（0L），由生成速度决定。
 	 */
 	public SseEmitter streamToSse(String message) {
-		return streamToSse(DEFAULT_MEMORY_ID, message);
+		return streamToSse(memoryId(), message);
 	}
 
 	public SseEmitter streamToSse(String memoryId, String message) {
