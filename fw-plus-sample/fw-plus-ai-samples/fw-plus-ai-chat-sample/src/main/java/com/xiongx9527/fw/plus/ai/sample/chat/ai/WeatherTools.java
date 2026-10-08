@@ -14,6 +14,10 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <p>数据为本地构造的 mock，仅用于演示"模型自主决定是否调用工具"这一行为，
  * 不访问任何外部天气服务。由模型自行决定何时调用、传什么参数——这正是
  * LangChain4j 工具调用的核心特征。</p>
+ *
+ * <p>同一方法同时标注 LangChain4j 的 {@code @Tool} 与 Spring AI 的
+ * {@code @Tool}（全限定名），使这一个工具类同时服务于 LangChain4j、
+ * Spring AI、Spring AI Alibaba 三条链路，调用计数也是同一份。</p>
  */
 @Slf4j
 public class WeatherTools {
@@ -31,7 +35,10 @@ public class WeatherTools {
 	}
 
 	@Tool("查询指定城市的实时天气，返回温度、湿度、风力和天气描述")
-	public String queryWeather(@P("城市名，例如：北京") String city) {
+	@org.springframework.ai.tool.annotation.Tool(name = "queryWeather",
+			description = "查询指定城市的实时天气，返回温度、湿度、风力和天气描述")
+	public String queryWeather(@P("城市名，例如：北京")
+			@org.springframework.ai.tool.annotation.ToolParam(description = "城市名，例如：北京") String city) {
 		log.info("=======================>查询天气：{}", city);
 		callCount.incrementAndGet();
 		String[] data = MOCK_WEATHER.get(city == null ? "" : city.trim());
