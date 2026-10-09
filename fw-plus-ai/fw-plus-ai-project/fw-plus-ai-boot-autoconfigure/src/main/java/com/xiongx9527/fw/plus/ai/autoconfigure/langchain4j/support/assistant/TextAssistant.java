@@ -8,7 +8,7 @@ import dev.langchain4j.service.V;
 /**
  * 内层纯文本通道：签名与改造前的 {@link Assistant} 完全一致，由 {@code AiServices.build()}
  * 生成动态代理，保留 LangChain4j 原生完整管线——{@code {{context}}} 模板渲染、工具循环
- * （含 {@link GuardedToolExecutor} 缺参保护）、RAG 检索增强、会话记忆读写、系统提示。
+ * （缺参/绑定失败由原生 {@code toolArgumentsErrorHandler} 兜底）、RAG 检索增强、会话记忆读写、系统提示。
  *
  * <p>包内可见：仅供 {@link MultimodalAssistantBridge} 在「纯文本轮」转发，以及同包测试使用，
  * 不对外暴露。业务侧一律通过 {@link Assistant} / {@link SimpleAssistant} 调用——两者对

@@ -13,6 +13,7 @@ import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.service.tool.ToolErrorHandlerResult;
 import dev.langchain4j.service.tool.ToolProvider;
 import dev.langchain4j.service.tool.ToolProviderResult;
 import org.junit.jupiter.api.Test;
@@ -31,10 +32,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * {@link AssistantBuilder} 工具参数错误拦截端到端（mock 模型驱动两轮工具循环）：
+ * {@link AssistantBuilder} 工具参数错误处理端到端（mock 模型驱动两轮工具循环）：
  * 缺参不执行工具、拦截文本作为 {@code ToolExecutionResultMessage} 回给 LLM
- * （默认提示反问用户；业务可经 {@code toolArgumentsErrorHandler(...)} 覆盖），
- * 覆盖 {@code tools(...)} 与 {@code toolProvider(...)} 两条注册路径。
+ * （默认提示反问用户；业务经 {@code toolArgumentsErrorHandler(...)} 覆盖）——
+ * 全部经 fork 原生 {@code AiServices.toolArgumentsErrorHandler(...)} 槽位透传，
+ * 覆盖 {@code tools(...)} 与 {@code toolProvider(...)} 两条注册路径；
+ * 另验证业务异常走原生 {@code toolExecutionErrorHandler(...)} 透传回文本。
  */
 class AssistantBuilderToolArgumentsGuardTest {
 
@@ -101,14 +104,18 @@ class AssistantBuilderToolArgumentsGuardTest {
 	}
 
 	@Test
-	void providerToolMissingArgumentIsIntercepted() {
+	void providerToolErrorIsInterceptedByNativeArgumentsErrorHandler() {
+		// fork 原生不对 toolProvider 路径做缺参检测（executor 由业务完全接管，参数校验是业务自己的职责，
+		// dev 的 guardToolProvider 已随 GuardedToolExecutor 下线）；业务 executor 抛出的
+		// ToolArgumentsException 仍走透传的 toolArgumentsErrorHandler 回文本
 		ChatModel model = modelRoundsWithMissingArgumentRequest();
 		AtomicBoolean invoked = new AtomicBoolean(false);
 		ToolSpecification specification = ToolSpecifications.toolSpecificationsFrom(new OrderTool()).get(0);
 		ToolProvider provider = request -> ToolProviderResult.builder()
 				.add(specification, (toolRequest, memoryId) -> {
 					invoked.set(true);
-					return "OK";
+					throw new dev.langchain4j.exception.ToolArgumentsException(
+							new IllegalArgumentException("Required parameter \"quantity\" of tool \"order\" is missing"));
 				})
 				.build();
 
@@ -117,7 +124,7 @@ class AssistantBuilderToolArgumentsGuardTest {
 		String answer = assistant.chat("default", "", contents("下单"));
 
 		assertThat(answer).isEqualTo("请问需要几个？");
-		assertThat(invoked).isFalse();
+		assertThat(invoked).isTrue();
 
 		List<String> texts = secondRoundToolResultTexts(model);
 		assertThat(texts).hasSize(1);
@@ -129,7 +136,8 @@ class AssistantBuilderToolArgumentsGuardTest {
 		ChatModel model = modelRoundsWithMissingArgumentRequest();
 		OrderTool tool = new OrderTool();
 		Assistant assistant = new AssistantBuilder().chatModel(model).tools(tool)
-				.toolArgumentsErrorHandler((error, request) -> "业务定制：请用户补齐后再调用")
+				.toolArgumentsErrorHandler((error, context) ->
+						ToolErrorHandlerResult.text("业务定制：请用户补齐后再调用"))
 				.toAssistant();
 
 		String answer = assistant.chat("default", "", contents("下单"));
@@ -140,6 +148,48 @@ class AssistantBuilderToolArgumentsGuardTest {
 		List<String> texts = secondRoundToolResultTexts(model);
 		assertThat(texts).hasSize(1);
 		assertThat(texts.get(0)).isEqualTo("业务定制：请用户补齐后再调用");
+	}
+
+	@Test
+	void customExecutionErrorHandlerTextReplacesForkDefault() {
+		ChatModel model = modelRoundsWithBusinessException();
+		BoomTool tool = new BoomTool();
+		Assistant assistant = new AssistantBuilder().chatModel(model).tools(tool)
+				.toolExecutionErrorHandler((error, context) ->
+						ToolErrorHandlerResult.text("业务异常已回传：" + error.getMessage()))
+				.toAssistant();
+
+		String answer = assistant.chat("default", "", contents("炸一下"));
+
+		assertThat(answer).isEqualTo("已处理异常");
+		assertThat(tool.invoked).isTrue();
+
+		List<String> texts = secondRoundToolResultTexts(model);
+		assertThat(texts).hasSize(1);
+		assertThat(texts.get(0)).startsWith("业务异常已回传：").contains("库存不足");
+	}
+
+	/** 第一轮要求调 boom（参数齐全），工具方法抛业务异常，第二轮正常收尾 */
+	private ChatModel modelRoundsWithBusinessException() {
+		ToolExecutionRequest request = ToolExecutionRequest.builder().id("t2").name("boom")
+				.arguments("{\"x\":\"v\"}")
+				.build();
+
+		ChatModel model = mock(ChatModel.class);
+		when(model.chat(any(ChatRequest.class))).thenReturn(
+				ChatResponse.builder().aiMessage(AiMessage.from(request)).build(),
+				ChatResponse.builder().aiMessage(AiMessage.from("已处理异常")).build());
+		return model;
+	}
+
+	static class BoomTool {
+		boolean invoked;
+
+		@Tool(name = "boom", value = "必抛业务异常")
+		public String boom(@P("参数") String x) {
+			invoked = true;
+			throw new IllegalStateException("库存不足");
+		}
 	}
 
 }

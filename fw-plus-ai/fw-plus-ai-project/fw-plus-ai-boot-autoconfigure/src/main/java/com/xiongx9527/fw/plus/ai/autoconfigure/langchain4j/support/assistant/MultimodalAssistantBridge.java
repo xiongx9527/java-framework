@@ -37,7 +37,8 @@ import java.util.function.Function;
  * <ul>
  *   <li><b>纯文本轮</b>（contents 全为 {@link TextContent}）：拆出文本后原样转发内层，
  *       走 LangChain4j 原生完整管线——{@code {{context}}} 模板渲染、工具循环
- *       （含 {@link GuardedToolExecutor}）、RAG、会话记忆，行为与改造前逐字节一致；</li>
+ *       （缺参/绑定失败由原生 {@code toolArgumentsErrorHandler} 兜底）、RAG、会话记忆，
+ *       行为与改造前逐字节一致；</li>
  *   <li><b>多模态轮</b>（含图片/文档等内容）：自拼 {@code UserMessage.from(contents)} 直调模型。
  *       RAG 照走（query 取文本部分，检索结果以附加 TextContent 注入），会话记忆写
  *       <b>文本占位</b>（{@code [图片]} / {@code [文档:x.pdf]} + 文本）而非原文，
