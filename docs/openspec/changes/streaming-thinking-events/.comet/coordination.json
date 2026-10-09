@@ -18,7 +18,8 @@
     "Streaming console npm test: 4 passed; Maven package built the IIFE and copied it into the plugin JAR.",
     "ChatAssistantConfigTest: 3 passed when compiled and run directly; full sample test compilation remains blocked by unrelated/stale test sources.",
     "Autoconfigure main sources compile with Maven offline; ChatAssistantConfigTest surefire:test passes through Comet Runtime.",
-    "Build Guard fails its inferred root Maven build before compilation because fw-plus-ai-magicapi-sample declares 16 dependencies without managed versions; those POMs are unchanged by this change."
+    "Build Guard fails its inferred root Maven build before compilation because fw-plus-ai-magicapi-sample declares 16 dependencies without managed versions; those POMs are unchanged by this change.",
+    "Native pass-through landed: AssistantBuilder.toolArgumentsErrorHandler accepts fork ToolArgumentsErrorHandler and passes through to AiServices; GuardedToolExecutor/ToolArgumentsErrorHandler/MissingArgumentException/LlmVisibleToolExecutionException retired (git rm); toolExecutionErrorHandler added; AssistantBuilderToolArgumentsGuardTest rewritten to fork-native 4 scenarios all green; autoconfigure + chat-sample test-compile pass; assistant-package failure set identical to baseline (no regression)."
   ],
   "unresolved": [
     "TDD process evidence gap: provider-factory implementation has GREEN coverage but no historical RED proof; do not claim complete RED/GREEN for that work.",
