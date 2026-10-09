@@ -568,13 +568,24 @@ git show origin/springboot3:fw-plus-boot/fw-plus-boot-project/fw-plus-boot-depen
   `langchain4j-web-search-engine-tavily` / `-google-custom` / `-searchapi`
   （boot-autoconfigure 已声明 compile + optional，实际选用哪个由部署侧按需引入）。
 
-#### A.6.3 遗留待办
+#### A.6.3 遗留待办（2026-10-08 已处理）
 
-- `LangChain4jAutoConfigurationRegistrationTest`（test 目录，分支仍在）仍以字符串引用已删除的 11 个
-  `LangChain4j*AutoConfiguration`（含 AzureAiSearch）——需与 `AutoConfiguration.imports` 的收口同步
-  改写或删除，否则该测试断言失败。
-- 存量 `langchain4j.azure.ai-search.*` 配置的使用方迁移（配置属性 → content-retriever 资源 options），
-  属配置破坏性变更，发布说明需注明。
+- **已处理**：`LangChain4jAutoConfigurationRegistrationTest` 已按装配收口现状改写——断言 imports
+  条目全部可加载、langchain4j 条目唯一收口到 `LangChain4jSupportAutoConfiguration`、12 个已删装配类
+  不回流、Support 条件注解（`fw.plus.ai.langchain4j.enabled` + `dev.langchain4j.Experimental`）、
+  legacy 绕过类缺失、POM provider SDK 为 compile+optional（`langchain4j-redis` 已迁出本模块，
+  移出断言）。模块内验证 6/6 通过。
+- **已处理**：同模块 `MagicDynamicLangchain4jDataSourcesTest` 残留的 0.35 API
+  （`ChatLanguageModel` → `ChatModel`，与 main 侧对齐），否则 testCompile 失败、测试无法执行。
+- **已处理**：存量 `langchain4j.azure.ai-search.*` 配置全仓 grep 无 yml/properties 残留（零使用方）；
+  `fw-plus-ai-langchain4j/README.md` 已加 springboot3 分支状态声明（0.35 覆盖模块整体移除、
+  仅剩 nebula/neo4j，下文的 Java 8 覆盖描述作 dev 历史参考）。
+- **⚠️ 处理中发现的分支既有缺口（非本次范围，待另行处理）**：
+  ① `fw-plus-ai-magicapi-sample/pom.xml` 引用 14 个已删 `fw-plus-ai-langchain4j-*` 模块，坏 POM
+     阻塞根 reactor 构建（对应「阶段 5 · 按 springboot3 清单更新样例声明」既有待办）；
+  ② `fw-plus-ai-boot-autoconfigure` 测试基线 599 跑 25 败（OpenAi factory 反射缺 `topP`/`temperature`
+     字段、datasources/module/toolprovider 装配断言过期等 0.35 → 1.x 适配缺口）——`fw-plus-ai/pom.xml`
+     默认 `maven.test.skip=true` 一直掩盖着这些失败。
 
 验证命令：
 
