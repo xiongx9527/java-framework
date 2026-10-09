@@ -2,8 +2,6 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.webflux;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.Langchain4jModelFactoryRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jEmbeddingModelDataSource;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.agenticscript.module.Langchain4jAgenticScriptModule;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.agenticscript.web.Langchain4jAgenticScriptController;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.web.Langchain4jDatasourceController;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.config.MagicApiMcpProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.web.MagicMcpDiagnosticController;
@@ -49,13 +47,6 @@ public class MagicAPIWebFluxPluginControllerRegistrar implements SmartInitializi
 			MagicDynamicLangchain4jEmbeddingModelDataSource embeddingModels = applicationContext
 					.getBeanProvider(MagicDynamicLangchain4jEmbeddingModelDataSource.class).getIfAvailable();
 			mapping.registerController(new Langchain4jDatasourceController(configuration, factories, embeddingModels));
-		}
-		// agentic-script 控制器：servlet 栈经 controllerRegister() 注册，reactive 栈在此补登记，
-		// 以模块 bean 存在性门控（配置缺席时不登记，避免端点指向缺失实现）
-		Langchain4jAgenticScriptModule agenticScriptModule = applicationContext
-				.getBeanProvider(Langchain4jAgenticScriptModule.class).getIfAvailable();
-		if (agenticScriptModule != null) {
-			mapping.registerController(new Langchain4jAgenticScriptController(configuration));
 		}
 	}
 

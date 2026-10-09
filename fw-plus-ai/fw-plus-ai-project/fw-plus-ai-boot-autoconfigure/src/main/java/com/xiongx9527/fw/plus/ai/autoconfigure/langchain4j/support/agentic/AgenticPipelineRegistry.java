@@ -8,7 +8,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 编排注册中心：编排提供方（nl2sql 流水线、agentic-script 组合、业务代码）把编排句柄
+ * 编排注册中心：编排提供方（nl2sql 流水线、业务代码）把编排句柄
  * 按 key 注册，tool-provider 资源链与脚本按 key 引用。
  */
 public class AgenticPipelineRegistry {

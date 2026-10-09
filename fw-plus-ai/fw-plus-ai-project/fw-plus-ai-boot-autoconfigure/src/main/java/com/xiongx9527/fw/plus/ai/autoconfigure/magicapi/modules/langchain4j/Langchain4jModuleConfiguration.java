@@ -2,8 +2,6 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant.AssistantBuilder;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant.SimpleAssistant;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.agenticscript.model.MagicDynamicAgenticScriptToolProvider;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.agenticscript.module.Langchain4jAgenticScriptModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicChatModel;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLanguageModel;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicScoringModel;
@@ -36,9 +34,8 @@ import org.springframework.context.annotation.Configuration;
  * {@code keys.<类型>} 分类型专属 key（没有就按 {@code use-default-key} / {@code use-default-keys.<类型>}
  * 决定是否回落默认 key）、{@code memory-max-messages} 进程内记忆窗口、{@code max-tokens} token
  * 记忆上限（需配 tokenizer）、{@code rerank-min-score} rerank 生效下限（需配 scoring-model）、
- * {@code simple-assistant-required} langchain4jModule 是否必须依赖 SimpleAssistant。skill 与
- * agenticScript 支持逗号分隔多个（skill 另支持 all 挂全部启用技能；agenticScript 为脚本资源
- * 路径列表，逐个包装为编排工具）。各类型资源
+ * {@code simple-assistant-required} langchain4jModule 是否必须依赖 SimpleAssistant。skill
+ * 支持逗号分隔多个（另支持 all 挂全部启用技能）。各类型资源
  * 从对应的 {@code Langchain4jXxxModule} 解析，并以 {@code MagicDynamicXxx} 动态代理包装——
  * 每次调用实时解析，magic 实例热更新/注销后不持有失效引用。chat-model 与 streaming-chat-model
  * 至少要有其一，其余类型 key 未配置时跳过不装配。</p>
@@ -67,7 +64,6 @@ public class Langchain4jModuleConfiguration {
 			ObjectProvider<Langchain4jTokenizerModule> tokenizerModules,
 			ObjectProvider<Langchain4jScoringModelModule> scoringModelModules,
 			ObjectProvider<Langchain4jSkillModule> skillModules,
-			ObjectProvider<Langchain4jAgenticScriptModule> agenticScriptModules,
 			Langchain4jSimpleAssistantProperties properties) {
 		AssistantBuilder assistantBuilder = new AssistantBuilder();
 		String chatModelKey = typeKey("chatModel", properties);
@@ -110,18 +106,6 @@ public class Langchain4jModuleConfiguration {
 					if (!trimmed.isEmpty()) {
 						assistantBuilder.skills(new MagicDynamicSkill(skillModule, trimmed));
 					}
-				}
-			}
-		}
-		String agenticScriptKeys = typeKey("agenticScript", properties);
-		if (agenticScriptKeys != null && agenticScriptModules.getIfAvailable() != null) {
-			Langchain4jAgenticScriptModule agenticScriptModule = agenticScriptModules.getIfAvailable();
-			// 逗号分隔多个脚本资源路径（不支持 all——脚本无启用开关）；每个路径用动态代理实时解析，
-			// 形态（tool/graph）按最新资源定义自动分发为编排工具
-			for (String path : agenticScriptKeys.split(",")) {
-				String trimmed = path.trim();
-				if (!trimmed.isEmpty()) {
-					assistantBuilder.toolProvider(new MagicDynamicAgenticScriptToolProvider(agenticScriptModule, trimmed));
 				}
 			}
 		}
