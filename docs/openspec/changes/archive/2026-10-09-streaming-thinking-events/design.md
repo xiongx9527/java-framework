@@ -2,6 +2,8 @@
 comet_change: streaming-thinking-events
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-10-09-streaming-thinking-events
+status: final
 ---
 
 # 设计：跨提供商流式思考事件

@@ -2,6 +2,7 @@
 change: streaming-thinking-events
 design-doc: docs/openspec/changes/streaming-thinking-events/design.md
 base-ref: 1a66309a6c45057c6a62e40c8e32e70cf7e54e15
+archived-with: 2026-10-09-streaming-thinking-events
 ---
 
 <!-- comet-task-authority: docs/openspec/changes/streaming-thinking-events/tasks.md -->
