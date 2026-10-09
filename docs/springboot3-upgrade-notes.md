@@ -296,7 +296,7 @@ langchain4j 插件面板全部 404。三处成因：
 | 项 | 现状 | 需要做什么 |
 |---|---|---|
 | `AbstractLangchain4jPluginConfiguration.java` | 与 dev 修复前**逐字相同**，仍带降级判定 | 照搬 dev 改动 |
-| langchain4j 插件子模块数 | **17 个**（dev 14 个），多出 `agentic-script`、`mcp-client`、`skill`（提交 `0594d11d0`、`30254da84` 为 springboot3-only） | 纳管/依赖清单按 **17** 个写，不要照抄 dev 的 14 个 |
+| langchain4j 插件子模块数 | **16 个**（dev 14 个 + `agentic-script` + `skill`；`mcp-client` 于第二次合并随 dev 对齐删除，见 C.5） | 纳管/依赖清单按 **16** 个写，不要照抄 dev 的 14 个 |
 | `fw-plus-ai-magicapi-plugin/pom.xml` | pluginManagement 只有 `npm-install` / `npm-build` / `copy-console-dist`，三者都绑 `prepare-package`；**没有 `clean-stale-console-assets`** | dev 侧的 `clean-stale-console-assets` 由提交 `e46ecdac` 引入，不在 springboot3 上，需一并移植（注意下方副作用说明） |
 | `fw-plus-ai-boot-dependencies`（84 行） | **0 条** `fw-plus-ai-magicapi-plugin-*` | 按 17 个补齐 |
 | `fw-plus-ai-magicapi-sample/pom.xml`（192 行） | **0 条**产物模块依赖 | 按 17 个补齐 |
