@@ -619,23 +619,33 @@ javap -cp ~/.m2/repository/dev/langchain4j/langchain4j-core/1.20.2/langchain4j-c
 
 ---
 
-### A.7 工具参数错误处理（2026-10-09，dev 已实现 / 合并 springboot3 说明）
+### A.7 工具参数错误处理（2026-10-09，dev 实现已下线 / 已切纯原生透传）
 
 **背景**：langchain4j 0.35 对工具调用参数错误没有任何扩展点——必填参数缺失时
 `DefaultToolExecutor.prepareArguments` 静默传 `null` 继续执行，参数类型不匹配抛的
 `IllegalArgumentException` 位于 try 块之外、直达业务调用方。dev 分支为此实现了一套可插拔的
 工具参数错误处理，业务语义为**缺参不抛错：把缺失提示回给 LLM，由 LLM 反问用户补齐**
-（格式错误则提示 LLM 修正后重试）。springboot3（1.20.2）原生具备该能力，无需搬运实现；
-dev 后续合并到 springboot3 时这套代码直接可用（兼容性见下表，本次第二次合并已落地，见 C.5）。
+（格式错误则提示 LLM 修正后重试）。springboot3（1.20.2）原生具备该能力：
 
-**dev 实现**（`fw-plus-ai-boot-autoconfigure` · `support/assistant` 包，4 主 + 2 测试）：
+- **dev 机制（2026-10-09 已随第二次合并进入 springboot3，随后整体下线，见下「当前状态」）**：
+  3 个补丁类 + `AssistantBuilder` 改动可直接编译运行，业务装配写法两边一致
+  （`new AssistantBuilder().toolArgumentsErrorHandler(handler)`）。
+- **当前状态（2026-10-09 原生透传落地）**：dev 的 `GuardedToolExecutor` / `ToolArgumentsErrorHandler` /
+  `MissingArgumentException` 三个补丁类已**删除下线**，`AssistantBuilder.toolArgumentsErrorHandler(...)`
+  收 fork 原生接口（`dev.langchain4j.service.tool.ToolArgumentsErrorHandler`，
+  `handle(Throwable, ToolErrorContext) → ToolErrorHandlerResult`），在 `assemble()` 直接透传给
+  原生 `AiServices.toolArgumentsErrorHandler(...)`。缺参不再由框架包装检测，走 fork 原生
+  `DefaultToolExecutor` 路径（抛裸 IAE → 包 `ToolArgumentsException` → 原生槽位分发时解包 cause 交给 handler）。
+  见 C.6 完整记录。
+
+**dev 实现**（`fw-plus-ai-boot-autoconfigure` · `support/assistant` 包，4 主 + 2 测试；**2026-10-09 已全部删除下线**，下表为历史记录）：
 
 | 文件 | 职责 |
 |---|---|
-| `ToolArgumentsErrorHandler`（新） | 可插拔口子 `handle(Throwable, ToolExecutionRequest) → String`（返回回给 LLM 的文本）；内置 `DEFAULT`：缺参 →「请向用户询问缺失信息」、格式错 →「请修正参数后重试」；handler 内抛出则异常继续传播（业务可恢复"抛出"语义） |
-| `MissingArgumentException`（新） | 缺参异常（携带工具名 + 缺失参数列表），`extends IllegalArgumentException`，业务可 `instanceof` 区分缺参与格式错 |
-| `GuardedToolExecutor`（新） | 拦截核心：执行前按 `spec.parameters().required()` 比对 `arguments` JSON 顶层键集合主动检测缺参（补 0.35 静默 null 缺陷，方法根本不被调用）；执行中 catch `IllegalArgumentException`（绑定/工具方法解析失败）；统一交 handler 回文本 |
-| `AssistantBuilder`（改） | 新增 `toolArgumentsErrorHandler(...)` 链式方法；`assemble()` 对 `tools(Object...)` 与 `toolProvider(...)` 两条注册路径都包上 Guarded（spec 生成同源 `ToolSpecifications.toolSpecificationsFrom`，executor key 同 `spec.name()`，与原路径等价） |
+| `ToolArgumentsErrorHandler`（新，已删） | 可插拔口子 `handle(Throwable, ToolExecutionRequest) → String`（返回回给 LLM 的文本）；内置 `DEFAULT`：缺参 →「请向用户询问缺失信息」、格式错 →「请修正参数后重试」；handler 内抛出则异常继续传播（业务可恢复"抛出"语义） |
+| `MissingArgumentException`（新，已删） | 缺参异常（携带工具名 + 缺失参数列表），`extends IllegalArgumentException`，业务可 `instanceof` 区分缺参与格式错 |
+| `GuardedToolExecutor`（新，已删） | 拦截核心：执行前按 `spec.parameters().required()` 比对 `arguments` JSON 顶层键集合主动检测缺参（补 0.35 静默 null 缺陷，方法根本不被调用）；执行中 catch `IllegalArgumentException`（绑定/工具方法解析失败）；统一交 handler 回文本 |
+| `AssistantBuilder`（改） | 原：新增 `toolArgumentsErrorHandler(...)` 链式方法；`assemble()` 对 `tools(Object...)` 与 `toolProvider(...)` 两条注册路径都包上 Guarded（spec 生成同源 `ToolSpecifications.toolSpecificationsFrom`，executor key 同 `spec.name()`，与原路径等价）。现：收 fork 原生接口并透传原生槽位（见上「当前状态」） |
 
 - 工具方法**内部业务异常**仍走 0.35 原生行为（catch 后 message 回 LLM），不受包装影响；
   optional 参数缺失（`@P(required=false)`）不拦截；同步/流式共用 executor，两条链路都生效。
@@ -667,12 +677,15 @@ dev 后续合并到 springboot3 时这套代码直接可用（兼容性见下表
 - **结论（2026-10-09 第二次合并实测）**：3 个新类 + `AssistantBuilder` 改动可直接编译运行；
   业务装配写法两边一致（`new AssistantBuilder().toolArgumentsErrorHandler(handler)`）；1.20.2
   原生 handler 槽位未被调用，与 Guarded 不冲突，行为与 dev 等价。
-- **合并时可选优化（届时再定）**：把 handler 透传给原生 `AiServices.toolArgumentsErrorHandler(...)`、
-  3 个补丁类下线。代价：① `instanceof` 区分缺参的能力消失；② 不配 handler 时的原生默认
-  行为需实测确认（补丁方案则是不配也生效）。
-- **状态（2026-10-09 第二次合并后）**：dev 实现已随本次合并进入 springboot3（见 C.5）——
-  靠 fork 1.20.2 直接编译通过，未做原生槽位切换。「业务异常回传切原生
-  `toolExecutionErrorHandler`」见 A.8，仍作为后续优化待办。
+- **可选优化（2026-10-09 已落地为"纯原生透传"，见 C.6）**：把 handler 透传给原生
+  `AiServices.toolArgumentsErrorHandler(...)`、3 个补丁类下线。已落地的代价与实测：
+  ① `instanceof` 区分缺参的能力消失（原生缺参抛裸 IAE，只能按消息前缀
+  `Required parameter ... is missing` 区分——如用户贴的 `error instanceof MissingArgumentException`
+  分支不会命中，需改成按消息前缀或直接走格式错分支）；② 不配 handler 时原生同步默认行为是
+  **RETHROW**（参数错误直接抛给业务调用方，与 dev「缺参不抛错」不同）——故 `AssistantBuilder`
+  内置默认参数 handler（fork 原生形态 lambda）补齐：缺参反问、格式错提示修正重试。
+- **状态（2026-10-09 原生透传已落地）**：见 C.6；`toolExecutionErrorHandler` 透传（A.8 目标态）
+  一并落地。
 
 验证命令：
 
@@ -687,7 +700,7 @@ javap -c -cp $M:$C dev.langchain4j.service.tool.ToolExecutor   # 看 executeWith
 
 ---
 
-### A.8 工具方法业务异常回传 LLM（2026-10-09 查证，dev 已实施 / 本次合并已落地）
+### A.8 工具方法业务异常回传 LLM（2026-10-09 查证，dev 实施已下线 / 已切原生 `toolExecutionErrorHandler`）
 
 **业务语义**：工具方法内部抛出的异常，其消息作为结果回给 LLM，由 LLM 向用户解释并继续对话
 （即 `LlmVisibleToolExecutionException` 承载的"抛出消息给 LLM"语义）。两版本均已具备该**效果**，
@@ -702,19 +715,23 @@ javap -c -cp $M:$C dev.langchain4j.service.tool.ToolExecutor   # 看 executeWith
 | 扩展点 | 无 handler API | `AiServices.toolExecutionErrorHandler(...)`（可自定义回传文本） |
 | `LlmVisibleToolExecutionException` 类 | **不存在**（1.x 新增，两个 1.20.2 jar 均无该类）；语义由调用方消息承载 | 同左：语义由 `ToolExecutionResult.isError` 承载，无需专用异常类 |
 
-**两分支策略（dev 实施，springboot3 合并后切换）**：
+**两分支策略（dev 实施，springboot3 已全部切换）**：
 
-1. **`LlmVisibleToolExecutionException`（dev 新增，两分支通用）**：纯语义标记异常，
-   `from(String)` 强制非空消息 → 从源头消除 null 回传；合并到 springboot3 后零适配继续可用
-   （普通异常回传由 1.20.2 原生 `isError` 路径兜底）。
+1. **`LlmVisibleToolExecutionException`（dev 新增，2026-10-09 已删除下线）**：纯语义标记异常，
+   `from(String)` 强制非空消息 → 从源头消除 null 回传。删除理由：1.20.2 原生
+   `ToolExecutionResult(isError=true, errorMessage)` 已兜底且类名兜底非空，业务直接抛普通异常
+   即可达到同效果（异常消息经原生路径回给 LLM），不再需要专用标记类。
 2. **null 结果兜底只做在 dev 的 `GuardedToolExecutor` 出口**（`result == null` → 替换为占位文本），
    **不带过去**——springboot3 侧由原生 `errorMessage` 类名兜底已覆盖。
-3. **springboot3 目标态（合并后由"可选优化"升级为必做）**：业务异常回传切原生
-   `toolExecutionErrorHandler`，GuardedToolExecutor 退场或仅保留缺参检测职责。
+3. **springboot3 目标态（2026-10-09 已落地）**：业务异常回传切原生 `toolExecutionErrorHandler`，
+   GuardedToolExecutor 已整体退场（含缺参检测职责，一并由原生 + 内置默认参数 handler 承接，见 A.7）。
 
-- **dev 实施（2026-10-09 已落地，本次第二次合并已带入 springboot3）**：`LlmVisibleToolExecutionException`
-  （新，`from(String)` 强制非空） + `GuardedToolExecutor` 出口 null 结果兜底（占位文本）与
-  LlmVisible 直抛透传（不经 handler）+ `GuardedToolExecutorTest` 新增 4 测试。
+- **dev 实施（已随第二次合并进入 springboot3，2026-10-09 与 GuardedToolExecutor 一并下线）**：
+  `LlmVisibleToolExecutionException`（新，`from(String)` 强制非空） + `GuardedToolExecutor` 出口
+  null 结果兜底（占位文本）与 LlmVisible 直抛透传（不经 handler）+ `GuardedToolExecutorTest` 新增 4 测试。
+- **当前实现（已落地）**：`AssistantBuilder.toolExecutionErrorHandler(...)` 收 fork 原生
+  `dev.langchain4j.service.tool.ToolExecutionErrorHandler` 并透传 `AiServices.toolExecutionErrorHandler(...)`；
+  不配置时走 fork 同步默认（`EXECUTION_ERROR_TO_LLM`：异常消息回 LLM，等价 dev LlmVisible 语义）。
 
 验证命令：
 
@@ -842,3 +859,35 @@ dev 的接口与机制，删除了 mcp-client 模块。要点：
 
 main 源码验证：`fw-plus-ai-boot-autoconfigure` 离线编译通过（JDK 17）。测试基线依旧受
 `maven.test.skip=true` 默认跳过，见 C.4。
+
+### C.6 第三次（同日）：工具参数错误处理切纯原生透传（GuardedToolExecutor 下线）
+
+在 C.5 之后，按用户选定方向把工具参数错误处理从 dev 补丁机制切换为 fork 原生传
+（`AssistantBuilder.toolArgumentsErrorHandler(...)` 由收 dev 接口改为收 fork 原生
+`dev.langchain4j.service.tool.ToolArgumentsErrorHandler`，在 `assemble()` 直接透传
+`AiServices.toolArgumentsErrorHandler(...)`）。要点：
+
+- **删除下线（git rm，5 个文件）**：`GuardedToolExecutor` / `ToolArgumentsErrorHandler`（dev 接口）/
+  `MissingArgumentException` / `LlmVisibleToolExecutionException` 四个主类 +
+  `GuardedToolExecutorTest`。`AssistantBuilder` 不再包 `guardObjectTools()` / `guardToolProvider()`，
+  `tools(...)` 与 `toolProviders(...)` 直接注册；类 javadoc 与 `TextAssistant` / `MultimodalAssistantBridge`
+  注释同步去掉 Guarded 引用。
+- **fork 原生缺参/异常行为（javap 实测 1.20.2）**：
+  - 分发位置在 `ToolService.toolErrorResult`：异常 `instanceof ToolArgumentsException` → 走
+    `toolArgumentsErrorHandler`；否则 → 走 `toolExecutionErrorHandler`；传给 handler 的
+    `error` 是 `getCause(exception)`（缺参为裸 `IllegalArgumentException`，消息前缀
+    `Required parameter ... is missing`，1.20.2 无专用缺参类）。
+  - **同步默认 handler（不配时）**：参数错误 = RETHROW（抛给业务调用方）；执行错误 = TO_LLM
+    （异常消息回 LLM）。因此 `AssistantBuilder` 内置默认参数 handler（fork 原生 lambda）补齐 dev
+    语义：缺参反问用户、格式错提示修正重试。
+  - **`toolProvider` 路径不检测缺参**（dev `guardToolProvider` 补的增强，随 Guarded 下线）：
+    provider 的 executor 由业务完全接管，参数校验是业务 executor 自己的职责；业务抛出的
+    `ToolArgumentsException` 仍会走透传的 `toolArgumentsErrorHandler` 回文本。
+- **新增 API**：`AssistantBuilder.toolExecutionErrorHandler(...)`（fork 原生接口，透传
+  `AiServices.toolExecutionErrorHandler(...)`，A.8 目标态一并落地；不配置时 fork 同步默认
+  把业务异常消息回给 LLM，等价 dev LlmVisible 语义）。
+- **测试**：`AssistantBuilderToolArgumentsGuardTest` 重写为 fork 原生形态（`ToolErrorHandlerResult.text(...)`），
+  覆盖默认缺参反问（对象/provider 两路径）、自定义 `toolArgumentsErrorHandler`、自定义
+  `toolExecutionErrorHandler` 四场景，全绿；`GuardedToolExecutorTest` 随类删除。assistant 包
+  37 测试失败集与基线一致（`MultimodalAssistantBridgeTest` 既有 1F+3E 环境性失败，非本次回归）。
+- **文档**：A.7 / A.8 更新为已落地状态；本附录新增 C.6。
