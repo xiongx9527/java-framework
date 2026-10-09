@@ -780,13 +780,14 @@ springboot3 合入 `origin/dev`（`7a8740d88`，领先 11 个提交），41 个�
 ### C.1 接受 dev 的删除（30 个 modify/delete 冲突）
 
 dev 侧删除了以下子系统，springboot3 接受删除（其中 `MagicToolInvoker` /
-`ScriptManagerMagicToolInvoker` 两个自包含类恢复保留，mcpclient 模块依赖）：
+`ScriptManagerMagicToolInvoker` 两个自包含类当时恢复保留，mcpclient 模块依赖；
+后经 C.7 核实 mcp 侧已改走 `MagicApiMcpScriptInvoker`，两 invoker 已删除）：
 
 - KB 知识库 / 检索器（content-retriever 资源体系、`retriever/provider/`、`KbSearchService` 等）
 - toolprovider（除上述两个 invoker 外整体移除）、contentinjector、chatmemorystore 插件
 - systemmessage、ajmcpclient、content-retriever 插件子模块
 
-保留 springboot3 独有功能：agentic-script、skill 模块（mcp-client 模块于第二次合并中与 dev 对齐整体删除，见 C.5）。README 子工程数按实际收敛（npm 启用数）。
+保留 springboot3 独有功能：agentic-script、skill 模块（mcp-client 模块于第二次合并中与 dev 对齐整体删除，见 C.5）。README 子工程数按实际收敛（npm 启用数）。（`agentic-script` 后经第四次清理整体下线，`skill` 保留，见 C.7。）
 
 ### C.2 内容冲突（UU）解决原则
 
@@ -891,3 +892,29 @@ main 源码验证：`fw-plus-ai-boot-autoconfigure` 离线编译通过（JDK 17�
   `toolExecutionErrorHandler` 四场景，全绿；`GuardedToolExecutorTest` 随类删除。assistant 包
   37 测试失败集与基线一致（`MultimodalAssistantBridgeTest` 既有 1F+3E 环境性失败，非本次回归）。
 - **文档**：A.7 / A.8 更新为已落地状态；本附录新增 C.6。
+
+### C.7 第四次（同日）：springboot3 独有残留清理（toolprovider / agentic-script 下线）
+
+在 C.6 之后，按用户确认删除 springboot3 相对 `origin/dev` 多出的两处残留，`skill`
+与通用 agentic 支持保留。要点：
+
+- **toolprovider**：删除 `MagicToolInvoker` / `ScriptManagerMagicToolInvoker` 两个残留类。
+  dev 已整体删除 toolprovider 包，springboot3 仅剩这两个无引用自包含类；mcp 侧的脚本调用
+  已由 `MagicApiMcpScriptInvoker` 独立承担。
+- **agentic-script**：删除插件子模块
+  `fw-plus-ai-magicapi-plugin-langchain4j-agentic-script` 及 autoconfigure 的
+  `magicapi/plugin/langchain4j/agenticscript/` 包（`Configuration` / `Module` /
+  `MagicDynamicRegistry` / `MagicResourceStorage` / `Controller` / 模型类 + 2 个测试），
+  父 pom 移除对应 `<module>` 声明；
+  `MagicAPIWebFluxPluginControllerRegistrar` 移除该控制器注册，
+  `Langchain4jModuleConfiguration` 移除 `agenticScript` 装配块与构造参数，
+  `Langchain4jSimpleAssistantProperties` 注释同步去除。
+- **保留项**：`skill` 子模块；`langchain4j/support/agentic` 通用编排支持
+  （`AgenticToolProviders` / `AgenticWorkflows` / `AgenticPipelineRegistry`，dev 无此包，
+  为 springboot3 独有，被 `Langchain4jModule.agentic()` 等使用）；`dev.langchain4j.agentic`
+  依赖保留（`support/agentic` 使用）。
+- **验证**：`fw-plus-ai-boot-autoconfigure` 与 langchain4j 插件工程 main / test compile 均
+  `BUILD SUCCESS`；全仓已无 `agentic-script` / `toolprovider` 残留引用（本升级说明的历史
+  记录除外）。
+- **提交**：`fw-plus-ai: 下线 toolprovider 残留与 agentic-script 插件子模块`（`a2e7762cc`），
+  随 `springboot3` 推送。
