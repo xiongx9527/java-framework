@@ -1,6 +1,11 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant;
 
+import dev.langchain4j.data.message.Content;
+import dev.langchain4j.data.message.TextContent;
 import org.junit.jupiter.api.Test;
+
+import java.util.Collections;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -18,6 +23,11 @@ class SimpleAssistantDimensionsTest {
 	private final Assistant assistant = mock(Assistant.class);
 
 	private final SimpleAssistant simple = new SimpleAssistant(assistant);
+
+	/** 底层 Assistant 签名是多模态 contents 形态：单条文本包装成 TextContent 列表参与 stub/verify */
+	private static List<Content> contents(String text) {
+		return Collections.singletonList(TextContent.from(text));
+	}
 
 	@Test
 	void fourDimensionsComposeMemoryId() {
@@ -47,30 +57,30 @@ class SimpleAssistantDimensionsTest {
 	@Test
 	void chatSingleArgUsesComposedMemoryId() {
 		simple.dimensions("crm", "bot", "u1");
-		when(assistant.chat("0:crm:bot:u1", "", "你好")).thenReturn("回复");
+		when(assistant.chat("0:crm:bot:u1", "", contents("你好"))).thenReturn("回复");
 
 		assertThat(simple.chat("你好")).isEqualTo("回复");
 
-		verify(assistant).chat("0:crm:bot:u1", "", "你好");
+		verify(assistant).chat("0:crm:bot:u1", "", contents("你好"));
 	}
 
 	@Test
 	void chatSingleArgWithoutDimensionsKeepsDefault() {
-		when(assistant.chat("default", "", "你好")).thenReturn("回复");
+		when(assistant.chat("default", "", contents("你好"))).thenReturn("回复");
 
 		assertThat(simple.chat("你好")).isEqualTo("回复");
 
-		verify(assistant).chat("default", "", "你好");
+		verify(assistant).chat("default", "", contents("你好"));
 	}
 
 	@Test
 	void explicitMemoryIdStillWins() {
 		simple.dimensions("crm", "bot", "u1");
-		when(assistant.chat("session-9", "", "你好")).thenReturn("回复");
+		when(assistant.chat("session-9", "", contents("你好"))).thenReturn("回复");
 
 		assertThat(simple.chat("session-9", "你好")).isEqualTo("回复");
 
-		verify(assistant).chat("session-9", "", "你好");
+		verify(assistant).chat("session-9", "", contents("你好"));
 	}
 
 	@Test
