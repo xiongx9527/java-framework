@@ -35,13 +35,17 @@ import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
  * {@link ContentRetriever} Bean（{@link DifyContentRetriever}，调用 dify 知识库检索接口，
  * 配置见 {@link DifyRagProperties}），检索故障降级空列表不打断对话。</p>
  *
- * <p>两个存储配置类经 {@code @Import} 显式导入（而非依赖嵌套 member 自动发现）。</p>
+ * <p>两个存储配置类与 DifyRagProperties 配置类经 {@code @Import} 显式导入
+ * （而非依赖嵌套 member 自动发现）；DifyRagProperties 因 {@code fw-plus-dify} 是
+ * optional 依赖而按类存在性条件注册——消费方没有 dify 类时跳过，
+ * 避免配置类方法签名 introspection 时 {@code NoClassDefFoundError} 拉垮整个上下文。</p>
  */
 @ConditionalOnClass(name = "dev.langchain4j.Experimental")
 @ConditionalOnProperty(prefix = "fw.plus.ai.langchain4j", name = "enabled", havingValue = "true", matchIfMissing = true)
-@EnableConfigurationProperties({ChatMemoryStoreProperties.class, DifyRagProperties.class})
+@EnableConfigurationProperties(ChatMemoryStoreProperties.class)
 @Import({LangChain4jSupportAutoConfiguration.Mem0ChatMemoryStoreConfiguration.class,
-		LangChain4jSupportAutoConfiguration.InMemoryChatMemoryStoreConfiguration.class})
+		LangChain4jSupportAutoConfiguration.InMemoryChatMemoryStoreConfiguration.class,
+		LangChain4jSupportAutoConfiguration.DifyRagPropertiesConfiguration.class})
 public class LangChain4jSupportAutoConfiguration {
 
 	@Bean
@@ -139,5 +143,16 @@ public class LangChain4jSupportAutoConfiguration {
 		public ChatMemoryStore inMemoryChatMemoryStore() {
 			return new InMemoryChatMemoryStore();
 		}
+	}
+
+	/**
+	 * Dify 检索配置类：按 {@code fw-plus-dify}（optional 依赖）类存在性条件注册。
+	 * <p>dify 类缺席的消费方（如样例工程）直接跳过——DifyRagProperties 的方法签名引用了
+	 * {@code RetrievalModel}，无条件注册会在 introspection 时 NoClassDefFoundError。</p>
+	 */
+	@Configuration(proxyBeanMethods = false)
+	@ConditionalOnClass(name = "com.xiongx9527.fw.plus.dify.dataset.types.RetrievalModel")
+	@EnableConfigurationProperties(DifyRagProperties.class)
+	static class DifyRagPropertiesConfiguration {
 	}
 }

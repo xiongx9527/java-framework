@@ -4,6 +4,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatst
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
@@ -43,8 +44,10 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  *
  * <p>模型（{@code ChatLanguageModel} / {@code LanguageModel} / {@code StreamingLanguageModel}）
  * 一律经构造方法传入，方法内部直接使用对应字段。直连调用用 generate 系列（无记忆、不经 AiServices）：
- * {@code generate(message)} 直连对话、{@code generateText(prompt)} 文本补全、
- * {@code generateTextToSse(prompt)} 补全 SSE 推流；{@code chat / stream / streamToSse} 走 assistant 记忆对话。</p>
+ * {@code generate(message)} 直连对话、{@code generateContent(contents)} 直连多模态、
+ * {@code generateText(prompt)} 文本补全、{@code generateTextToSse(prompt)} 补全 SSE 推流；
+ * {@code chat / stream / streamToSse} 走 assistant 记忆对话（String 形态；多模态内容用
+ * {@code chat(List<Content>)} / {@code stream(List<Content>)}，context 可传 String 或 Map）。</p>
  *
  * <pre>{@code
  * SimpleAssistant simple = new SimpleAssistant(chatModel);   // 或四参构造一次给全
@@ -275,7 +278,7 @@ public class SimpleAssistant {
 		String prompt = filteredPrompt(contents, message);
 		return chatModel != null
 				? chatModel.generate(prompt)
-				: requireAssistant().chat(memoryId, "", message);
+				: requireAssistant().chat(memoryId, "", textContents(message));
 	}
 
 	/**
@@ -431,9 +434,9 @@ public class SimpleAssistant {
 		return chat(memoryId, DEFAULT_CONTEXT, message);
 	}
 
-	/** 完整形态：透传给底层 {@link Assistant} */
+	/** 完整形态：单条文本包装成 contents 转发给底层 {@link Assistant}（桥接层识别纯文本后原样转发内层，行为不变） */
 	public String chat(String memoryId, String context, String message) {
-		return requireAssistant().chat(memoryId, normalizeContext(context), message);
+		return requireAssistant().chat(memoryId, normalizeContext(context), textContents(message));
 	}
 
 	/** 流式：memoryId 取 {@link #memoryId()}（未设置维度时为 {@value #DEFAULT_MEMORY_ID}），context 为空，返回原始 {@link TokenStream} */
@@ -443,12 +446,62 @@ public class SimpleAssistant {
 
 	/** 流式：返回原始 {@link TokenStream}，需要自定义回调时用 */
 	public TokenStream stream(String memoryId, String message) {
-		return requireAssistant().stream(memoryId, DEFAULT_CONTEXT, message);
+		return requireAssistant().stream(memoryId, DEFAULT_CONTEXT, textContents(message));
 	}
 
-	/** 流式完整形态：透传给底层 {@link Assistant}，可自行挂回调（如 {@code onRetrieved}） */
+	/** 流式完整形态：单条文本包装成 contents 转发给底层 {@link Assistant}（同 chat，行为不变） */
 	public TokenStream stream(String memoryId, String context, String message) {
-		return requireAssistant().stream(memoryId, normalizeContext(context), message);
+		return requireAssistant().stream(memoryId, normalizeContext(context), textContents(message));
+	}
+
+	// -------------------------------------------------- 多模态对话（List<Content> 形态）
+
+	/**
+	 * 多模态对话：contents 为文本 / 图片 / 文档等内容列表（
+	 * {@code dev.langchain4j.data.message.Content}），memoryId 取 {@link #memoryId()}，context 为空。
+	 *
+	 * <p>纯文本内容走原生管线（模板 / 工具 / RAG / 记忆与 String 形态一致）；
+	 * 含图片或文档时直调模型——RAG 照走、记忆写文本占位（{@code [图片]} / {@code [文档:x.pdf]} + 文本）、
+	 * 本轮不进工具循环。</p>
+	 *
+	 * @throws IllegalArgumentException contents 为空
+	 */
+	public String chat(List<dev.langchain4j.data.message.Content> contents) {
+		return chat(memoryId(), DEFAULT_CONTEXT, contents);
+	}
+
+	/** 多模态对话：memoryId 自定（决定会话记忆），context 为空 */
+	public String chat(String memoryId, List<dev.langchain4j.data.message.Content> contents) {
+		return chat(memoryId, DEFAULT_CONTEXT, contents);
+	}
+
+	/**
+	 * 多模态对话完整形态：透传给底层 {@link Assistant}。
+	 *
+	 * @param context {@code String}（一句话背景）或 {@code Map}（结构化数据组，序列化为 JSON），可为 null
+	 */
+	public String chat(String memoryId, Object context, List<dev.langchain4j.data.message.Content> contents) {
+		return requireAssistant().chat(memoryId, context, contents);
+	}
+
+	/** 多模态流式：memoryId 取 {@link #memoryId()}，context 为空，返回原始 {@link TokenStream} */
+	public TokenStream stream(List<dev.langchain4j.data.message.Content> contents) {
+		return stream(memoryId(), DEFAULT_CONTEXT, contents);
+	}
+
+	/** 多模态流式：memoryId 自定，context 为空 */
+	public TokenStream stream(String memoryId, List<dev.langchain4j.data.message.Content> contents) {
+		return stream(memoryId, DEFAULT_CONTEXT, contents);
+	}
+
+	/**
+	 * 多模态流式完整形态：透传给底层 {@link Assistant}，可自行挂回调（如 {@code onRetrieved}）。
+	 *
+	 * @param context {@code String}（一句话背景）或 {@code Map}（结构化数据组，序列化为 JSON），可为 null
+	 */
+	public TokenStream stream(String memoryId, Object context,
+			List<dev.langchain4j.data.message.Content> contents) {
+		return requireAssistant().stream(memoryId, context, contents);
 	}
 
 	// -------------------------------------------------- 直连对话（generate 系列，无记忆）
@@ -467,6 +520,30 @@ public class SimpleAssistant {
 	/** 直连对话（自定义消息序列）：用构造传入的 {@code ChatLanguageModel}，脚本里拼好上下文再发一次 */
 	public String generate(List<ChatMessage> messages) {
 		return chatModel().generate(messages).content().text();
+	}
+
+	/**
+	 * 直连多模态对话（无记忆）：发一组多模态内容（文本 / 图片 / 文档等）并返回回复文本。
+	 * 与 {@code generate(message)} 一样不经 AiServices、不写会话记忆。
+	 *
+	 * @throws IllegalArgumentException contents 为空
+	 */
+	public String generateContent(List<dev.langchain4j.data.message.Content> contents) {
+		return chatModel().generate(UserMessage.from(requireContents(contents))).content().text();
+	}
+
+	/** 直连多模态对话（带系统提示）：第一参数为系统提示 */
+	public String generateContent(String systemPrompt, List<dev.langchain4j.data.message.Content> contents) {
+		return chatModel().generate(Arrays.asList(SystemMessage.from(systemPrompt),
+				UserMessage.from(requireContents(contents)))).content().text();
+	}
+
+	private static List<dev.langchain4j.data.message.Content> requireContents(
+			List<dev.langchain4j.data.message.Content> contents) {
+		if (contents == null || contents.isEmpty()) {
+			throw new IllegalArgumentException("contents 不能为空：请至少提供一条内容（文本/图片/文档等）");
+		}
+		return contents;
 	}
 
 	// -------------------------------------------------- 文本补全（语言模型直连）
@@ -792,6 +869,11 @@ public class SimpleAssistant {
 	/** context 为空（null 或纯空白）时归一化为 {@value #DEFAULT_CONTEXT}，避免 null/空白进入系统提示模板。 */
 	private static String normalizeContext(String context) {
 		return context == null || context.trim().isEmpty() ? DEFAULT_CONTEXT : context;
+	}
+
+	/** 单条文本包装成 contents 列表：String 便捷方法经此走底层多模态签名（桥接层识别纯文本后原样转发内层） */
+	private static List<dev.langchain4j.data.message.Content> textContents(String message) {
+		return Collections.singletonList(TextContent.from(message));
 	}
 
 	private Assistant requireAssistant() {

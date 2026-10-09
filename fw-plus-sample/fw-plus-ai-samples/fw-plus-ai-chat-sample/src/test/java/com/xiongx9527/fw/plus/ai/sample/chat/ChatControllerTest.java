@@ -2,6 +2,8 @@ package com.xiongx9527.fw.plus.ai.sample.chat;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant.Assistant;
 import com.xiongx9527.fw.plus.ai.sample.chat.ai.WeatherTools;
+import dev.langchain4j.data.message.Content;
+import dev.langchain4j.data.message.TextContent;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -10,8 +12,11 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.function.Consumer;
 
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -35,6 +40,11 @@ class ChatControllerTest {
 	/** sessionId 缺失/空白时的兜底值，与 LangChain4j {@code AiServices.DEFAULT} 语义一致。 */
 	private static final String DEFAULT_SESSION_ID = "default";
 
+	/** 底层 Assistant 签名是多模态 contents 形态：单条文本包装成 TextContent 列表参与 stub/verify */
+	private static List<Content> contents(String text) {
+		return Collections.singletonList(TextContent.from(text));
+	}
+
 	@Autowired
 	private MockMvc mockMvc;
 
@@ -46,7 +56,7 @@ class ChatControllerTest {
 
 	@Test
 	void chatReturnsReplyAndToolCalls() throws Exception {
-		when(assistant.chat(anyString(), eq(""), anyString())).thenReturn("杭州夏天更凉快一些。");
+		when(assistant.chat(anyString(), eq(""), anyList())).thenReturn("杭州夏天更凉快一些。");
 
 		mockMvc.perform(post("/api/chat")
 						.contentType(MediaType.APPLICATION_JSON)
@@ -66,14 +76,14 @@ class ChatControllerTest {
 
 	@Test
 	void chatPassesSessionIdFromRequestBody() throws Exception {
-		when(assistant.chat("s-1", "", "杭州天气怎么样")).thenReturn("正在查。");
+		when(assistant.chat("s-1", "", contents("杭州天气怎么样"))).thenReturn("正在查。");
 
 		mockMvc.perform(post("/api/chat")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("{\"message\":\"杭州天气怎么样\",\"sessionId\":\"s-1\"}"))
 				.andExpect(status().isOk());
 
-		verify(assistant).chat("s-1", "", "杭州天气怎么样");
+		verify(assistant).chat("s-1", "", contents("杭州天气怎么样"));
 	}
 
 	@Test
@@ -83,7 +93,7 @@ class ChatControllerTest {
 						.content("{\"message\":\"杭州天气怎么样\"}"))
 				.andExpect(status().isOk());
 
-		verify(assistant).chat(DEFAULT_SESSION_ID, "", "杭州天气怎么样");
+		verify(assistant).chat(DEFAULT_SESSION_ID, "", contents("杭州天气怎么样"));
 	}
 
 	@Test
@@ -93,24 +103,24 @@ class ChatControllerTest {
 						.content("{\"message\":\"杭州天气怎么样\",\"sessionId\":\"   \"}"))
 				.andExpect(status().isOk());
 
-		verify(assistant).chat(DEFAULT_SESSION_ID, "", "杭州天气怎么样");
+		verify(assistant).chat(DEFAULT_SESSION_ID, "", contents("杭州天气怎么样"));
 	}
 
 	@Test
 	void streamPassesSessionIdFromQueryParam() throws Exception {
-		when(assistant.stream("s-2", "", "用一句话介绍杭州")).thenAnswer(invocation -> new FakeTokenStream().complete());
+		when(assistant.stream("s-2", "", contents("用一句话介绍杭州"))).thenAnswer(invocation -> new FakeTokenStream().complete());
 
 		mockMvc.perform(post("/api/chat/stream")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("{\"message\":\"用一句话介绍杭州\",\"sessionId\":\"s-2\"}"))
 				.andExpect(status().isOk());
 
-		verify(assistant).stream("s-2", "", "用一句话介绍杭州");
+		verify(assistant).stream("s-2", "", contents("用一句话介绍杭州"));
 	}
 
 	@Test
 	void streamFallsBackToDefaultWhenSessionIdAbsent() throws Exception {
-		when(assistant.stream(DEFAULT_SESSION_ID, "", "用一句话介绍杭州"))
+		when(assistant.stream(DEFAULT_SESSION_ID, "", contents("用一句话介绍杭州")))
 				.thenAnswer(invocation -> new FakeTokenStream().complete());
 
 		mockMvc.perform(post("/api/chat/stream")
@@ -118,12 +128,12 @@ class ChatControllerTest {
 						.content("{\"message\":\"用一句话介绍杭州\"}"))
 				.andExpect(status().isOk());
 
-		verify(assistant).stream(DEFAULT_SESSION_ID, "", "用一句话介绍杭州");
+		verify(assistant).stream(DEFAULT_SESSION_ID, "", contents("用一句话介绍杭州"));
 	}
 
 	@Test
 	void streamEmitsTokenAndDoneEvents() throws Exception {
-		when(assistant.stream(anyString(), eq(""), anyString())).thenAnswer(invocation -> new FakeTokenStream().complete());
+		when(assistant.stream(anyString(), eq(""), anyList())).thenAnswer(invocation -> new FakeTokenStream().complete());
 
 		mockMvc.perform(post("/api/chat/stream")
 						.contentType(MediaType.APPLICATION_JSON)

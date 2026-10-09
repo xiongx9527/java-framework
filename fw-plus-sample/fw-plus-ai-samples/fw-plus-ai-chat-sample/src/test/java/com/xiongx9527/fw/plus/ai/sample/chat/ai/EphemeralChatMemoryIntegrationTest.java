@@ -7,6 +7,8 @@ import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ChatMessageType;
+import dev.langchain4j.data.message.Content;
+import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
@@ -15,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 
@@ -31,6 +34,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class EphemeralChatMemoryIntegrationTest {
 
 	private static final String SESSION = "s-1";
+
+	/** 底层 Assistant 签名是多模态 contents 形态：单条文本包装成 TextContent 列表 */
+	private static List<Content> contents(String text) {
+		return Collections.singletonList(TextContent.from(text));
+	}
 
 	@Test
 	void secondTurnDoesNotSeeAnyToolDerivedOutputSoModelRetools() {
@@ -54,8 +62,8 @@ class EphemeralChatMemoryIntegrationTest {
 				.tools(weatherTools)
 				.toAssistant();
 
-		assistant.chat(SESSION, "", "北京天气怎么样");
-		assistant.chat(SESSION, "", "北京天气怎么样");
+		assistant.chat(SESSION, "", contents("北京天气怎么样"));
+		assistant.chat(SESSION, "", contents("北京天气怎么样"));
 
 		assertEquals(2, weatherTools.getCallCount(), "第二轮应重新调用工具而不是复用上一轮结果");
 		assertEquals(Arrays.asList(ChatMessageType.USER, ChatMessageType.USER),
@@ -79,8 +87,8 @@ class EphemeralChatMemoryIntegrationTest {
 				.tools(weatherTools)
 				.toAssistant();
 
-		assistant.chat(SESSION, "", "介绍一下西湖");
-		assistant.chat(SESSION, "", "它在哪里");
+		assistant.chat(SESSION, "", contents("介绍一下西湖"));
+		assistant.chat(SESSION, "", contents("它在哪里"));
 
 		assertEquals(0, weatherTools.getCallCount(), "本例不触发工具");
 		assertEquals(Arrays.asList(ChatMessageType.USER, ChatMessageType.AI, ChatMessageType.USER),

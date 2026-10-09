@@ -599,6 +599,115 @@ javap -cp ~/.m2/repository/dev/langchain4j/langchain4j-core/1.20.2/langchain4j-c
 
 ---
 
+### A.7 工具参数错误处理（2026-10-09，dev 已实现 / 合并 springboot3 说明）
+
+**背景**：langchain4j 0.35 对工具调用参数错误没有任何扩展点——必填参数缺失时
+`DefaultToolExecutor.prepareArguments` 静默传 `null` 继续执行，参数类型不匹配抛的
+`IllegalArgumentException` 位于 try 块之外、直达业务调用方。dev 分支为此实现了一套可插拔的
+工具参数错误处理，业务语义为**缺参不抛错：把缺失提示回给 LLM，由 LLM 反问用户补齐**
+（格式错误则提示 LLM 修正后重试）。springboot3（1.20.2）原生具备该能力，无需搬运实现；
+dev 后续合并到 springboot3 时这套代码直接可用（兼容性见下表）。
+
+**dev 实现**（`fw-plus-ai-boot-autoconfigure` · `support/assistant` 包，4 主 + 2 测试，未提交）：
+
+| 文件 | 职责 |
+|---|---|
+| `ToolArgumentsErrorHandler`（新） | 可插拔口子 `handle(Throwable, ToolExecutionRequest) → String`（返回回给 LLM 的文本）；内置 `DEFAULT`：缺参 →「请向用户询问缺失信息」、格式错 →「请修正参数后重试」；handler 内抛出则异常继续传播（业务可恢复"抛出"语义） |
+| `MissingArgumentException`（新） | 缺参异常（携带工具名 + 缺失参数列表），`extends IllegalArgumentException`，业务可 `instanceof` 区分缺参与格式错 |
+| `GuardedToolExecutor`（新） | 拦截核心：执行前按 `spec.parameters().required()` 比对 `arguments` JSON 顶层键集合主动检测缺参（补 0.35 静默 null 缺陷，方法根本不被调用）；执行中 catch `IllegalArgumentException`（绑定/工具方法解析失败）；统一交 handler 回文本 |
+| `AssistantBuilder`（改） | 新增 `toolArgumentsErrorHandler(...)` 链式方法；`assemble()` 对 `tools(Object...)` 与 `toolProvider(...)` 两条注册路径都包上 Guarded（spec 生成同源 `ToolSpecifications.toolSpecificationsFrom`，executor key 同 `spec.name()`，与原路径等价） |
+
+- 工具方法**内部业务异常**仍走 0.35 原生行为（catch 后 message 回 LLM），不受包装影响；
+  optional 参数缺失（`@P(required=false)`）不拦截；同步/流式共用 executor，两条链路都生效。
+- 验证：新增 10 测试全绿（缺参拦截不执行方法、格式错回文本、透传、handler 抛出、
+  对象/provider/自定义 handler 三条端到端），全模块 564 绿（基线 554 + 10），
+  JDK 8、零新增依赖（JSON 解析用模块既有 fastjson2）。
+
+**两版本机制对照**：
+
+| 能力 | dev（0.35） | springboot3（1.20.2） |
+|---|---|---|
+| 缺参检测 | 无（静默 null）→ `GuardedToolExecutor` 主动比对 required 列表 | **原生**：直接抛裸 `IllegalArgumentException("Required parameter \"%s\" of tool \"%s\" is missing")`（字节码字符串常量实测） |
+| 错误处理扩展点 | 无任何 handler API → 自定义 `ToolArgumentsErrorHandler` | **原生**：`AiServices.toolArgumentsErrorHandler(...)` 与 `toolExecutionErrorHandler(...)` |
+| 回文本形态 | handler 返回 `String` | `ToolErrorHandlerResult.text(String)` + `ToolErrorContext`（request / rawError / memoryId / invocationContext / invocationParameters） |
+| 缺参异常类型 | 自定义 `MissingArgumentException extends IllegalArgumentException` | **无专用类**（裸 IAE；`error instanceof MissingArgumentException` 的写法属更新版本产物，1.20.2 两个 jar 均无该类，只能按消息前缀 `Required parameter ... is missing` 区分） |
+
+**合并兼容性（2026-10-09 javap 实测 1.20.2；dev → springboot3 合并时直接可用）**：
+
+| dev 依赖点 | 1.20.2 状态 |
+|---|---|
+| `ToolExecutor.execute(request, memoryId)` 抽象方法 | ✅ 仍在（`GuardedToolExecutor` 可正常编译实现） |
+| `executeWithContext`（1.x 新增方法） | ✅ default 实现委托回 `execute(...)` → **包装不会被绕过**（关键语义点：1.x 循环即使走新方法也落到重写的 `execute`） |
+| `DefaultToolExecutor(Object, ToolExecutionRequest)` 构造 | ✅ 仍在 |
+| `ToolSpecifications.toolSpecificationsFrom(Object)` | ✅ 仍在 |
+| `ToolProviderResult.Builder.add(spec, executor)` | ✅ 仍在 |
+| `AiServices.tools(Map)` | ✅ 仍在 |
+| `@P` 注解（测试代码依赖） | ✅ 仍在 |
+
+- **结论**：合并时 3 个新类 + `AssistantBuilder` 改动可直接编译运行；业务装配写法两边一致
+  （`new AssistantBuilder().toolArgumentsErrorHandler(handler)`）；合并后 1.20.2 原生 handler
+  槽位未被调用，与 Guarded 不冲突，行为与 dev 等价。
+- **合并时可选优化（届时再定）**：把 handler 透传给原生 `AiServices.toolArgumentsErrorHandler(...)`、
+  3 个补丁类下线。代价：① `instanceof` 区分缺参的能力消失；② 不配 handler 时的原生默认
+  行为需实测确认（补丁方案则是不配也生效）。
+- **状态**：dev 侧实现未提交（与 mem0 / dify 变更一起待授权）；springboot3 worktree 未做任何相关改动。
+
+验证命令：
+
+```bash
+# 1.20.2 原生扩展点、缺参行为、executeWithContext 委托关系
+M=~/.m2/repository/dev/langchain4j/langchain4j/1.20.2/langchain4j-1.20.2.jar
+C=~/.m2/repository/dev/langchain4j/langchain4j-core/1.20.2/langchain4j-core-1.20.2.jar
+javap -cp $M:$C dev.langchain4j.service.AiServices | grep -i errorhandler
+javap -c -p -cp $M:$C dev.langchain4j.service.tool.DefaultToolExecutor | grep "String.*missing"
+javap -c -cp $M:$C dev.langchain4j.service.tool.ToolExecutor   # 看 executeWithContext 是否 invokeinterface execute
+```
+
+---
+
+### A.8 工具方法业务异常回传 LLM（2026-10-09 查证，dev 待实施 / springboot3 目标态）
+
+**业务语义**：工具方法内部抛出的异常，其消息作为结果回给 LLM，由 LLM 向用户解释并继续对话
+（即 `LlmVisibleToolExecutionException` 承载的"抛出消息给 LLM"语义）。两版本均已具备该**效果**，
+但健壮性不同：
+
+**两版本行为对照（0.35 源码 / 1.20.2 javap 字节码实测）**：
+
+| 环节 | dev（0.35） | springboot3（1.20.2） |
+|---|---|---|
+| 捕获点 | `DefaultToolExecutor.execute` catch `InvocationTargetException` → **`return cause.getMessage()`** | `propagateToolExecutionExceptions=false`（三个构造均 `iconst_0` 初始化）→ `ToolExecutionResult(isError=true, errorMessage(cause))` |
+| message 为 null 的异常 | ⚠️ **返回 `null`** → `ToolExecutionResultMessage.from(null)` 直存 → `ToolExecution.Builder.result(null)` 无校验，风险延后到序列化/展示层 | ✅ `errorMessage` 兜底 `getMessage()!=null ? getMessage() : getClass().getName()`，永不为 null |
+| 扩展点 | 无 handler API | `AiServices.toolExecutionErrorHandler(...)`（可自定义回传文本） |
+| `LlmVisibleToolExecutionException` 类 | **不存在**（1.x 新增，两个 1.20.2 jar 均无该类）；语义由调用方消息承载 | 同左：语义由 `ToolExecutionResult.isError` 承载，无需专用异常类 |
+
+**两分支策略（dev 实施，springboot3 合并后切换）**：
+
+1. **`LlmVisibleToolExecutionException`（dev 新增，两分支通用）**：纯语义标记异常，
+   `from(String)` 强制非空消息 → 从源头消除 null 回传；合并到 springboot3 后零适配继续可用
+   （普通异常回传由 1.20.2 原生 `isError` 路径兜底）。
+2. **null 结果兜底只做在 dev 的 `GuardedToolExecutor` 出口**（`result == null` → 替换为占位文本），
+   **不带过去**——springboot3 侧由原生 `errorMessage` 类名兜底已覆盖。
+3. **springboot3 目标态（合并后由"可选优化"升级为必做）**：业务异常回传切原生
+   `toolExecutionErrorHandler`，GuardedToolExecutor 退场或仅保留缺参检测职责。
+
+- **dev 实施（2026-10-09 已落地）**：`LlmVisibleToolExecutionException`（新，`from(String)` 强制非空）
+  + `GuardedToolExecutor` 出口 null 结果兜底（占位文本）与 LlmVisible 直抛透传（不经 handler）
+  + `GuardedToolExecutorTest` 新增 4 测试，全模块 578 绿（基线 574 + 4）。
+  springboot3 worktree 未做任何相关改动。
+
+验证命令：
+
+```bash
+# 0.35 回传行为（源码）
+unzip -p ~/.m2/repository/dev/langchain4j/langchain4j/0.35.0/langchain4j-0.35.0-sources.jar \
+  dev/langchain4j/service/tool/DefaultToolExecutor.java | sed -n '/InvocationTargetException/,+6p'
+# 1.20.2 兜底与扩展点
+javap -c -p -cp $M:$C dev.langchain4j.service.tool.DefaultToolExecutor | grep -A2 getMessage
+javap -cp $M:$C dev.langchain4j.service.AiServices | grep -i toolExecutionErrorHandler
+```
+
+---
+
 ## 附录 B：待验证项
 
 以下依赖未能从源码静态判定，需在阶段 2 实测：

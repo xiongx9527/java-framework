@@ -2,7 +2,9 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant;
 
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.Content;
 import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.output.Response;
@@ -12,6 +14,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -30,30 +33,35 @@ class SimpleAssistantTest {
 	private final Assistant assistant = mock(Assistant.class);
 	private final SimpleAssistant simple = new SimpleAssistant(assistant);
 
+	/** 底层 Assistant 签名是多模态 contents 形态：单条文本包装成 TextContent 列表参与 stub/verify */
+	private static List<Content> contents(String text) {
+		return Collections.singletonList(TextContent.from(text));
+	}
+
 	@Test
 	void chatWithSingleArgUsesDefaultMemoryIdAndEmptyContext() {
-		org.mockito.Mockito.when(assistant.chat("default", "", "你好")).thenReturn("回复");
+		org.mockito.Mockito.when(assistant.chat("default", "", contents("你好"))).thenReturn("回复");
 
 		assertThat(simple.chat("你好")).isEqualTo("回复");
-		verify(assistant).chat("default", "", "你好");
+		verify(assistant).chat("default", "", contents("你好"));
 	}
 
 	@Test
 	void chatWithMemoryIdUsesEmptyContext() {
-		org.mockito.Mockito.when(assistant.chat("s-1", "", "你好")).thenReturn("回复");
+		org.mockito.Mockito.when(assistant.chat("s-1", "", contents("你好"))).thenReturn("回复");
 
 		assertThat(simple.chat("s-1", "你好")).isEqualTo("回复");
-		verify(assistant).chat("s-1", "", "你好");
+		verify(assistant).chat("s-1", "", contents("你好"));
 	}
 
 	@Test
 	void streamDelegatesWithEmptyContext() {
-		org.mockito.Mockito.when(assistant.stream("s-1", "", "讲个故事"))
+		org.mockito.Mockito.when(assistant.stream("s-1", "", contents("讲个故事")))
 				.thenReturn(mock(TokenStream.class));
 
 		simple.stream("s-1", "讲个故事");
 
-		verify(assistant).stream("s-1", "", "讲个故事");
+		verify(assistant).stream("s-1", "", contents("讲个故事"));
 	}
 
 	/**
@@ -63,14 +71,14 @@ class SimpleAssistantTest {
 	@Test
 	void streamToSseDelegatesToAssistantStream() {
 		AtomicReference<String> startedRequestId = new AtomicReference<>();
-		org.mockito.Mockito.when(assistant.stream("s-1", "", "讲个故事"))
+		org.mockito.Mockito.when(assistant.stream("s-1", "", contents("讲个故事")))
 				.thenReturn(fakeStream("杭州", "多云"));
 
 		SseEmitter emitter = simple.streamToSse("s-1", "讲个故事", startedRequestId::set);
 
 		assertThat(emitter).isNotNull();
 		assertThat(startedRequestId.get()).as("start 事件应回传 32 位 requestId").hasSize(32);
-		verify(assistant).stream("s-1", "", "讲个故事");
+		verify(assistant).stream("s-1", "", contents("讲个故事"));
 	}
 
 	/** 一次性文本补全：LanguageModel 直接生成文本 */
@@ -173,7 +181,7 @@ class SimpleAssistantTest {
     @Test
     void streamToSseUsesCallerProvidedEventData() {
         AtomicReference<String> doneText = new AtomicReference<>();
-        org.mockito.Mockito.when(assistant.stream("s-1", "", "讲个故事"))
+        org.mockito.Mockito.when(assistant.stream("s-1", "", contents("讲个故事")))
                 .thenReturn(fakeStream("杭州", "多云"));
 
         SseEmitter emitter = simple.streamToSse("s-1", "讲个故事", "record-1",
@@ -191,7 +199,7 @@ class SimpleAssistantTest {
     void streamToSseInvokesOnDoneWithFullText() {
         List<String> done = new ArrayList<>();
         Consumer<String> onDone = done::add;
-        org.mockito.Mockito.when(assistant.stream("s-1", "", "讲个故事"))
+        org.mockito.Mockito.when(assistant.stream("s-1", "", contents("讲个故事")))
                 .thenReturn(fakeStream("杭州", "多云"));
 
         SseEmitter emitter = simple.streamToSse("s-1", "讲个故事", null, onDone);

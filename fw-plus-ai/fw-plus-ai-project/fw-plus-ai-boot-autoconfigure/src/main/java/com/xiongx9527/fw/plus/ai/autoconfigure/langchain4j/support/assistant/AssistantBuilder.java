@@ -7,6 +7,8 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.Epheme
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.LengthBoundedAiPersistenceStrategy;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.PersistToolResultsAiPersistenceStrategy;
 
+import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.agent.tool.ToolSpecifications;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
@@ -23,17 +25,23 @@ import dev.langchain4j.rag.content.aggregator.ReRankingContentAggregator;
 import dev.langchain4j.rag.content.injector.ContentInjector;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.service.AiServices;
+import dev.langchain4j.service.tool.ToolExecutor;
 import dev.langchain4j.service.tool.ToolProvider;
+import dev.langchain4j.service.tool.ToolProviderResult;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 /**
- * 助手构建器：把 {@code AiServices<Assistant>} 的装配过程做成脚本可直接链式调用的形态，
+ * 助手构建器：把 {@code AiServices} 的装配过程做成脚本可直接链式调用的形态，
  * 一一对应 {@code AiServices} 的能力（模型 / 流式模型 / 记忆 / 系统提示 / 工具 / 检索增强）。
+ * 产出是双层结构：内层 {@code TextAssistant}（AiServices 原生管线）+ 外层
+ * {@link MultimodalAssistantBridge}（多模态桥接），对外仍表现为 {@link Assistant} 接口。
  *
  * <p>所有依赖都由调用方作为参数传入（不做 Spring 注入）：实例从各类型脚本模块取，
  * 如 {@code langchain4jChatModel['key']}、{@code langchain4jChatMemoryStore['key']}、
@@ -150,6 +158,9 @@ public class AssistantBuilder {
 
 	private final List<ToolProvider> toolProviders = new ArrayList<>();
 
+	/** 工具参数错误处理器：缺参/绑定失败回给 LLM 的策略（业务来定，缺省用内置默认） */
+	private ToolArgumentsErrorHandler toolArgumentsErrorHandler = ToolArgumentsErrorHandler.DEFAULT;
+
 	private RetrievalAugmentor retrievalAugmentor;
 
 	private ContentRetriever contentRetriever;
@@ -265,6 +276,20 @@ public class AssistantBuilder {
 				}
 			}
 		}
+		return this;
+	}
+
+	/**
+	 * 工具参数错误处理：必填参数缺失/参数绑定失败时，如何回文本给 LLM——
+	 * 缺参提示反问用户补齐、格式错误提示修正重试等策略由业务来定；
+	 * 不配置时用内置默认 {@link ToolArgumentsErrorHandler#DEFAULT}。
+	 *
+	 * <p>langchain4j 0.35 没有原生 {@code toolArgumentsErrorHandler} 扩展点，
+	 * 通过 {@link GuardedToolExecutor} 包装 {@code tools(...)} 与 {@code toolProvider(...)}
+	 * 两条注册路径实现等价能力；升级 langchain4j 1.x 后可改为原生扩展点透传。</p>
+	 */
+	public AssistantBuilder toolArgumentsErrorHandler(ToolArgumentsErrorHandler handler) {
+		this.toolArgumentsErrorHandler = handler != null ? handler : ToolArgumentsErrorHandler.DEFAULT;
 		return this;
 	}
 
@@ -490,8 +515,13 @@ public class AssistantBuilder {
 			}
 			return null;
 		}
-		AiServices<Assistant> builder = AiServices.builder(Assistant.class)
-				.chatMemoryProvider(resolveChatMemoryProvider());
+		// 双层结构：内层 TextAssistant（原 Assistant 签名）走 AiServices 原生完整管线
+		// （{{context}} 模板、工具循环 + GuardedToolExecutor、RAG、会话记忆），
+		// 外层 MultimodalAssistantBridge 实现 Assistant 新签名——纯文本轮转发内层，
+		// 多模态轮自拼 UserMessage 直调模型（记忆写文本占位、不挂工具）
+		ChatMemoryProvider memoryProvider = resolveChatMemoryProvider();
+		AiServices<TextAssistant> builder = AiServices.builder(TextAssistant.class)
+				.chatMemoryProvider(memoryProvider);
 
 		if (chatModel != null) {
 			builder.chatLanguageModel(chatModel);
@@ -503,18 +533,47 @@ public class AssistantBuilder {
 			builder.systemMessageProvider(systemMessageProvider);
 		}
 		if (!tools.isEmpty()) {
-			builder.tools(tools);
+			builder.tools(guardObjectTools());
 		}
 		if (toolProviders.size() == 1) {
-			builder.toolProvider(toolProviders.get(0));
+			builder.toolProvider(guardToolProvider(toolProviders.get(0)));
 		} else if (toolProviders.size() > 1) {
-			builder.toolProvider(new AggregatingToolProvider(toolProviders));
+			builder.toolProvider(guardToolProvider(new AggregatingToolProvider(toolProviders)));
 		}
 		RetrievalAugmentor augmentor = resolveRetrievalAugmentor();
 		if (augmentor != null) {
 			builder.retrievalAugmentor(augmentor);
 		}
-		return builder.build();
+		return new MultimodalAssistantBridge(builder.build(), chatModel, streamingModel,
+				memoryProvider, systemMessageProvider, augmentor);
+	}
+
+	/** 对象工具：生成 spec 并逐个包 {@link GuardedToolExecutor}（缺参检测 + 绑定失败回文本给 LLM） */
+	private Map<ToolSpecification, ToolExecutor> guardObjectTools() {
+		Map<ToolSpecification, ToolExecutor> guarded = new LinkedHashMap<ToolSpecification, ToolExecutor>();
+		for (Object tool : tools) {
+			if (tool instanceof Class) {
+				throw new IllegalArgumentException(String.format("Tool '%s' must be an object, not a class", tool));
+			}
+			for (ToolSpecification specification : ToolSpecifications.toolSpecificationsFrom(tool)) {
+				guarded.put(specification, new GuardedToolExecutor(specification, tool, toolArgumentsErrorHandler));
+			}
+		}
+		return guarded;
+	}
+
+	/** provider 工具：对 {@link ToolProvider} 返回结果里的每个执行器补包装，与对象工具的错误处理对齐 */
+	private ToolProvider guardToolProvider(ToolProvider provider) {
+		return request -> {
+			ToolProviderResult result = provider.provideTools(request);
+			if (result == null || result.tools() == null || result.tools().isEmpty()) {
+				return result;
+			}
+			ToolProviderResult.Builder guarded = ToolProviderResult.builder();
+			result.tools().forEach((specification, executor) -> guarded.add(specification,
+					new GuardedToolExecutor(specification, executor, toolArgumentsErrorHandler)));
+			return guarded.build();
+		};
 	}
 
 	/** 记忆：显式 provider → 传入的 store → 进程内 store；每个 memoryId 一份窗口记忆 */

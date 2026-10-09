@@ -126,6 +126,9 @@ class ChatContextLoggerTest {
 	/**
 	 * 真实走一遍 AiServices 代理：{@code validateParameters} 要求每个参数都有注解，
 	 * 裸参数只在调用时才抛 IllegalConfigurationException——mock Assistant 的测试发现不了。
+	 *
+	 * <p>注意：这里裸建代理只为验证参数注解校验；业务侧应经 {@code AssistantBuilder}
+	 * 取桥接实现，裸代理不识别多模态（详见 {@link Assistant} javadoc）。</p>
 	 */
 	@Test
 	void assistantMethodsPassParameterValidation() {
@@ -133,7 +136,8 @@ class ChatContextLoggerTest {
 				.chatLanguageModel(messages -> dev.langchain4j.model.output.Response.from(AiMessage.from("pong")))
 				.build();
 
-		String reply = assistant.chat("s-1", "", "ping");
+		String reply = assistant.chat("s-1", "",
+				Collections.singletonList(dev.langchain4j.data.message.TextContent.from("ping")));
 
 		assertEquals("pong", reply);
 	}
