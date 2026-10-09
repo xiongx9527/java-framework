@@ -10,11 +10,13 @@ import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.scoring.ScoringModel;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.ssssssss.magicapi.core.config.MagicConfiguration;
+import org.ssssssss.magicapi.core.model.JsonBean;
 import org.ssssssss.magicapi.core.web.MagicController;
 import org.ssssssss.magicapi.core.web.MagicExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -52,14 +54,14 @@ public class Langchain4jDatasourceController extends MagicController implements 
      */
     @PostMapping("/langchain4j/{type}/datasource/test")
     @ResponseBody
-    public String test(@PathVariable("type") String type, @RequestBody Map<String, Object> body) {
+    public JsonBean<Object> test(@PathVariable("type") String type, @RequestBody Map<String, Object> body) {
         try {
             Langchain4jModelTypes modelType = Langchain4jModelTypes.of("langchain4j-" + type);
             Langchain4jModelInfo info = toInfo(modelType, body);
             EmbeddingModel embeddingModel = null;
             if (modelType == Langchain4jModelTypes.EMBEDDING_STORE) {
                 if (embeddingModels == null) {
-                    return "当前应用未装配 LangChain4j embedding-model，无法测试 embedding-store";
+                    return new JsonBean<>("当前应用未装配 LangChain4j embedding-model，无法测试 embedding-store");
                 }
                 embeddingModel = Langchain4jEmbeddingStoreMagicDynamicRegistry.requireEmbeddingModel(
                         (Langchain4jEmbeddingStoreInfo) info,
@@ -71,11 +73,11 @@ public class Langchain4jDatasourceController extends MagicController implements 
             } finally {
                 closeProbeInstance(modelType, instance);
             }
-            return "ok";
+            return new JsonBean<>("ok");
         } catch (IllegalArgumentException e) {
-            return e.getMessage();
+            return new JsonBean<>(e.getMessage());
         } catch (Exception e) {
-            return "测试失败: " + e.getMessage();
+            return new JsonBean<>(e.getMessage());
         }
     }
 
@@ -87,6 +89,10 @@ public class Langchain4jDatasourceController extends MagicController implements 
                 return (T) JSON.parseObject(json, Langchain4jChatModelInfo.class);
             case STREAMING_CHAT_MODEL:
                 return (T) JSON.parseObject(json, Langchain4jStreamingChatModelInfo.class);
+            case LANGUAGE_MODEL:
+                return (T) JSON.parseObject(json, Langchain4jLanguageModelInfo.class);
+            case STREAMING_LANGUAGE_MODEL:
+                return (T) JSON.parseObject(json, Langchain4jStreamingLanguageModelInfo.class);
             case EMBEDDING_MODEL:
                 return (T) JSON.parseObject(json, Langchain4jEmbeddingModelInfo.class);
             case SCORING_MODEL:
@@ -104,6 +110,9 @@ public class Langchain4jDatasourceController extends MagicController implements 
         switch (type) {
             case CHAT_MODEL:
                 ((ChatModel) instance).chat(UserMessage.from("ping"));
+                break;
+            case LANGUAGE_MODEL:
+                ((LanguageModel) instance).generate("ping");
                 break;
             case EMBEDDING_MODEL:
                 ((EmbeddingModel) instance).embed("test");

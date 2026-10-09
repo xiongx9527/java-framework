@@ -1,16 +1,12 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant.SimpleAssistant;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.chatmemorystore.module.Langchain4jChatMemoryStoreModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jChatModelModule;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.module.Langchain4jContentRetrieverModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jStreamingChatModelModule;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.rag.content.retriever.ContentRetriever;
-import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -20,7 +16,6 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -35,22 +30,16 @@ class Langchain4jModuleSimpleAssistantConfigurationTest {
 	@Test
 	void injectsSimpleAssistantBeanFromConfiguredKeys() {
 		ChatModel chatModel = mockChatModel();
-		ChatMemoryStore memoryStore = mock(ChatMemoryStore.class);
 		Langchain4jChatModelModule chatModelModule = mock(Langchain4jChatModelModule.class);
 		when(chatModelModule.getDynamicAttribute("my-assistant")).thenReturn(chatModel);
-		Langchain4jChatMemoryStoreModule memoryStoreModule = mock(Langchain4jChatMemoryStoreModule.class);
-		when(memoryStoreModule.getDynamicAttribute("redis-store")).thenReturn(memoryStore);
 
 		new ApplicationContextRunner()
 				.withConfiguration(AutoConfigurations.of(Langchain4jModuleConfiguration.class))
 				.withBean("chatModelModule", Langchain4jChatModelModule.class, () -> chatModelModule)
-				.withBean("chatMemoryStoreModule", Langchain4jChatMemoryStoreModule.class,
-						() -> memoryStoreModule)
 				.withPropertyValues(
 						PREFIX + ".enabled=true",
 						PREFIX + ".use-default-key=true",
-						PREFIX + ".key=my-assistant",
-						PREFIX + ".keys.chatMemoryStore=redis-store")
+						PREFIX + ".key=my-assistant")
 				.run(context -> {
 					assertThat(context).hasSingleBean(SimpleAssistant.class);
 					SimpleAssistant assistant = context.getBean(SimpleAssistant.class);
@@ -153,22 +142,18 @@ class Langchain4jModuleSimpleAssistantConfigurationTest {
 	}
 
 	@Test
-	void createsFiveSimpleAssistantObjectsInModuleConstructor() {
-		// langchain4jModule 构造里创建 5 个 SimpleAssistant：4 单能力 + 1 全能力
+	void createsFourSimpleAssistantObjectsInModuleConstructor() {
+		// langchain4jModule 构造里创建 4 个 SimpleAssistant：3 单能力 + 1 全能力
 		ChatModel chatModel = mockChatModel();
 		Langchain4jChatModelModule chatModelModule = mock(Langchain4jChatModelModule.class);
 		when(chatModelModule.getDynamicAttribute("my-assistant")).thenReturn(chatModel);
 		Langchain4jStreamingChatModelModule streamingModule = mock(Langchain4jStreamingChatModelModule.class);
 		when(streamingModule.getDynamicAttribute("my-assistant")).thenReturn(mock(StreamingChatModel.class));
-		Langchain4jContentRetrieverModule retrieverModule = mock(Langchain4jContentRetrieverModule.class);
-		when(retrieverModule.getDynamicAttribute("my-assistant"))
-				.thenReturn(query -> java.util.Collections.singletonList(dev.langchain4j.rag.content.Content.from("资料")));
 
 		new ApplicationContextRunner()
 				.withConfiguration(AutoConfigurations.of(Langchain4jModuleConfiguration.class))
 				.withBean("chatModelModule", Langchain4jChatModelModule.class, () -> chatModelModule)
 				.withBean("streamingModule", Langchain4jStreamingChatModelModule.class, () -> streamingModule)
-				.withBean("retrieverModule", Langchain4jContentRetrieverModule.class, () -> retrieverModule)
 				.withPropertyValues(
 						PREFIX + ".enabled=true",
 						PREFIX + ".key=my-assistant",
@@ -176,9 +161,8 @@ class Langchain4jModuleSimpleAssistantConfigurationTest {
 				.run(context -> {
 					Langchain4jModule module = context.getBean(Langchain4jModule.class);
 					assertThat(module.chatAssistant()).isNotNull();
-					assertThat(module.retrievalAssistant()).isNotNull();
 					assertThat(module.simpleAssistant()).isNotNull();
-					assertThat(module.simpleAssistant().retrieve("问题")).isNotEmpty();
+					assertThat(module.simpleAssistant().chat("session-1", "你好")).isEqualTo("你好，我是助手");
 					// languageModel / streamingLanguageModel 插件缺席 → 对象为 null，方法提示
 					assertThatThrownBy(() -> module.languageAssistant())
 							.hasMessageContaining("language-model");

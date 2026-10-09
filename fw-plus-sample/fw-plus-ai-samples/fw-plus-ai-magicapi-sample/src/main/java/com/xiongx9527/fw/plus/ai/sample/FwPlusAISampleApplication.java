@@ -12,9 +12,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * 自动配置加载的 {@code @Configuration} 提前到「组件扫描」阶段注册。
  *
  * <p>组件扫描阶段早于自动配置阶段，而 {@code @ConditionalOnBean} 只查已注册的 bean 定义——
- * 于是 {@code KnowledgeConfiguration} 上对 {@code SqlSessionFactory} 的判断永远为 false
- * （{@code MybatisPlusAutoConfiguration} 还没轮到），knowledge 插件静默不注册：
- * 控制台看不到入口，条件评估报告里也只有一行「did not find any beans」，不报错。
+ * 依赖后置自动配置提供 bean 的条件装配（如 embedding-store 依赖 embedding-model 的
+ * {@code @ConditionalOnBean}）在该阶段永远为 false，对应插件静默不注册：控制台看不到入口，
+ * 条件评估报告里也只有一行「did not find any beans」，不报错。
  *
  * <p>放到子包后，{@code @SpringBootApplication} 默认扫描 {@code ...ai.sample.**}（只有本类），
  * 框架配置类全部走自动配置路径，{@code @AutoConfigureAfter} 的顺序保证才生效。

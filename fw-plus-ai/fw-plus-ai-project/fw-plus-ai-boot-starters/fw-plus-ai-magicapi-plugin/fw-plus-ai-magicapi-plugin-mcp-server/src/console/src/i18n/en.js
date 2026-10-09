@@ -20,16 +20,13 @@ export default {
             scope: {
                 enabled: 'Enabled',
                 includeGroups: 'Include groups',
-                includePaths: 'Include paths',
-                excludePaths: 'Exclude paths',
-                methods: 'Methods',
                 requireOptIn: 'Require opt-in',
                 optInOptionName: 'Opt-in flag',
                 optInOptionNameHint: 'e.g. mcpTool'
             },
             hint: {
-                list: 'Comma separated, e.g. /a/**, /b/**',
-                methods: 'Comma separated, e.g. GET, POST'
+                groupSelect: 'Check groups, empty means no filter',
+                groupEmpty: 'No groups available'
             }
         }
     },

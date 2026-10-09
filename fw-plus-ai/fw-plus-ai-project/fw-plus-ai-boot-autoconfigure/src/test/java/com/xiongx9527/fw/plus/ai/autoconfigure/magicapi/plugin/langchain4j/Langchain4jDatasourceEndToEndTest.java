@@ -168,7 +168,7 @@ class Langchain4jDatasourceEndToEndTest {
         body.put("provider", "openai");
         body.put("options", new LinkedHashMap<String, Object>());
 
-        assertThat(controller.test("chat-model", body))
+        assertThat(String.valueOf(controller.test("chat-model", body).getData()))
                 .contains("langchain4j-chat-model[chat-probe].options.api-key");
 
         Map<String, Object> storeBody = new LinkedHashMap<String, Object>();
@@ -177,7 +177,7 @@ class Langchain4jDatasourceEndToEndTest {
         storeBody.put("embeddingModelKey", "absent-embed");
         storeBody.put("options", new LinkedHashMap<String, Object>());
 
-        assertThat(controller.test("embedding-store", storeBody))
+        assertThat(String.valueOf(controller.test("embedding-store", storeBody).getData()))
                 .contains("请先配置并启用 embedding-model").contains("absent-embed");
     }
 

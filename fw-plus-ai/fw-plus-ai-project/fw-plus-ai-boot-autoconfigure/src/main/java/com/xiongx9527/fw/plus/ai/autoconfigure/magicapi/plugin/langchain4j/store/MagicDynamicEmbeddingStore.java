@@ -8,9 +8,7 @@ import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 
-import java.util.Collections;
 import java.util.List;
 
 public class MagicDynamicEmbeddingStore implements EmbeddingStore<TextSegment> {

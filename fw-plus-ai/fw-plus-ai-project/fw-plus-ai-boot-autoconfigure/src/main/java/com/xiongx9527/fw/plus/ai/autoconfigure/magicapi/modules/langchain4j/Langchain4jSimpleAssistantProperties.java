@@ -19,11 +19,6 @@ import java.util.Map;
  *   keys:                        # 分类型专属 key（每个类型建议都配置）
  *     chatModel: qwen-main
  *     streamingModel: qwen-stream
- *     chatMemoryStore: redis-store
- *     toolProvider: weather-tools
- *     contentRetriever: kb-retriever
- *     contentInjector: prompt-injector
- *     systemMessage: prompt/assistant
  *     tokenizer: openai
  *     scoringModel: jina
  *     agenticScript: /agentic/query,/agentic/report   # agentic 脚本资源路径（逗号分隔，逐个包装为编排工具）
@@ -53,9 +48,9 @@ public class Langchain4jSimpleAssistantProperties {
 	/** 默认 key：所有资源类型共用 */
 	private String key;
 
-	/** 分类型专属 key：类型名（chatModel / streamingModel / chatMemoryStore / toolProvider /
-	 * contentRetriever / contentInjector / systemMessage / tokenizer / scoringModel / skill /
-	 * agenticScript）→ 资源 key（skill/agenticScript 支持逗号分隔多个），未配置的类型回落 {@link #key}。 */
+	/** 分类型专属 key：类型名（chatModel / streamingModel / languageModel /
+	 * streamingLanguageModel / tokenizer / scoringModel / skill / agenticScript）→ 资源 key
+	 * （skill/agenticScript 支持逗号分隔多个），未配置的类型回落 {@link #key}。 */
 	private Map<String, String> keys = new HashMap<>();
 
 	/** 进程内记忆窗口（条，每 memoryId 一份）；null 时用 AssistantBuilder 默认（20） */

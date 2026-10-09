@@ -20,7 +20,7 @@ import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 /** chat-model 数据源的装配：实例持有者、资源存储与动态注册器；并承载连接测试 Controller。 */
 @ConditionalOnClass(name = "dev.langchain4j.model.chat.ChatModel")
 @ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.chat-model", name = "enabled",
-        havingValue = "true")
+        havingValue = "true", matchIfMissing = true)
 @Configuration(proxyBeanMethods = false)
 public class Langchain4jChatModelConfiguration extends AbstractLangchain4jPluginConfiguration {
 

@@ -10,7 +10,7 @@ import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 /**
  * {@link StreamingChatModel} 的动态代理：持有脚本模块与资源 key，每次调用实时解析
  * 当前实例，magic 资源热更新/注销后不持有失效引用。解析失败回落容器中的流式模型 bean
- * （key 空取默认、非空按 bean 名），与 {@code MagicDynamicChatMemoryStore} 的兜底语义一致。
+ * （key 空取默认、非空按 bean 名）。
  */
 public class MagicDynamicStreamingChatModel implements StreamingChatModel {
 

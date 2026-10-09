@@ -39,7 +39,7 @@ public class Langchain4jChatModelMagicDynamicRegistry
         safelyProcess(event);
     }
 
-    /** 默认实例（Spring 注入，key=default）+ 控制台配置的 datasource，一并暴露给控制台与脚本 */
+    /** 仅返回无文件的 Spring 默认实例（key=default，只读展示）。控制台文件条目由控制器 listFiles 提供，这里不能再叠加 mappings()（会重复，且核心按 id/mappingKey 双键登记导致翻倍） */
     @Override
     public List<Langchain4jChatModelInfo> defaultMappings() {
         List<Langchain4jChatModelInfo> result = new ArrayList<>();
@@ -51,7 +51,6 @@ public class Langchain4jChatModelMagicDynamicRegistry
             info.setEnabled(true);
             result.add(info);
         }
-        result.addAll(mappings());
         return result;
     }
 

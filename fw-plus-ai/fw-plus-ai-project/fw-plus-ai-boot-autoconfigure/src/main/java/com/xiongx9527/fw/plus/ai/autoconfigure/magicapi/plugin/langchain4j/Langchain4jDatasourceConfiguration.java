@@ -1,12 +1,5 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.ajmcpclient.Langchain4jAjMcpClientConfiguration;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.chatmemorystore.Langchain4jChatMemoryStoreConfiguration;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.contentinjector.Langchain4jContentInjectorConfiguration;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.Langchain4jContentRetrieverConfiguration;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.knowledge.KnowledgeConfiguration;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.systemmessage.Langchain4jSystemMessageProviderConfiguration;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.toolprovider.Langchain4jToolProviderConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -41,17 +34,7 @@ import org.ssssssss.magicapi.core.service.MagicResourceService;
         Langchain4jEmbeddingModelConfiguration.class,
         Langchain4jScoringModelConfiguration.class,
         Langchain4jTokenizerConfiguration.class,
-        Langchain4jEmbeddingStoreConfiguration.class,
-        Langchain4jToolProviderConfiguration.class,
-        Langchain4jAjMcpClientConfiguration.class,
-        Langchain4jSystemMessageProviderConfiguration.class,
-        Langchain4jChatMemoryStoreConfiguration.class,
-        Langchain4jContentRetrieverConfiguration.class,
-        Langchain4jContentInjectorConfiguration.class,
-        // knowledge 知识库（content-retriever 插件后端）：其 ContentRetrieverProvider bean
-        // 经上方分发表的 provider 收集机制注册，管理端 Controller 由 content-retriever 插件的
-        // controllerRegister 统一承载；依赖 SqlSessionFactory，无数据源时整体不装配
-        KnowledgeConfiguration.class
+        Langchain4jEmbeddingStoreConfiguration.class
 })
 public class Langchain4jDatasourceConfiguration {
 }

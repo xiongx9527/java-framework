@@ -32,38 +32,6 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- knowledge 知识库实体/Mapper 基类（core 层构件，经 core BOM 管理版本；MP 增强仅知识库装配使用） -->
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-mp-base</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <!-- knowledge 原始文件存储（storage-type=s3 时复用 fw-plus-boot magicapi s3 插件的 FileInfo 类型） -->
-        <dependency>
-            <groupId>org.dromara.x-file-storage</groupId>
-            <artifactId>x-file-storage-core</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <!-- knowledge 知识库实体注解/Mapper 基类编译依赖（fw-plus-mp-base 中为 optional 不传递；仅知识库装配使用） -->
-        <dependency>
-            <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <!-- knowledge Mapper 显式注册用 MapperFactoryBean（mybatis-plus 3.5.9+ 不再传递 mybatis-spring，版本由 core BOM 管理） -->
-        <dependency>
-            <groupId>org.mybatis</groupId>
-            <artifactId>mybatis-spring</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
         <!-- fw-plus-ai-mcp-server 协议内核（core 层构件，经 core BOM 管理版本） -->
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
@@ -80,6 +48,7 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Redis（MCP 集群广播/消费使用；ChatMemoryStore 不再依赖） -->
         <dependency>
             <groupId>org.springframework.data</groupId>
             <artifactId>spring-data-redis</artifactId>
@@ -92,7 +61,7 @@
             <artifactId>fw-plus-ai-boot</artifactId>
         </dependency>
 
-        <!-- 编译期注解处理：实体（KbSetting 等）依赖 Lombok @Data 生成访问器，
+        <!-- 编译期注解处理：@Data/@Slf4j 等注解依赖 Lombok 生成访问器，
              与 core 层 fw-plus-ai-langchain4j-* 各模块一致，显式声明 provided -->
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -415,19 +384,6 @@
         <dependency>
             <groupId>com.ajaxjs</groupId>
             <artifactId>aj-mcp-client</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-        <!-- 文档解析（RAG 入库链路用，当前仅预置依赖；入库封装待知识库管理一起做） -->
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-easy-rag</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-document-parser-apache-tika</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>

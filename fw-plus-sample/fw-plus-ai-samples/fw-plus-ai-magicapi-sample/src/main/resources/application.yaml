@@ -7,20 +7,10 @@ spring:
   main:
     # OpenAI 与 Azure OpenAI 的 langchain4j 自动配置 Bean 名冲突，统一通过应用侧覆盖/禁用
     allow-bean-definition-overriding: true
-  # 知识库（langchain4j-knowledge 插件）需要 SqlSessionFactory：KnowledgeConfiguration 带
-  # @ConditionalOnBean(SqlSessionFactory.class)，没有它整个配置类不装配、插件不注册。
-  # 这里用 H2 内存库让样例零外部依赖即可跑通；换 MySQL 见 pom.xml 中 h2 依赖处的说明。
-  datasource:
-    url: jdbc:h2:mem:fw-plus-ai-kb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: ""
-  sql:
-    init:
-      mode: always
-      # H2 方言的知识库元数据表（5 张）。MySQL 方言那份在 docs/sql/fw-plus-ai-knowledge.sql，
-      # 需手工执行，列注释/内联索引/表选项等语法两者不通用。
-      schema-locations: classpath:schema-h2.sql
+  autoconfigure:
+    # ngbatis 传递引入 spring-boot-starter-data-jpa（HikariCP），样例没有 JDBC 用途，
+    # 排除数据源自动配置，避免无 spring.datasource.url 时启动失败
+    exclude: org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
 
 
 fw:
@@ -50,21 +40,6 @@ fw-plus:
             enabled: true
             properties: {}
 
-magic:
-  api:
-    mybatis-plus:
-      # 关闭 magic 脚本侧的 mybatisplus 插件（mapper/xml 支持）。
-      # fw-plus-mp-spring-boot-starter 自带该插件，其 mybatisPlusModule 工厂方法签名里直接引用
-      # DynamicRoutingDataSource 类型——即使数据源为 null，Spring 也要先解析参数类型，
-      # classpath 没有 dynamic-datasource 时直接 NoClassDefFoundError 把启动打断。
-      # 本样例的知识库走 Java 侧 Mapper，用不到 magic 脚本的 mybatisplus，故显式关掉，
-      # 省掉 dynamic-datasource 依赖（那会把主数据源包成 DynamicRoutingDataSource，
-      # 还需额外的 spring.datasource.dynamic 配置）。需要该插件时改回 true 并补依赖。
-      #
-      # 注意前缀是点分的 magic.api.mybatis-plus，必须写成字面嵌套的 magic.api.*；
-      # 下面 magic-api.* 下的同名键不生效（relaxed binding 不做连字符→点分的转换）。
-      enabled: false
-
 magic-api:
   editor-config: classpath:./magic-editor-config.js
   web: /magic-api/web
@@ -75,7 +50,8 @@ magic-api:
     channel: magic-api:notify:channel
   resource:
     type: file  # 配置接口存储方式，file | database | git
-    location: ${java.io.tmpdir}/fw-plus-ai-magicapi-sample
+    location1: ${java.io.tmpdir}/fw-plus-ai-magicapi-sample
+    location: /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-sample/fw-plus-ai-samples/fw-plus-ai-magicapi-sample/src/main/resources
   prefix: /magic-api  # 前缀
   backup: #备份相关配置
     enable: false #是否启用
@@ -98,12 +74,6 @@ magic-api:
     s3:
       admin:
         enabled: true
-    knowledge:
-      # 知识库管理端 toolbars 已并入 content-retriever 主插件（src/console/src/index.js），
-      # 入口显示由前端 adminOnly 控制；本配置不再被后端插件声明消费（隐身插件不带 adminEnabled）。
-      # 知识库功能本身的启用与否与该配置无关——已全部迁到 kb_setting 表，由控制台「设置」页读写。
-      admin:
-        enabled: true
     druid:
       aop-patterns:  /*
       stat-view-servlet:
@@ -111,6 +81,14 @@ magic-api:
         login-username: admin
         login-password: 123456
 
+
+# 本地未启动 ES/Neo4j，关闭对应健康检查，避免 actuator 周期性打印 Connection refused 告警
+management:
+  health:
+    elasticsearch:
+      enabled: false
+    neo4j:
+      enabled: false
 
 logging:
   level:

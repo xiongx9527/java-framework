@@ -483,8 +483,15 @@ git show origin/springboot3:fw-plus-boot/fw-plus-boot-project/fw-plus-boot-depen
 
 > Spring Boot 3 分支上 langchain4j 必须从 0.35.0 升到 1.x（0.x → 1.x 为破坏性升级）。
 > 以下为已识别的调整项。
+>
+> **2026-10-09 合并 `origin/dev` 后的状态**：KB 知识库与检索器子系统整体移除（见附录 C），
+> A.1 / A.2 所涉 `knowledge.service` 类与 A.6 所涉 content-retriever Provider 体系已不存在，
+> 相关章节仅存历史参考；A.5 的按请求动态检索条件已按「Assistant 显式参数」方案落地
+> （`SimpleAssistant.chatWithFilter` / `streamWithFilter`）。
 
 ### A.1 knowledge 元数据 Filter：contains 下推原生支持
+
+> **已随 2026-10-09 合并移除**：`KbSearchService` / 自定义 Filter 随 KB 知识库子系统整体删除，本节仅存历史参考。
 
 - **现状（0.35.0）**：`MetadataFilterBuilder` 无 `containsString`；`KbSearchService` 的
   `contains` / `not contains` 操作符使用自定义 `ContainsStringFilter`（knowledge.service 包内），
@@ -497,6 +504,8 @@ git show origin/springboot3:fw-plus-boot/fw-plus-boot-project/fw-plus-boot-depen
 - **is empty / is not empty**：两版均无原生 `IsEmpty`，继续以空串（""）近似表达，行为不变。
 
 ### A.2 KbTokenCounter：字符近似 → TokenCountEstimator
+
+> **已随 2026-10-09 合并移除**：`KbTokenCounter` 随 KB 知识库子系统整体删除，本节仅存历史参考。
 
 - **现状（0.35.0）**：`KbTokenCounter.estimate` 用 CJK/拉丁混合字符近似估 token，不引入 Tokenizer 词表依赖。
 - **调整（1.x）**：替换为 `TokenCountEstimator`，只改 `KbTokenCounter` 单一封装点。
@@ -514,6 +523,10 @@ git show origin/springboot3:fw-plus-boot/fw-plus-boot-project/fw-plus-boot-depen
 
 ### A.5 检索元数据条件按请求动态传入
 
+> **已落地（springboot3 独有方案）**：按「Assistant 显式参数」实现——`SimpleAssistant`
+> 增加 `chatWithFilter` / `streamWithFilter` / `retrieve` 过滤重载，检索器实现
+> `FilterableRetriever` 时构建期接线，每次请求直接传 `metadataCondition`，单实例即可。
+
 - **现状（0.35.0）**：AiServices 到 ContentRetriever 的运行期通道只有 Query（text + chatMemoryId），
   没有「每次请求向检索器传参」的内置 API，RAG 助手的 metadataCondition 只能构建期固定——
   每个条件组合（如每个租户）需单独构建一个 assistant 实例缓存复用，同一实例不支持每次对话变更条件
@@ -524,6 +537,77 @@ git show origin/springboot3:fw-plus-boot/fw-plus-boot-project/fw-plus-boot-depen
 - **过渡备选（0.35.0 可用，暂未采用）**：`Query.metadata().chatMemoryId()` 已暴露当前会话
   memoryId，检索器可按 memoryId 查「会话 → 条件」映射动态解析（与 ChatMemoryStore 同构，
   非编码进 memoryId、非 ThreadLocal）；业务侧在会话建立时登记租户条件即可单实例服务全部会话。
+
+### A.6 检索器：AzureAiSearchContentRetriever 与 WebSearchContentRetriever
+
+> **⚠️ 本节整体已失效（2026-10-09 合并 `origin/dev`）**：dev 侧删除了 content-retriever 资源体系，
+> springboot3 合并时接受了该删除——`…/plugin/langchain4j/retriever/provider/` 的 Provider 体系
+> （`ContentRetrieverProviderRegistry` / `AzureAiSearchContentRetrieverProvider` /
+> `WebSearchContentRetrieverProvider`）与 content-retriever 插件子模块均已不存在，
+> 下述「检索器新载体」「配置迁移」失去目标载体。仅保留 javap API 验证结论（A.6.1/A.6.2）备查，
+> 若将来恢复检索器资源化可直接复用。装配收口结论（A.6 首段）仍然有效。
+
+**结论：两个 Provider 的构建代码与 langchain4j 1.20.2 API 完全兼容（javap 实测），调用零改动；
+真正变化在装配体系收口与配置载体迁移。**
+
+- **装配体系收口（破坏性）**：springboot3 分支已删除 dev 的顶层 `LangChain4jAutoConfiguration` 及 11 个
+  `LangChain4j*AutoConfiguration`（含 `LangChain4jAzureAiSearchContentRetrieverAutoConfiguration`），core 的
+  `fw-plus-ai-langchain4j-azure-ai-search`（占官方包名 `dev.langchain4j.azure.aisearch.spring` 的
+  `AutoConfig` / `Properties`）模块一并移除；`AutoConfiguration.imports` 中 LangChain4j 条目只剩
+  `support.LangChain4jSupportAutoConfiguration`。
+- **检索器新载体**：`…/magicapi/plugin/langchain4j/retriever/provider/` 的 content-retriever Provider 体系
+  （`ContentRetrieverProviderRegistry` 按 `provider` key 装配，content-retriever 资源 JSON 的 `type` 字段路由）。
+- **配置迁移（破坏性）**：Azure 检索从配置属性 `langchain4j.azure.ai-search.content-retriever.*`（dev 的
+  `Properties.PREFIX`）迁到 content-retriever 资源 options：`endpoint` / `api-key` / `index-name` /
+  `embedding-model-key`（四项必填）、`dimensions`（建索引时必填，缺省 0）、`query-type`（缺省 vector）、
+  `max-results`（缺省 5）、`min-score`（缺省 0.0）、`create-or-update-index`（缺省 false）。
+
+#### A.6.1 AzureAiSearchContentRetriever（provider key：`azure-ai-search`）
+
+- **类位置**：`AzureAiSearchContentRetrieverProvider`（分支 `fw-plus-ai-boot-autoconfigure` 的
+  `magicapi/plugin/langchain4j/retriever/provider/`）。
+- **API 验证**：`dev.langchain4j:langchain4j-azure-ai-search` 实测解析版本 **1.20.2-beta30**（该模块使用独立
+  版本号，由 langchain4j-bom 纳管，非 `1.20.2`）；`javap` 确认 builder 九方法
+  `endpoint / apiKey / indexName / embeddingModel / dimensions / maxResults / minScore / queryType /
+  createOrUpdateIndex` 与 0.35.0 完全一致 → **Provider 代码零改动**。
+- **依赖**：boot-autoconfigure 已声明 `langchain4j-azure-ai-search`（compile + optional）。
+
+#### A.6.2 WebSearchContentRetriever（provider key：`web-search`）
+
+- **类位置**：`WebSearchContentRetrieverProvider`；引擎实现 `MagicApiWebSearchEngine`（把搜索请求交给
+  magic-api 函数执行，脚本可接任意搜索服务）。
+- **artifact 变化**：`WebSearchContentRetriever` 位于 **`langchain4j-core` 1.20.2**（核心 jar 自带），
+  无需新增依赖；0.35.0 时期则随主 artifact——升级后类坐标不变、来源 jar 变化。
+- **API 验证**（javap langchain4j-core 1.20.2）：
+  - builder 仅 `webSearchEngine(WebSearchEngine)` + `maxResults(Integer)` + `build()` → 与 Provider 代码一致；
+  - `WebSearchEngine` 接口唯一抽象方法为 `search(WebSearchRequest)`，`search(String)` / `searchAsync`
+    是 default 方法——`MagicApiWebSearchEngine` 实现抽象方法并覆写 `search(String)` 转发。
+- **options**：`search-function`（magic-api 函数名 → `MagicApiWebSearchEngine`；未配置时回落 Spring 容器中的
+  `WebSearchEngine` bean）、`max-results`（未配置则不调用 builder，走默认）。
+- **引擎 SDK（optional，按需引入）**：`langchain4j-community-web-search-engine-duckduckgo` /
+  `langchain4j-web-search-engine-tavily` / `-google-custom` / `-searchapi`
+  （boot-autoconfigure 已声明 compile + optional，实际选用哪个由部署侧按需引入）。
+
+#### A.6.3 遗留待办
+
+- ~~`LangChain4jAutoConfigurationRegistrationTest` 仍以字符串引用已删除的 11 个
+  `LangChain4j*AutoConfiguration`~~ —— **已解决（2026-10-09 合并时改写）**：测试重写为断言
+  `AutoConfiguration.imports` 中 LangChain4j 条目只剩 `support.LangChain4jSupportAutoConfiguration`、
+  旧配置类均不存在、Support 配置条件注解不变、pom 中 store 绕行包装已移除且供应商 SDK 保持
+  compile + optional（`langchain4j-redis` 已随 1.20.2 基线移除，不再期望）。
+- ~~存量 `langchain4j.azure.ai-search.*` 配置的使用方迁移~~ —— **随子系统移除而作废**：
+  content-retriever 资源 options 载体已随合并删除，Azure 检索配置迁移目标不复存在；
+  若未来恢复检索器，需重新设计配置载体。
+
+验证命令：
+
+```bash
+# builder 方法签名（1.20.2-beta30 / 1.20.2 实测）
+javap -cp ~/.m2/repository/dev/langchain4j/langchain4j-azure-ai-search/1.20.2-beta30/langchain4j-azure-ai-search-1.20.2-beta30.jar \
+  'dev.langchain4j.rag.content.retriever.azure.search.AzureAiSearchContentRetriever$Builder'
+javap -cp ~/.m2/repository/dev/langchain4j/langchain4j-core/1.20.2/langchain4j-core-1.20.2.jar \
+  'dev.langchain4j.rag.content.retriever.WebSearchContentRetriever$WebSearchContentRetrieverBuilder'
+```
 
 ---
 
@@ -551,3 +635,57 @@ git show origin/springboot3:fw-plus-boot/fw-plus-boot-project/fw-plus-boot-depen
 ```bash
 ./mvnw dependency:tree -Dverbose | grep -E "javax\.servlet|javax\.validation|javax\.persistence"
 ```
+
+---
+
+## 附录 C：2026-10-09 合并 `origin/dev` 记录
+
+springboot3 合入 `origin/dev`（`7a8740d88`，领先 11 个提交），41 个冲突全部解决。要点如下。
+
+### C.1 接受 dev 的删除（30 个 modify/delete 冲突）
+
+dev 侧删除了以下子系统，springboot3 接受删除（其中 `MagicToolInvoker` /
+`ScriptManagerMagicToolInvoker` 两个自包含类恢复保留，mcpclient 模块依赖）：
+
+- KB 知识库 / 检索器（content-retriever 资源体系、`retriever/provider/`、`KbSearchService` 等）
+- toolprovider（除上述两个 invoker 外整体移除）、contentinjector、chatmemorystore 插件
+- systemmessage、ajmcpclient、content-retriever 插件子模块
+
+保留 springboot3 独有功能：agentic-script、mcp-client、skill 模块。README 子工程数按实际收敛（npm 启用数）。
+
+### C.2 内容冲突（UU）解决原则
+
+保留 springboot3 独有能力与 Java 17 语法，跟随 dev 删除 knowledge 依赖与检索器 wiring；
+`Langchain4jModule` 移除 `retrievalAssistant`，agentic 控制器改为按
+`Langchain4jAgenticScriptModule` bean 门控注册。
+
+### C.3 dev 新代码适配 langchain4j 1.20.2
+
+| dev 代码 | 0.35.0 写法 | 1.20.2 适配 |
+|---|---|---|
+| MCP 工具提供方 | `GsonChatMessageJsonCodec` | `JacksonChatMessageJsonCodec` |
+| `AjMcpLangchain4jToolProvider` | `ToolParameters`（Map 结构） | `JsonObjectSchema` / `JsonSchemaElement` 递归转换（含 `JsonRawSchema` 兜底） |
+| `Langchain4jDatasourceController` | 已支持 language-model | 恢复 `LANGUAGE_MODEL` / `STREAMING_LANGUAGE_MODEL` 的 `toInfo` / `probe`（1.20.2 `LanguageModel.generate(String)` 可用） |
+
+配套测试修复：`MagicDynamicLangchain4jDataSourcesTest`（`ChatLanguageModel` → `ChatModel`）、
+dev 新增的 `AjMcpLangchain4jToolProviderTest`（断言适配 `JsonObjectSchema`）、
+`Langchain4jDatasourceControllerTest`（StubFactory 恢复 language-model / tokenizer 桩，
+tokenizer 返回 `TokenCountEstimator`）、`LangChain4jAutoConfigurationRegistrationTest`
+（按装配收口重写，见 A.6.3）。`spring.factories` 移除指向已删除 `LangChain4jAutoConfiguration`
+的悬空条目。
+
+### C.4 测试套件状态（fw-plus-ai，`-Dmaven.test.skip=false`）
+
+562 个测试，9 failures + 17 errors，全部为**既有/环境问题**（合并前 HEAD 上同样失败）：
+
+- **DJL 原生库环境问题（23 个）**：`BgeSmallEnV15QuantizedEmbeddingModel` 类初始化抛
+  `ai.djl.engine.EngineException: Unexpected flavor: cpu`（x86_64 macOS 上 huggingface
+  tokenizers JNI 加载失败），连带 `langchain4jEmbeddingModelMagicResourceStorage` bean
+  创建失败 → 凡启动 Spring 上下文的集成测试全部失败。与合并无关。
+- **`Langchain4jOpenAiModelFactoryTest`（3 errors）**：反射读 `OpenAiChatModel.temperature` /
+  `topP` 字段，1.20.2 已迁入 `RequestConfiguration` 内部类 → 1.20.2 升级遗留，测试从未默认执行故未暴露。
+- **`Langchain4jModuleTest.shouldKeepHistoryForSameMemoryId`（1 failure）**：Ephemeral 记忆
+  未沉淀 AI 回复。已在合并前 HEAD 工作树复跑确认为既有失败（疑似 1.20.2 AiServices 记忆写入行为差异）。
+
+其余 536 个通过。测试默认仍被该层 pom 的 `maven.test.skip=true` 跳过，需显式
+`-Dmaven.test.skip=false` 执行（JDK 17 + 离线 `-o`）。

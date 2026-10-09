@@ -6,10 +6,12 @@ import org.ssssssss.magicapi.core.model.MagicEntity;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+/**
+ * MCP 资源定义。名称复用父类 {@link MagicEntity#name}，勿声明同名字段遮蔽（否则 simple() 节点
+ * name 恒为 null，控制台资源树渲染会中断）。
+ */
 @Data
 public class MagicMcpResourceInfo extends MagicEntity {
-
-	private String name;
 
 	private String uri;
 

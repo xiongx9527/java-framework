@@ -62,6 +62,8 @@ test('DB 管理入口通过通用 adminOnly 标记受 adminEnabled 门控', asyn
 
     assert.match(pluginSource, /id:\s*'db-browser'/)
     assert.match(pluginSource, /adminOnly:\s*true/)
+    // magic-toolbar 靠 plugin.name 反查 PLUGINS_DATA 的 adminEnabled，工厂返回缺顶层 name 时入口永远被过滤
+    assert.match(pluginSource, /name:\s*'db'/)
     assert.match(hostToolbarSource, /isPluginToolbarVisible/)
     assert.match(hostToolbarSource, /toolbar\.adminOnly/)
     assert.match(hostToolbarSource, /pluginData\.adminEnabled === true/)

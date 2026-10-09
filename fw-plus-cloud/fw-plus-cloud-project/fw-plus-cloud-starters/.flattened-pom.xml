@@ -20,7 +20,6 @@
   </licenses>
   <modules>
     <module>fw-plus-cloud-starter</module>
-    <module>fw-plus-magicapi-spring-cloud-starter</module>
     <module>fw-plus-admin-server-spring-cloud-starter</module>
     <module>fw-plus-eureka-server-spring-cloud-starter</module>
     <module>fw-plus-cloud-magicapi-plugin</module>

@@ -17,4 +17,11 @@ public class DifyChatEvent {
     public static final String nodeFinished = "node_finished";
     public static final String workflowFinished = "workflow_finished";
     public static final String error = "error";
+    public static final String agentMessage = "agent_message";
+    public static final String agentThought = "agent_thought";
+    public static final String textChunk = "text_chunk";
+    public static final String reasoningChunk = "reasoning_chunk";
+    public static final String humanInputRequired = "human_input_required";
+    public static final String workflowPaused = "workflow_paused";
+    public static final String ping = "ping";
 }

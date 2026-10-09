@@ -29,7 +29,6 @@
             <groupId>com.xiongx9527.fw.plus.boot</groupId>
             <artifactId>fw-plus-magicapi-spring-boot-starter</artifactId>
         </dependency>
-
         <dependency>
             <groupId>com.xiongx9527.fw.plus.boot</groupId>
             <artifactId>fw-plus-magicapi-plugin-s3</artifactId>
@@ -74,33 +73,8 @@
         </dependency>
         <dependency>
             <groupId>com.xiongx9527.fw.plus.ai</groupId>
-            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-tool-provider</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus.ai</groupId>
             <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-scoring-model</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus.ai</groupId>
-            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-aj-mcp-client</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus.ai</groupId>
-            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-system-message</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus.ai</groupId>
-            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-chat-memory-store</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus.ai</groupId>
-            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-content-retriever</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus.ai</groupId>
-            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-content-injector</artifactId>
-        </dependency>
-
         <!-- Dev langchain4j provider jars that the model-factory registry references even when no
              fw-plus wrapper module exists for them (direct upstream deps) -->
         <dependency>
@@ -147,12 +121,10 @@
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-embeddings-all-minilm-l6-v2-q</artifactId>
         </dependency>
-
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-ai-langchain4j-core</artifactId>
         </dependency>
-
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-ai-langchain4j-openai</artifactId>
@@ -234,13 +206,11 @@
             <artifactId>nebula-jdbc</artifactId>
             <version>3.3.0</version>
         </dependency>
-
         <dependency>
             <groupId>org.nebula-contrib</groupId>
             <artifactId>ngbatis</artifactId>
             <version>2.0.1</version>
         </dependency>
-
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -259,38 +229,10 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- 知识库（langchain4j-knowledge 插件）落地所需的最小 JDBC 支撑。
-             KnowledgeConfiguration 带 @ConditionalOnBean(SqlSessionFactory.class)：
-             没有 SqlSessionFactory 时整个配置类不装配，kbBrowserPluginConfiguration bean
-             不存在，控制台就看不到 langchain4j-knowledge 插件（不是前端产物缺失，是插件
-             根本没注册）。因此样例必须提供数据源 + MyBatis-Plus。
-             样例用 H2 内存库，知识库元数据表由 src/main/resources/schema-h2.sql 建；
-             换成 MySQL 时替换两处：驱动 mysql-connector-java + spring.datasource 的
-             url/username/password，并执行 docs/sql/fw-plus-ai-knowledge.sql 建表
-             （那是 MySQL 方言，schema-h2.sql 只服务 H2）。 -->
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus.boot</groupId>
-            <artifactId>fw-plus-mp-spring-boot-starter</artifactId>
-        </dependency>
-
-        <!-- 知识库的 DocumentPipeline 用 ApacheTikaDocumentParser 做全格式解析。上游
-             fw-plus-ai-boot-autoconfigure 声明该依赖时是 optional=true，不传递，
-             这里必须显式补上，否则 KnowledgeConfiguration 装配后创建 kbDocumentPipeline
-             时直接 NoClassDefFoundError: ApacheTikaDocumentParser 把启动打断。 -->
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-document-parser-apache-tika</artifactId>
-        </dependency>
-
         <!-- 认证内核：fw-plus-ai-boot-autoconfigure 声明的 fw-plus-auth-core 是
-             optional=true 不传递，且其 @Bean 方法签名直接引用 InstanceAuthRegistry。
-             缺失时 Spring 内省配置类即 NoClassDefFoundError 启动失败（MCP/knowledge/
-             McpAutoConfiguration 均受影响）。starter 会携带，这里显式声明防回归。 -->
+             optional=true 不传递，且 MCP 装配的 @Bean 方法签名直接引用 InstanceAuthRegistry。
+             缺失时 Spring 内省配置类即 NoClassDefFoundError 启动失败（McpAutoConfiguration）。
+             starter 会携带，这里显式声明防回归。 -->
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-auth-core</artifactId>

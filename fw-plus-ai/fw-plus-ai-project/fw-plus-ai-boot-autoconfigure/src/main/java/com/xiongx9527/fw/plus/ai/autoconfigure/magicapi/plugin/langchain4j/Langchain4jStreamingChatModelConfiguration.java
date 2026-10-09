@@ -17,7 +17,7 @@ import org.springframework.context.annotation.Configuration;
 /** streaming-chat-model 数据源的装配：实例持有者、资源存储与动态注册器。 */
 @ConditionalOnClass(name = "dev.langchain4j.model.chat.StreamingChatModel")
 @ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.streaming-chat-model", name = "enabled",
-        havingValue = "true")
+        havingValue = "true", matchIfMissing = true)
 @Configuration(proxyBeanMethods = false)
 public class Langchain4jStreamingChatModelConfiguration extends AbstractLangchain4jPluginConfiguration {
 

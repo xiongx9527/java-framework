@@ -548,7 +548,7 @@ public class AssistantBuilder {
 		// languageModel / streamingLanguageModel 透传给 SimpleAssistant 的直连补全能力
 		SimpleAssistant assistant = new SimpleAssistant(assemble(), chatModel, null, languageModel,
 				streamingLanguageModel, resolveRetrievalAugmentor());
-		// 检索器支持显式元数据过滤时（如 knowledge 类型），接线供 retrieve/chatWithFilter 过滤重载使用
+		// 检索器支持显式元数据过滤时，接线供 retrieve/chatWithFilter/streamWithFilter 过滤重载使用
 		if (contentRetriever instanceof SimpleAssistant.FilterableRetriever filterable) {
 			assistant.filterableRetriever(filterable);
 		}

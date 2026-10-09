@@ -54,6 +54,8 @@ class Langchain4jDatasourcePluginIntegrationTest {
                 when(service.listFiles(anyString())).thenReturn(Collections.emptyList());
                 return service;
             })
+            // scoring-model 的装配开关 matchIfMissing=false，不显式开启则该插件配置缺席
+            .withPropertyValues("fw.plus.magicapi.langchain4j.scoring-model.enabled=true")
             .withUserConfiguration(Langchain4jDatasourceConfiguration.class);
 
     @Test
@@ -162,13 +164,7 @@ class Langchain4jDatasourcePluginIntegrationTest {
                             "langchain4j-language-model",
                             "langchain4j-streaming-chat-model",
                             "langchain4j-streaming-language-model",
-                            "langchain4j-tokenizer",
-                            "langchain4j-tool-provider",
-                            "langchain4j-aj-mcp-client",
-                            "langchain4j-system-message",
-                            "langchain4j-chat-memory-store",
-                            "langchain4j-content-retriever",
-                            "langchain4j-content-injector");
+                            "langchain4j-tokenizer");
         });
     }
 

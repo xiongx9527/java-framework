@@ -17,7 +17,7 @@ import org.springframework.context.annotation.Configuration;
 /** streaming-language-model 数据源的装配：实例持有者、资源存储与动态注册器。 */
 @ConditionalOnClass(name = "dev.langchain4j.model.language.StreamingLanguageModel")
 @ConditionalOnProperty(prefix = "fw.plus.magicapi.langchain4j.streaming-language-model", name = "enabled",
-        havingValue = "true")
+        havingValue = "true", matchIfMissing = true)
 @Configuration(proxyBeanMethods = false)
 public class Langchain4jStreamingLanguageModelConfiguration extends AbstractLangchain4jPluginConfiguration {
 

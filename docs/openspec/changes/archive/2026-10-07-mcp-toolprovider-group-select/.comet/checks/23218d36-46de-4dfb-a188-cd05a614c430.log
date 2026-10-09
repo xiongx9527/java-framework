@@ -1,0 +1,56 @@
+
+up to date, audited 384 packages in 3s
+
+97 packages are looking for funding
+  run `npm fund` for details
+
+25 vulnerabilities (7 moderate, 17 high, 1 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+npm warn install-scripts 3 packages have install scripts not yet covered by allowScripts:
+npm warn install-scripts   canvas@2.11.2 (install: node-gyp rebuild)
+npm warn install-scripts   esbuild@0.14.54 (postinstall: node install.js)
+npm warn install-scripts   fsevents@2.3.3 (install: (install scripts present))
+npm warn install-scripts
+npm warn install-scripts Run `npm install-scripts ls` to review, or `npm install-scripts approve <pkg>` to allow.
+
+> magic-editor@2.2.2 build
+> vite build
+
+(node:50197) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+vite v2.9.18 building for production...
+<script src="./config-js"> in "/index.html" can't be bundled without type="module" attribute
+transforming...
+transforming...
+✓ 88 modules transformed.
+✓ 164 modules transformed.
+✓ 167 modules transformed.
+rendering chunks...
+✓ 1239 modules transformed.
+rendering chunks...
+dist/assets/editor.worker.cb3a44e8.js              89.17 KiB
+dist/assets/json.worker.8a4f410d.js                214.07 KiB
+dist/assets/html.worker.8970adb6.js                525.47 KiB
+dist/assets/JetBrainsMono-Regular.bceff071.woff2   67.81 KiB
+dist/assets/PoetsenOne.14047964.woff2              52.35 KiB
+dist/assets/logo-magic-api.7bf52c65.png            16.08 KiB
+dist/assets/login-bg.b2c96d9d.svg                  11.96 KiB
+dist/assets/codicon.d86f69b1.ttf                   66.29 KiB
+dist/index.html                                    3.40 KiB
+dist/assets/axios.1135a622.js                      36.61 KiB / gzip: 14.69 KiB
+dist/assets/style.e49f7931.css                     135.42 KiB / gzip: 24.98 KiB
+dist/assets/vue.da6d0aab.js                        117.92 KiB / gzip: 46.34 KiB
+dist/assets/index.d6cef3e9.js                      735.17 KiB / gzip: 254.05 KiB
+
+(!) Some chunks are larger than 500 KiB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/guide/en/#outputmanualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+dist/assets/vendor.3dc85d60.js                     3450.39 KiB / gzip: 864.88 KiB

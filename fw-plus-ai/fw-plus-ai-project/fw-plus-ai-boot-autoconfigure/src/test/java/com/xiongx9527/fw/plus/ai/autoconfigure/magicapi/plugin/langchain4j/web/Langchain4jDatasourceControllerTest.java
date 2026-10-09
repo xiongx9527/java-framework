@@ -6,9 +6,12 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.model.TokenCountEstimator;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.model.language.LanguageModel;
+import dev.langchain4j.model.language.StreamingLanguageModel;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,12 +47,12 @@ class Langchain4jDatasourceControllerTest {
 
     @Test
     void shouldProbeChatModelWithoutPersisting() {
-        assertThat(controller.test("chat-model", body("stub"))).isEqualTo("ok");
-        assertThat(controller.test("streaming-chat-model", body("stub"))).isEqualTo("ok");
-        assertThat(controller.test("language-model", body("stub"))).isEqualTo("ok");
-        assertThat(controller.test("streaming-language-model", body("stub"))).isEqualTo("ok");
-        assertThat(controller.test("embedding-model", body("stub"))).isEqualTo("ok");
-        assertThat(controller.test("tokenizer", body("stub"))).isEqualTo("ok");
+        assertThat(controller.test("chat-model", body("stub")).getData()).isEqualTo("ok");
+        assertThat(controller.test("streaming-chat-model", body("stub")).getData()).isEqualTo("ok");
+        assertThat(controller.test("language-model", body("stub")).getData()).isEqualTo("ok");
+        assertThat(controller.test("streaming-language-model", body("stub")).getData()).isEqualTo("ok");
+        assertThat(controller.test("embedding-model", body("stub")).getData()).isEqualTo("ok");
+        assertThat(controller.test("tokenizer", body("stub")).getData()).isEqualTo("ok");
     }
 
     @Test
@@ -64,13 +67,13 @@ class Langchain4jDatasourceControllerTest {
     void shouldProbeAndCloseEmbeddingStore() {
         embeddingModels.put("qwen-embed", embeddingModel());
 
-        assertThat(controller.test("embedding-store", storeBody("qwen-embed"))).isEqualTo("ok");
+        assertThat(controller.test("embedding-store", storeBody("qwen-embed")).getData()).isEqualTo("ok");
         assertThat(factory.storeClosed.get()).as("探测实例应被关闭").isEqualTo(1);
     }
 
     @Test
     void shouldReportMissingEmbeddingModel() {
-        String result = controller.test("embedding-store", storeBody("absent-embed"));
+        String result = String.valueOf(controller.test("embedding-store", storeBody("absent-embed")).getData());
 
         assertThat(result).contains("请先配置并启用 embedding-model").contains("absent-embed");
         assertThat(factory.storeClosed.get()).isZero();
@@ -83,18 +86,20 @@ class Langchain4jDatasourceControllerTest {
         body.put("provider", "stub");
         body.put("options", new LinkedHashMap<String, Object>());
 
-        assertThat(controller.test("tokenizer", body))
+        assertThat(String.valueOf(controller.test("tokenizer", body).getData()))
                 .contains("langchain4j-tokenizer[tokenizer-main].options.api-key");
     }
 
     @Test
     void shouldRejectUnknownType() {
-        assertThat(controller.test("no-such-type", body("stub"))).contains("不支持的资源类型");
+        assertThat(String.valueOf(controller.test("no-such-type", body("stub")).getData()))
+                .contains("不支持的资源类型");
     }
 
     @Test
     void shouldReportUnknownProvider() {
-        assertThat(controller.test("chat-model", body("no-such-provider"))).contains("可用 provider");
+        assertThat(String.valueOf(controller.test("chat-model", body("no-such-provider")).getData()))
+                .contains("可用 provider");
     }
 
     private static Map<String, Object> body(String provider) {
@@ -152,11 +157,25 @@ class Langchain4jDatasourceControllerTest {
             return mock(StreamingChatModel.class);
         }
 
+        @Override
+        public LanguageModel buildLanguageModel(Langchain4jOptionsReader o) {
+            return mock(LanguageModel.class);
+        }
 
+        @Override
+        public StreamingLanguageModel buildStreamingLanguageModel(Langchain4jOptionsReader o) {
+            return mock(StreamingLanguageModel.class);
+        }
 
         @Override
         public EmbeddingModel buildEmbeddingModel(Langchain4jOptionsReader o) {
             return Langchain4jDatasourceControllerTest.embeddingModel();
+        }
+
+        @Override
+        public TokenCountEstimator buildTokenizer(Langchain4jOptionsReader o) {
+            o.required("api-key");
+            return mock(TokenCountEstimator.class);
         }
 
 

@@ -9,9 +9,22 @@ public class DatasetRoutes {
             HttpMethod.GET
     );
 
+    public static final DifyRoute MODELS_BY_TYPE = new DifyRoute(
+            "/workspaces/current/models/model-types/${modelType}",
+            HttpMethod.GET
+    );
+
     public static final DifyRoute DATASETS = new DifyRoute(
             "/datasets",
             HttpMethod.POST
+    );
+
+    /**
+     * 知识库列表（与 POST /datasets 常量区分：同路径、GET 方法）
+     */
+    public static final DifyRoute DATASETS_LIST = new DifyRoute(
+            "/datasets",
+            HttpMethod.GET
     );
 
     public static final DifyRoute DATASETS_INFO = new DifyRoute(
@@ -74,6 +87,39 @@ public class DatasetRoutes {
             HttpMethod.GET
     );
 
+    public static final DifyRoute DATASETS_DOCS_INFO = new DifyRoute(
+            "/datasets/${datasetId}/documents/${documentId}",
+            HttpMethod.GET
+    );
+
+    public static final DifyRoute DATASETS_DOCS_DOWNLOAD = new DifyRoute(
+            "/datasets/${datasetId}/documents/${documentId}/download",
+            HttpMethod.GET
+    );
+
+    public static final DifyRoute DATASETS_DOCS_DOWNLOAD_ZIP = new DifyRoute(
+            "/datasets/${datasetId}/documents/download-zip",
+            HttpMethod.POST
+    );
+
+    public static final DifyRoute DATASETS_DOCS_STATUS_SET = new DifyRoute(
+            "/datasets/${datasetId}/documents/status/${action}",
+            HttpMethod.PATCH
+    );
+
+    /**
+     * 上传新文件替换文档内容并重新触发索引（文档规定的标准更新方式）
+     */
+    public static final DifyRoute DATASETS_DOCS_FILE_REPLACE = new DifyRoute(
+            "/datasets/${datasetId}/documents/${documentId}",
+            HttpMethod.PATCH
+    );
+
+    public static final DifyRoute DATASETS_DOCS_SEGMENT_INFO = new DifyRoute(
+            "/datasets/${datasetId}/documents/${documentId}/segments/${segmentId}",
+            HttpMethod.GET
+    );
+
 
     public static final DifyRoute DATASETS_DOCS_SEGMENTS = new DifyRoute(
             "/datasets/${datasetId}/documents/${documentId}/segments",
@@ -113,6 +159,102 @@ public class DatasetRoutes {
     public static final DifyRoute DATASETS_DOCS_SEGMENTS_CHILD_CHUNKS_SET = new DifyRoute(
             "/datasets/${datasetId}/documents/${documentId}/segments/${segmentId}/child_chunks/${childChunkId}",
             HttpMethod.PATCH
+    );
+
+    // ==================== 元数据字段 ====================
+
+    public static final DifyRoute DATASETS_METADATA = new DifyRoute(
+            "/datasets/${datasetId}/metadata",
+            HttpMethod.GET
+    );
+
+    public static final DifyRoute DATASETS_METADATA_ADD = new DifyRoute(
+            "/datasets/${datasetId}/metadata",
+            HttpMethod.POST
+    );
+
+    public static final DifyRoute DATASETS_METADATA_SET = new DifyRoute(
+            "/datasets/${datasetId}/metadata/${metadataId}",
+            HttpMethod.PATCH
+    );
+
+    public static final DifyRoute DATASETS_METADATA_DEL = new DifyRoute(
+            "/datasets/${datasetId}/metadata/${metadataId}",
+            HttpMethod.DELETE
+    );
+
+    public static final DifyRoute DATASETS_METADATA_BUILT_IN = new DifyRoute(
+            "/datasets/${datasetId}/metadata/built-in",
+            HttpMethod.GET
+    );
+
+    public static final DifyRoute DATASETS_METADATA_BUILT_IN_SET = new DifyRoute(
+            "/datasets/${datasetId}/metadata/built-in/${action}",
+            HttpMethod.POST
+    );
+
+    public static final DifyRoute DATASETS_DOCS_METADATA_BATCH = new DifyRoute(
+            "/datasets/${datasetId}/documents/metadata",
+            HttpMethod.POST
+    );
+
+    // ==================== 知识库标签 ====================
+
+    public static final DifyRoute DATASETS_TAGS = new DifyRoute(
+            "/datasets/tags",
+            HttpMethod.GET
+    );
+
+    public static final DifyRoute DATASETS_TAGS_ADD = new DifyRoute(
+            "/datasets/tags",
+            HttpMethod.POST
+    );
+
+    public static final DifyRoute DATASETS_TAGS_SET = new DifyRoute(
+            "/datasets/tags",
+            HttpMethod.PATCH
+    );
+
+    public static final DifyRoute DATASETS_TAGS_DEL = new DifyRoute(
+            "/datasets/tags",
+            HttpMethod.DELETE
+    );
+
+    public static final DifyRoute DATASETS_TAGS_BINDING = new DifyRoute(
+            "/datasets/tags/binding",
+            HttpMethod.POST
+    );
+
+    public static final DifyRoute DATASETS_TAGS_UNBINDING = new DifyRoute(
+            "/datasets/tags/unbinding",
+            HttpMethod.POST
+    );
+
+    public static final DifyRoute DATASETS_TAGS_OF_DATASET = new DifyRoute(
+            "/datasets/${datasetId}/tags",
+            HttpMethod.GET
+    );
+
+    // ==================== 知识流水线 ====================
+
+    public static final DifyRoute DATASETS_PIPELINE_FILE_UPLOAD = new DifyRoute(
+            "/datasets/pipeline/file-upload",
+            HttpMethod.POST
+    );
+
+    public static final DifyRoute DATASETS_PIPELINE_DATASOURCE_PLUGINS = new DifyRoute(
+            "/datasets/${datasetId}/pipeline/datasource-plugins",
+            HttpMethod.GET
+    );
+
+    public static final DifyRoute DATASETS_PIPELINE_NODE_RUN = new DifyRoute(
+            "/datasets/${datasetId}/pipeline/datasource/nodes/${nodeId}/run",
+            HttpMethod.POST
+    );
+
+    public static final DifyRoute DATASETS_PIPELINE_RUN = new DifyRoute(
+            "/datasets/${datasetId}/pipeline/run",
+            HttpMethod.POST
     );
 
 }

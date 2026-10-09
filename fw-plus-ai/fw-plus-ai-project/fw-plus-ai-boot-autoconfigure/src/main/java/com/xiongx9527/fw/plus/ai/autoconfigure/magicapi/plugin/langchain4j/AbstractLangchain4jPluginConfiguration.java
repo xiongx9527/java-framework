@@ -69,19 +69,6 @@ public abstract class AbstractLangchain4jPluginConfiguration implements MagicPlu
 		return plugin;
 	}
 
-	/**
-	 * 通过反射调用自维护版 magic-api 的 {@code Plugin#setAdminEnabled}，避免直接依赖该可选 API；
-	 * 当 classpath 为中央原版（无此方法）时仅告警，不影响插件注册。
-	 */
-	private void markAdminOnly(Plugin plugin) {
-		try {
-			plugin.getClass().getMethod("setAdminEnabled", boolean.class).invoke(plugin, Boolean.TRUE);
-		} catch (ReflectiveOperationException e) {
-			log.warn("当前 magic-api 版本不支持 Plugin#setAdminEnabled, 插件 [{}] 的 adminEnabled 配置被忽略",
-					pluginName, e);
-		}
-	}
-
 	@Override
 	public MagicControllerRegister controllerRegister() {
 		return EMPTY_REGISTRAR;
