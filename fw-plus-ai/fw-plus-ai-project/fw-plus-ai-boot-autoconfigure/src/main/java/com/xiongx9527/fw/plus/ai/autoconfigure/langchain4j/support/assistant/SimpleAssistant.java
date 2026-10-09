@@ -674,10 +674,11 @@ public class SimpleAssistant {
 
 	/**
 	 * 流式文本补全的 SSE 推流：调用模型前先发 {@code start} 事件把 requestId 交给前端，
-	 * 逐段推 {@code token}；推理模型思考时推 {@code thinking}（增量）与 {@code thinking-done}
-	 * （本轮完整思考文本）；结束时发 {@code done} 事件（data 为完整文本，未产出时 [DONE]）并完成，
+	 * 逐段推 {@code token}；结束时发 {@code done} 事件（data 为完整文本，未产出时 [DONE]）并完成，
 	 * 异常自动 completeWithError。SseEmitter 不设超时（0L），由生成速度决定。
 	 * 客户端断开时自动取消模型流式调用。
+	 * 注意：本路径走 {@link StreamingResponseHandler}（无独立 thinking 回调），不做思考事件；
+	 * 推理思考事件由 {@link #streamToSse(String)} 路径的事件桥接器负责。
 	 */
 	public SseEmitter generateTextToSse(String prompt) {
 		return doGenerateTextToSse(prompt, null, null, null, null);
@@ -1037,6 +1038,8 @@ public class SimpleAssistant {
 	/**
 	 * 思考事件跟踪：首个思考增量开始新一轮并发送 thinking（增量）；
 	 * 思考转入回答或工具调用时发送 thinking-done（data 为本轮完整思考文本）。
+	 * 注意：该类非线程安全，依赖 langchain4j 流式回调（thinking/token/tool/complete/error）
+	 * 在同一模型回调线程内串行驱动的前提；跨线程并发流入思考增量不受支持。
 	 */
 	private static final class ThinkingSseTracker {
 

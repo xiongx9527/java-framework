@@ -238,6 +238,34 @@ class SimpleAssistantTest {
 				SimpleAssistant.EVENT_START, SimpleAssistant.EVENT_TOKEN, SimpleAssistant.EVENT_DONE);
 	}
 
+	/**
+	 * spec 场景「思考配置导致 provider 请求失败」：思考增量后模型抛错——
+	 * SSE 只发 start/thinking/error（不补发伪造的 thinking-done/done），并 completeWithError 结束。
+	 */
+	@Test
+	void streamToSseEmitsErrorEventWhenProviderFailsAfterThinking() throws Exception {
+		org.mockito.Mockito.when(assistant.stream("s-1", "", contents("问题")))
+				.thenReturn(fakeThrowingStream("思考内容", new RuntimeException("provider 请求失败")));
+
+		SseEmitter emitter = simple.streamToSse("s-1", "问题");
+
+		assertThat(eventNames(emitter)).containsExactly(
+				SimpleAssistant.EVENT_START, SimpleAssistant.EVENT_THINKING, SimpleAssistant.EVENT_ERROR);
+	}
+
+	/** AiServices 路径的思考→回答中间态：先 thinking-done 再 token（direct 路径已覆盖，此处补 AiServices 侧） */
+	@Test
+	void streamToSseFinishesThinkingBeforeAnswerToken() throws Exception {
+		org.mockito.Mockito.when(assistant.stream("s-1", "", contents("问题")))
+				.thenReturn(fakeThinkingStream("思考内容", "回答"));
+
+		SseEmitter emitter = simple.streamToSse("s-1", "问题");
+
+		assertThat(eventNames(emitter)).containsExactly(
+				SimpleAssistant.EVENT_START, SimpleAssistant.EVENT_THINKING,
+				SimpleAssistant.EVENT_THINKING_DONE, SimpleAssistant.EVENT_TOKEN, SimpleAssistant.EVENT_DONE);
+	}
+
 	private static List<String> eventNames(SseEmitter emitter) throws Exception {
 		List<String> events = new ArrayList<>();
 		Class<?> handlerType = Class.forName(
@@ -285,21 +313,34 @@ class SimpleAssistantTest {
 		return fakeThinkingStream(thinking, null, tokens);
 	}
 
+	/** 生成一个思考增量后随即 onError（模拟 provider 请求失败）的 TokenStream 替身 */
+	private static TokenStream fakeThrowingStream(String thinking, Throwable error) {
+		return new FakeTokenStream(thinking, null, error);
+	}
+
 	private static final class FakeTokenStream implements TokenStream {
 
 		private final String thinking;
 		private final dev.langchain4j.agent.tool.ToolExecutionRequest toolRequest;
+		private final Throwable thrown;
 		private final String[] tokens;
 		private final List<Consumer<String>> nextHandlers = new ArrayList<>();
 		private java.util.function.BiConsumer<PartialThinking,
 				dev.langchain4j.model.chat.response.PartialThinkingContext> thinkingHandler;
 		private Consumer<dev.langchain4j.service.tool.BeforeToolExecution> beforeToolHandler;
 		private Consumer<dev.langchain4j.model.chat.response.ChatResponse> completeHandler;
+		private Consumer<Throwable> errorHandler;
 
 		private FakeTokenStream(String thinking, dev.langchain4j.agent.tool.ToolExecutionRequest toolRequest,
 				String... tokens) {
+			this(thinking, toolRequest, null, tokens);
+		}
+
+		private FakeTokenStream(String thinking, dev.langchain4j.agent.tool.ToolExecutionRequest toolRequest,
+				Throwable thrown, String... tokens) {
 			this.thinking = thinking;
 			this.toolRequest = toolRequest;
+			this.thrown = thrown;
 			this.tokens = tokens;
 		}
 
@@ -351,6 +392,7 @@ class SimpleAssistantTest {
 
 		@Override
 		public TokenStream onError(Consumer<Throwable> handler) {
+			errorHandler = handler;
 			return this;
 		}
 
@@ -369,6 +411,12 @@ class SimpleAssistantTest {
 						.request(toolRequest)
 						.invocationContext(mock(dev.langchain4j.invocation.InvocationContext.class))
 						.build());
+			}
+			if (thrown != null) {
+				if (errorHandler != null) {
+					errorHandler.accept(thrown);
+				}
+				return;
 			}
 			for (Consumer<String> handler : nextHandlers) {
 				for (String token : tokens) {
