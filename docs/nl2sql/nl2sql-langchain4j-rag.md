@@ -961,7 +961,24 @@ Qdrant 集合 `nl2sql-schema` 在首次写入向量时按 bge-m3 的 1024 维自
 - [ ] 相对时间幻觉的二次修正链路（生成后注入"时间语义"后处理）未实现；
 - [ ] 无 QA/评估集：后续可对 192.168.1.100 抽一组业务问题建 golden set 回归；
 - [ ] SQL 生成延迟与 token 成本未压测（bge-m3 召回 + 单次 LLM 生成）；
+- [ ] **分页协议未实现**（方案已定未编码，见下）：`/nl2sql/ask` 仅收 `{question}`，`executeSql` 只按 `row-limit` 截断、不返回 total；
 - [ ] 若未来 `langchain4j-experimental-sql` 不稳定：`Nl2SqlService` 可退回"手写 prompt-stuffing + 自定义校验"（与 Spring AI 手写路线等价的降级路径），接口不变。
+
+### 分页支持方案（2026-10-10 定稿，暂未实现）
+
+**现状**：API 层无分页协议——`/nl2sql/ask` 只收 `{question}`，`executeSql` 按 `security.row-limit` 截断行集、不返回总行数；自然语言层面模型可自发生成 `LIMIT`/`OFFSET`（已实测："前 3 个"→`LIMIT 3`），但不可控、无 total，显式传 page/pageSize 无入口。
+
+**方案 A（推荐）｜API 层分页**：
+- `/nl2sql/ask` 增加可选 `page`、`pageSize`（默认 1 / `row-limit`），生成 SQL 后由服务端统一注入 `LIMIT ? OFFSET ?`；`pageSize` 上限受 `security.row-limit` 保护，offset 设上限；
+- 返回值增加 `total`（count 子查询）与 `page` / `pageSize`；
+- prompt 增加规则"不要写 LIMIT/OFFSET，分页由系统处理"；`sanitizeSql` 剥离模型偶发的 LIMIT 子句，防止重复注入；
+- 改动面：`Nl2SqlService` / `Nl2SqlController` / prompt / 文档 / 样例冒烟回归。
+
+**方案 B（现状）｜纯自然语言**：用户把"第几页/每页几条"写进问题，模型生成 LIMIT/OFFSET；零改动，但不可控（可能不写/写错 LIMIT）、无 total。
+
+**方案 C（不推荐）｜内存分页**：全量取回再切页，违背只读行数保护初衷。
+
+> 结论：采用**方案 A**，待需求确认后实现；实现前样例维持现状（`/nl2sql/ask` 返回全量，受 `row-limit` 截断）。
 
 ---
 

@@ -80,8 +80,8 @@ AgentScope（Java 2.x / Python）均**无内置 NL2SQL 模块**，不列为候�
 
 ## 建议下一步
 
-1. review `nl2sql-langchain4j-rag.md`；
-2. 若通过：在 `fw-plus-sample/fw-plus-ai-samples/` 下新建可运行样例模块（依赖 BOM 已含
-   `langchain4j-experimental-sql` / `langchain4j-qdrant` / `langchain4j-ollama`，仅需补
-   `mysql-connector-j`），编译并跑通训练 + 问答两条链路；
-3. 提供 MySQL 只读账号后，把训练数据从示例 schema 切到真实库。
+1. ~~review `nl2sql-langchain4j-rag.md`~~ ✅ 已定稿；
+2. ~~新建可运行样例模块并跑通链路~~ ✅ 已落地：`fw-plus-sample/fw-plus-ai-samples/fw-plus-ai-nl2sql-sample`
+   （H2 示例库 + 192.168.1.100 Ollama/Qdrant，训练 + 问答真实跑通，见模块 README）；
+3. 提供 MySQL 只读账号后，把训练数据从示例 schema 切到真实库（代码零改动）；
+4. **分页协议**：方案已定（API 层 page/pageSize，见 `nl2sql-langchain4j-rag.md` §9），待需求确认后实现。
