@@ -127,6 +127,10 @@ langchain4j 的 `SqlDatabaseContentRetriever`（实验性）是当前仓库版�
 
 > 注意：`fw-plus-ai-langchain4j-*` 既有约定要求显式声明 `lombok(provided)` 与 `langchain4j-core`（上游 optional 不传递）。若按样例模块（继承 boot-parent）放置，`langchain4j-core` 由 experimental-sql/qdrant 传递带入；若后续要搬进库层模块，需按约定补声明。
 
+> **2026-10-10 编译验证**：本草案 9 个类已按文档原样提取到临时独立工程（spring-boot-starter-parent 3.5.8 + JDK 17 + langchain4j 1.22.0 / 1.22.0-beta32）编译通过。过程中修正两处 1.22.0 API 位置（文档已同步）：
+> ① `PromptTemplate` 在 1.22.0 位于 **`dev.langchain4j.model.input`** 包（旧 `rag.content.prompt` 包已移除，官方 `SqlDatabaseContentRetriever` 构造签名也用的是新包）；
+> ② 清空向量库用 `EmbeddingStore.removeAll()`（`clearStore()` 仅存在于 `QdrantEmbeddingStore` 具体类、不在接口，按接口字段编程需用 `removeAll()`）。
+
 ---
 
 ## 5. 配置（application.yaml）
@@ -308,7 +312,7 @@ import javax.sql.DataSource;
 import dev.langchain4j.experimental.rag.content.retriever.sql.SqlDatabaseContentRetriever;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.rag.query.Query;
-import dev.langchain4j.rag.content.prompt.PromptTemplate;
+import dev.langchain4j.model.input.PromptTemplate;
 
 /**
  * 覆写官方扩展点：
@@ -435,7 +439,7 @@ public class SqlSchemaTrainer {
 			return 0;
 		}
 		if (replaceOnTrain) {
-			embeddingStore.clearStore();
+			embeddingStore.removeAll();
 			log.info("已清空向量库 {}", embeddingStore.getClass().getSimpleName());
 		}
 		for (TableDdl ddl : ddls) {
@@ -601,7 +605,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.rag.content.prompt.PromptTemplate;
+import dev.langchain4j.model.input.PromptTemplate;
 import dev.langchain4j.rag.query.Query;
 
 /**
@@ -718,7 +722,7 @@ import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.ollama.OllamaChatModel;
 import dev.langchain4j.model.ollama.OllamaEmbeddingModel;
-import dev.langchain4j.rag.content.prompt.PromptTemplate;
+import dev.langchain4j.model.input.PromptTemplate;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.qdrant.QdrantEmbeddingStore;
 
