@@ -130,6 +130,7 @@ langchain4j 的 `SqlDatabaseContentRetriever`（实验性）是当前仓库版�
 > **2026-10-10 编译验证**：本草案 9 个类已按文档原样提取到临时独立工程（spring-boot-starter-parent 3.5.8 + JDK 17 + langchain4j 1.22.0 / 1.22.0-beta32）编译通过。过程中修正两处 1.22.0 API 位置（文档已同步）：
 > ① `PromptTemplate` 在 1.22.0 位于 **`dev.langchain4j.model.input`** 包（旧 `rag.content.prompt` 包已移除，官方 `SqlDatabaseContentRetriever` 构造签名也用的是新包）；
 > ② 清空向量库用 `EmbeddingStore.removeAll()`（`clearStore()` 仅存在于 `QdrantEmbeddingStore` 具体类、不在接口，按接口字段编程需用 `removeAll()`）。
+> ③ **全链路冒烟验证实测通过**（H2 内存示例库替代 MySQL + 192.168.1.100 的 Ollama/Qdrant）：训练阶段把 DDL 向量化写入 Qdrant `nl2sql-schema`（bge-m3，1024 维）→ 问题向量召回 → `gpt-oss:120b-cloud` 生成 SQL → 执行返回行集；查询"已完成订单销量前 3 商品"生成 SQL 正确、结果与手工验算一致。过程中实测发现并修复一处**记录时机 bug**：`lastSqlQuery` 必须在覆写的 `clean()` 里记录——官方基类 `retrieve` 的重试循环每轮按 `generateSqlQuery → clean → isSelect → validate → execute` 编排，`clean()` 之后的值才是最终执行的 SQL，在 `generateSqlQuery()` 记会拿到未去 ```sql 围栏的原始输出；并新增 `sanitizeSql()` 兜底清理（防模型输出非标准围栏/多余分号）。文档 6.4 / 6.7 已同步。
 
 ---
 
@@ -142,7 +143,7 @@ fw-plus:
       enabled: true
       chat:
         base-url: http://192.168.1.100:11434
-        model-name: gemma3:12b-32k        # 实测可生成合法 MySQL SQL；gpt-oss:120b-cloud / qwen3-coder:30b 可选
+        model-name: gpt-oss:120b-cloud     # 实测首选（SQL 干净）；gemma3:12b-32k 备选
         temperature: 0.0                   # 生成 SQL 建议 0 温度
       embedding:
         base-url: http://192.168.1.100:11434
@@ -217,7 +218,7 @@ public class Nl2SqlProperties {
 	@Data
 	public static class Chat {
 		private String baseUrl = "http://192.168.1.100:11434";
-		private String modelName = "gemma3:12b-32k";
+		private String modelName = "gpt-oss:120b-cloud";
 		private Double temperature = 0.0d;
 	}
 
@@ -311,12 +312,14 @@ import javax.sql.DataSource;
 
 import dev.langchain4j.experimental.rag.content.retriever.sql.SqlDatabaseContentRetriever;
 import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.rag.query.Query;
 import dev.langchain4j.model.input.PromptTemplate;
 
 /**
  * 覆写官方扩展点：
- * 1. generateSqlQuery() 记录本次生成的 SQL，供接口返回；
+ * 1. clean() 记录清理后的 SQL（官方基类 retrieve 的重试循环里每轮都是
+ *    generateSqlQuery → clean → isSelect → validate → execute，
+ *    clean() 之后的值才是最终执行的 SQL，必须在这里记录；
+ *    若在 generateSqlQuery() 里记录会拿到未去 ```sql 围栏的原始输出）；
  * 2. validate() 追加多语句与危险片段拦截（官方默认空实现）。
  */
 public class FwSqlDatabaseContentRetriever extends SqlDatabaseContentRetriever {
@@ -333,10 +336,10 @@ public class FwSqlDatabaseContentRetriever extends SqlDatabaseContentRetriever {
 	}
 
 	@Override
-	protected String generateSqlQuery(Query naturalLanguageQuery, String previousSqlQuery, String previousErrorMessage) {
-		String sql = super.generateSqlQuery(naturalLanguageQuery, previousSqlQuery, previousErrorMessage);
-		this.lastSqlQuery = sql;
-		return sql;
+	protected String clean(String sqlQuery) {
+		String cleaned = super.clean(sqlQuery);
+		this.lastSqlQuery = cleaned;
+		return cleaned;
 	}
 
 	@Override
@@ -659,7 +662,29 @@ public class Nl2SqlService {
 		if (sql == null) {
 			throw new IllegalStateException("模型未能生成合法 SQL（可能被安全校验拦截），请调整问题表述或重试");
 		}
-		return sql;
+		return sanitizeSql(sql);
+	}
+
+	/**
+	 * 兜底清理：官方 clean() 已去掉标准围栏，这里再防御非标准输出
+	 * （如首行残留 ```sql、尾部多余分号），避免 executeSql 时语法报错。
+	 */
+	private static String sanitizeSql(String sql) {
+		String s = sql.trim();
+		if (s.startsWith("```")) {
+			int firstNewline = s.indexOf('\n');
+			if (firstNewline >= 0) {
+				s = s.substring(firstNewline + 1);
+			}
+			if (s.endsWith("```")) {
+				s = s.substring(0, s.length() - 3);
+			}
+		}
+		s = s.trim();
+		while (s.endsWith(";")) {
+			s = s.substring(0, s.length() - 1).trim();
+		}
+		return s;
 	}
 
 	/** 执行只读 SQL，返回行集（JSON 友好） */
@@ -924,7 +949,7 @@ Qdrant 集合 `nl2sql-schema` 在首次写入向量时按 bge-m3 的 1024 维自
 | 资源 | `security.row-limit=500` 截断结果行；`maxRetries=3` 限制生成重试；单条 SELECT 由 LLM 生成、无手动拼接 |
 | 网络 | Qdrant 用**只读 key** `QdrantRead@123456` 跑查询（默认值），训练时才换写 key `Qdrant@123456` |
 
-> 已知幻觉点（实测）：`gemma3:12b-32k` 对"相对时间"可能把"10 月"算成 2023 年。缓解：prompt 中已固定"以 2026-10-10 为基准"；更稳的做法是两步走——先生成 SQL，再让模型补时间过滤条件（TODO 列入优化项）。
+> 已知幻觉点（实测）：`gemma3:12b-32k` 对"相对时间"可能把"10 月"算成 2023 年。缓解：prompt 中已固定"以 2026-10-10 为基准"；更稳的做法是两步走——先生成 SQL，再让模型补时间过滤条件（TODO 列入优化项）。`gpt-oss:120b-cloud` 本次冒烟未复现此问题。
 
 ---
 
