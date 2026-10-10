@@ -53,7 +53,6 @@ class StreamingThinkingAdapterAuditTest {
         assertUnsupported(OciGenAiStreamingChatModel.class);
         assertUnsupported(QianfanStreamingChatModel.class);
         assertUnsupported(VertexAiGeminiStreamingChatModel.class);
-        assertUnsupported(XinferenceStreamingChatModel.class);
     }
 
     @Test
@@ -89,6 +88,10 @@ class StreamingThinkingAdapterAuditTest {
         assertHandler(WatsonxStreamingChatModel.class, null,
                 "dev.langchain4j.model.watsonx.WatsonxChatBase",
                 "dev.langchain4j.model.watsonx.WatsonxChatBase$1");
+        // community 1.21.0-beta31 起：Xinference 流式模型读取 Delta.reasoningContent 并回调 onPartialThinking
+        assertHandler(XinferenceStreamingChatModel.class, null,
+                XinferenceStreamingChatModel.class.getName(),
+                XinferenceStreamingChatModel.class.getName());
         assertHandler(ZhipuAiStreamingChatModel.class,
                 "dev.langchain4j.community.model.zhipu.ZhipuAiClient",
                 "dev.langchain4j.community.model.zhipu.ZhipuAiClient",
