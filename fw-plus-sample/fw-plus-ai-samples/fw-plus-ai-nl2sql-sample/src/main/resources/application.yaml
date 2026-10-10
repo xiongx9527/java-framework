@@ -1,0 +1,44 @@
+# 链路冒烟配置（不进入仓库）。H2 内存库替代 MySQL；Ollama/Qdrant 用 192.168.1.100 实测环境。
+spring:
+  datasource:
+    url: jdbc:h2:mem:nl2sql;MODE=MySQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+      data-locations: classpath:data.sql
+
+fw-plus:
+  ai:
+    nl2sql:
+      enabled: true
+      chat:
+        base-url: http://192.168.1.100:11434
+        model-name: gpt-oss:120b-cloud
+        temperature: 0.0
+      embedding:
+        base-url: http://192.168.1.100:11434
+        model-name: bge-m3:latest
+      qdrant:
+        host: 192.168.1.100
+        port: 6334
+        api-key: ${NL2SQL_QDRANT_KEY:Qdrant@123456}   # 训练/写入 key
+        collection-name: nl2sql-schema
+      rag:
+        top-k: 5
+        min-score: 0.2   # 冒烟时放宽，保证首轮召回命中
+      datasource:
+        url: jdbc:h2:mem:nl2sql;MODE=MySQL
+        username: sa
+        password: ""
+        dialect: MySQL
+      security:
+        row-limit: 100
+
+logging:
+  level:
+    com.xiongx9527.fw.plus.ai.nl2sql: debug
+    dev.langchain4j: info
