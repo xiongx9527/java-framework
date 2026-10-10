@@ -261,7 +261,7 @@
 
         <!-- 模型资源插件：模型供应商（optional；qianfan/github-models/voyage-ai/azure-open-ai/
              vertex-ai-gemini 已由 fw 包装模块传递，此处补齐 google-gemini/hugging-face/local-ai/
-             zhipu（社区版）/onnx 内置 embedding 与 neo4j store） -->
+             zhipu（社区版）与 neo4j store） -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-google-ai-gemini</artifactId>
@@ -289,18 +289,6 @@
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-embeddings</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-embeddings-bge-small-en-v15-q</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-embeddings-all-minilm-l6-v2-q</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>

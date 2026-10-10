@@ -28,9 +28,7 @@ export default {
             embeddingModelKey: '选择或输入已启用的向量模型 key'
         },
         provider: {
-            'all-minilm': '内置 All-MiniLM',
             'azure-openai': 'Azure OpenAI',
-            'bge-small': '内置 BGE Small',
             'github-models': 'GitHub Models',
             'google-ai-gemini': 'Google AI Gemini',
             'hugging-face': 'Hugging Face',

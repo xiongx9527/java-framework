@@ -28,9 +28,7 @@ export default {
             embeddingModelKey: 'Pick or type an enabled embedding-model key'
         },
         provider: {
-            'all-minilm': 'Built-in All-MiniLM',
             'azure-openai': 'Azure OpenAI',
-            'bge-small': 'Built-in BGE Small',
             'github-models': 'GitHub Models',
             'google-ai-gemini': 'Google AI Gemini',
             'hugging-face': 'Hugging Face',

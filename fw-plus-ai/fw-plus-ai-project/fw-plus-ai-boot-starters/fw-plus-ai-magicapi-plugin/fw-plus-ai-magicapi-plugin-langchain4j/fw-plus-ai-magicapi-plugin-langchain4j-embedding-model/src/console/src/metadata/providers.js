@@ -7,9 +7,7 @@
  * 与后端的一致性由 test/embedding-model-console-metadata.test.cjs 交叉校验。
  */
 export const PROVIDER_FIELDS = {
-    'all-minilm': [],
     'azure-openai': [{ name: 'endpoint', type: 'text', required: true }, { name: 'api-key', type: 'text', required: true }, { name: 'deployment-name', type: 'text', required: true }, { name: 'timeout', type: 'duration' }, { name: 'max-retries', type: 'number' }, { name: 'log-requests-and-responses', type: 'switch' }],
-    'bge-small': [],
     'github-models': [{ name: 'github-token', type: 'text', required: true }, { name: 'endpoint', type: 'text' }, { name: 'model-name', type: 'text' }, { name: 'timeout', type: 'duration' }, { name: 'max-retries', type: 'number' }, { name: 'log-requests-and-responses', type: 'switch' }],
     'google-ai-gemini': [{ name: 'api-key', type: 'text', required: true }, { name: 'model-name', type: 'text' }, { name: 'max-retries', type: 'number' }, { name: 'timeout', type: 'duration' }, { name: 'log-requests-and-responses', type: 'switch' }],
     'hugging-face': [{ name: 'access-token', type: 'text', required: true }, { name: 'model-id', type: 'text' }, { name: 'wait-for-model', type: 'switch' }, { name: 'timeout', type: 'duration' }],
