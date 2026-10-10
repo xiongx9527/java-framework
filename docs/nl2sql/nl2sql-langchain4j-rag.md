@@ -962,6 +962,7 @@ Qdrant 集合 `nl2sql-schema` 在首次写入向量时按 bge-m3 的 1024 维自
 - [ ] 无 QA/评估集：后续可对 192.168.1.100 抽一组业务问题建 golden set 回归；
 - [ ] SQL 生成延迟与 token 成本未压测（bge-m3 召回 + 单次 LLM 生成）；
 - [ ] **分页协议未实现**（方案已定未编码，见下）：`/nl2sql/ask` 仅收 `{question}`，`executeSql` 只按 `row-limit` 截断、不返回 total；
+- [ ] **多数据源未支持**（方案已定未编码，见下）：当前单一 `DataSource` + 单 Qdrant 集合，DDL 无库维度；
 - [ ] 若未来 `langchain4j-experimental-sql` 不稳定：`Nl2SqlService` 可退回"手写 prompt-stuffing + 自定义校验"（与 Spring AI 手写路线等价的降级路径），接口不变。
 
 ### 分页支持方案（2026-10-10 定稿，暂未实现）
@@ -979,6 +980,25 @@ Qdrant 集合 `nl2sql-schema` 在首次写入向量时按 bge-m3 的 1024 维自
 **方案 C（不推荐）｜内存分页**：全量取回再切页，违背只读行数保护初衷。
 
 > 结论：采用**方案 A**，待需求确认后实现；实现前样例维持现状（`/nl2sql/ask` 返回全量，受 `row-limit` 截断）。
+
+### 多数据源支持方案（2026-10-10 定稿，暂未实现）
+
+**现状**：单一 `DataSource`（`Nl2SqlAutoConfiguration` 注入容器唯一连接），训练与问答执行共用；Qdrant 单集合 `nl2sql-schema`，DDL `Metadata` 仅记 `table` 名、无库（catalog/schema）维度——两个库的同名表会互相覆盖/混淆；prompt 无库名上下文。
+
+**要解决的四个层面**：
+
+| 层面 | 增量工作 |
+|---|---|
+| 连接层 | 仓库已有 dynamic-datasource 4.3.1，扩展为多 DataSource 配置（`datasources.*`） |
+| 向量层 | DDL `Metadata` 增加 `db` 字段；召回按 `db` 过滤（**关键增量**） |
+| 路由层 | `/ask`、`/train` 增加 `database` 参数：决定用哪个库的表结构、SQL 路由到哪个连接执行 |
+| 提示层 | prompt 拼接 DDL 时带库名，避免模型臆造跨库 join |
+
+**方案 A（推荐）｜单集合 + db 过滤**：连接层用 dynamic-datasource 扩为多库；向量层沿用单集合，`Metadata` 加 `db`，召回时按 `db` payload filter 过滤（一集合多库共存、互不污染）；`/ask` / `/train` 带 `database` 参数路由。改动面：`SqlSchemaTrainer` / `SchemaRetriever` / `Nl2SqlService` / `Nl2SqlController` / `Nl2SqlProperties`。
+
+**方案 B｜每库独立集合**：集合命名 `nl2sql-schema-{db}`，可独立清空重建、隔离更强；代价是集合数量随库增长。
+
+> 结论：采用**方案 A**，待需求确认后实现；Qdrant 已有 payload filter 能力，无需额外引入；隔离要求高时升级 B 只需改 collection 命名策略。
 
 ---
 
