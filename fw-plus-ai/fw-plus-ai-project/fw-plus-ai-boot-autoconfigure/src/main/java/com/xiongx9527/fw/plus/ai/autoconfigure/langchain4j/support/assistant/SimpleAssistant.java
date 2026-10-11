@@ -1,5 +1,8 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentClassifier;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentContext;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatstore.ChatMemoryIds;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
@@ -258,6 +261,41 @@ public class SimpleAssistant {
 							+ "才支持带过滤参数的 retrieve / chatWithFilter / streamWithFilter");
 		}
 		return filterableRetriever;
+	}
+
+	// -------------------------------------------------- 意图识别（按需，经 AssistantBuilder.intent(...) 挂载）
+
+	/** 意图分类器；由 {@link AssistantBuilder#intent} 接线，未挂载时意图相关方法不可用 */
+	private IntentClassifier<?> intentClassifier;
+
+	/** 接线意图分类器（链式）；一般由 {@link AssistantBuilder} 调用，业务侧无需手动设置 */
+	public SimpleAssistant intentClassifier(IntentClassifier<?> intentClassifier) {
+		this.intentClassifier = intentClassifier;
+		return this;
+	}
+
+	/** 是否已挂载意图分类器 */
+	public boolean hasIntentClassifier() {
+		return intentClassifier != null;
+	}
+
+	/** 已挂载的意图分类器（未挂载时为 null）；需要强类型时自取 */
+	public IntentClassifier<?> intentClassifier() {
+		return intentClassifier;
+	}
+
+	/**
+	 * 对一段文本做意图判定：返回意图枚举 + 置信度 + 槽位 + 来源，未匹配时 {@code matched()==false}。
+	 * 需先经 {@code AssistantBuilder.intent(...)} 挂载分类器。
+	 *
+	 * @throws IllegalStateException 未挂载意图分类器
+	 */
+	public IntentResult<?> classifyIntent(String message) {
+		if (intentClassifier == null) {
+			throw new IllegalStateException(
+					"未配置意图分类器：请经 AssistantBuilder.intent(...) 挂载后使用 classifyIntent");
+		}
+		return intentClassifier.classify(IntentContext.of(message));
 	}
 
 	/**

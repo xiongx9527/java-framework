@@ -1,6 +1,10 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.aggregate.AggregatingToolProvider;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentClassifier;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentRag;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentSupplier;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentTools;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.AiPersistenceStrategy;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.EphemeralChatMemory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.EphemeralChatMemoryProperties;
@@ -171,6 +175,9 @@ public class AssistantBuilder {
 
 	private Double rerankMinScore;
 
+	/** 意图分类器：经 {@link #intent(IntentClassifier)} 挂载；同时注入产出的 SimpleAssistant */
+	private IntentClassifier<?> intentClassifier;
+
 	/** 对话模型（必填）：{@code langchain4jChatModel['key']} 或任意 {@link ChatLanguageModel} 实例 */
 	public AssistantBuilder chatModel(ChatLanguageModel model) {
 		this.chatModel = model;
@@ -324,6 +331,31 @@ public class AssistantBuilder {
 	public AssistantBuilder rerankMinScore(Double minScore) {
 		this.rerankMinScore = minScore;
 		return this;
+	}
+
+	/**
+	 * 意图识别一站式入口：挂上分类器，并在返回的 {@link IntentRouting} 上按需配置意图化检索
+	 * （{@link IntentRag}）与意图化工具（{@link IntentTools}）。
+	 *
+	 * <p>{@link IntentRouting#done()} / {@link IntentRouting#build()} 会把配好的意图检索器设为
+	 * {@code contentRetriever}、意图工具提供者设为 {@code toolProvider}（与直接调用这两个方法同义，
+	 * <b>后调用者覆盖先调用者</b>）；只挂分类器、不配路由时，不影响原有检索/工具装配，仅额外提供
+	 * {@link SimpleAssistant#classifyIntent(String)}。分类器同时注入产出的 {@link SimpleAssistant}。</p>
+	 *
+	 * <pre>{@code
+	 * AssistantBuilder builder = new AssistantBuilder().chatModel(model);
+	 * AssistantBuilder.IntentRouting<MyIntent> intent = builder.intent(classifier);
+	 * intent.rag().route(MyIntent.LOGISTICS, logisticsRetriever).fallback(defaultRetriever);
+	 * intent.tools().source(aggregatingToolProvider).allow(MyIntent.LOGISTICS, "track_order");
+	 * SimpleAssistant assistant = intent.build();
+	 * }</pre>
+	 */
+	public <I extends Enum<I>> IntentRouting<I> intent(IntentClassifier<I> classifier) {
+		if (classifier == null) {
+			throw new IllegalArgumentException("classifier 不能为 null");
+		}
+		this.intentClassifier = classifier;
+		return new IntentRouting<I>(this, classifier);
 	}
 
 	/**
@@ -489,6 +521,10 @@ public class AssistantBuilder {
 		// languageModel / streamingLanguageModel 透传给 SimpleAssistant 的直连补全能力
 		SimpleAssistant assistant = new SimpleAssistant(assemble(), chatModel, streamingModel, languageModel,
 				streamingLanguageModel, resolveRetrievalAugmentor());
+		// 意图分类器注入：供 SimpleAssistant.classifyIntent 使用（路由由 intent(...) 装配到 contentRetriever/toolProvider）
+		if (intentClassifier != null) {
+			assistant.intentClassifier(intentClassifier);
+		}
 		// 检索器支持显式元数据过滤时，接线供 retrieve/chatWithFilter/streamWithFilter 过滤重载使用
 		if (contentRetriever instanceof SimpleAssistant.FilterableRetriever) {
 			assistant.filterableRetriever((SimpleAssistant.FilterableRetriever) contentRetriever);
@@ -683,5 +719,63 @@ public class AssistantBuilder {
 			builder.contentAggregator(aggregator.build());
 		}
 		return builder.build();
+	}
+
+	/**
+	 * {@link #intent(IntentClassifier)} 返回的意图配置视图：复用既有的 {@link IntentRag.Builder}
+	 * 与 {@link IntentTools.Builder} 收集意图路由，最后接线回 {@link AssistantBuilder}。
+	 * 两个配置入口共享同一条意图来源（同一个分类器实例），避免各建一套。
+	 *
+	 * @param <I> 使用方自定义的意图枚举类型
+	 */
+	public static final class IntentRouting<I extends Enum<I>> {
+
+		private final AssistantBuilder builder;
+
+		private final IntentRag.Builder<I> ragBuilder;
+
+		private final IntentTools.Builder<I> toolsBuilder;
+
+		private boolean ragConfigured;
+
+		private boolean toolsConfigured;
+
+		private IntentRouting(AssistantBuilder builder, IntentClassifier<I> classifier) {
+			this.builder = builder;
+			IntentSupplier<I> supplier = IntentSupplier.of(classifier);
+			this.ragBuilder = IntentRag.bySupplier(supplier);
+			this.toolsBuilder = IntentTools.bySupplier(supplier);
+		}
+
+		/** 意图化检索配置（{@link IntentRag} 的 route / routeNone / fallback） */
+		public IntentRag.Builder<I> rag() {
+			ragConfigured = true;
+			return ragBuilder;
+		}
+
+		/** 意图化工具配置（{@link IntentTools} 的 source / allow / allowNone / alwaysInclude / fallback） */
+		public IntentTools.Builder<I> tools() {
+			toolsConfigured = true;
+			return toolsBuilder;
+		}
+
+		/**
+		 * 把已配置的意图路由接线到 {@link AssistantBuilder} 并返回它，便于继续链式配置。
+		 * 未调用 {@link #rag()} / {@link #tools()} 的分支不接线。
+		 */
+		public AssistantBuilder done() {
+			if (ragConfigured) {
+				builder.contentRetriever(ragBuilder.build());
+			}
+			if (toolsConfigured) {
+				builder.toolProvider(toolsBuilder.build());
+			}
+			return builder;
+		}
+
+		/** 接线后直接装配助手，等价于 {@code done().build()} */
+		public SimpleAssistant build() {
+			return done().build();
+		}
 	}
 }
