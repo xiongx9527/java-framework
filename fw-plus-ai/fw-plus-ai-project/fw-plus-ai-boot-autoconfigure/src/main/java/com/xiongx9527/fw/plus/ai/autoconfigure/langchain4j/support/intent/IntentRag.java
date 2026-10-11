@@ -9,24 +9,56 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * {@link IntentAwareContentRetriever} 的流式构造器。
+ * {@link IntentAwareContentRetriever} 的流式构造器：把「意图 → 检索器」的映射装配成一个
+ * 可按当前意图路由的 {@link ContentRetriever}。
  *
+ * <p>两种意图来源：</p>
+ * <ul>
+ *   <li>{@code byIntent(classifier)}：每次检索现跑一遍分类；</li>
+ *   <li>{@code bySupplier(supplier)}：复用调用方已判定的意图，避免一次问答里 RAG 与工具各判定一次。</li>
+ * </ul>
+ *
+ * <p>用法示例：</p>
  * <pre>{@code
+ * // 1. 按意图路由到不同知识库：命中各自专属库，闲聊不检索，其余走默认库
  * ContentRetriever retriever = IntentRag.byIntent(classifier)
  *         .route(MyIntent.LOGISTICS, logisticsRetriever)
+ *         .route(MyIntent.REFUND, refundRetriever)
  *         .routeNone(MyIntent.CHITCHAT)
  *         .fallback(defaultRetriever)
  *         .build();
+ *
+ * // 2. 复用已判定的意图：同一次问答 RAG 与工具只判一次
+ * IntentClassifier<MyIntent> classifier = factory.auto(MyIntent.class, rules, examples);
+ * ContentRetriever shared = IntentRag.bySupplier(IntentSupplier.of(classifier))
+ *         .route(MyIntent.LOGISTICS, logisticsRetriever)
+ *         .fallbackNone()
+ *         .build();
+ *
+ * // 3. 使用结果：就是一个普通 ContentRetriever
+ * List<Content> contents = retriever.retrieve(Query.from("我的快递到哪了"));
  * }</pre>
  *
- * <p>{@code byIntent(classifier)} 每次检索现跑分类；{@code bySupplier(supplier)} 复用调用方已判定的
- * 意图（避免一次问答里 RAG 与工具各判定一次）。</p>
+ * <p>路由语义：</p>
+ * <ul>
+ *   <li>{@link Builder#route route(i, r)} 与 {@link Builder#routeNone routeNone(i)} 对同一意图<b>互斥</b>，
+ *       后调用者生效（先 {@code route} 后又 {@code routeNone} 则该意图变为不检索，反之亦然）；</li>
+ *   <li>未匹配意图（{@code supplier} 返回 null）或匹配到但未配置专属检索器 → 走
+ *       {@link Builder#fallback}，缺省（{@link Builder#fallbackNone()}）为<b>不检索</b>；</li>
+ *   <li>意图识别失败或专属检索器抛错 → 记日志并降级为空结果，不打断整轮对话。</li>
+ * </ul>
+ *
+ * <p>接入方式：它就是一个 {@link ContentRetriever}——直接交给
+ * {@code AssistantBuilder.contentRetriever(...)}，或由 {@code DefaultRetrievalAugmentor} 包装；
+ * 需要把多个知识库<b>并行合并</b>时，把它与其他检索器一起交给组合检索器
+ * {@code com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.rag.AggregatingContentRetriever}。</p>
  */
 public final class IntentRag {
 
 	private IntentRag() {
 	}
 
+	/** 以分类器为意图来源：每次检索现跑一遍分类。 */
 	public static <I extends Enum<I>> Builder<I> byIntent(IntentClassifier<I> classifier) {
 		if (classifier == null) {
 			throw new IllegalArgumentException("classifier 不能为 null");
@@ -34,6 +66,7 @@ public final class IntentRag {
 		return bySupplier(IntentSupplier.of(classifier));
 	}
 
+	/** 以调用方提供的意图来源构建（可复用已判定的意图，避免重复识别）。 */
 	public static <I extends Enum<I>> Builder<I> bySupplier(IntentSupplier<I> supplier) {
 		return new Builder<I>(supplier);
 	}

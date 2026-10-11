@@ -12,6 +12,33 @@ import java.util.Map;
  * <p>作为 Spring Bean 注入后，使用方无需自己碰各实现类；当容器里有 {@link EmbeddingModel} /
  * {@link IntentLlm} 时，{@link #auto} 可一键装配「规则 → 向量 → 大模型」三级级联，缺哪级自动跳过。</p>
  *
+ * <p>用法示例（Spring 环境下注入本 Bean）：</p>
+ * <pre>{@code
+ * public class IntentService {
+ *
+ *     private final IntentClassifierFactory factory;
+ *
+ *     public IntentService(IntentClassifierFactory factory) {
+ *         this.factory = factory;
+ *     }
+ *
+ *     // 规则 → 向量 → 大模型，缺哪级自动跳过；三级都不可用则抛 IllegalStateException
+ *     public IntentClassifier<MyIntent> classifier() {
+ *         return factory.auto(MyIntent.class, rules(), examples());
+ *     }
+ *
+ *     // 也可只建单级
+ *     IntentClassifier<MyIntent> onlyRule = factory.rule(rules());
+ *     IntentClassifier<MyIntent> onlyVec = factory.embedding(examples());
+ *     IntentClassifier<MyIntent> onlyLlm = factory.llm(MyIntent.class);
+ * }
+ * }</pre>
+ *
+ * <p>阈值/置信度通过配置项调整，无需手填：
+ * {@code fw.plus.ai.langchain4j.intent.embedding-threshold}（默认 0.72）、
+ * {@code embedding-margin}（默认 0.05）、{@code llm-confidence-threshold}（默认 0.6）、
+ * {@code cascade-min-confidence}（默认 0.0）。</p>
+ *
  * @see LangChain4jIntentAutoConfiguration
  */
 public class IntentClassifierFactory {

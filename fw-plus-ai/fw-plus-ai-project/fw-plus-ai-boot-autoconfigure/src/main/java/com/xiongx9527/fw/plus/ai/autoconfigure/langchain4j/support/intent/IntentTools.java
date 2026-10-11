@@ -10,26 +10,49 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * {@link IntentAwareToolProvider} 的流式构造器。
+ * {@link IntentAwareToolProvider} 的流式构造器：从一个「全量工具来源」取工具，再按当前意图裁剪成白名单。
  *
+ * <p>两种意图来源与 {@link IntentRag} 一致：{@code byIntent(classifier)} 每次装配现跑分类；
+ * {@code bySupplier(supplier)} 复用已判定的意图（同一次问答 RAG 与工具只判一次）。</p>
+ *
+ * <p>用法示例：</p>
  * <pre>{@code
+ * // 物流意图只给查单/物流工具，闲聊不给工具，转人工工具始终保留，其余意图放开全量
  * ToolProvider tools = IntentTools.byIntent(classifier)
- *         .source(aggregatingToolProvider)
+ *         .source(new AggregatingToolProvider(providerA, providerB)) // 单来源：多提供者先聚合
  *         .allow(MyIntent.LOGISTICS, "track_order", "query_logistics")
  *         .allowNone(MyIntent.CHITCHAT)
  *         .alwaysInclude("handoff_to_human")
  *         .fallbackAll()
  *         .build();
+ *
+ * // 使用结果：就是一个普通 ToolProvider
+ * ToolProviderResult result = tools.provideTools(request);
  * }</pre>
  *
- * <p>默认兜底为 {@link #fallbackNone()}（未匹配意图时只保留 {@code alwaysInclude}），
- * 即「宁可少给工具」，需要放开时显式调用 {@link #fallbackAll()} 或 {@link #fallback(String...)}。</p>
+ * <p>裁剪语义（命中意图优先于兜底）：</p>
+ * <ul>
+ *   <li>命中且 {@link Builder#allow allow(i, ...)} → 白名单 + {@code alwaysInclude}；</li>
+ *   <li>命中且 {@link Builder#allowNone allowNone(i)} → 仅 {@code alwaysInclude}；</li>
+ *   <li>未匹配或匹配到但未配置 → {@link Builder#fallbackAll()} 全量 /
+ *       {@link Builder#fallback fallback(...)} 指定集合 / {@link Builder#fallbackNone()}（默认）仅
+ *       {@code alwaysInclude}；</li>
+ *   <li>{@code allow(i, ...)} 与 {@code allowNone(i)} 对同一意图互斥，后调用者生效。</li>
+ * </ul>
+ *
+ * <p>裁剪按工具的 {@link dev.langchain4j.agent.tool.ToolSpecification#name()} 匹配；
+ * 全量来源抛错 → 输出空工具集；意图识别失败 → 按「未匹配」兜底。默认兜底为
+ * {@link #fallbackNone()}（未匹配时只保留 {@code alwaysInclude}），即「宁可少给工具」，
+ * 需要放开时显式调用 {@link #fallbackAll()} 或 {@link #fallback(String...)}。</p>
+ *
+ * <p>接入方式：它就是一个 {@link ToolProvider}——直接交给 {@code AssistantBuilder.toolProvider(...)}。</p>
  */
 public final class IntentTools {
 
 	private IntentTools() {
 	}
 
+	/** 以分类器为意图来源：每次装配工具现跑一遍分类。 */
 	public static <I extends Enum<I>> Builder<I> byIntent(IntentClassifier<I> classifier) {
 		if (classifier == null) {
 			throw new IllegalArgumentException("classifier 不能为 null");
@@ -37,6 +60,7 @@ public final class IntentTools {
 		return bySupplier(IntentSupplier.of(classifier));
 	}
 
+	/** 以调用方提供的意图来源构建（可复用已判定的意图，避免重复识别）。 */
 	public static <I extends Enum<I>> Builder<I> bySupplier(IntentSupplier<I> supplier) {
 		return new Builder<I>(supplier);
 	}
@@ -64,7 +88,10 @@ public final class IntentTools {
 			this.supplier = supplier;
 		}
 
-		/** 全量工具来源（如 {@code AggregatingToolProvider}）。 */
+		/**
+		 * 全量工具来源（如 {@code AggregatingToolProvider}）。<b>单值</b>，后调用的覆盖先调用的；
+		 * 要合并多个提供者，先用 {@code new AggregatingToolProvider(...)} 聚合成一个再传入。
+		 */
 		public Builder<I> source(ToolProvider source) {
 			this.source = source;
 			return this;

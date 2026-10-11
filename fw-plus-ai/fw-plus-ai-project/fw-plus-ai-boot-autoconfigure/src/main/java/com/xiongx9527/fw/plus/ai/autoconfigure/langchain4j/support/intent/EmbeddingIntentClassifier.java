@@ -23,6 +23,23 @@ import java.util.Map;
  * <p>示例句在构造时一次性向量化并缓存（仅嵌入用户输入一次/次判定）。任一判据不满足即返回
  * {@link IntentResult#none(IntentSource)}，交给级联下一级（大模型）。</p>
  *
+ * <p>用法示例：</p>
+ * <pre>{@code
+ * Map<MyIntent, List<String>> examples = new HashMap<MyIntent, List<String>>();
+ * examples.put(MyIntent.LOGISTICS, Arrays.asList("我的快递到哪了", "包裹什么时候到"));
+ * examples.put(MyIntent.REFUND, Arrays.asList("我要退款", "怎么申请退货"));
+ *
+ * // 使用默认阈值 0.72 / 间距 0.05
+ * IntentClassifier<MyIntent> embedding = IntentClassifiers.embedding(embeddingModel, examples);
+ *
+ * // 自定义阈值 0.80 / 间距 0.08
+ * IntentClassifier<MyIntent> strict =
+ *         IntentClassifiers.embedding(embeddingModel, examples, 0.80d, 0.08d);
+ * }</pre>
+ *
+ * <p>示例句在构造期即完成向量化，分类器应<b>复用</b>而非每次新建；必须至少为一个意图提供
+ * 非空示例句，否则构造即抛 {@link IllegalArgumentException}。</p>
+ *
  * @param <I> 使用方自定义的意图枚举类型
  */
 public final class EmbeddingIntentClassifier<I extends Enum<I>> implements IntentClassifier<I> {

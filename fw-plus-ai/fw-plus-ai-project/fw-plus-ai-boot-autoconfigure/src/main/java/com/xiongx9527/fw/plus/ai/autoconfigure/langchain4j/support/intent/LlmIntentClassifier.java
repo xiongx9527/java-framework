@@ -22,6 +22,25 @@ import java.util.regex.Pattern;
  *
  * <p>槽位仅做「存在性」解析，不在组件内做业务校验，避免把业务规则内嵌到通用层。</p>
  *
+ * <p>用法示例：</p>
+ * <pre>{@code
+ * // 1. 用任意模型适配 IntentLlm（与具体版本接口解耦）
+ * IntentLlm llm = (systemPrompt, userPrompt) -> chatModel
+ *         .generate(SystemMessage.from(systemPrompt), UserMessage.from(userPrompt))
+ *         .content().text();
+ *
+ * // 2. 建议为每个意图补充语义说明，否则模型只能凭枚举名猜测
+ * Map<MyIntent, String> descriptions = new HashMap<MyIntent, String>();
+ * descriptions.put(MyIntent.LOGISTICS, "查询订单/包裹的物流状态与进度");
+ * descriptions.put(MyIntent.REFUND, "申请退款、退货、催促退款到账");
+ *
+ * IntentClassifier<MyIntent> classifier =
+ *         IntentClassifiers.llm(llm, MyIntent.class, descriptions, 0.7d);
+ *
+ * IntentResult<MyIntent> result = classifier.classify(IntentContext.of("钱什么时候退回来"));
+ * // 命中时 intent 来自模型 JSON，slots 为解析出的槽位
+ * }</pre>
+ *
  * @param <I> 使用方自定义的意图枚举类型
  */
 public final class LlmIntentClassifier<I extends Enum<I>> implements IntentClassifier<I> {

@@ -235,7 +235,7 @@
                 <version>${jjwt.version}</version>
             </dependency>
 
-            <dependency>
+<dependency>
                 <groupId>com.atomikos</groupId>
                 <artifactId>transactions-spring-boot3-starter</artifactId>
                 <version>${atomikos.version}</version>

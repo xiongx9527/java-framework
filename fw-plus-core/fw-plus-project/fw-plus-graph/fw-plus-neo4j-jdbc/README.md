@@ -34,6 +34,8 @@ try (Connection connection = DriverManager.getConnection(
 也可以执行当前模块支持的 SQL 子集：
 
 ```java
+private static final Logger log = LoggerFactory.getLogger(Neo4jJdbcExample.class);
+
 try (Connection connection = DriverManager.getConnection(
 		"jdbc:neo4j://127.0.0.1:7687/neo4j", properties);
 	 PreparedStatement statement = connection.prepareStatement(
@@ -41,7 +43,7 @@ try (Connection connection = DriverManager.getConnection(
 	statement.setString(1, "p1");
 	try (ResultSet resultSet = statement.executeQuery()) {
 		while (resultSet.next()) {
-			System.out.println(resultSet.getString("name"));
+			log.info("name = {}", resultSet.getString("name"));
 		}
 	}
 }

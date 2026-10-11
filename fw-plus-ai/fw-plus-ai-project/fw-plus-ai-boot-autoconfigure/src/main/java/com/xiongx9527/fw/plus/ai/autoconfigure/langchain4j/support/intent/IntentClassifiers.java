@@ -9,14 +9,24 @@ import java.util.Map;
 /**
  * 意图分类器门面：把各层级与级联的构造收敛到一组静态工厂，使用方无需关心实现类。
  *
- * <p>典型用法（三级级联）：</p>
+ * <p>典型用法（三级级联 + 消费结果）：</p>
  *
  * <pre>{@code
  * IntentClassifier<MyIntent> classifier = IntentClassifiers.cascading(
  *         IntentClassifiers.rule(IntentRule.of(MyIntent.HUMAN, "转人工|人工客服")),
  *         IntentClassifiers.embedding(embeddingModel, examples),
  *         IntentClassifiers.llm(intentLlm, MyIntent.class));
+ *
+ * IntentResult<MyIntent> result = classifier.classify(IntentContext.of("我的快递到哪了"));
+ * if (result.matched()) {
+ *     MyIntent intent = result.intent();
+ *     double confidence = result.confidence();
+ *     IntentSource source = result.source();
+ * }
  * }</pre>
+ *
+ * <p>只建单个层级同样走本门面：{@code rule(List)}、{@code embedding(model, examples)}、
+ * {@code llm(llm, intentType)}，或自定义阈值/置信度的重载。默认值见下方常量。</p>
  */
 public final class IntentClassifiers {
 
