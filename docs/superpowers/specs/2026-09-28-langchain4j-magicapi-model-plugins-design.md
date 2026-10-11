@@ -304,7 +304,7 @@ public EmbeddingStore<TextSegment> buildEmbeddingStore(Langchain4jOptionsReader 
 | chat-model | `openai`、`anthropic`、`ollama`、`qwen`、`qianfan`、`azure-openai`、`github-models`、`vertex-ai-gemini`、`google-ai-gemini`、`zhipu-ai`、`mistral-ai`、`bedrock`、`hugging-face`、`workers-ai`、`local-ai`、`docker`、`jlama` 等 |
 | streaming-chat-model | 上表中具备 streaming chat 的子集 |
 | language-model / streaming-language-model | `openai`、`ollama`、`qwen`、`qianfan`、`azure-openai` 等 |
-| embedding-model | `openai`、`ollama`、`qwen`、`qianfan`、`azure-openai`、`voyage-ai`、`github-models`、`google-ai-gemini`、`bge-small`、`all-minilm`、`hugging-face` 等 |
+| embedding-model | `openai`、`ollama`、`qwen`、`qianfan`、`azure-openai`、`voyage-ai`、`github-models`、`google-ai-gemini`、`hugging-face` 等 |
 | tokenizer | `openai`、`qwen` |
 | embedding-store | `in-memory`、`redis`、`milvus`、`elasticsearch`、`opensearch`、`qdrant`、`pinecone`、`weaviate`、`neo4j`、`mongodb-atlas`、`pgvector`、`chroma`、`oracle`、`tablestore`、`vearch`、`vespa`、`infinispan`、`cassandra`、`couchbase` 等 |
 
@@ -422,8 +422,7 @@ var count = langchain4j.getTokenizer('openai').estimateTokenCountInText("统计 
 
 - `fw-plus-ai-boot-dependencies`（AI 层 BOM）新增 langchain4j 全生态供应商版本管理，
   与 langchain4j-bom 对齐（当前 langchain4j 0.35.0 / community-dashscope 1.0.0-beta1 等）；
-- `fw-plus-ai-boot-autoconfigure/pom.xml` 以 `optional` 引入全部模型供应商、Tokenizer 与向量库 jar
-  （含 langchain4j-embeddings 内置模型 bge-small/all-minilm）；
+- `fw-plus-ai-boot-autoconfigure/pom.xml` 以 `optional` 引入全部模型供应商、Tokenizer 与向量库 jar；
 - core 层 `fw-plus-ai-langchain4j-*` 零修改，不新增/删除任何依赖；
 - 全量 optional 保证任意 provider 开箱即用，同时不传递给下游使用方。
 

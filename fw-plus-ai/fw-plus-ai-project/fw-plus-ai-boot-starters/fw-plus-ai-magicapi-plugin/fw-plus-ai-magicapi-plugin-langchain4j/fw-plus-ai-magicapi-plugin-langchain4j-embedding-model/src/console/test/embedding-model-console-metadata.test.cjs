@@ -49,18 +49,15 @@ function bodyOf(src, method) {
 
 /** 本类型下 provider → 字段名（后端权威口径） */
 function backendProviders() {
-    const config = fs.readFileSync(path.join(pluginDir, 'Langchain4jModelFactoryConfiguration.java'), 'utf8');
     const result = {};
     for (const file of javaFiles(factoryDir)) {
         if (file.endsWith('EmbeddingStoreDimensions.java')) continue;
         const src = fs.readFileSync(file, 'utf8');
         const declared = /public String provider\(\)\s*\{\s*return "([^"]+)"/.exec(src);
-        let providers;
-        if (declared) {
-            providers = [declared[1]];
-        } else {
+        if (!declared) {
             continue;
         }
+        const providers = [declared[1]];
 
         const body = bodyOf(src, TARGET_METHOD);
         if (body === null) continue;

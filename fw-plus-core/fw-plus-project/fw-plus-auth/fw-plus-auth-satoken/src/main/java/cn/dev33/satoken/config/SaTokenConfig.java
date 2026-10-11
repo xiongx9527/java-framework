@@ -15,6 +15,7 @@
  */
 package cn.dev33.satoken.config;
 
+import cn.dev33.satoken.SaManager;
 import cn.dev33.satoken.json.SaJsonType;
 
 import cn.dev33.satoken.stp.parameter.enums.SaLogoutMode;
@@ -975,7 +976,6 @@ public class SaTokenConfig implements SaJsonType, Serializable {
 	 */
 	@Deprecated
 	public long getActivityTimeout() {
-//		System.err.println("配置项已过期，请更换：sa-token.activity-timeout -> sa-token.active-timeout");
 		return activeTimeout;
 	}
 
@@ -987,7 +987,7 @@ public class SaTokenConfig implements SaJsonType, Serializable {
 	 */
 	@Deprecated
 	public SaTokenConfig setActivityTimeout(long activityTimeout) {
-		System.err.println("配置项已过期，请更换：sa-token.activity-timeout -> sa-token.active-timeout");
+		SaManager.log.warn("配置项已过期，请更换：sa-token.activity-timeout -> sa-token.active-timeout");
 		this.activeTimeout = activityTimeout;
 		return this;
 	}
