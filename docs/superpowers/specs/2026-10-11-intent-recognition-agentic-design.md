@@ -23,7 +23,7 @@ fw-plus-ai 需要在助手侧提供「意图识别」能力，并让它天然接
   - `AgenticIntents`：scope 写入（`write(AgenticScope, IntentResult<?>)`）与条件谓词工厂（`is(I intent)`），供 `AgenticWorkflows.conditional().subAgents(...)` 使用。
   - `IntentRecognitionStep<I>`：可选 code-agent 步骤，将识别结果以 `intent` 键写入 `AgenticScope`（作为 sequence 的第一步）。
 - 按意图 RAG 路由：
-  - `IntentAwareContentRetriever<I> implements ContentRetriever`（内部按意图转发到对应检索器；意图来源以 `IntentSupplier` 抽象，支持自分类或复用已判定意图）。
+  - `IntentAwareContentRetriever<I> implements ContentRetriever`（内部按意图转发到对应检索器，支持某意图「显式不检索」与未匹配兜底；意图来源以 `IntentSupplier` 抽象，支持自分类或复用已判定意图）。
   - 门面 `IntentRag`（`byIntent(classifier)` → `route(I, ContentRetriever)` → `fallback(...)` → `build()`）。
 - Spring 装配与配置：
   - `IntentClassifierAutoConfiguration` + `IntentClassifierFactory`（注入 `ChatModel` / `EmbeddingModel` / `IntentProperties`）。
@@ -59,7 +59,7 @@ CascadingIntentClassifier  统一兜底：Source.FALLBACK，intent 可空（使�
 
 - 独立调用：`IntentClassifier<I>.classify(IntentContext)` → `IntentResult<I>`（意图、置信度、槽位、来源）。
 - agentic 编排：`AgenticIntents.write(scope, result)` 把意图枚举名写入 `scope` 的 `intent` 键、槽位平铺写入 `slots.*` → `AgenticWorkflows.conditional().subAgents(AgenticIntents.is(Intent.X), branchAgent)`。
-- RAG 路由（检索层）：`IntentAwareContentRetriever` 内部 `意图来源 → byIntent.getOrDefault(intent, fallback).retrieve(query)`，可挂在任意 `.contentRetriever(...)`（含 `AgenticUntypedAgentBuilder.contentRetriever(...)`）。意图来源可自 classify，也可复用编排层已判定的意图以避免重复识别（见 §4.6）。
+- RAG 路由（检索层）：`IntentAwareContentRetriever` 内部 `意图来源 → 三态路由（命中 / 显式不检索 / 兜底）→ 委托或返回空`，可挂在任意 `.contentRetriever(...)`（含 `AgenticUntypedAgentBuilder.contentRetriever(...)`）。意图来源可自 classify，也可复用编排层已判定的意图以避免重复识别（见 §4.6）；映射支持「该意图显式不检索」。
 
 ## 4. 组件设计
 
@@ -148,8 +148,8 @@ public interface IntentSupplier<I extends Enum<I>> {
 
 public class IntentAwareContentRetriever<I extends Enum<I>> implements ContentRetriever {
     private final IntentSupplier<I> intentSource;   // 关键：意图来源可替换
-    private final Map<I, ContentRetriever> byIntent;
-    private final ContentRetriever fallback;        // 兜底：空检索（q -> List.of()）或默认库
+    private final Map<I, ContentRetriever> byIntent;   // 值可为 null：表示该意图「显式不检索」
+    private final ContentRetriever fallback;        // 未匹配意图时的兜底；可为 null（不检索）或默认库
 
     /** 意图来源 = 自 classify（形态 1 独用；分类宜为规则/embedding 或带缓存）。 */
     public static <I extends Enum<I>> IntentAwareContentRetriever<I> classifying(
@@ -174,7 +174,14 @@ public class IntentAwareContentRetriever<I extends Enum<I>> implements ContentRe
     @Override
     public List<Content> retrieve(Query query) {
         I intent = intentSource.intent(query);
-        return byIntent.getOrDefault(intent, fallback).retrieve(query);
+        // 三态区分：
+        //   1) 意图在映射中且非 null → 用对应检索器
+        //   2) 意图在映射中且为 null → 该意图显式不检索（返回空）
+        //   3) 意图不在映射（含意图来源返回 null）→ 走 fallback（可为 null=不检索）
+        ContentRetriever target = (intent != null && byIntent.containsKey(intent))
+                ? byIntent.get(intent)
+                : fallback;
+        return target == null ? List.of() : target.retrieve(query);
     }
 }
 ```
@@ -183,9 +190,29 @@ public class IntentAwareContentRetriever<I extends Enum<I>> implements ContentRe
 ContentRetriever rag = IntentRag.byIntent(classifier)
         .route(Intent.LOGISTICS, logisticsRetriever)     // 任意 ContentRetriever（含 DifyContentRetriever）
         .route(Intent.REFUND,    refundRetriever)
-        .fallback(q -> List.of())                        // 不匹配意图不检索
+        .route(Intent.COMPLAINT, complaintRetriever)
+        .routeNone(Intent.HUMAN)                          // 显式：转人工意图完全不检索
+        .routeNone(Intent.CHITCHAT)                       // 显式：寒暄不检索
+        .fallbackNone()                                   // 未匹配意图也不检索（或用 .fallback(defaultRetriever)）
+        .build();
+
+// 与编排叠加：意图复用（供 IntentAwareContentRetriever.supplied(...)），不重复识别
+ContentRetriever rag2 = IntentRag.bySupplier(() -> scopeIntent)
+        .route(Intent.LOGISTICS, logisticsRetriever)
+        .routeNone(Intent.HUMAN)
+        .fallbackNone()
         .build();
 ```
+
+**三态语义（关键）**：意图到检索器的映射不是「有/无」两态，而是三态：
+
+| 情况 | 映射内容 | 行为 |
+|---|---|---|
+| 该意图有专属 RAG | `ContentRetriever` | 用该检索器 |
+| 该意图**显式不检索** | `null`（`routeNone`） | 返回空 `List.of()`，不碰任何库 |
+| 意图不在映射中 | 取 `fallback` | 用兜底检索器；`fallbackNone()` 则同样不检索 |
+
+这样「转人工 / 寒暄」等意图可以明确跳过 RAG，而非被迫走某个默认库；「未识别（`null`）」也可与「显式不检索」分开配置。形态 2（编排层）里，分支 agent 直接不配 `.contentRetriever(...)` 即为不检索。
 
 挂载：`IntentAwareContentRetriever` 可挂在 `AiServices.builder(...).contentRetriever(...)`，也可挂在 agentic 的 `AgenticUntypedAgentBuilder.contentRetriever(...)`。
 
@@ -251,7 +278,7 @@ fw.plus.ai.intent:
 - LLM 输出非法（`I.valueOf` 失败、JSON 解析失败、返回空）：按 `Source.FALLBACK` 处理，绝不抛给调用方。
 - 槽位透传与校验：组件只透传槽位，不做业务校验；订单号等关键槽位的存在性与归属校验由使用方完成（安全边界）。
 - 兜底语义：`CascadingIntentClassifier` 兜底 `intent=null`（`Source.FALLBACK`）；使用方自行映射为空意图动作（如转人工 / 默认话术）。
-- 意图来源为空：`IntentAwareContentRetriever` 的意图来源返回 `null` 时走 `fallback`（空检索或默认库），不抛错。
+- 意图来源为空 / 不检索：`IntentAwareContentRetriever` 的意图来源返回 `null`（未识别）时走 `fallback`；当目标为 `null`（`routeNone` / `fallbackNone`）时返回空 `List.of()`，不抛错、不触达任何知识库。
 - 兼容性：整套组件新增在 `support/intent` 包内，不改任何既有类签名；`AutoConfiguration.imports` 仅追加新配置类；不触碰工作区既有未提交改动。
 
 ## 7. 测试与验收
@@ -262,7 +289,7 @@ fw.plus.ai.intent:
 4. **LlmIntentClassifier**：以替身 `ChatModel` 断言意图清单注入、DTO → `I.valueOf` 回填、非法输出兜底。
 5. **CascadingIntentClassifier**：短路顺序（rule → embedding → llm）、兜底 `FALLBACK`、未识别意图的贯通。
 6. **AgenticIntents + 条件编排**：复用 `AgenticPatternsTest` 的 `TypedConditionalAgent` 模式，断言 `AgenticIntents.is(...)` 谓词在 `AgenticWorkflows.conditional()` 下的分支路由与 `write` 的 state 形状。
-7. **IntentAwareContentRetriever**：按意图转发到对应检索器、未匹配意图（含意图来源返回 `null`）走 fallback（空检索）、`classifying(...)` 自分类与 `supplied(...)` 复用两种意图来源的行为。
+7. **IntentAwareContentRetriever**：按意图转发到对应检索器、`routeNone` 显式不检索返回空且不触达任何库、未匹配意图走 fallback（含 `fallbackNone` 与意图来源返回 `null`）、`classifying(...)` 自分类与 `supplied(...)` 复用两种意图来源的行为。
 8. **意图仅识别一次（叠加场景）**：条件编排 + `IntentAwareContentRetriever.supplied(...)` 组合下，用计数替身断言分类器每个问答只被调用一次。
 9. **装配冒烟**：`@SpringBootTest` 下 `IntentClassifierFactory` 注入、模型缺省降级、`IntentProperties` 绑定。
 10. **AI 层基线**：`SpringBoot3DependencyBaselineTest` 等既有基线用例保持通过。
