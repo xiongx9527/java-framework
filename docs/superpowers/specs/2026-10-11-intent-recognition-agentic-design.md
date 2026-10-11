@@ -30,6 +30,7 @@ fw-plus-ai 需要在助手侧提供「意图识别」能力，并让它天然接
 - Spring 装配与配置：
   - `IntentClassifierAutoConfiguration` + `IntentClassifierFactory`（注入 `ChatModel` / `EmbeddingModel` / `IntentProperties`）。
   - `IntentProperties`（`fw.plus.ai.intent.*`）。
+- 接线：`IntentAwareToolProvider` / `IntentAwareContentRetriever` 通过既有 `AssistantBuilder.toolProvider(...)` / `contentRetriever(...)` 与 `AgenticUntypedAgentBuilder.toolProvider(...)` / `contentRetriever(...)` 槽位接入，不改构建器（见 §4.8）。
 - 测试：各层单测、级联短路、agentic 桥接联动、RAG / 工具意图路由、装配冒烟。
 
 **明确不做**
@@ -299,6 +300,27 @@ AiServices.builder(SupportAssistant.class).chatModel(model).toolProvider(tools).
 
 **与 LangChain4j 内置的取舍**：LangChain4j 有 `DecisionModelFilteringToolProvider`（用 decision model 过滤）与 `McpToolProvider` 的名称过滤。本类用「意图」这一**已被本组件算出**的分类结果做过滤，一份分类同时服务 RAG 与工具、可与阈值 / 兜底统一，且不额外引入 decision model；不替代它们，可组合使用（本类可作为 `DecisionModelFilteringToolProvider` 的上游）。
 
+### 4.8 接线：`AssistantBuilder` 与 `AgenticWorkflows`
+
+本组件不修改任何既有构建器，靠原生接口槽位即插即用。
+
+**`AssistantBuilder`（非 agentic，脚本侧 AiServices）**：`AssistantBuilder.toolProvider(ToolProvider...)` 接受任意 `ToolProvider`，`IntentAwareToolProvider` 直接挂入；`AssistantBuilder.contentRetriever(ContentRetriever)` 接受任意 `ContentRetriever`，`IntentAwareContentRetriever` 直接挂入（内部包成 `DefaultRetrievalAugmentor`）。该路径**没有 agentic scope**，意图来源只能用 `byIntent(classifier)` 自分类（`scopeSupplier` 取不到值）。
+
+```java
+new AssistantBuilder()
+        .chatModel(chatModel)
+        .toolProvider(IntentTools.byIntent(classifier)          // 非 agentic：从用户消息自分类
+                .source(allTools).allow(Intent.LOGISTICS, "track_order").allowNone(Intent.CHITCHAT)
+                .alwaysInclude("handoff_to_human").fallbackNone().build())
+        .contentRetriever(IntentRag.byIntent(classifier)         // 非 agentic：从 Query 自分类
+                .route(Intent.LOGISTICS, logisticsRetriever).routeNone(Intent.HUMAN).fallbackNone().build())
+        .build();
+```
+
+**`AgenticWorkflows`（agentic）**：条件分支用 `AgenticIntents.is(...)`；分支内工具 / RAG 用 `bySupplier(AgenticIntents.scopeSupplier(MyIntent.class))` 复用 scope 意图，或直接「分支 agent 静态绑定工具 / 检索器」（零分类）。
+
+**聚合陷阱（重要）**：`AssistantBuilder.toolProvider(...)` 会把多个 `ToolProvider` 交给 `AiServices.toolProviders(...)` 原生合并（skills 的 provider 也会被追加为一路）。若把 MCP / 业务 provider 直接注册、**又**用一个 `IntentAwareToolProvider` 包同一批工具，会同时出现「未过滤的原始工具」与「过滤后的工具」，意图裁剪失效。要按意图过滤**全部**工具时：`IntentAwareToolProvider.source` = 全部来源（如 `AggregatingToolProvider` 合并 MCP + 业务工具），且**只**注册这一个 provider。RAG 侧同理：`IntentAwareContentRetriever` 应作为唯一 `contentRetriever`，避免与其他检索器重复命中。
+
 ## 5. Spring 装配与配置
 
 目标：不预置固定泛型 `IntentClassifier<?>` Bean，提供工厂 + 配置。
@@ -382,4 +404,4 @@ fw.plus.ai.intent:
 - `fw-plus-ai-boot-autoconfigure` 的 `.../langchain4j/support/intent/`（领域模型、三层实现、门面、桥接、RAG / 工具路由、装配、配置），以及 `AutoConfiguration.imports`、`spring.factories` 的增量注册。
 - `fw-plus-ai-boot-autoconfigure` 的 `src/test/java/.../support/intent/` 测试包。
 
-实现不应修改：`AgenticWorkflows`、`AgenticUntypedAgentBuilder`、`DifyContentRetriever`、`LangChain4jSupportAutoConfiguration`、既有 assistant/SSE 接口；不得把当前工作区已有的未提交改动（含 staged 删除与新增）纳入本次提交。
+实现不应修改：`AgenticWorkflows`、`AgenticUntypedAgentBuilder`、`AssistantBuilder`、`DifyContentRetriever`、`LangChain4jSupportAutoConfiguration`、既有 assistant/SSE 接口；`IntentAwareToolProvider` / `IntentAwareContentRetriever` 通过既有 `AssistantBuilder.toolProvider(...)` / `contentRetriever(...)` 与 `AgenticUntypedAgentBuilder.toolProvider(...)` / `contentRetriever(...)` 槽位接入，无需改构建器。不得把当前工作区已有的未提交改动（含 staged 删除与新增）纳入本次提交。
