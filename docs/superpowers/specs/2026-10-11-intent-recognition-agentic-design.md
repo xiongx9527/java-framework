@@ -23,7 +23,7 @@ fw-plus-ai 需要在助手侧提供「意图识别」能力，并让它天然接
   - `AgenticIntents`：scope 写入（`write(AgenticScope, IntentResult<?>)`）与条件谓词工厂（`is(I intent)`），供 `AgenticWorkflows.conditional().subAgents(...)` 使用。
   - `IntentRecognitionStep<I>`：可选 code-agent 步骤，将识别结果以 `intent` 键写入 `AgenticScope`（作为 sequence 的第一步）。
 - 按意图 RAG 路由：
-  - `IntentAwareContentRetriever<I> implements ContentRetriever`（内部按意图转发到对应检索器）。
+  - `IntentAwareContentRetriever<I> implements ContentRetriever`（内部按意图转发到对应检索器；意图来源以 `IntentSupplier` 抽象，支持自分类或复用已判定意图）。
   - 门面 `IntentRag`（`byIntent(classifier)` → `route(I, ContentRetriever)` → `fallback(...)` → `build()`）。
 - Spring 装配与配置：
   - `IntentClassifierAutoConfiguration` + `IntentClassifierFactory`（注入 `ChatModel` / `EmbeddingModel` / `IntentProperties`）。
@@ -59,7 +59,7 @@ CascadingIntentClassifier  统一兜底：Source.FALLBACK，intent 可空（使�
 
 - 独立调用：`IntentClassifier<I>.classify(IntentContext)` → `IntentResult<I>`（意图、置信度、槽位、来源）。
 - agentic 编排：`AgenticIntents.write(scope, result)` 把意图枚举名写入 `scope` 的 `intent` 键、槽位平铺写入 `slots.*` → `AgenticWorkflows.conditional().subAgents(AgenticIntents.is(Intent.X), branchAgent)`。
-- RAG 路由（检索层）：`IntentAwareContentRetriever` 内部 `classify(Query) → byIntent.getOrDefault(intent, fallback).retrieve(query)`，可挂在任意 `.contentRetriever(...)`（含 `AgenticUntypedAgentBuilder.contentRetriever(...)`）。
+- RAG 路由（检索层）：`IntentAwareContentRetriever` 内部 `意图来源 → byIntent.getOrDefault(intent, fallback).retrieve(query)`，可挂在任意 `.contentRetriever(...)`（含 `AgenticUntypedAgentBuilder.contentRetriever(...)`）。意图来源可自 classify，也可复用编排层已判定的意图以避免重复识别（见 §4.6）。
 
 ## 4. 组件设计
 
@@ -140,15 +140,41 @@ AgenticWorkflows.sequence(MyAgent.class)
 ### 4.6 按意图 RAG：`IntentAwareContentRetriever<I>` 与 `IntentRag`
 
 ```java
+/** 意图来源：可自 classify，也可复用外部已判定的意图（避免重复识别）。 */
+@FunctionalInterface
+public interface IntentSupplier<I extends Enum<I>> {
+    I intent(Query query);
+}
+
 public class IntentAwareContentRetriever<I extends Enum<I>> implements ContentRetriever {
-    private final IntentClassifier<I> classifier;
+    private final IntentSupplier<I> intentSource;   // 关键：意图来源可替换
     private final Map<I, ContentRetriever> byIntent;
-    private final ContentRetriever fallback;   // 兜底：空检索（q -> List.of()）或默认库
+    private final ContentRetriever fallback;        // 兜底：空检索（q -> List.of()）或默认库
+
+    /** 意图来源 = 自 classify（形态 1 独用；分类宜为规则/embedding 或带缓存）。 */
+    public static <I extends Enum<I>> IntentAwareContentRetriever<I> classifying(
+            IntentClassifier<I> classifier, Map<I, ContentRetriever> byIntent, ContentRetriever fallback) {
+        return new IntentAwareContentRetriever<>(
+                q -> classifier.classify(IntentContext.of(q.text())).intent(), byIntent, fallback);
+    }
+
+    /** 意图来源 = 外部供给（复用已判定意图，不重复识别；与编排叠加时用）。 */
+    public static <I extends Enum<I>> IntentAwareContentRetriever<I> supplied(
+            IntentSupplier<I> intentSource, Map<I, ContentRetriever> byIntent, ContentRetriever fallback) {
+        return new IntentAwareContentRetriever<>(intentSource, byIntent, fallback);
+    }
+
+    private IntentAwareContentRetriever(IntentSupplier<I> intentSource,
+            Map<I, ContentRetriever> byIntent, ContentRetriever fallback) {
+        this.intentSource = intentSource;
+        this.byIntent = byIntent;
+        this.fallback = fallback;
+    }
 
     @Override
     public List<Content> retrieve(Query query) {
-        IntentResult<I> r = classifier.classify(IntentContext.of(query.text()));
-        return byIntent.getOrDefault(r.intent(), fallback).retrieve(query);
+        I intent = intentSource.intent(query);
+        return byIntent.getOrDefault(intent, fallback).retrieve(query);
     }
 }
 ```
@@ -161,7 +187,15 @@ ContentRetriever rag = IntentRag.byIntent(classifier)
         .build();
 ```
 
-`IntentAwareContentRetriever` 可挂在 `AiServices.builder(...).contentRetriever(...)`，也可挂在 agentic 的 `AgenticUntypedAgentBuilder.contentRetriever(...)`；意图化路由与条件编排叠加使用（形态 1 与形态 2 不互斥）。
+挂载：`IntentAwareContentRetriever` 可挂在 `AiServices.builder(...).contentRetriever(...)`，也可挂在 agentic 的 `AgenticUntypedAgentBuilder.contentRetriever(...)`。
+
+**意图来源与避免重复识别（关键）**：RAG 每次问答前由 `RetrievalAugmentor` 触发，若此处再 `classify` 一次，而编排层（`AgenticIntents.is(...)`）已判定过意图，则同一请求的意图识别执行两次、成本与延迟叠加。因此：
+
+- **优先形态 2（编排层）**：意图判定一次并写入 scope，各分支 agent 静态绑定 `.contentRetriever(...)`，检索阶段不判意图，零重复。
+- **形态 1 独用**（不经编排）：用 `classifying(...)`，此时分类宜为规则 / Embedding 层，或对同一请求的意图结果加缓存，避免每次检索都跑 LLM。
+- **叠加使用**：用 `supplied(...)` 复用外部（编排步骤 / 上下文）已判定的意图，保证一次问答只识别一次。
+
+`IntentSupplier` 返回 `null` 时视为未命中，走 `fallback`。
 
 ## 5. Spring 装配与配置
 
@@ -217,6 +251,7 @@ fw.plus.ai.intent:
 - LLM 输出非法（`I.valueOf` 失败、JSON 解析失败、返回空）：按 `Source.FALLBACK` 处理，绝不抛给调用方。
 - 槽位透传与校验：组件只透传槽位，不做业务校验；订单号等关键槽位的存在性与归属校验由使用方完成（安全边界）。
 - 兜底语义：`CascadingIntentClassifier` 兜底 `intent=null`（`Source.FALLBACK`）；使用方自行映射为空意图动作（如转人工 / 默认话术）。
+- 意图来源为空：`IntentAwareContentRetriever` 的意图来源返回 `null` 时走 `fallback`（空检索或默认库），不抛错。
 - 兼容性：整套组件新增在 `support/intent` 包内，不改任何既有类签名；`AutoConfiguration.imports` 仅追加新配置类；不触碰工作区既有未提交改动。
 
 ## 7. 测试与验收
@@ -227,9 +262,10 @@ fw.plus.ai.intent:
 4. **LlmIntentClassifier**：以替身 `ChatModel` 断言意图清单注入、DTO → `I.valueOf` 回填、非法输出兜底。
 5. **CascadingIntentClassifier**：短路顺序（rule → embedding → llm）、兜底 `FALLBACK`、未识别意图的贯通。
 6. **AgenticIntents + 条件编排**：复用 `AgenticPatternsTest` 的 `TypedConditionalAgent` 模式，断言 `AgenticIntents.is(...)` 谓词在 `AgenticWorkflows.conditional()` 下的分支路由与 `write` 的 state 形状。
-7. **IntentAwareContentRetriever**：按意图转发到对应检索器、未匹配意图走 fallback（空检索）、槽位/上下文透传。
-8. **装配冒烟**：`@SpringBootTest` 下 `IntentClassifierFactory` 注入、模型缺省降级、`IntentProperties` 绑定。
-9. **AI 层基线**：`SpringBoot3DependencyBaselineTest` 等既有基线用例保持通过。
+7. **IntentAwareContentRetriever**：按意图转发到对应检索器、未匹配意图（含意图来源返回 `null`）走 fallback（空检索）、`classifying(...)` 自分类与 `supplied(...)` 复用两种意图来源的行为。
+8. **意图仅识别一次（叠加场景）**：条件编排 + `IntentAwareContentRetriever.supplied(...)` 组合下，用计数替身断言分类器每个问答只被调用一次。
+9. **装配冒烟**：`@SpringBootTest` 下 `IntentClassifierFactory` 注入、模型缺省降级、`IntentProperties` 绑定。
+10. **AI 层基线**：`SpringBoot3DependencyBaselineTest` 等既有基线用例保持通过。
 
 验收标准：级联短路行为与兜底语义按测试 1-5 固定；`conditional + is()` 的 agentic 链路端到端可用；`IntentAwareContentRetriever` 能挂入 `.contentRetriever(...)` 并按意图选库；新配置类出现在 `AutoConfiguration.imports` 且不影响既有装配；工作区既有未提交改动不被卷入提交。
 
