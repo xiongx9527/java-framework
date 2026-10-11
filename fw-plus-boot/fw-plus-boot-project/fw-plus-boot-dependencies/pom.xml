@@ -26,6 +26,9 @@
         <lock4j.version>2.2.7</lock4j.version>
         <!--  debezium版本号 -->
         <debezium.version>1.9.8.Final</debezium.version>
+        <!--  mockito版本号（对齐 spring-boot-dependencies 3.5.8；用于显式压过
+              debezium-bom 内部钉死的 mockito-core 3.0.0，避免测试 classpath 版本分裂） -->
+        <mockito.version>5.17.0</mockito.version>
 		<!--  influxdb-sdk-java版本号 -->
         <influxdb.version>6.7.0</influxdb.version>
         <!--  resilience4j版本号 -->
@@ -236,6 +239,17 @@
                 <groupId>com.atomikos</groupId>
                 <artifactId>transactions-spring-boot3-starter</artifactId>
                 <version>${atomikos.version}</version>
+            </dependency>
+
+            <!-- mockito：必须置于 debezium-bom 之前。debezium-bom 1.9.x 内部将
+                 mockito-core 钉在 3.0.0（无 verifyNoInteractions），且其 import 先于
+                 spring-boot-dependencies 声明，Maven 先声明优先会导致测试 classpath
+                 出现 mockito-core 3.0.0 + mockito-junit-jupiter 5.17.0 的版本分裂。
+                 此处显式统一到 spring-boot-dependencies 3.5.8 的 5.17.0。 -->
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>${mockito.version}</version>
             </dependency>
 
             <!--debezium-->

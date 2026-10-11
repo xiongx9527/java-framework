@@ -33,9 +33,13 @@ import static org.junit.jupiter.api.Assertions.fail;
  */
 public class LangChain4jAutoConfigurationRegistrationTest {
 
-	/** 收口后 imports 中唯一的 LangChain4j 自动配置。 */
+	/** 收口后 imports 中 LangChain4j 自动配置（support 支撑 + intent 意图，均为合并后保留条目）。 */
 	private static final String SUPPORT_CONFIG =
 			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.LangChain4jSupportAutoConfiguration";
+
+	/** dev 合并（2eb068baf）新增的意图自动配置，imports 取并集后一并保留。 */
+	private static final String INTENT_CONFIG =
+			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.LangChain4jIntentAutoConfiguration";
 
 	private static final String IMPORTS_RESOURCE =
 			"META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports";
@@ -72,8 +76,9 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 
 		Set<String> expected = new LinkedHashSet<String>();
 		expected.add(SUPPORT_CONFIG);
+		expected.add(INTENT_CONFIG);
 		assertEquals(expected, langchain4jImports,
-				"AutoConfiguration.imports 中 LangChain4j 条目应只剩 LangChain4jSupportAutoConfiguration");
+				"AutoConfiguration.imports 中 LangChain4j 条目应只剩 support + intent 两个支撑自动配置");
 	}
 
 	@Test

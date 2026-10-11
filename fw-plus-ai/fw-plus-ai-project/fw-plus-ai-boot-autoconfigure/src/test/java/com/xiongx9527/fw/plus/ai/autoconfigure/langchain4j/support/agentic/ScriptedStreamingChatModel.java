@@ -7,6 +7,7 @@ import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.chat.StreamingChatModel;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 
@@ -31,9 +32,13 @@ final class ScriptedStreamingChatModel implements StreamingChatModel {
     public void chat(ChatRequest chatRequest, StreamingChatResponseHandler handler) {
         String text = flatten(chatRequest);
         Deque<List<String>> queue = text.contains(PLANNER_MARKER) ? new ArrayDeque<>() : agentResponses;
-        List<String> tokens = queue.poll();
-        if (tokens == null) {
-            tokens = List.of("");
+        List<String> tokens = new ArrayList<>();
+        List<String> group;
+        while ((group = queue.poll()) != null) {
+            tokens.addAll(group);
+        }
+        if (tokens.isEmpty()) {
+            tokens.add("");
         }
         for (String token : tokens) {
             handler.onPartialResponse(token);

@@ -355,7 +355,7 @@ class AgenticPatternsTest {
                 .outputKey("story")
                 .build();
 
-        StreamingSequenceAgent agent = AgenticWorkflows.sequence(StreamingSequenceAgent.class)
+        StreamingSequenceAgent agent = AgenticWorkflows.sequenceStreaming(StreamingSequenceAgent.class)
                 .subAgents(syncStep, streamingStep)
                 .build();
 
@@ -391,7 +391,8 @@ class AgenticPatternsTest {
         public dev.langchain4j.agentic.planner.Action nextAction(
                 dev.langchain4j.agentic.planner.PlanningContext ctx) {
             if (cursor >= agents.size()) {
-                return new dev.langchain4j.agentic.planner.Action.DoneAction();
+                dev.langchain4j.agentic.scope.AgentInvocation previous = ctx.previousAgentInvocation();
+                return previous != null ? done(previous.output()) : done();
             }
             return new dev.langchain4j.agentic.planner.Action.AgentCallAction(agents.get(cursor++));
         }
