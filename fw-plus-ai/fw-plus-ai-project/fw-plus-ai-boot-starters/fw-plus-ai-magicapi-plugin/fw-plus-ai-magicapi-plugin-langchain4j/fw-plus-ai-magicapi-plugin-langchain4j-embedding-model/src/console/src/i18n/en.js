@@ -29,9 +29,11 @@ export default {
         },
         provider: {
             'azure-openai': 'Azure OpenAI',
+            'cohere': 'Cohere',
             'github-models': 'GitHub Models',
             'google-ai-gemini': 'Google AI Gemini',
             'hugging-face': 'Hugging Face',
+            'jina': 'Jina AI',
             'local-ai': 'LocalAI',
             'ollama': 'Ollama',
             'openai': 'OpenAI',
