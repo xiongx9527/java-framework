@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.LangChain4jIntentAutoConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.logging.ChatContextLogger;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatstore.ChatMemoryStoreProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatstore.ChatMemoryTenantResolver;
@@ -39,13 +40,17 @@ import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
  * （而非依赖嵌套 member 自动发现）；DifyRagProperties 因 {@code fw-plus-dify} 是
  * optional 依赖而按类存在性条件注册——消费方没有 dify 类时跳过，
  * 避免配置类方法签名 introspection 时 {@code NoClassDefFoundError} 拉垮整个上下文。</p>
+ *
+ * <p>意图识别自动配置 {@link LangChain4jIntentAutoConfiguration} 亦在此 {@code @Import}
+ * 收口，其自身条件与本源一致，无需在 {@code AutoConfiguration.imports} 中单独登记。</p>
  */
 @ConditionalOnClass(name = "dev.langchain4j.Experimental")
 @ConditionalOnProperty(prefix = "fw.plus.ai.langchain4j", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(ChatMemoryStoreProperties.class)
 @Import({LangChain4jSupportAutoConfiguration.Mem0ChatMemoryStoreConfiguration.class,
 		LangChain4jSupportAutoConfiguration.InMemoryChatMemoryStoreConfiguration.class,
-		LangChain4jSupportAutoConfiguration.DifyRagPropertiesConfiguration.class})
+		LangChain4jSupportAutoConfiguration.DifyRagPropertiesConfiguration.class,
+		LangChain4jIntentAutoConfiguration.class})
 public class LangChain4jSupportAutoConfiguration {
 
 	@Bean
