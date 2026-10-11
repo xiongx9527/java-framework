@@ -1,4 +1,4 @@
-# 泛型意图识别 + 条件 agentic 编排 + 按意图 RAG 路由设计
+# 泛型意图识别 + 条件 agentic 编排 + 按意图路由（RAG / 工具）设计
 
 - 日期：2026-10-11
 - 状态：待评审
@@ -8,7 +8,7 @@
 fw-plus-ai 需要在助手侧提供「意图识别」能力，并让它天然接驳项目已有的 langchain4j-agentic 条件编排（`AgenticWorkflows.conditional(...)` 的 `subAgents(Predicate<AgenticScope>, agent)` 谓词路由）与 RAG（`ContentRetriever`）。目标：
 
 - 提供通用的、与业务零耦合的意图识别组件：意图标识由使用方定义（`I extends Enum<I>`），框架不内置任何业务意图。
-- 识别结果能注入 `AgenticScope`，直接支持 `AgenticWorkflows.conditional()` 的条件路由；同时支持「不同意图调用不同 RAG 检索器」，检索层（`ContentRetriever` 包装）与编排层（条件分支各自带检索器）两种形态都提供。
+- 识别结果能注入 `AgenticScope`，直接支持 `AgenticWorkflows.conditional()` 的条件路由；同时支持按意图路由「知识库」与「工具」两类资源：不同意图调用不同 RAG 检索器（检索层 `ContentRetriever` 包装 / 编排层分支各自带检索器，两种形态都提供），或只暴露不同工具子集（`ToolProvider` 裁剪，解决工具过多时 LLM 选择退化）；某些意图也可以不检索 / 不暴露工具。
 - 识别质量采用「规则 → Embedding → LLM」三级级联：规则层零成本兜高确定性输入；Embedding 层高置信短路；LLM 层兜底精判；低置信统一降级（兜底意图由使用方决定，如 `HUMAN`）。
 
 ## 2. 范围
@@ -22,13 +22,15 @@ fw-plus-ai 需要在助手侧提供「意图识别」能力，并让它天然接
 - agentic 桥接：
   - `AgenticIntents`：scope 写入（`write(AgenticScope, IntentResult<?>)`）与条件谓词工厂（`is(I intent)`），供 `AgenticWorkflows.conditional().subAgents(...)` 使用。
   - `IntentRecognitionStep<I>`：可选 code-agent 步骤，将识别结果以 `intent` 键写入 `AgenticScope`（作为 sequence 的第一步）。
-- 按意图 RAG 路由：
+- 按意图路由（RAG 与工具）：
   - `IntentAwareContentRetriever<I> implements ContentRetriever`（内部按意图转发到对应检索器，支持某意图「显式不检索」与未匹配兜底；意图来源以 `IntentSupplier` 抽象，支持自分类或复用已判定意图）。
-  - 门面 `IntentRag`（`byIntent(classifier)` → `route(I, ContentRetriever)` → `fallback(...)` → `build()`）。
+  - 门面 `IntentRag`（`byIntent(classifier)` / `bySupplier(...)` → `route(I, ContentRetriever)` / `routeNone(I)` / `fallback(...)` / `fallbackNone()` → `build()`）。
+  - `IntentAwareToolProvider<I> implements ToolProvider`（按意图裁剪工具集，解决工具过多时 LLM 选择退化；支持某意图「不暴露工具」、`alwaysInclude` 与未匹配兜底）。
+  - 门面 `IntentTools`（`byIntent(classifier)` / `bySupplier(...)` → `source(...)` / `allow(I, String...)` / `allowNone(I)` / `alwaysInclude(...)` / `fallbackAll()` / `fallbackNone()` → `build()`）。
 - Spring 装配与配置：
   - `IntentClassifierAutoConfiguration` + `IntentClassifierFactory`（注入 `ChatModel` / `EmbeddingModel` / `IntentProperties`）。
   - `IntentProperties`（`fw.plus.ai.intent.*`）。
-- 测试：各层单测、级联短路、agentic 桥接联动、RAG 意图路由、装配冒烟。
+- 测试：各层单测、级联短路、agentic 桥接联动、RAG / 工具意图路由、装配冒烟。
 
 **明确不做**
 
@@ -36,7 +38,8 @@ fw-plus-ai 需要在助手侧提供「意图识别」能力，并让它天然接
 - 不预置「固定意图枚举」的自动配置 Bean：`I` 由使用方定义，框架只提供工厂与构建器，由使用方以 `@Bean IntentClassifier<MyIntent>` 自建。
 - 不实现多意图并行返回（`List<IntentResult<I>>`）；第一版为单意图主识别。
 - 不内置任何业务规则与语义示例；规则、示例全部由使用方通过配置或代码提供。
-- 不提供官版 `QueryRouter` 适配（`DefaultRetrievalAugmentor` 扩展点）与 `DecisionModelQueryRouter` 包装；保留为后续扩展，第一版以 `ContentRetriever` 包装完成意图化路由。
+- 不提供官版 `QueryRouter` 适配（`DefaultRetrievalAugmentor` 扩展点）与 `DecisionModelQueryRouter` 包装；保留为后续扩展，第一版以 `ContentRetriever` 包装完成意图化 RAG 路由。
+- 不做基于向量相似度的工具检索（tool RAG：按 query 与工具描述相似度动态取 top-k）；第一版只做「意图 → 工具名子集」映射；意图分类本身已含 Embedding 层。
 - 不修改既有 SSE / 助手接口签名。
 
 ## 3. 架构与数据流
@@ -60,6 +63,7 @@ CascadingIntentClassifier  统一兜底：Source.FALLBACK，intent 可空（使�
 - 独立调用：`IntentClassifier<I>.classify(IntentContext)` → `IntentResult<I>`（意图、置信度、槽位、来源）。
 - agentic 编排：`AgenticIntents.write(scope, result)` 把意图枚举名写入 `scope` 的 `intent` 键、槽位平铺写入 `slots.*` → `AgenticWorkflows.conditional().subAgents(AgenticIntents.is(Intent.X), branchAgent)`。
 - RAG 路由（检索层）：`IntentAwareContentRetriever` 内部 `意图来源 → 三态路由（命中 / 显式不检索 / 兜底）→ 委托或返回空`，可挂在任意 `.contentRetriever(...)`（含 `AgenticUntypedAgentBuilder.contentRetriever(...)`）。意图来源可自 classify，也可复用编排层已判定的意图以避免重复识别（见 §4.6）；映射支持「该意图显式不检索」。
+- 工具路由（工具层）：`IntentAwareToolProvider` 内部 `意图来源 → 工具子集（命中 / 显式无工具 / alwaysInclude / 兜底）`，可挂在任意 `.toolProvider(...)`（含 `AgenticUntypedAgentBuilder.toolProvider(...)`），解决工具过多时 LLM 选择退化（见 §4.7）。
 
 ## 4. 组件设计
 
@@ -140,10 +144,10 @@ AgenticWorkflows.sequence(MyAgent.class)
 ### 4.6 按意图 RAG：`IntentAwareContentRetriever<I>` 与 `IntentRag`
 
 ```java
-/** 意图来源：可自 classify，也可复用外部已判定的意图（避免重复识别）。 */
+/** 意图来源（RAG 与工具路由共用）：可自 classify，也可复用外部已判定的意图（避免重复识别）。 */
 @FunctionalInterface
 public interface IntentSupplier<I extends Enum<I>> {
-    I intent(Query query);
+    I intent(IntentContext ctx);   // 各适配器从 Query / ToolProviderRequest 构造 IntentContext
 }
 
 public class IntentAwareContentRetriever<I extends Enum<I>> implements ContentRetriever {
@@ -155,7 +159,7 @@ public class IntentAwareContentRetriever<I extends Enum<I>> implements ContentRe
     public static <I extends Enum<I>> IntentAwareContentRetriever<I> classifying(
             IntentClassifier<I> classifier, Map<I, ContentRetriever> byIntent, ContentRetriever fallback) {
         return new IntentAwareContentRetriever<>(
-                q -> classifier.classify(IntentContext.of(q.text())).intent(), byIntent, fallback);
+                ctx -> classifier.classify(ctx).intent(), byIntent, fallback);
     }
 
     /** 意图来源 = 外部供给（复用已判定意图，不重复识别；与编排叠加时用）。 */
@@ -173,7 +177,7 @@ public class IntentAwareContentRetriever<I extends Enum<I>> implements ContentRe
 
     @Override
     public List<Content> retrieve(Query query) {
-        I intent = intentSource.intent(query);
+        I intent = intentSource.intent(IntentContext.of(query.text()));
         // 三态区分：
         //   1) 意图在映射中且非 null → 用对应检索器
         //   2) 意图在映射中且为 null → 该意图显式不检索（返回空）
@@ -223,6 +227,69 @@ ContentRetriever rag2 = IntentRag.bySupplier(() -> scopeIntent)
 - **叠加使用**：用 `supplied(...)` 复用外部（编排步骤 / 上下文）已判定的意图，保证一次问答只识别一次。
 
 `IntentSupplier` 返回 `null` 时视为未命中，走 `fallback`。
+
+### 4.7 按意图裁剪工具：`IntentAwareToolProvider<I>` 与 `IntentTools`
+
+动机：function calling 的工具过多时，一次性把所有工具 schema 塞进请求会让 LLM 选择准确率骤降、token 成本暴涨。按意图只暴露相关工具子集，是意图识别的第二个落点（与 §4.6 的 RAG 路由并列，共用同一分类结果与 `IntentSupplier`）。
+
+```java
+public class IntentAwareToolProvider<I extends Enum<I>> implements ToolProvider {
+    private final IntentSupplier<I> intentSource;      // 与 §4.6 共用
+    private final ToolProvider source;                 // 全量工具来源（AggregatingToolProvider / MCP / 静态）
+    private final Map<I, Set<String>> toolsByIntent;   // 意图 → 允许的工具名；空集=显式不暴露
+    private final Set<String> fallbackTools;           // 未匹配意图的工具集；null=不裁剪（全量）
+    private final Set<String> alwaysInclude;           // 恒定保留（如人工转接工具）
+
+    @Override
+    public ToolProviderResult provideTools(ToolProviderRequest request) {
+        I intent = intentSource.intent(IntentContext.of(request.userMessage().singleText()));
+        ToolProviderResult all = source.provideTools(request);
+        // 三态：命中 → 该意图工具集；命中空集 → 仅 alwaysInclude；未匹配 → fallback（null=全量）
+        Set<String> allowed = (intent != null && toolsByIntent.containsKey(intent))
+                ? toolsByIntent.get(intent) : fallbackTools;
+        if (allowed == null) {
+            return all;
+        }
+        ToolProviderResult.Builder filtered = ToolProviderResult.builder();
+        all.tools().forEach((spec, executor) -> {
+            if (allowed.contains(spec.name()) || alwaysInclude.contains(spec.name())) {
+                filtered.add(spec, executor);
+            }
+        });
+        return filtered.build();
+    }
+}
+```
+
+```java
+ToolProvider tools = IntentTools.byIntent(classifier)
+        .source(allMcpTools)                              // 全量来源（如 MCP / AggregatingToolProvider）
+        .allow(Intent.LOGISTICS, "track_order", "query_logistics")
+        .allow(Intent.REFUND,    "create_refund", "query_refund")
+        .allowNone(Intent.CHITCHAT)                        // 寒暄：不暴露任何业务工具
+        .alwaysInclude("handoff_to_human")                 // 任何意图都保留人工转接
+        .fallbackAll()                                     // 未匹配意图：保留全量（或 .fallbackNone() / .fallback(set)）
+        .build();
+
+AiServices.builder(SupportAssistant.class).chatModel(model).toolProvider(tools).build();
+// 或 agentic：AgenticWorkflows.agentic(MyAgent.class).toolProvider(tools)...
+```
+
+**工具三态 + alwaysInclude**：
+
+| 情况 | 映射内容 | 暴露的工具 |
+|---|---|---|
+| 该意图有工具 | 非空集 | 该集合 ∪ `alwaysInclude` |
+| 该意图**显式无工具** | 空集（`allowNone`） | 仅 `alwaysInclude` |
+| 意图不在映射中 | 取 `fallback` | `fallbackAll()`=全量；`fallbackNone()`=仅 `alwaysInclude`；`fallback(set)`=指定集 ∪ `alwaysInclude` |
+
+始终叠加 `alwaysInclude`（如「转人工」工具），保证兜底路径不被裁掉。
+
+**与项目既有组件的关系**：全量来源可直接复用 `AggregatingToolProvider`（合并多个 `ToolProvider`）与 `AjMcpLangchain4jToolProvider`（MCP 工具）；本类与其正交——它们负责「凑齐全量」，本类负责「按意图裁剪」。挂载点：`AiServices.builder(...).toolProvider(...)` 与 `AgenticUntypedAgentBuilder.toolProvider(...)`（项目已有）。
+
+**避免重复识别与重复取工具（关键）**：`provideTools` 在每次 LLM 往返前都可能被调用（工具调用循环内一轮对话可多次），自 classify 会导致一轮对话重复分类；与编排叠加时用 `IntentTools.bySupplier(...)` 复用 scope 意图。且 `source.provideTools(request)`（尤其 MCP）可能较重，建议对同一用户轮次缓存全量工具结果。
+
+**与 LangChain4j 内置的取舍**：LangChain4j 有 `DecisionModelFilteringToolProvider`（用 decision model 过滤）与 `McpToolProvider` 的名称过滤。本类用「意图」这一**已被本组件算出**的分类结果做过滤，一份分类同时服务 RAG 与工具、可与阈值 / 兜底统一，且不额外引入 decision model；不替代它们，可组合使用（本类可作为 `DecisionModelFilteringToolProvider` 的上游）。
 
 ## 5. Spring 装配与配置
 
@@ -279,6 +346,9 @@ fw.plus.ai.intent:
 - 槽位透传与校验：组件只透传槽位，不做业务校验；订单号等关键槽位的存在性与归属校验由使用方完成（安全边界）。
 - 兜底语义：`CascadingIntentClassifier` 兜底 `intent=null`（`Source.FALLBACK`）；使用方自行映射为空意图动作（如转人工 / 默认话术）。
 - 意图来源为空 / 不检索：`IntentAwareContentRetriever` 的意图来源返回 `null`（未识别）时走 `fallback`；当目标为 `null`（`routeNone` / `fallbackNone`）时返回空 `List.of()`，不抛错、不触达任何知识库。
+- 工具来源失败：`IntentAwareToolProvider` 的 `source.provideTools(...)` 抛错时不得中断对话，按空工具集处理并记日志（全量/空由使用方在 `source` 侧决定）。
+- 工具裁剪为空：某意图映射为空集且无 `alwaysInclude` 时返回空工具集，LLM 以纯文本回答，不报错。
+- 工具名不存在：`allow` / `alwaysInclude` 指定的工具名在全量来源中不存在时静默忽略（不抛错），便于来源演进时不破坏装配。
 - 兼容性：整套组件新增在 `support/intent` 包内，不改任何既有类签名；`AutoConfiguration.imports` 仅追加新配置类；不触碰工作区既有未提交改动。
 
 ## 7. 测试与验收
@@ -290,17 +360,18 @@ fw.plus.ai.intent:
 5. **CascadingIntentClassifier**：短路顺序（rule → embedding → llm）、兜底 `FALLBACK`、未识别意图的贯通。
 6. **AgenticIntents + 条件编排**：复用 `AgenticPatternsTest` 的 `TypedConditionalAgent` 模式，断言 `AgenticIntents.is(...)` 谓词在 `AgenticWorkflows.conditional()` 下的分支路由与 `write` 的 state 形状。
 7. **IntentAwareContentRetriever**：按意图转发到对应检索器、`routeNone` 显式不检索返回空且不触达任何库、未匹配意图走 fallback（含 `fallbackNone` 与意图来源返回 `null`）、`classifying(...)` 自分类与 `supplied(...)` 复用两种意图来源的行为。
-8. **意图仅识别一次（叠加场景）**：条件编排 + `IntentAwareContentRetriever.supplied(...)` 组合下，用计数替身断言分类器每个问答只被调用一次。
-9. **装配冒烟**：`@SpringBootTest` 下 `IntentClassifierFactory` 注入、模型缺省降级、`IntentProperties` 绑定。
-10. **AI 层基线**：`SpringBoot3DependencyBaselineTest` 等既有基线用例保持通过。
+8. **IntentAwareToolProvider**：按意图只暴露对应工具名子集、`allowNone` 仅保留 `alwaysInclude`、未匹配走 `fallbackAll` / `fallbackNone` / `fallback(set)` 三态、`alwaysInclude` 始终叠加、`source` 抛错降级、未知工具名静默忽略。
+9. **意图仅识别一次（叠加场景）**：条件编排 + `IntentAwareContentRetriever.supplied(...)` / `IntentAwareToolProvider.bySupplier(...)` 组合下，用计数替身断言分类器每个问答只被调用一次。
+10. **装配冒烟**：`@SpringBootTest` 下 `IntentClassifierFactory` 注入、模型缺省降级、`IntentProperties` 绑定。
+11. **AI 层基线**：`SpringBoot3DependencyBaselineTest` 等既有基线用例保持通过。
 
-验收标准：级联短路行为与兜底语义按测试 1-5 固定；`conditional + is()` 的 agentic 链路端到端可用；`IntentAwareContentRetriever` 能挂入 `.contentRetriever(...)` 并按意图选库；新配置类出现在 `AutoConfiguration.imports` 且不影响既有装配；工作区既有未提交改动不被卷入提交。
+验收标准：级联短路行为与兜底语义按测试 1-5 固定；`conditional + is()` 的 agentic 链路端到端可用；`IntentAwareContentRetriever` 能挂入 `.contentRetriever(...)` 并按意图选库；`IntentAwareToolProvider` 能挂入 `.toolProvider(...)` 并按意图裁剪工具；新配置类出现在 `AutoConfiguration.imports` 且不影响既有装配；工作区既有未提交改动不被卷入提交。
 
 ## 8. 实施边界
 
 主要涉及：
 
-- `fw-plus-ai-boot-autoconfigure` 的 `.../langchain4j/support/intent/`（领域模型、三层实现、门面、桥接、RAG、装配、配置），以及 `AutoConfiguration.imports`、`spring.factories` 的增量注册。
+- `fw-plus-ai-boot-autoconfigure` 的 `.../langchain4j/support/intent/`（领域模型、三层实现、门面、桥接、RAG / 工具路由、装配、配置），以及 `AutoConfiguration.imports`、`spring.factories` 的增量注册。
 - `fw-plus-ai-boot-autoconfigure` 的 `src/test/java/.../support/intent/` 测试包。
 
 实现不应修改：`AgenticWorkflows`、`AgenticUntypedAgentBuilder`、`DifyContentRetriever`、`LangChain4jSupportAutoConfiguration`、既有 assistant/SSE 接口；不得把当前工作区已有的未提交改动（含 staged 删除与新增）纳入本次提交。
