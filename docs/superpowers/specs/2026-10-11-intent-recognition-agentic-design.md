@@ -126,8 +126,16 @@ public final class AgenticIntents {
 
     /** 指定 scope 键的谓词（多意图场景可自定义键）。 */
     public static <I extends Enum<I>> Predicate<AgenticScope> is(String scopeKey, I intent);
+
+    /**
+     * 意图来源 = 当前 agentic 作用域中已判定的意图（intent 键），供 RAG / 工具路由复用，
+     * 避免在检索/工具层重复分类。经 LangChain4jManaged.current(AgenticScope.class) 取当前 scope。
+     */
+    public static <I extends Enum<I>> IntentSupplier<I> scopeSupplier(Class<I> type);
 }
 ```
+
+**意图复用桥接（关键）**：`ToolProvider` / `ContentRetriever` 在 agentic 执行线程上被调用时，`AgenticScope` 已作为 `LangChain4jManaged` 挂在静态 ThreadLocal 上（`LangChain4jManaged.current(AgenticScope.class)`，由 `AgentInvocationHandler` 在 agent 调用期间 `setCurrent(...)` / `removeCurrent()` 维护）。因此 `scopeSupplier(...)` 能读到已写入的 `intent`，供 `IntentAwareContentRetriever.supplied(...)` / `IntentTools.bySupplier(...)` 复用，实现「一次问答只识别一次」。注意：该机制基于 ThreadLocal，`async(true)` 等跨线程场景可能取不到（此时回退为按 `userMessage()` 自分类）。另：agentic agent 本身实现 `AgenticScopeAccess.getAgenticScope(memoryId)`，持有 agent 句柄时也可按 `chatMemoryId()` 取 scope。
 
 ### 4.5 识别步骤 `IntentRecognitionStep<I>`
 
@@ -201,7 +209,7 @@ ContentRetriever rag = IntentRag.byIntent(classifier)
         .build();
 
 // 与编排叠加：意图复用（供 IntentAwareContentRetriever.supplied(...)），不重复识别
-ContentRetriever rag2 = IntentRag.bySupplier(() -> scopeIntent)
+ContentRetriever rag2 = IntentRag.bySupplier(AgenticIntents.scopeSupplier(SupportIntent.class))
         .route(Intent.LOGISTICS, logisticsRetriever)
         .routeNone(Intent.HUMAN)
         .fallbackNone()
@@ -224,7 +232,7 @@ ContentRetriever rag2 = IntentRag.bySupplier(() -> scopeIntent)
 
 - **优先形态 2（编排层）**：意图判定一次并写入 scope，各分支 agent 静态绑定 `.contentRetriever(...)`，检索阶段不判意图，零重复。
 - **形态 1 独用**（不经编排）：用 `classifying(...)`，此时分类宜为规则 / Embedding 层，或对同一请求的意图结果加缓存，避免每次检索都跑 LLM。
-- **叠加使用**：用 `supplied(...)` 复用外部（编排步骤 / 上下文）已判定的意图，保证一次问答只识别一次。
+- **叠加使用**：用 `supplied(AgenticIntents.scopeSupplier(MyIntent.class), ...)` 直接读当前 agentic 作用域已判定的意图（见 §4.4 桥接），保证一次问答只识别一次。
 
 `IntentSupplier` 返回 `null` 时视为未命中，走 `fallback`。
 
@@ -287,7 +295,7 @@ AiServices.builder(SupportAssistant.class).chatModel(model).toolProvider(tools).
 
 **与项目既有组件的关系**：全量来源可直接复用 `AggregatingToolProvider`（合并多个 `ToolProvider`）与 `AjMcpLangchain4jToolProvider`（MCP 工具）；本类与其正交——它们负责「凑齐全量」，本类负责「按意图裁剪」。挂载点：`AiServices.builder(...).toolProvider(...)` 与 `AgenticUntypedAgentBuilder.toolProvider(...)`（项目已有）。
 
-**避免重复识别与重复取工具（关键）**：`provideTools` 在每次 LLM 往返前都可能被调用（工具调用循环内一轮对话可多次），自 classify 会导致一轮对话重复分类；与编排叠加时用 `IntentTools.bySupplier(...)` 复用 scope 意图。且 `source.provideTools(request)`（尤其 MCP）可能较重，建议对同一用户轮次缓存全量工具结果。
+**避免重复识别与重复取工具（关键）**：`provideTools` 在每次 LLM 往返前都可能被调用（工具调用循环内一轮对话可多次），自 classify 会导致一轮对话重复分类；与编排叠加时用 `IntentTools.bySupplier(AgenticIntents.scopeSupplier(MyIntent.class))` 复用 scope 意图（见 §4.4 桥接），不重复分类。且 `source.provideTools(request)`（尤其 MCP）可能较重，建议对同一用户轮次缓存全量工具结果。
 
 **与 LangChain4j 内置的取舍**：LangChain4j 有 `DecisionModelFilteringToolProvider`（用 decision model 过滤）与 `McpToolProvider` 的名称过滤。本类用「意图」这一**已被本组件算出**的分类结果做过滤，一份分类同时服务 RAG 与工具、可与阈值 / 兜底统一，且不额外引入 decision model；不替代它们，可组合使用（本类可作为 `DecisionModelFilteringToolProvider` 的上游）。
 
