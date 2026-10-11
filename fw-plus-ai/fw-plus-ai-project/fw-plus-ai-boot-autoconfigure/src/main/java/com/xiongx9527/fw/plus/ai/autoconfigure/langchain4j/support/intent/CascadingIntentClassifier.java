@@ -17,6 +17,24 @@ import java.util.List;
  * <p>{@code minConfidence} 是级联层的额外安全网：层级自身可返回命中结果，但若置信度低于该值
  * 仍会被继续向下尝试。</p>
  *
+ * <p>用法示例：</p>
+ * <pre>{@code
+ * // 规则 → 向量 → 大模型，首个「命中且达标」的结果短路返回
+ * IntentClassifier<MyIntent> classifier = IntentClassifiers.cascading(
+ *         IntentClassifiers.rule(IntentRule.of(MyIntent.HUMAN, "转人工")),
+ *         IntentClassifiers.embedding(embeddingModel, examples),
+ *         IntentClassifiers.llm(intentLlm, MyIntent.class));
+ *
+ * // 级联层额外安全网：低于 0.5 的命中继续向下尝试
+ * IntentClassifier<MyIntent> guarded = IntentClassifiers.cascading(
+ *         0.5d,
+ *         IntentClassifiers.rule(IntentRule.of(MyIntent.HUMAN, "转人工")),
+ *         IntentClassifiers.embedding(embeddingModel, examples));
+ *
+ * IntentResult<MyIntent> result = classifier.classify(IntentContext.of("我的包裹到哪了"));
+ * // 全部层级未置信时 result.matched() == false，source=FALLBACK
+ * }</pre>
+ *
  * @param <I> 使用方自定义的意图枚举类型
  */
 public final class CascadingIntentClassifier<I extends Enum<I>> implements IntentClassifier<I> {
