@@ -85,6 +85,14 @@ public class EphemeralChatMemory implements ChatMemory {
 
         int lastUserIndex = lastUserIndex(stored);
 
+        // langchain4j 的 AiServices 在「一轮开始」时先调用 messages()，再调用 add(本轮 UserMessage)：
+        // 因此此刻 store 中还没有本轮用户消息 —— 最后一条 USER 属于上一轮，其后的 AI 是上一轮被策略沉淀的最终回答，
+        // 不能被当作「本轮输出」丢弃。仅当「最后一条 USER 之后出现工具调用往返」时，才说明已处于工具循环中途
+        //（此时 store 已含本轮用户消息与工具往返），需要按「当前轮」规则过滤；否则直接回放持久历史。
+        if (!hasToolRoundTripAfter(stored, lastUserIndex)) {
+            return buildDurableHistory(stored);
+        }
+
         List<ChatMessage> sendable = new ArrayList<>(stored.size());
         for (int i = 0; i < stored.size(); i++) {
             ChatMessage message = stored.get(i);
@@ -287,6 +295,30 @@ public class EphemeralChatMemory implements ChatMemory {
             }
         }
         return -1;
+    }
+
+    /**
+     * 判断「最后一条用户消息」之后是否出现了工具调用往返。
+     *
+     * <p>langchain4j 的 {@code AiServices} 在「一轮开始」时先调用 {@link #messages()}、再调用
+     * {@link #add(ChatMessage)} 追加本轮 {@link UserMessage}，且只在工具循环中途会再次读取
+     * {@link #messages()}。因此可用「最后一条 USER 之后是否为工具往返」区分：</p>
+     * <ul>
+     *   <li>{@code false}：store 只含持久历史，最后一条 USER 属于上一轮，其后的 AI 是上一轮沉淀输出；</li>
+     *   <li>{@code true}：已处于工具循环中途，最后一条 USER 是当前轮，其后的工具请求/结果需要按「当前轮」规则处理。</li>
+     * </ul>
+     */
+    private static boolean hasToolRoundTripAfter(List<ChatMessage> stored, int lastUserIndex) {
+        for (int i = lastUserIndex + 1; i < stored.size(); i++) {
+            ChatMessage message = stored.get(i);
+            if (message.type() == ChatMessageType.TOOL_EXECUTION_RESULT) {
+                return true;
+            }
+            if (message.type() == ChatMessageType.AI && ((AiMessage) message).hasToolExecutionRequests()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** 去掉 user message 尾部由 injector 拼入的临时检索段。 */

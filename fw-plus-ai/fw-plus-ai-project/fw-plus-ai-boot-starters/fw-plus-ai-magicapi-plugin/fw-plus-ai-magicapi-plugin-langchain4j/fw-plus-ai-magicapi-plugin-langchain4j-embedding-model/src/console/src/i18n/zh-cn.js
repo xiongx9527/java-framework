@@ -28,9 +28,7 @@ export default {
             embeddingModelKey: '选择或输入已启用的向量模型 key'
         },
         provider: {
-            'all-minilm': '内置 All-MiniLM',
             'azure-openai': 'Azure OpenAI',
-            'bge-small': '内置 BGE Small',
             'github-models': 'GitHub Models',
             'google-ai-gemini': 'Google AI Gemini',
             'hugging-face': 'Hugging Face',
@@ -41,6 +39,16 @@ export default {
             'qwen': '通义千问',
             'voyage-ai': 'Voyage AI',
             'zhipu-ai': '智谱 AI',
+            'cohere': 'Cohere',
+            'google-genai': 'Google Gen AI',
+            'jina': 'Jina AI',
+            'mistral-ai': 'Mistral AI',
+            'nomic': 'Nomic',
+            'openai-official': 'OpenAI 官方 SDK',
+            'ovh-ai': 'OVH AI',
+            'watsonx': 'IBM watsonx',
+            'workers-ai': 'Cloudflare Workers AI',
+            'xinference': 'Xinference',
         },
         field: {
             'access-token': '访问令牌',
@@ -70,6 +78,13 @@ export default {
             'user': '用户标识',
             'wait-for-model': '等待模型就绪',
             'write-timeout': '写入超时',
+            'account-id': '账户 ID',
+            'api-token': 'API Token',
+            'late-chunking': '延迟分块',
+            'location': '区域',
+            'output-dimensionality': '输出维度',
+            'project-id': '项目 ID',
+            'task-type': '任务类型',
         }
     }
 }

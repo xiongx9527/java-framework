@@ -4,6 +4,9 @@ import dev.langchain4j.agentic.agent.AgentBuilder;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.rag.RetrievalAugmentor;
+import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.service.tool.ToolProvider;
 
 /**
@@ -22,6 +25,12 @@ public final class AgenticTypedAgentBuilder<T> {
 
     public AgenticTypedAgentBuilder<T> chatModel(ChatModel chatModel) {
         delegate.chatModel(chatModel);
+        return this;
+    }
+
+    /** 流式模型：接口方法返回 {@code TokenStream} 时逐段推送（编排流式前提）。 */
+    public AgenticTypedAgentBuilder<T> streamingChatModel(StreamingChatModel streamingChatModel) {
+        delegate.streamingChatModel(streamingChatModel);
         return this;
     }
 
@@ -62,6 +71,18 @@ public final class AgenticTypedAgentBuilder<T> {
 
     public AgenticTypedAgentBuilder<T> maxToolCallingRoundTrips(int maxToolCallingRoundTrips) {
         delegate.maxToolCallingRoundTrips(maxToolCallingRoundTrips);
+        return this;
+    }
+
+    /** 高级 RAG 管线：自定义检索/排序/增强策略。 */
+    public AgenticTypedAgentBuilder<T> retrievalAugmentor(RetrievalAugmentor retrievalAugmentor) {
+        delegate.retrievalAugmentor(retrievalAugmentor);
+        return this;
+    }
+
+    /** 简化 RAG：直接指定内容检索器（框架内部组装默认 RetrievalAugmentor）。 */
+    public AgenticTypedAgentBuilder<T> contentRetriever(ContentRetriever contentRetriever) {
+        delegate.contentRetriever(contentRetriever);
         return this;
     }
 

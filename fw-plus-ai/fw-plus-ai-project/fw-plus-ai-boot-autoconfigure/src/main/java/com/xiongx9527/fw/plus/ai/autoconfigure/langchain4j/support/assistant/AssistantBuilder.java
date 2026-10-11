@@ -169,7 +169,7 @@ public class AssistantBuilder {
 	/** 工具参数错误处理器：缺参/绑定失败回给 LLM 的策略（fork 原生扩展点，缺省用内置默认：缺参反问、格式错修正重试） */
 	private ToolArgumentsErrorHandler toolArgumentsErrorHandler = DEFAULT_ARGUMENTS_ERROR_HANDLER;
 
-	/** 工具执行期业务异常处理器：fork 原生扩展点；缺省不配置（fork 同步默认把异常消息回给 LLM） */
+	/** 工具执行期业务异常处理器：fork 原生扩展点；缺省（{@code null}）时由装配阶段补显式默认（把异常消息回给 LLM） */
 	private ToolExecutionErrorHandler toolExecutionErrorHandler;
 
 	private RetrievalAugmentor retrievalAugmentor;
@@ -366,9 +366,10 @@ public class AssistantBuilder {
 	/**
 	 * 工具执行期业务异常处理：工具方法内部抛出的异常如何回文本给 LLM，
 	 * 由 fork 原生 {@code AiServices.toolExecutionErrorHandler(...)} 槽位承接。
-	 * 不配置时用 fork 同步默认（把异常消息回给 LLM，等价 dev 的 LlmVisible 语义）。
+	 * 不配置时装配阶段会补上显式默认 {@link ToolExecutionErrorHandler#sendExceptionMessageToLlm()}
+	 * （把异常消息回给 LLM，等价 fork 现行隐式默认）。
 	 *
-	 * @param handler fork 原生 {@link ToolExecutionErrorHandler}；传 {@code null} 恢复 fork 默认
+	 * @param handler fork 原生 {@link ToolExecutionErrorHandler}；传 {@code null} 恢复装配阶段显式默认
 	 */
 	public AssistantBuilder toolExecutionErrorHandler(ToolExecutionErrorHandler handler) {
 		this.toolExecutionErrorHandler = handler;
@@ -667,10 +668,17 @@ public class AssistantBuilder {
 		if (!effectiveToolProviders.isEmpty()) {
 			builder.toolProviders(effectiveToolProviders);
 		}
-		// 原生扩展点透传：参数错误缺省内置默认（缺参反问/格式错修正），工具执行期业务异常缺省 fork 默认（消息回 LLM）
+		// 原生扩展点透传：参数错误缺省内置默认（缺参反问/格式错修正）；
+		// 工具执行期业务异常：未显式配置时也显式设为「把异常消息回给 LLM」——该值等价
+		// langchain4j 现行隐式默认，显式设置既锁定语义、又消除 ToolErrorHandlingNotice 告警
+		// （其默认值未来会改为 failInvocationUnlessVisibleToLlm，显式固定可避免升级时的破坏性变更）。
 		builder.toolArgumentsErrorHandler(toolArgumentsErrorHandler);
+		boolean hasTools = !tools.isEmpty() || !effectiveToolProviders.isEmpty();
 		if (toolExecutionErrorHandler != null) {
 			builder.toolExecutionErrorHandler(toolExecutionErrorHandler);
+		}
+		else if (hasTools) {
+			builder.toolExecutionErrorHandler(ToolExecutionErrorHandler.sendExceptionMessageToLlm());
 		}
 		RetrievalAugmentor augmentor = resolveRetrievalAugmentor();
 		if (augmentor != null) {

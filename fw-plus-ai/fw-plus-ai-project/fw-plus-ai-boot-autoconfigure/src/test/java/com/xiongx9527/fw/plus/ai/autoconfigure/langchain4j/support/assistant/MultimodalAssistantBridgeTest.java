@@ -11,7 +11,6 @@ import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
-import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.rag.AugmentationRequest;
@@ -35,6 +34,7 @@ import java.util.function.Function;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -135,7 +135,7 @@ class MultimodalAssistantBridgeTest {
 	@SuppressWarnings("unchecked")
 	@Test
 	void mediaRoundBypassesInnerAndWritesPlaceholderToMemory() {
-		when(chatModel.chat(any(ChatRequest.class))).thenReturn(
+		when(chatModel.chat(anyList())).thenReturn(
 				ChatResponse.builder().aiMessage(AiMessage.from("好看")).build());
 		Map<String, Object> context = new LinkedHashMap<>();
 		context.put("a", 1);
@@ -145,9 +145,9 @@ class MultimodalAssistantBridgeTest {
 		assertThat(reply).isEqualTo("好看");
 		verifyNoInteractions(inner);
 
-		ArgumentCaptor<ChatRequest> requestCaptor = ArgumentCaptor.forClass(ChatRequest.class);
+		ArgumentCaptor<List<ChatMessage>> requestCaptor = ArgumentCaptor.forClass(List.class);
 		verify(chatModel).chat(requestCaptor.capture());
-		List<ChatMessage> sent = requestCaptor.getValue().messages();
+		List<ChatMessage> sent = requestCaptor.getValue();
 		assertThat(sent).hasSize(1);
 		List<Content> sentContents = ((UserMessage) sent.get(0)).contents();
 		assertThat(sentContents).hasSize(3);
@@ -165,16 +165,16 @@ class MultimodalAssistantBridgeTest {
 	@SuppressWarnings("unchecked")
 	@Test
 	void mediaRoundAddsSystemMessageToMemoryAndMessages() {
-		when(chatModel.chat(any(ChatRequest.class))).thenReturn(
+		when(chatModel.chat(anyList())).thenReturn(
 				ChatResponse.builder().aiMessage(AiMessage.from("答")).build());
 		Function<Object, String> systemMessageProvider = memoryId -> "系统人设";
 
 		new MultimodalAssistantBridge(inner, chatModel, streamingModel, memoryProvider,
 				systemMessageProvider, null).chat("m", null, media());
 
-		ArgumentCaptor<ChatRequest> requestCaptor = ArgumentCaptor.forClass(ChatRequest.class);
+		ArgumentCaptor<List<ChatMessage>> requestCaptor = ArgumentCaptor.forClass(List.class);
 		verify(chatModel).chat(requestCaptor.capture());
-		List<ChatMessage> sent = requestCaptor.getValue().messages();
+		List<ChatMessage> sent = requestCaptor.getValue();
 		assertThat(sent).hasSize(2);
 		assertThat(sent.get(0)).isEqualTo(SystemMessage.from("系统人设"));
 		assertThat(sent.get(1)).isInstanceOf(UserMessage.class);
@@ -201,7 +201,7 @@ class MultimodalAssistantBridgeTest {
 			handler.onPartialResponse("好");
 			handler.onCompleteResponse(ChatResponse.builder().aiMessage(AiMessage.from("你好")).build());
 			return null;
-		}).when(streamingModel).chat(any(ChatRequest.class), any(StreamingChatResponseHandler.class));
+		}).when(streamingModel).chat(anyList(), any(StreamingChatResponseHandler.class));
 		List<String> tokens = new ArrayList<>();
 		AtomicReference<String> done = new AtomicReference<>();
 
@@ -221,7 +221,7 @@ class MultimodalAssistantBridgeTest {
 	@SuppressWarnings("unchecked")
 	@Test
 	void mediaRoundWithRagInjectsRetrievedTextAsReference() {
-		when(chatModel.chat(any(ChatRequest.class))).thenReturn(
+		when(chatModel.chat(anyList())).thenReturn(
 				ChatResponse.builder().aiMessage(AiMessage.from("答")).build());
 		when(retrievalAugmentor.augment(any(AugmentationRequest.class))).thenReturn(
 				new AugmentationResult(UserMessage.from("看这张图"),
@@ -230,9 +230,9 @@ class MultimodalAssistantBridgeTest {
 		new MultimodalAssistantBridge(inner, chatModel, streamingModel, memoryProvider,
 				null, retrievalAugmentor).chat("m", null, media());
 
-		ArgumentCaptor<ChatRequest> requestCaptor = ArgumentCaptor.forClass(ChatRequest.class);
+		ArgumentCaptor<List<ChatMessage>> requestCaptor = ArgumentCaptor.forClass(List.class);
 		verify(chatModel).chat(requestCaptor.capture());
-		List<Content> sentContents = ((UserMessage) requestCaptor.getValue().messages().get(0)).contents();
+		List<Content> sentContents = ((UserMessage) requestCaptor.getValue().get(0)).contents();
 		assertThat(sentContents).hasSize(3);
 		assertThat(((TextContent) sentContents.get(0)).text()).isEqualTo("检索资料段");
 		assertThat(((TextContent) sentContents.get(1)).text()).isEqualTo("看这张图");

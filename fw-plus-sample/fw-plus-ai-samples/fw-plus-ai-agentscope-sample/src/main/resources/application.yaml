@@ -1,0 +1,26 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: fw-plus-ai-agentscope-sample
+  autoconfigure:
+    exclude:
+      # 本样例只验证 AgentScope 集成；Magic-API 插件装配依赖使用方按需引入的 magic-api core
+      - com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration
+
+agentscope:
+  agent:
+    # 条件装配总开关：AgentscopeAutoConfiguration 中 Memory / Toolkit / ReActAgent 均要求开启
+    enabled: true
+    name: agentscope-sample
+    sys-prompt: >
+      You are a helpful AI assistant. When asked for information you cannot know on your
+      own, use the available tools (e.g. get_magic_number) and report the result.
+    max-iters: 10
+
+sample:
+  agentscope:
+    ollama:
+      base-url: http://192.168.1.100:11434
+      model-name: gpt-oss:120b-cloud

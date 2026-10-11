@@ -29,10 +29,7 @@ export default {
         },
         provider: {
             'azure-openai': 'Azure OpenAI',
-            'local-ai': 'LocalAI',
-            'ollama': 'Ollama',
             'openai': 'OpenAI',
-            'qianfan': '百度千帆',
             'qwen': '通义千问',
         },
         field: {

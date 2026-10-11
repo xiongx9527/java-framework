@@ -1,7 +1,8 @@
 # fw-plus-ai-chat-sample
 
-大模型对话样例：**Ollama 本地模型 + 远程知识库接口（RAG）+ 天气工具调用 + SSE 流式**，
-并以三套技术栈等价实现同一组对话能力（LangChain4j / Spring AI / Spring AI Alibaba），便于横向对比。
+大模型对话样例：**Ollama 本地模型 + 远程知识库接口（RAG）+ 天气工具调用 + SSE 流式 +
+Agentic 智能体编排**，并以三套技术栈等价实现同一组对话能力（LangChain4j / Spring AI /
+Spring AI Alibaba），便于横向对比。
 
 一次请求的完整链路（LangChain4j 原链路）：
 
@@ -13,7 +14,15 @@ POST /api/chat
   → { reply, toolCalls }
 ```
 
-三套链路的端点与差异见 [三套对话链路](#三套对话链路)。
+Agentic 链路（langchain4j-agentic 编排门面，`/api/chat/agentic/*`；其中 `/map` 无需模型即可跑）：
+
+```
+POST /api/chat/agentic/map
+  → AgenticWorkflows.parallelMapper 编排：items 列表逐项并行映射
+  → [a, b, c] → [A, B, C]
+```
+
+三套链路的端点与差异见 [三套对话链路](#三套对话链路)；Agentic 示例详见 [Agentic 智能体编排](#agentic-智能体编排)。
 
 ## 前置条件
 
@@ -62,6 +71,27 @@ curl -X POST localhost:8081/api/chat/alibaba -H 'Content-Type: application/json'
      -d '{"message":"用一句话介绍杭州","sessionId":"demo-1"}'
 curl -N localhost:8081/api/chat/alibaba/stream -H 'Content-Type: application/json' \
      -d '{"message":"用一句话介绍杭州","sessionId":"demo-1"}'
+
+# Agentic 编排（离线可跑的模式无需模型；其余在本机 Ollama 可用时跑通）
+curl -X POST localhost:8081/api/chat/agentic/map -H 'Content-Type: application/json' \
+     -d '{"items":["a","b","c"]}'
+# {"pipeline":"item-map","items":["a","b","c"],"results":["A","B","C"]}
+curl -X POST localhost:8081/api/chat/agentic/conditional-offline -H 'Content-Type: application/json' \
+     -d '{"mode":"upper","item":"hello"}'
+# {"pattern":"conditional-offline","result":"HELLO"}
+curl -X POST localhost:8081/api/chat/agentic/graph
+# {"pattern":"graph","result":"HELLO!"}
+curl -X POST localhost:8081/api/chat/agentic/observability
+# {"pattern":"observability","result":"OBSERVE / agent 调用次数=1"}
+curl -X POST localhost:8081/api/chat/agentic/tool-provider
+# {"pattern":"tool-provider","result":"[X, Y]"}
+curl -X POST localhost:8081/api/chat/agentic/supervisor -H 'Content-Type: application/json' \
+     -d '{"message":"用一句话介绍杭州"}'
+# {"pipeline":"supervisor","reply":"..."}
+curl localhost:8081/api/chat/agentic/pipelines
+# {"keys":["item-map"]}
+curl localhost:8081/api/chat/agentic/patterns
+# {"offline":[...],"modelRequired":[...]}
 ```
 
 `toolCalls` 为本次请求中天气工具被调用的次数，可直观验证"模型自主决定是否调用工具"。
@@ -99,6 +129,53 @@ user message（不进 system、不落会话记忆），并随 `ChatResponse.meta
 - **已设置 → 链路可用**（`enabled` 取值为 key 本身，非 `"false"` 即启用）。
 
 Spring AI 链路复用本机 Ollama（`spring.ai.ollama.*`），无需额外配置。
+
+## Agentic 智能体编排
+
+样例同时演示 langchain4j-agentic 的多智能体编排能力（`agentic/` 包，统一入口为框架门面
+`AgenticWorkflows`）。编排遵循**「构建与执行分离」**：装配阶段只构建编排（不触达模型与网络），
+只有端点被调用时才 `invoke(...)` 真正请求模型。**每个模式都有一个可运行案例**——由
+`AgenticWorkflowsDemo` 的 `runXxx` 方法承载，并经下面的端点暴露；样例测试与端点共用同一份案例代码。
+
+| 端点 | 模式 | 使用场景 | 是否需要模型 |
+|---|---|---|---|
+| `POST /api/chat/agentic/map` | parallelMapper：items 列表逐项并行映射 | 对一批同类元素做同一种处理（列表逐项映射 / 批量抽取） | 否 |
+| `POST /api/chat/agentic/conditional-offline` | conditional：按 mode 路由到大小写映射（非 AI 分支） | 按运行期状态在分支间择一（此处用非 AI 分支，演示离线形态） | 否 |
+| `POST /api/chat/agentic/human-in-the-loop` | human-in-the-loop：挂入 sequence 的人工响应节点 | 流程中需要人工审批 / 补充 / 确认后才能继续 | 否 |
+| `POST /api/chat/agentic/graph` | graph：langgraph4j StateGraph 建图 → 编译 → 执行 | 流程是有向图（条件边 / 环 / 分支汇聚），需显式图结构或挂为工具 | 否 |
+| `POST /api/chat/agentic/observability` | observability：给编排挂 `AgentListener` 计数 | 需要观测 / 审计每次 agent 调用的输入输出、耗时、失败 | 否 |
+| `POST /api/chat/agentic/tool-provider` | agent-as-tool：编排包装为 `ToolProvider` 并执行 | 把整条编排当作工具交给上层模型自主决定何时调用 | 否 |
+| `GET /api/chat/agentic/pipelines` | 编排注册中心（`AgenticPipelineRegistry`）的 key 全集 | 多条编排需统一注册 / 按 key 查找复用 | 否 |
+| `GET /api/chat/agentic/patterns` | 全部模式案例索引（离线 / 需模型两组） | 一眼看清有哪些模式、哪些能离线跑 | 否 |
+| `POST /api/chat/agentic/typed-agent` | 单 agent（typed）：`EchoAgent.echo` | agent 有稳定输入输出契约（接口 + `@Agent`），要类型安全且可复用 | 是（本机 Ollama） |
+| `POST /api/chat/agentic/untyped-agent` | 单 agent（untyped）：读 question → answer | 只要「一个提示词 + 一个输出键」，或运行期动态拼装 | 是 |
+| `POST /api/chat/agentic/sequence` | sequence：抽取 → 回答 | 步骤与顺序都已知的固定流水线 | 是 |
+| `POST /api/chat/agentic/loop` | loop：反复回答直到以「。」结尾或达上限 | 反复迭代同一 agent 直到满足退出条件（而非固定步数） | 是 |
+| `POST /api/chat/agentic/conditional` | conditional：按 intent 路由到回答 / 回显分支 | 按运行期状态（意图、分类、标记）在分支间择一 | 是 |
+| `POST /api/chat/agentic/parallel` | parallel：翻译与宣传语并行产出 | 多个互不依赖的子任务并行以缩短总耗时 | 是 |
+| `POST /api/chat/agentic/supervisor` | supervisor：监督者自主挑选并调用 subAgents，汇总答复 | 不确定调哪些 agent、什么顺序，交给监督者模型自主决策调度 | 是 |
+| `POST /api/chat/agentic/planner` | planner：Planner LLM 自主编排 agents 执行 | 同 supervisor，但更强调显式规划，适合多步骤、有依赖的自主编排 | 是 |
+| `POST /api/chat/agentic/declarative` | 声明式 `createAgenticSystem`：注解声明的顺序系统 | 整条编排可用注解静态声明，「接口即系统」、少样板 | 是 |
+
+`AgenticWorkflowsDemo` 同时是全模式构建演示（构建即文档）：scope store 接入、typed / untyped 单 agent、
+sequence / loop / conditional / parallel / parallelMapper 五种编排、supervisor / planner、
+human-in-the-loop（可作 subAgent 挂入编排）、声明式 `createAgenticSystem`、A2A 远程 agent、
+编排注册中心与 agent-as-tool（`ToolProvider` 包装）。其中两类「进程级/基础设施」模式不做执行端点、
+以 demo 方法承载：**scope store**（全局接入 `AgenticScopePersister` + 反序列化白名单，见
+`scopeStoreDemo`）、**A2A**（需远程 A2A 服务端，样例只演示配置阶段——构建不触网，`build()` 才连接服务端）。
+
+```bash
+# 离线可跑的模式（无需模型），端点共用 runXxx 案例代码
+curl -X POST localhost:8081/api/chat/agentic/conditional-offline -H 'Content-Type: application/json' \
+     -d '{"mode":"upper","item":"hello"}'      # → {"pattern":"conditional-offline","result":"HELLO"}
+curl -X POST localhost:8081/api/chat/agentic/graph             # → {"pattern":"graph","result":"HELLO!"}
+curl -X POST localhost:8081/api/chat/agentic/observability     # → {"pattern":"observability","result":"OBSERVE / agent 调用次数=1"}
+curl -X POST localhost:8081/api/chat/agentic/tool-provider     # → {"pattern":"tool-provider","result":"[X, Y]"}
+curl -X POST localhost:8081/api/chat/agentic/human-in-the-loop # → {"pattern":"human-in-the-loop","result":"人工响应"}
+```
+
+完整 API 使用全过程（含依赖坐标、scope 语义、每种编排的构建参数与执行方式）见
+`docs/langchain4j-agentic-guide.md`。
 
 ## 系统提示（systemMessageProvider）
 
@@ -289,6 +366,9 @@ Content-Type: application/json
 | `springai/AiPersistenceStrategy` | AI 消息持久化策略（Spring AI `Message` 版）：`DROP_ALL_AI` / 默认 `PERSIST_NON_TOOL_FINAL_ANSWER` 等内置策略 |
 | `ai/RagAutoConfig` | 知识库 Bean 装配（按 `base-url` 条件启用） |
 | `web/ChatController` | `POST /api/chat` 与 `POST /api/chat/stream`（SSE） |
+| `agentic/AgenticWorkflowsDemo` | Agentic 全模式构建演示 + 每模式 `runXxx` 可执行案例（scope store / 单 agent / 五大编排 / supervisor / planner / HITL / 声明式 / A2A / graph / observability / 注册中心 / agent-as-tool） |
+| `agentic/AgenticDemoConfig` | Agentic Spring 装配：`AgenticPipelineRegistry` + parallelMapper 编排（key=`item-map`）+ supervisor 编排（复用 `chatModel`）+ `ToolProvider` 包装 |
+| `agentic/AgenticController` | 唯一 agentic 控制器（`/api/chat/agentic/*`）：`/patterns` 索引 + 全部模式案例端点（`/map`、`/supervisor` 直用装配 Bean，其余走 `runXxx`）；离线模式开箱可跑 |
 | `springai/SpringAiChatController` | `POST /api/chat/spring-ai` 与 `/stream`（SSE） |
 | `springai/SpringAiChatService` | Spring AI 链路服务层：系统提示、工具、SSE 推流（RAG 由 ChatClient 默认 Advisor 承担） |
 | `springai/SpringAiChatConfig` | Spring AI（Ollama）链路装配：ChatClient / ChatMemory / 检索器与 RAG Advisor / 服务 Bean |
@@ -298,7 +378,7 @@ Content-Type: application/json
 ## 约束
 
 - Tab 缩进；不使用 `var` / 文本块（本分支为 springboot3：JDK 17、Spring Boot 3.5.8，构建需 JDK 17）。
-- langchain4j 解析版本为 1.20.2（0.35.0 为 dev 分支基线）。
+- langchain4j 解析版本为 1.22.0（agentic 编排依赖 `langchain4j-agentic` 1.22.0-beta32，由 AI 层 BOM 统一管理；两套版本配套解析）。
 - 本工作区禁改依赖版本，`org.ssssssss` 组依赖禁止升版。
 
 ## 测试
@@ -315,4 +395,5 @@ JAVA_HOME=$(/usr/libexec/java_home -v 17) ./fw-plus-core/mvnw \
   `SpringAiChatServiceTest` 另以桩模型端到端验证原生 Advisor 形态：检索结果注入本轮 user message、不进 system、不落会话记忆、空检索保持原文、流式链路同样执行检索。
 - `springai/EphemeralChatMemoryTest`（8 用例，纯单元不起 Spring）模拟 `MessageChatMemoryAdvisor` 的真实时序（先 `get` 再 `add(user)`、after `add(ai)`），覆盖：默认策略沉淀与读取/持久两视图一致、工具往返整轮不沉淀、`DROP_ALL_AI`、空白回复不沉淀、历史检索段剥离（后缀分隔符与官方 `ContextualQueryAugmenter` 前缀模板两种形态）、当前轮工具消息开关、`includeCurrentUserWithEphemeral` 对最后一条 user 的控制。
 - `springai/SpringAiChatObservationLoggingTest` 验证官方 observation 监听日志（`spring.ai.chat.observations.log-prompt/log-completion` 开关）：handler 注册、prompt 与回复内容日志触发。
-- **基线临时排除**：pom 中 `maven-compiler-plugin` 的 `testExcludes` 排除了 6 个存量测试——5 个针对 langchain4j 0.35.0 API 编写、在本分支（langchain4j 1.20.2）编译失败，另 1 个（`ai/EphemeralChatMemoryTest`，glob 已收窄到 `ai/` 包）断言的 `EphemeralChatMemory` 行为与当前实现不一致；修复归属进行中的 streaming-thinking-events change，此处仅恢复 `mvn test` 可执行性，未改动任何存量测试文件。`springai/` 包的 Spring AI 版同名 `EphemeralChatMemoryTest` 不在排除范围，照常执行（当前全量 58 个测试通过）。
+- `agentic/AgenticWorkflowsSampleTest` 无模型回归（离线可跑，8 用例）：parallelMapper 端到端（`[a,b,c] → [A,B,C]`）、human-in-the-loop 挂入 sequence、注册中心 register/keys/get/contains、按 key 包装 ToolProvider、conditional 离线路由（upper/lower）、graph（StateGraph 建图→编译→执行，`hello → HELLO!`）、observability（AgentListener 计数）、agent-as-tool 执行（包装后的编排经 ToolProvider 跑通）——断言形态与 `fw-plus-ai-boot-autoconfigure` 的 `AgenticPatternsTest` / `AgenticToolProviderTest` 一致；supervisor/planner/声明式等依赖大模型的模式由 main 代码与端点承载。
+- **基线临时排除**：pom 中 `maven-compiler-plugin` 的 `testExcludes` 排除了 6 个存量测试——5 个针对 langchain4j 0.35.0 API 编写、在本分支（langchain4j 1.20.2）编译失败，另 1 个（`ai/EphemeralChatMemoryTest`，glob 已收窄到 `ai/` 包）断言的 `EphemeralChatMemory` 行为与当前实现不一致；修复归属进行中的 streaming-thinking-events change，此处仅恢复 `mvn test` 可执行性，未改动任何存量测试文件。`springai/` 包的 Spring AI 版同名 `EphemeralChatMemoryTest` 不在排除范围，照常执行（当前 `mvn test` 全量 56 个测试通过：48 存量 + 新增 agentic 8）。

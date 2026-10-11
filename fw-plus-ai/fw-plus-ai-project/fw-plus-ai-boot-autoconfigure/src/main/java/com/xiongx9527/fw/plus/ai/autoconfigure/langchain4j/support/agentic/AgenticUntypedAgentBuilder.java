@@ -5,6 +5,9 @@ import dev.langchain4j.agentic.agent.UntypedAgentBuilder;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.rag.RetrievalAugmentor;
+import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.service.tool.ToolProvider;
 
 /**
@@ -21,6 +24,12 @@ public final class AgenticUntypedAgentBuilder {
 
     public AgenticUntypedAgentBuilder chatModel(ChatModel chatModel) {
         delegate.chatModel(chatModel);
+        return this;
+    }
+
+    /** 流式模型：配合 {@link #returnType} 为 {@code TokenStream} 的 untyped agent 使用。 */
+    public AgenticUntypedAgentBuilder streamingChatModel(StreamingChatModel streamingChatModel) {
+        delegate.streamingChatModel(streamingChatModel);
         return this;
     }
 
@@ -61,6 +70,18 @@ public final class AgenticUntypedAgentBuilder {
 
     public AgenticUntypedAgentBuilder maxToolCallingRoundTrips(int maxToolCallingRoundTrips) {
         delegate.maxToolCallingRoundTrips(maxToolCallingRoundTrips);
+        return this;
+    }
+
+    /** 高级 RAG 管线：自定义检索/排序/增强策略。 */
+    public AgenticUntypedAgentBuilder retrievalAugmentor(RetrievalAugmentor retrievalAugmentor) {
+        delegate.retrievalAugmentor(retrievalAugmentor);
+        return this;
+    }
+
+    /** 简化 RAG：直接指定内容检索器（框架内部组装默认 RetrievalAugmentor）。 */
+    public AgenticUntypedAgentBuilder contentRetriever(ContentRetriever contentRetriever) {
+        delegate.contentRetriever(contentRetriever);
         return this;
     }
 

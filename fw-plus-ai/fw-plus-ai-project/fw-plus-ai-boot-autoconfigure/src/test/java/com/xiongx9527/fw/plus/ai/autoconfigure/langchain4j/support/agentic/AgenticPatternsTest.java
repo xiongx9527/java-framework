@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic;
 import dev.langchain4j.agentic.Agent;
 import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.agentic.declarative.SequenceAgent;
+import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
 import org.junit.jupiter.api.Test;
@@ -203,6 +204,215 @@ class AgenticPatternsTest {
         DeclarativeSequence system = AgenticWorkflows.createAgenticSystem(DeclarativeSequence.class, model);
 
         assertThat(system.run("用户请求")).isEqualTo("B-OUT");
+    }
+
+    // ------------------------------------------------------------------
+    // typed 编排：sequence / loop / conditional / parallel / streaming
+    // ------------------------------------------------------------------
+
+    public interface TypedSequenceAgent {
+        @Agent
+        String run(@V("request") String request);
+    }
+
+    public static class FirstMapper {
+        @Agent(name = "first", description = "第一步", outputKey = "tmp")
+        public String first(@V("request") String request) {
+            return request + "-first";
+        }
+    }
+
+    public static class SecondMapper {
+        @Agent(name = "second", description = "第二步", outputKey = "final")
+        public String second(@V("tmp") String tmp) {
+            return tmp + "-second";
+        }
+    }
+
+    @Test
+    void typedSequenceShouldBuildAndExecute() {
+        TypedSequenceAgent agent = AgenticWorkflows.sequence(TypedSequenceAgent.class)
+                .subAgents(new FirstMapper(), new SecondMapper())
+                .outputKey("final")
+                .build();
+
+        assertThat(agent.run("x")).isEqualTo("x-first-second");
+    }
+
+    public interface TypedLoopAgent {
+        @Agent
+        String run(@V("request") String request);
+    }
+
+    public static class LoopMapper {
+        @Agent(name = "loop", description = "循环处理", outputKey = "answer")
+        public String loop(@V("request") String request) {
+            return request + "-looped";
+        }
+    }
+
+    @Test
+    void typedLoopShouldBuildAndExecute() {
+        TypedLoopAgent agent = AgenticWorkflows.loop(TypedLoopAgent.class)
+                .subAgents(new LoopMapper())
+                .maxIterations(3)
+                .exitCondition(scope -> ((String) scope.readState("answer", "")).contains("looped"))
+                .outputKey("answer")
+                .build();
+
+        assertThat(agent.run("x")).isEqualTo("x-looped");
+    }
+
+    public interface TypedConditionalAgent {
+        @Agent
+        String run(@V("intent") String intent, @V("request") String request);
+    }
+
+    public static class QueryBranch {
+        @Agent(name = "query", description = "查询分支", outputKey = "answer")
+        public String query(@V("request") String request) {
+            return "query-" + request;
+        }
+    }
+
+    public static class EchoBranch {
+        @Agent(name = "echo", description = "回显分支", outputKey = "answer")
+        public String echo(@V("request") String request) {
+            return "echo-" + request;
+        }
+    }
+
+    @Test
+    void typedConditionalShouldBuildAndExecute() {
+        TypedConditionalAgent agent = AgenticWorkflows.conditional(TypedConditionalAgent.class)
+                .subAgents(scope -> "query".equals(scope.readState("intent")), new QueryBranch())
+                .subAgents(scope -> "echo".equals(scope.readState("intent")), new EchoBranch())
+                .outputKey("answer")
+                .build();
+
+        assertThat(agent.run("query", "hello")).isEqualTo("query-hello");
+        assertThat(agent.run("echo", "hello")).isEqualTo("echo-hello");
+    }
+
+    public interface TypedParallelAgent {
+        @Agent
+        String run(@V("title") String title);
+    }
+
+    public static class TranslateAgent {
+        @Agent(name = "translate", description = "翻译", outputKey = "translation")
+        public String translate(@V("title") String title) {
+            return title + "-translated";
+        }
+    }
+
+    public static class SloganAgent {
+        @Agent(name = "slogan", description = "宣传语", outputKey = "slogan")
+        public String slogan(@V("title") String title) {
+            return title + "-slogan";
+        }
+    }
+
+    @Test
+    void typedParallelShouldBuildAndExecute() {
+        TypedParallelAgent agent = AgenticWorkflows.parallel(TypedParallelAgent.class)
+                .subAgents(new TranslateAgent(), new SloganAgent())
+                .outputKey("translation")
+                .build();
+
+        assertThat(agent.run("hello")).isEqualTo("hello-translated");
+    }
+
+    public interface StreamingSequenceAgent {
+        @Agent
+        @UserMessage("请写一篇关于 {{topic}} 的故事")
+        TokenStream writeStory(@V("topic") String topic);
+    }
+
+    public interface SyncStepAgent {
+        @Agent
+        @UserMessage("同步处理：{{topic}}")
+        String step(@V("topic") String topic);
+    }
+
+    public interface StreamingStepAgent {
+        @Agent
+        @UserMessage("流式处理：{{topic}}")
+        TokenStream step(@V("topic") String topic);
+    }
+
+    @Test
+    void typedSequenceShouldStreamFromLastSubAgent() {
+        ScriptedStreamingChatModel streamingModel = new ScriptedStreamingChatModel()
+                .agent("streamed", "-", "output");
+
+        SyncStepAgent syncStep = AgenticWorkflows.agent(SyncStepAgent.class)
+                .chatModel(new ScriptedChatModel().agent("sync-out"))
+                .build();
+
+        StreamingStepAgent streamingStep = AgenticWorkflows.agent(StreamingStepAgent.class)
+                .streamingChatModel(streamingModel)
+                .outputKey("story")
+                .build();
+
+        StreamingSequenceAgent agent = AgenticWorkflows.sequence(StreamingSequenceAgent.class)
+                .subAgents(syncStep, streamingStep)
+                .build();
+
+        TokenStream tokenStream = agent.writeStory("dragons");
+        StringBuilder sb = new StringBuilder();
+        tokenStream.onPartialResponse(sb::append).ignoreErrors().start();
+
+        assertThat(sb.toString()).isEqualTo("streamed-output");
+    }
+
+    // ------------------------------------------------------------------
+    // 自定义规划器编排（PlannerBasedService）
+    // ------------------------------------------------------------------
+
+    public interface PlannerBasedAgent {
+        @Agent
+        String run(@V("request") String request);
+    }
+
+    /** 确定性规划器：按固定顺序调用子 agent，不依赖 LLM 决策。 */
+    static class SequentialPlanner implements dev.langchain4j.agentic.planner.Planner {
+        private List<dev.langchain4j.agentic.internal.AgentExecutor> agents;
+        private int cursor;
+
+        @Override
+        public void init(dev.langchain4j.agentic.planner.InitPlanningContext ctx) {
+            this.agents = ctx.subagents().stream()
+                    .map(dev.langchain4j.agentic.internal.AgentExecutor.class::cast)
+                    .toList();
+        }
+
+        @Override
+        public dev.langchain4j.agentic.planner.Action nextAction(
+                dev.langchain4j.agentic.planner.PlanningContext ctx) {
+            if (cursor >= agents.size()) {
+                return new dev.langchain4j.agentic.planner.Action.DoneAction();
+            }
+            return new dev.langchain4j.agentic.planner.Action.AgentCallAction(agents.get(cursor++));
+        }
+    }
+
+    @Test
+    void plannerBuilderShouldExecuteWithCustomPlanner() {
+        Object stepA = AgenticWorkflows.agent(StepA.class)
+                .chatModel(new ScriptedChatModel().agent("A-OUT"))
+                .build();
+        Object stepB = AgenticWorkflows.agent(StepB.class)
+                .chatModel(new ScriptedChatModel().agent("B-OUT"))
+                .build();
+
+        PlannerBasedAgent agent = AgenticWorkflows.plannerBuilder(PlannerBasedAgent.class)
+                .planner(SequentialPlanner::new)
+                .subAgents(stepA, stepB)
+                .outputKey("answer")
+                .build();
+
+        assertThat(agent.run("用户请求")).isEqualTo("B-OUT");
     }
 
     // ------------------------------------------------------------------

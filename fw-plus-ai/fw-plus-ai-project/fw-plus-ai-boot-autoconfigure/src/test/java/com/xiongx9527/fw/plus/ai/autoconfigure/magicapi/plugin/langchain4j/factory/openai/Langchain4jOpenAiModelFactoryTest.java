@@ -5,7 +5,6 @@ import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -22,42 +21,41 @@ class Langchain4jOpenAiModelFactoryTest {
     private final Langchain4jOpenAiModelFactory factory = new Langchain4jOpenAiModelFactory();
 
     @Test
-    void shouldPassThroughConfiguredParameters() throws Exception {
+    void shouldPassThroughConfiguredParameters() {
         OpenAiChatModel model = factory.buildChatModel(reader(options(
                 "api-key", "sk-test", "model-name", "gpt-4o", "temperature", 0.3d, "top-p", 0.5d)),
                 Collections.emptyList());
 
-        assertThat(field(model, "temperature")).isEqualTo(0.3d);
-        assertThat(field(model, "topP")).isEqualTo(0.5d);
+        assertThat(model.defaultRequestParameters().temperature()).isEqualTo(0.3d);
+        assertThat(model.defaultRequestParameters().topP()).isEqualTo(0.5d);
     }
 
     @Test
-    void shouldKeepUnsetOptionalParametersUnset() throws Exception {
+    void shouldKeepUnsetOptionalParametersUnset() {
         OpenAiChatModel model = factory.buildChatModel(reader(options("api-key", "sk-test", "model-name", "gpt-4o")),
                 Collections.emptyList());
 
-        assertThat(field(model, "topP")).as("未配置的 top-p 不应被置为 0").isNull();
-        assertThat(field(model, "presencePenalty")).isNull();
-        assertThat(field(model, "maxTokens")).isNull();
+        assertThat(model.defaultRequestParameters().topP()).as("未配置的 top-p 不应被置为 0").isNull();
+        assertThat(model.defaultRequestParameters().presencePenalty()).isNull();
+        assertThat(model.defaultRequestParameters().maxOutputTokens()).isNull();
     }
 
     @Test
-    void shouldApplyDefaultTemperatureWhenAbsent() throws Exception {
+    void shouldApplyDefaultTemperatureWhenAbsent() {
         OpenAiChatModel model = factory.buildChatModel(reader(options("api-key", "sk-test", "model-name", "gpt-4o")),
                 Collections.emptyList());
 
-        assertThat(field(model, "temperature")).isEqualTo(0.7d);
+        assertThat(model.defaultRequestParameters().temperature()).isEqualTo(0.7d);
     }
 
     @Test
-    void shouldPassListenersToBuiltModel() throws Exception {
+    void shouldPassListenersToBuiltModel() {
         ChatModelListener listener = mock(ChatModelListener.class);
 
         OpenAiChatModel model = factory.buildChatModel(reader(options("api-key", "sk-test", "model-name", "gpt-4o")),
                 Collections.singletonList(listener));
 
-        java.util.List<?> listenersInModel = (java.util.List<?>) field(model, "listeners");
-        assertThat(listenersInModel).hasSize(1).first().isEqualTo(listener);
+        assertThat(model.listeners()).hasSize(1).first().isEqualTo(listener);
     }
 
     @Test
@@ -99,11 +97,5 @@ class Langchain4jOpenAiModelFactoryTest {
             options.put(String.valueOf(pairs[index]), pairs[index + 1]);
         }
         return options;
-    }
-
-    private static Object field(Object target, String name) throws Exception {
-        Field field = target.getClass().getDeclaredField(name);
-        field.setAccessible(true);
-        return field.get(target);
     }
 }

@@ -29,11 +29,7 @@ export default {
         },
         provider: {
             'azure-openai': 'Azure OpenAI',
-            'hugging-face': 'Hugging Face',
-            'local-ai': 'LocalAI',
-            'ollama': 'Ollama',
             'openai': 'OpenAI',
-            'qianfan': 'Qianfan',
             'qwen': 'Qwen',
         },
         field: {

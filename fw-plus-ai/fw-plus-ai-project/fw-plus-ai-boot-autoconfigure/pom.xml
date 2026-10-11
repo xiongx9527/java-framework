@@ -93,6 +93,17 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- AgentScope Java core（optional：classpath 存在 io.agentscope.core.ReActAgent 时
+             才装配 Memory/Toolkit/ReActAgent bean，配置前缀 agentscope.agent.*）。
+             版本经 fw-plus-ai-boot-dependencies 的 agentscope-bom 管理；
+             官方 agentscope-spring-boot-starter 面向 Boot 4，此处用源码移植的自动配置。 -->
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-core</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j</artifactId>
@@ -541,7 +552,7 @@
 
         <!-- 模型资源插件：模型供应商（optional；qianfan/github-models/voyage-ai/azure-open-ai/
              vertex-ai-gemini 已由 fw 包装模块传递，此处补齐 google-gemini/hugging-face/local-ai/
-             zhipu（社区版）/onnx 内置 embedding 与 neo4j store） -->
+             zhipu（社区版）与 neo4j store） -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-google-ai-gemini</artifactId>
@@ -563,24 +574,6 @@
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-community-zhipu-ai</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-embeddings</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-embeddings-bge-small-en-v15-q</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-embeddings-all-minilm-l6-v2-q</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>

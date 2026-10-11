@@ -2,3 +2,4 @@ com.xiongx9527.fw.plus.ai.autoconfigure.BaseAutoConfiguration
 com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration
 com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.McpAutoConfiguration
 com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.LangChain4jSupportAutoConfiguration
+com.xiongx9527.fw.plus.ai.autoconfigure.agentscope.AgentscopeAutoConfiguration

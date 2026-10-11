@@ -28,9 +28,7 @@ export default {
             embeddingModelKey: 'Pick or type an enabled embedding-model key'
         },
         provider: {
-            'all-minilm': 'Built-in All-MiniLM',
             'azure-openai': 'Azure OpenAI',
-            'bge-small': 'Built-in BGE Small',
             'github-models': 'GitHub Models',
             'google-ai-gemini': 'Google AI Gemini',
             'hugging-face': 'Hugging Face',
@@ -41,6 +39,16 @@ export default {
             'qwen': 'Qwen',
             'voyage-ai': 'Voyage AI',
             'zhipu-ai': 'Zhipu AI',
+            'cohere': 'Cohere',
+            'google-genai': 'Google Gen AI',
+            'jina': 'Jina AI',
+            'mistral-ai': 'Mistral AI',
+            'nomic': 'Nomic',
+            'openai-official': 'OpenAI Official SDK',
+            'ovh-ai': 'OVH AI',
+            'watsonx': 'IBM watsonx',
+            'workers-ai': 'Cloudflare Workers AI',
+            'xinference': 'Xinference',
         },
         field: {
             'access-token': 'Access Token',
@@ -70,6 +78,13 @@ export default {
             'user': 'User',
             'wait-for-model': 'Wait For Model',
             'write-timeout': 'Write Timeout',
+            'account-id': 'Account ID',
+            'api-token': 'API Token',
+            'late-chunking': 'Late Chunking',
+            'location': 'Location',
+            'output-dimensionality': 'Output Dimensionality',
+            'project-id': 'Project ID',
+            'task-type': 'Task Type',
         }
     }
 }

@@ -48,6 +48,26 @@
             <artifactId>langchain4j</artifactId>
         </dependency>
 
+        <!--
+            Agentic 智能体编排门面：隔离层（AgenticWorkflows 等 13 个类）随
+            fw-plus-ai-boot-autoconfigure 传递，但 langchain4j-agentic 本身在框架中是
+            optional（不传递），使用 agentic 模式的模块需显式声明；版本由 AI 层 BOM
+            （fw-plus-ai-boot-dependencies）统一管理为 1.22.0-beta32。
+        -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-agentic</artifactId>
+        </dependency>
+
+        <!--
+            graph 编排（AgenticToolProvider.graphToolProvider 引用 CompiledGraph；版本由
+            AI 层 BOM fw-plus-ai-boot-dependencies 管理为 1.9.3）。
+        -->
+        <dependency>
+            <groupId>org.bsc.langgraph4j</groupId>
+            <artifactId>langgraph4j-core</artifactId>
+        </dependency>
+
         <!-- Spring AI 通用栈：Ollama 模型 starter（版本由 core 层 fw-plus-dependencies 的 spring-ai-bom 管理） -->
         <dependency>
             <groupId>org.springframework.ai</groupId>

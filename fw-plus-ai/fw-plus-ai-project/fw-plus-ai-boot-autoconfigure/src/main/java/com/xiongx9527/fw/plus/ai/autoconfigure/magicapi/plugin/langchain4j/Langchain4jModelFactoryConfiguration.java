@@ -16,7 +16,6 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.facto
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.mistralai.Langchain4jMistralAiModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.nomic.Langchain4jNomicModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.ollama.Langchain4jOllamaModelFactory;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.onnx.Langchain4jOnnxEmbeddingModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.ocigenai.Langchain4jOciGenAiModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.openai.Langchain4jOpenAiModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.openaiofficial.Langchain4jOpenAiOfficialModelFactory;
@@ -85,8 +84,6 @@ public class Langchain4jModelFactoryConfiguration {
                 new Langchain4jVertexAiGeminiModelFactory(),
                 new Langchain4jHuggingFaceModelFactory(),
                 new Langchain4jLocalAiModelFactory(),
-                new Langchain4jOnnxEmbeddingModelFactory("bge-small"),
-                new Langchain4jOnnxEmbeddingModelFactory("all-minilm"),
                 new Langchain4jInMemoryModelFactory(),
                 new Langchain4jRedisModelFactory(),
                 new Langchain4jMilvusModelFactory(),
