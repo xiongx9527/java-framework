@@ -7,6 +7,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.Agent
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.AgenticWorkflows;
 import dev.langchain4j.agentic.Agent;
 import dev.langchain4j.agentic.UntypedAgent;
+import dev.langchain4j.agentic.planner.Planner;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
@@ -744,8 +745,8 @@ public final class AgenticWorkflowsDemo {
 	 * <p>框架提供 {@link AgenticPlannerBasedBuilder} 配合 {@link AgenticWorkflows#plannerBuilder()}
 	 * 入口，开发者只需提供 {@link Planner} 实现，其余流程（subAgents 挂载、outputKey 设置等）由框架完成。</p>
 	 *
-	 * <p>注：本演示使用 {@link SequentialPlanner}（在测试类 {@link AgenticPatternsTest} 中定义）
-	 * 作为自定义规划器实现，实际使用时请替换为业务逻辑。</p>
+	 * <p>注：本演示使用样例自带的 {@link SequentialPlanner} 作为自定义规划器实现，
+	 * 实际使用时请替换为业务逻辑。</p>
 	 *
 	 * @return 执行结果字符串
 	 */
@@ -759,7 +760,7 @@ public final class AgenticWorkflowsDemo {
 				.build();
 
 		// 2. 使用 plannerBuilder 注入自定义规划器
-		UntypedAgent agent = AgenticWorkflows.plannerBuilder(OrderPlannerAgent.class)
+		UntypedAgent agent = AgenticWorkflows.plannerBuilder()
 				.planner(SequentialPlanner::new)  // 注入自定义规划器
 				.subAgents(stepA, stepB)
 				.outputKey("quoteResult")
@@ -770,11 +771,13 @@ public final class AgenticWorkflowsDemo {
 	}
 
 	/**
-	 * plannerBuilderWithCustomPlanner 演示（无模型，开箱可跑）：使用自定义 Planner
-	 * 实现固定顺序执行并产出特定结果。
+	 * plannerBuilderWithCustomPlanner 演示（无模型，开箱可跑）：以 {@code Supplier}
+	 * 形式注入自定义 {@link Planner} 实例。
 	 *
-	 * <p>演示如何通过 lambda 表达式注入自定义 {@link Planner}，以及如何通过
-	 * {@link AgenticAgents#unwrapAll} 将构建好的 agent proxy 传入规划器。</p>
+	 * <p>演示 {@code planner(Supplier<Planner>)} 的用法：当规划器需要自带参数
+	 * （顺序表、阈值等）时，用 lambda 构造实例即可。子 agent 列表由框架在
+	 * {@code init()} 阶段通过 {@code ctx.subagents()} 注入，业务侧无需自行拼装
+	 * agent proxy——{@code AgenticAgents} 属框架内部实现，样例不直接引用。</p>
 	 *
 	 * @return 执行结果字符串
 	 */
@@ -787,14 +790,11 @@ public final class AgenticWorkflowsDemo {
 				.chatModel(DemoModels.SCRIPTED_MODEL)
 				.build();
 
-		// 2. 使用 plannerBuilder 配合 planner() 方法注入自定义规划器
+		// 2. 使用 plannerBuilder 配合 planner() 方法注入自定义规划器实例
 		//    SequentialPlanner 会在 init() 阶段从 ctx.subagents() 获取 agent 列表，
 		//    并在 nextAction() 中按固定顺序返回 call 动作
-		UntypedAgent agent = AgenticWorkflows.plannerBuilder(OrderPlannerAgent.class)
-				.planner(new SequentialPlanner(List.of(
-						(AgenticAgents.AgentProxy) AgenticAgents.unwrapAll(stepA),
-						(AgenticAgents.AgentProxy) AgenticAgents.unwrapAll(stepB)
-				)))
+		UntypedAgent agent = AgenticWorkflows.plannerBuilder()
+				.planner(() -> new SequentialPlanner())
 				.subAgents(stepA, stepB)
 				.outputKey("quoteResult")
 				.build();
@@ -808,20 +808,14 @@ public final class AgenticWorkflowsDemo {
 	// ------------------------------------------------------------------
 
 	private static final class DemoModels {
+		/** 固定回显的脚本模型：仅用于「无模型可跑」的构建 / 执行演示，不访问网络。 */
 		static final ChatModel SCRIPTED_MODEL = new ChatModel() {
 			@Override
-			public ChatResponse getResponse(ChatRequest chatRequest) {
-				return null;
-			}
-
-			@Override
-			public StreamingChatResponse getStreamingResponse(ChatRequest chatRequest) {
-				return null;
-			}
-
-			@Override
-			public StreamingChatResponse getResponseAsync(ChatRequest chatRequest) {
-				return null;
+			public dev.langchain4j.model.chat.response.ChatResponse doChat(
+					dev.langchain4j.model.chat.request.ChatRequest chatRequest) {
+				return dev.langchain4j.model.chat.response.ChatResponse.builder()
+						.aiMessage(dev.langchain4j.data.message.AiMessage.from("demo-scripted-output"))
+						.build();
 			}
 		};
 	}
@@ -851,43 +845,6 @@ public final class AgenticWorkflowsDemo {
 		String run(@V("orderId") String orderId);
 	}
 
-	// ------------------------------------------------------------------
-	// plannerBuilder 演示（写入 sample 演示）
-	// ------------------------------------------------------------------
-
-	/** plannerBuilder 演示（无模型，开箱可跑）：使用自定义 Planner 实现固定顺序执行。
-	 *
-	 * <p>使用场景：不依赖 LLM 每步决策，由开发者提供确定性规划逻辑，适合
-	 * 顺序执行、数据处理管道等不需要模型介入决策的场景。</p>
-	 *
-	 * <p>框架提供 {@link AgenticPlannerBasedBuilder} 配合 {@link AgenticWorkflows#plannerBuilder()}
-	 * 入口，开发者只需提供 {@link Planner} 实现，其余流程（subAgents 挂载、outputKey 设置等）由框架完成。</p>
-	 *
-	 * <p>注：本演示使用 {@link SequentialPlanner}（在测试类 {@link AgenticPatternsTest} 中定义）
-	 * 作为自定义规划器实现，实际使用时请替换为业务逻辑。</p>
-	 *
-	 * @return 执行结果字符串
-	 */
-	public static String plannerBuilderDemo() {
-		// 1. 构建两个子 agent（模拟业务步骤）
-		Object stepA = AgenticWorkflows.agent(PriceQuoteAgent.class)
-				.chatModel(DemoModels.SCRIPTED_MODEL)
-				.build();
-		Object stepB = AgenticWorkflows.agent(DiscountQuoteAgent.class)
-				.chatModel(DemoModels.SCRIPTED_MODEL)
-				.build();
-
-		// 2. 使用 plannerBuilder 注入自定义规划器
-		UntypedAgent agent = AgenticWorkflows.plannerBuilder(OrderPlannerAgent.class)
-				.planner(SequentialPlanner::new)  // 注入自定义规划器
-				.subAgents(stepA, stepB)
-				.outputKey("quoteResult")
-				.build();
-
-		// 3. 执行：传入订单 ID，由自定义规划器决定子 agent 调用顺序
-		return String.valueOf(agent.invoke(Map.of("orderId", "ORD-2024")));
-	}
-
 	/** plannerBuilderIntroDemo 演示入口演示（无模型）。
 	 *
 	 * <p>展示如何通过 {@link AgenticWorkflows#plannerBuilder(Class)} 入口注入自定义规划器。</p>
@@ -896,11 +853,38 @@ public final class AgenticWorkflowsDemo {
 	 */
 	public static String plannerBuilderIntroDemo() {
 		// 演示入口使用示例（伪码，实际以代码为准）
-		// UntypedAgent agent = AgenticWorkflows.plannerBuilder(OrderPlannerAgent.class)
-		//         .planner(() -> new SequentialPlanner(/* agent list */))
+		// UntypedAgent agent = AgenticWorkflows.plannerBuilder()
+		//         .planner(() -> new SequentialPlanner())
 		//         .subAgents(/* sub agents */)
 		//         .outputKey("quoteResult")
 		//         .build();
 		return "plannerBuilder 演示入口已就绪，详见代码注释";
+	}
+
+	/**
+	 * 样例自带的确定性规划器：按 {@code init()} 阶段拿到的子 agent 顺序依次调用，
+	 * 不依赖 LLM 决策——用于演示 {@link AgenticWorkflows#plannerBuilder()} 的自定义规划器注入。
+	 */
+	static final class SequentialPlanner implements Planner {
+
+		private java.util.List<dev.langchain4j.agentic.internal.AgentExecutor> agents;
+		private int cursor;
+
+		@Override
+		public void init(dev.langchain4j.agentic.planner.InitPlanningContext ctx) {
+			this.agents = ctx.subagents().stream()
+					.map(dev.langchain4j.agentic.internal.AgentExecutor.class::cast)
+					.toList();
+		}
+
+		@Override
+		public dev.langchain4j.agentic.planner.Action nextAction(
+				dev.langchain4j.agentic.planner.PlanningContext ctx) {
+			if (cursor >= agents.size()) {
+				dev.langchain4j.agentic.scope.AgentInvocation previous = ctx.previousAgentInvocation();
+				return previous != null ? done(previous.output()) : done();
+			}
+			return new dev.langchain4j.agentic.planner.Action.AgentCallAction(agents.get(cursor++));
+		}
 	}
 }
