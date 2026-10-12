@@ -1,197 +1,164 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger;
 
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.entity.SwaggerEntity;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.entity.SwaggerProvider;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.web.MagicSwaggerController;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.webflux.WebFluxRequestMagicDynamicRegistry;
 import io.swagger.v3.oas.models.OpenAPI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springdoc.core.models.GroupedOpenApi;
-import org.springdoc.core.properties.AbstractSwaggerUiConfigProperties;
-import org.springdoc.core.properties.SpringDocConfigProperties;
-import org.springdoc.core.properties.SwaggerUiConfigParameters;
-import org.springdoc.core.properties.SwaggerUiConfigProperties;
+import org.springdoc.core.AbstractSwaggerUiConfigProperties;
+import org.springdoc.core.GroupedOpenApi;
+import org.springdoc.core.SpringDocConfigProperties;
+import org.springdoc.core.SwaggerUiConfigParameters;
+import org.springdoc.core.SwaggerUiConfigProperties;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Primary;
-import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
-import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.ssssssss.magicapi.core.config.MagicAPIProperties;
+import org.ssssssss.magicapi.core.config.MagicConfiguration;
 import org.ssssssss.magicapi.core.config.MagicPluginConfiguration;
 import org.ssssssss.magicapi.core.model.Plugin;
 import org.ssssssss.magicapi.core.service.MagicResourceService;
 import org.ssssssss.magicapi.core.service.impl.RequestMagicDynamicRegistry;
-import org.ssssssss.magicapi.utils.Mapping;
+import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 
 import jakarta.servlet.ServletContext;
 import java.lang.reflect.Method;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 /**
- * Magic API的Swagger配置类，用于集成Swagger文档生成功能
- * 该配置类实现了Swagger端点的动态注册以及Swagger UI的配置
+ * Magic API 的 Swagger 配置类，栈无关（servlet / webflux 双栈共用，对齐其它插件的单配置类风格）。
+ *
+ * <p>文档端点由统一控制器 {@link MagicSwaggerController} 提供，端点路径为
+ * {@code magic-api.swagger.location}（含 {@code ${}} 占位符）：servlet 栈的 fork
+ * {@code Mapping} 不解析占位符，{@code controllerRegister()} 内解析后编程注册；webflux
+ * 栈由 {@code MagicAPIWebFluxControllerRegistrar} 的 swagger 分支按注解（占位符可解析）
+ * 以空 base 注册。两栈端点均不带 magic-api.web 前缀。</p>
+ *
+ * <p>注册表视图双栈探测：webflux 引擎提供 {@code WebFluxRequestMagicDynamicRegistry}，
+ * servlet 由 fork starter 提供 {@code RequestMagicDynamicRegistry}，二者均以
+ * {@link MagicApiRegistryView} 收敛；控制器内懒解析，避免启动期与 {@code MagicConfiguration}
+ * 循环依赖。</p>
  */
 @ConditionalOnProperty(prefix = "magic-api.plugin.swagger", name = "enabled", havingValue = "true", matchIfMissing = true)
-@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+@ConditionalOnClass({OpenAPI.class, GroupedOpenApi.class, org.ssssssss.magicapi.swagger.SwaggerConfig.class})
 @Configuration
 @EnableConfigurationProperties(SwaggerConfig.class)
-//org.ssssssss.magicapi.swagger
-@ConditionalOnClass({OpenAPI.class, GroupedOpenApi.class,org.ssssssss.magicapi.swagger.SwaggerConfig.class})
 public class MagicSwaggerConfiguration implements MagicPluginConfiguration {
 	private static final String JAVASCRIPT_FILENAME = "magic-swagger.1.0.0.iife.js";
-	private static final String FRONTEND_RESOURCE = "magic-editor/plugins/" + JAVASCRIPT_FILENAME;
-
-	private final SwaggerConfig swaggerConfig;
-	private final MagicResourceService magicResourceService;
-	private final ServletContext servletContext;
-	private final ApplicationContext applicationContext;
-	private final MagicAPIProperties properties;
-
-	private boolean registered = false;
 
 	private static Logger logger = LoggerFactory.getLogger(MagicSwaggerConfiguration.class);
 
-	/**
-	 * 构造函数，初始化Swagger配置所需的各种依赖
-	 * 
-	 * @param swaggerConfig Swagger配置信息
-	 * @param magicResourceService Magic API资源服务
-	 * @param servletContext Servlet上下文
-	 * @param applicationContext Spring应用上下文
-	 * @param properties Magic API属性配置
-	 */
-	public MagicSwaggerConfiguration(SwaggerConfig swaggerConfig, 
-			MagicResourceService magicResourceService, 
-			ServletContext servletContext,
-			ApplicationContext applicationContext,
-			MagicAPIProperties properties) {
+	private final SwaggerConfig swaggerConfig;
+	private final MagicResourceService magicResourceService;
+	private final MagicAPIProperties properties;
+	private final ObjectProvider<RequestMagicDynamicRegistry> servletRegistryProvider;
+	private final ObjectProvider<WebFluxRequestMagicDynamicRegistry> webFluxRegistryProvider;
+	private final ObjectProvider<ServletContext> servletContextProvider;
+	private final ApplicationContext applicationContext;
+
+	public MagicSwaggerConfiguration(SwaggerConfig swaggerConfig,
+			MagicResourceService magicResourceService,
+			MagicAPIProperties properties,
+			ObjectProvider<RequestMagicDynamicRegistry> servletRegistryProvider,
+			ObjectProvider<WebFluxRequestMagicDynamicRegistry> webFluxRegistryProvider,
+			ObjectProvider<ServletContext> servletContextProvider,
+			ApplicationContext applicationContext) {
 		this.swaggerConfig = swaggerConfig;
 		this.magicResourceService = magicResourceService;
-		this.servletContext = servletContext;
-		this.applicationContext = applicationContext;
 		this.properties = properties;
+		this.servletRegistryProvider = servletRegistryProvider;
+		this.webFluxRegistryProvider = webFluxRegistryProvider;
+		this.servletContextProvider = servletContextProvider;
+		this.applicationContext = applicationContext;
 	}
 
 	/**
-	 * 创建Swagger插件实例
-	 * 
+	 * 创建 Swagger 插件。
+	 *
+	 * <p>始终上报完整三元组（标识 + 全局名 + 前端产物名），不按前端产物是否落在 classpath
+	 * 上改变上报内容——产物在不在 classpath 是使用方的依赖配置问题，编码进注册逻辑只会让
+	 * 「依赖漏声明」在运行期表现为「插件静默消失」，排查成本远高于控制台直接报 404。
+	 *
 	 * @return Plugin 插件实例
 	 */
 	@Override
 	public Plugin plugin() {
-		if (MagicSwaggerConfiguration.class.getClassLoader().getResource(FRONTEND_RESOURCE) == null) {
-			return new Plugin("swagger");
-		}
 		return new Plugin("swagger", "MagicSwagger", JAVASCRIPT_FILENAME);
 	}
 
 	/**
-	 * 创建Swagger注册监听器Bean
-	 * 
-	 * @return SwaggerRegistrationListener Swagger注册监听器
+	 * servlet 栈文档端点注册：webflux 栈由 {@code MagicAPIWebFluxControllerRegistrar}
+	 * 的 swagger 分支处理。fork {@code Mapping.registerController} 不解析 {@code ${}} 占位符，
+	 * 故先解析 location 再编程注册；控制器内文档依赖懒初始化，此处注册不触发 registry 实例化。
+	 */
+	@Override
+	public MagicControllerRegister controllerRegister() {
+		return (mapping, configuration) -> {
+			MagicSwaggerController controller = applicationContext.getBean(MagicSwaggerController.class);
+			SwaggerEndpointSupport support = new SwaggerEndpointSupport(swaggerConfig, magicResourceService, properties);
+			String location = support.resolveLocation();
+			Method swaggerJsonMethod;
+			try {
+				swaggerJsonMethod = MagicSwaggerController.class.getDeclaredMethod("swaggerJson");
+			} catch (NoSuchMethodException e) {
+				throw new IllegalStateException("未找到 swaggerJson 方法", e);
+			}
+			mapping.register(mapping.paths(location).methods(RequestMethod.GET).build(), controller, swaggerJsonMethod);
+			logger.info("已注册Swagger文档端点: {}", location);
+		};
+	}
+
+	/**
+	 * 统一文档端点控制器：双栈共用，供 {@code controllerRegister()}（servlet）与
+	 * {@code MagicAPIWebFluxControllerRegistrar}（webflux）注册。
 	 */
 	@Bean
-	public SwaggerRegistrationListener swaggerRegistrationListener() {
-		return new SwaggerRegistrationListener();
+	@Lazy
+	public MagicSwaggerController magicSwaggerController(MagicConfiguration configuration) {
+		SwaggerEndpointSupport support = new SwaggerEndpointSupport(swaggerConfig, magicResourceService, properties);
+		return new MagicSwaggerController(configuration, swaggerConfig, magicResourceService, properties,
+				this::resolveRegistryView, resolveContextPath());
 	}
 
 	/**
-	 * 内部方法，用于实际执行Swagger端点的注册过程
-	 * 包括创建SwaggerProvider、构建文档信息、注册端点等操作
+	 * 按当前栈解析文档注册表视图：webflux 引擎的注册表优先，回落 servlet 注册表。
+	 * 首次调用发生在请求期（容器就绪），不触发启动期循环依赖。
 	 */
-	private void registerSwaggerEndpointInternal() {
-		if (registered) {
-			return;
+	private MagicApiRegistryView resolveRegistryView() {
+		WebFluxRequestMagicDynamicRegistry webFluxRegistry = webFluxRegistryProvider.getIfAvailable();
+		if (webFluxRegistry != null) {
+			return MagicApiRegistryView.of(webFluxRegistry);
 		}
-
-		try {
-			// 获取端点路径
-			String location = swaggerConfig.getLocation();
-			if (location == null || location.isEmpty()) {
-				location = "/v2/api-docs/magic-api/swagger2.json";
-			}
-			logger.info("正在注册Swagger端点: {}", location);
-			// 明确指定使用requestMappingHandlerMapping这个Bean名称
-			//RequestMappingHandlerMapping requestMappingHandlerMapping =
-			//	applicationContext.getBean("requestMappingHandlerMapping", RequestMappingHandlerMapping.class);
-			RequestMappingHandlerMapping requestMappingHandlerMapping = applicationContext.getBeansOfType(RequestMappingHandlerMapping.class).values().stream().findFirst().get();
-			// 延迟获取依赖以避免循环依赖
-			RequestMagicDynamicRegistry registry = applicationContext.getBean(RequestMagicDynamicRegistry.class);
-			
-			// 使用Mapping工具注册端点
-			Mapping mapping = Mapping.create(requestMappingHandlerMapping);
-			RequestMappingInfo requestMappingInfo = mapping.paths(location).build();
-
-			// 构建文档信息
-			SwaggerEntity.License license = new SwaggerEntity.License("MIT", "https://gitee.com/ssssssss-team/magic-api/blob/master/LICENSE");
-			SwaggerEntity.Info info = new SwaggerEntity.Info(swaggerConfig.getDescription(), swaggerConfig.getVersion(), swaggerConfig.getTitle(), license, swaggerConfig.getConcat());
-
-			Map<String, Object> securityDefinitionMap = new HashMap<>();
-			Map<String, Object> securityMap = new HashMap<>();
-
-			if (swaggerConfig.getBasicAuth() != null) {
-				securityDefinitionMap.put(SwaggerEntity.BasicAuth.KEY_NAME, swaggerConfig.getBasicAuth());
-				securityMap.put(SwaggerEntity.BasicAuth.KEY_NAME, new String[]{});
-			}
-			if (swaggerConfig.getApiKeyAuth() != null) {
-				securityDefinitionMap.put(SwaggerEntity.ApiKeyAuth.KEY_NAME, swaggerConfig.getApiKeyAuth());
-				securityMap.put(SwaggerEntity.ApiKeyAuth.KEY_NAME, new String[]{});
-			}
-			if (swaggerConfig.getOauth2() != null) {
-				SwaggerEntity.OAuth2 oAuth2 = swaggerConfig.getOauth2();
-				securityDefinitionMap.put(SwaggerEntity.OAuth2.KEY_NAME, oAuth2);
-
-				Map<String, String> scopes = oAuth2.getScopes();
-				if (scopes != null) {
-					securityMap.put(SwaggerEntity.OAuth2.KEY_NAME, scopes.keySet().toArray(new String[0]));
-				}
-			}
-
-			// 创建SwaggerProvider实例
-			SwaggerProvider swaggerProvider = new SwaggerProvider(
-					registry,
-					magicResourceService,
-					servletContext.getContextPath(),
-					info,
-					properties.isPersistenceResponseBody(),
-					properties.getPrefix(),
-					securityDefinitionMap,
-					securityMap);
-
-			// 获取swaggerJson方法
-			Method swaggerJsonMethod = SwaggerProvider.class.getDeclaredMethod("swaggerJson");
-			swaggerJsonMethod.setAccessible(true);
-
-			// 注册端点
-			mapping.register(requestMappingInfo, swaggerProvider, swaggerJsonMethod);
-			registered = true;
-			logger.info("成功注册Swagger端点: {}", location);
-		} catch (Exception e) {
-			logger.error("注册Swagger接口失败", e);
-		}
+		RequestMagicDynamicRegistry servletRegistry = servletRegistryProvider.getIfAvailable();
+		return servletRegistry == null ? null : MagicApiRegistryView.of(servletRegistry);
 	}
 
 	/**
-	 * 配置Swagger UI属性，添加magic-api的Swagger文档分组
-	 * 
-	 * @param swaggerUiConfigProperties Swagger UI配置属性
-	 * @param springDocConfigProperties SpringDoc配置属性
-	 * @return SwaggerUiConfigProperties 更新后的Swagger UI配置属性
+	 * 解析 contextPath：优先配置项 {@code magic-api.swagger.context-path}，servlet 下缺省取
+	 * {@link ServletContext}（reactive 下不存在该 bean，为空串）。
+	 */
+	private String resolveContextPath() {
+		if (swaggerConfig.getContextPath() != null && !swaggerConfig.getContextPath().isEmpty()) {
+			return swaggerConfig.getContextPath();
+		}
+		ServletContext servletContext = servletContextProvider.getIfAvailable();
+		return servletContext == null ? "" : servletContext.getContextPath();
+	}
+
+	/**
+	 * 配置Swagger UI属性，添加magic-api的Swagger文档分组（双栈共用）。
 	 */
 	@Bean
 	@Primary
-	@ConditionalOnMissingBean(SwaggerUiConfigParameters.class)
 	public SwaggerUiConfigProperties magicSwaggerUiConfigProperties(SwaggerUiConfigProperties swaggerUiConfigProperties, SpringDocConfigProperties springDocConfigProperties){
 		Set<AbstractSwaggerUiConfigProperties.SwaggerUrl> urls = swaggerUiConfigProperties.getUrls();
 		if (urls == null){
@@ -205,10 +172,7 @@ public class MagicSwaggerConfiguration implements MagicPluginConfiguration {
 	}
 
 	/**
-	 * 配置Swagger UI参数，确保magic-api的Swagger文档在UI中正确显示
-	 * 
-	 * @param swaggerUiConfigProperties Swagger UI配置属性
-	 * @return SwaggerUiConfigParameters 更新后的Swagger UI参数配置
+	 * 配置Swagger UI参数，确保magic-api的Swagger文档在UI中正确显示（双栈共用）。
 	 */
 	@Bean
 	@Primary
@@ -234,45 +198,10 @@ public class MagicSwaggerConfiguration implements MagicPluginConfiguration {
 	}
 
 	/**
-	 * 获取Swagger文档的URL地址
-	 * 
-	 * @return String Swagger文档的完整URL地址
+	 * 获取Swagger文档的URL地址（供 swagger-ui 分组展示）。
 	 */
 	private String getSwaggerUrl() {
-		String contextPath = servletContext.getContextPath();
-		if (contextPath == null) {
-			contextPath = "";
-		}
-
-		String location = swaggerConfig.getLocation();
-		if (location == null || location.isEmpty()) {
-			location = "/v2/api-docs/magic-api/swagger2.json";
-		}
-
-		// 确保路径正确组合
-		if (contextPath.endsWith("/") && location.startsWith("/")) {
-			return contextPath + location.substring(1);
-		} else if (!contextPath.endsWith("/") && !location.startsWith("/")) {
-			return contextPath + "/" + location;
-		} else {
-			return contextPath + location;
-		}
-	}
-	
-	/**
-	 * Swagger注册监听器，监听应用启动完成事件，在应用完全启动后注册Swagger端点
-	 */
-	private class SwaggerRegistrationListener implements ApplicationListener<ApplicationReadyEvent> {
-		/**
-		 * 处理应用启动完成事件
-		 * 
-		 * @param event ApplicationReadyEvent 应用启动完成事件
-		 */
-		@Override
-		public void onApplicationEvent(ApplicationReadyEvent event) {
-			if (event.getApplicationContext() == applicationContext) {
-				registerSwaggerEndpointInternal();
-			}
-		}
+		SwaggerEndpointSupport support = new SwaggerEndpointSupport(swaggerConfig, magicResourceService, properties);
+		return support.buildSwaggerUrl(resolveContextPath());
 	}
 }

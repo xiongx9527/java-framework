@@ -1,0 +1,189 @@
+# fw-plus-ws-spring-boot-starter
+
+WebSocket 长连接地基：端点注册、会话管理、心跳、定向发送与跨实例广播。
+业务语义（哪些订阅生效、脚本如何执行）由宿主通过 SPI 注入；未注入时退化为纯 WebSocket 通道。
+
+同时支持 **webmvc（Servlet 栈）** 与 **webflux（响应式栈）**，两者共用同一套配置与订阅 SPI，行为一致。
+
+## 引入依赖
+
+```xml
+<dependency>
+    <groupId>com.xiongx9527.fw.plus.boot</groupId>
+    <artifactId>fw-plus-ws-spring-boot-starter</artifactId>
+</dependency>
+```
+
+webflux 应用额外引入 `spring-boot-starter-webflux`，地基会自动切换到响应式实现。
+
+## 配置
+
+```yaml
+fw:
+  plus:
+    ws:
+      enabled: true
+      appId: default                         # 默认实例 appId，未命中实例时回落
+      path: /ws/api                          # 默认实例主端点，与 servers[].path 同形
+      paths:                                 # 默认实例追加端点，与主路径共用同一套处理器
+        - /ws/api2
+      servers:                               # 命名实例，一个实例 = 一个 key + 一组端点 + 一个 appId
+        - key: report                        # 必填非空且全局唯一，不参与握手匹配
+          path: /ws/api3                     # 相对路径或含基础路径的完整路径
+          paths:                             # 追加端点，与 path 共用同一套处理器
+          appId: report                      # 留空则回落全局 appId
+      websocket:                             # 只保留握手参数
+        trustedDomain: https://example.com    # 留空表示不允许跨域
+        subProtocols:                          # 可选，逗号分隔
+      binary:
+        enabled: true                          # 是否接受二进制帧
+        type: binary                           # 二进制帧的业务类型
+      broadcast:
+        async: false                           # 本地广播是否异步投递
+```
+
+### 完整配置项
+
+| 配置项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `enabled` | `true` | 总开关 |
+| `appId` | `default` | 默认实例 appId |
+| `servers` | 空 | 命名实例列表，每项含 `key`、`path`、`paths` 与 `appId`；`key` 必填唯一、端点不得与默认实例或其它实例重复，否则启动失败；不进 flatten，由 `WsInstanceResolver` 按请求路径解析 |
+| `path` | `/ws/api` | 默认实例主端点路径 |
+| `paths` | 空 | 默认实例追加端点路径，逗号分隔或列表；与主路径去重后逐条注册 |
+| `websocket.trustedDomain` | 空 | 受信任来源，逗号分隔；留空表示不允许跨域 |
+| `websocket.subProtocols` | 空 | 子协议，逗号分隔 |
+| `websocket.supportsPartialMessages` | `false` | 是否支持部分消息 |
+| `param.clientId` | `clientId` | 握手 query 参数名 |
+| `param.maxClientIdLength` | `50` | clientId 最大长度 |
+| `init.type` / `close.type` | `init` / `close` | 建连/断连订阅业务类型 |
+| `session.cache.maxClients` | `10000` | 会话缓存最大 clientId 数 |
+| `session.cache.expireMinutes` | `30` | 会话缓存与空闲判定阈值（分钟） |
+| `session.cache.concurrencyLevel` | `16` | 缓存并发级别 |
+| `session.delayMillis` | `1000` | 延迟关闭毫秒数 |
+| `session.maxTextMessageSize` | `65536` | 单条文本帧上限（字节） |
+| `session.maxBinaryMessageSize` | `65536` | 单条二进制帧上限（字节） |
+| `session.maxTotalSessions` | `10000` | 全局会话数上限 |
+| `session.maxSessionsPerClient` | `100` | 单个 clientId 会话数上限 |
+| `session.idleScanEnabled` | `false` | 空闲会话定时扫描 |
+| `session.idleScanIntervalSeconds` | `60` | 扫描周期（秒） |
+| `session.closeOnCacheEviction` | `false` | 缓存驱逐时是否主动关闭仍打开的会话 |
+| `scheduler.delayedClosePoolSize` | `2` | 延迟关闭线程池大小 |
+| `redis.channel.broadcast` | `fw-plus:websocket:broadcast` | 跨实例广播频道 |
+| `binary.enabled` | `true` | 是否接受二进制帧 |
+| `binary.type` | `binary` | 二进制帧业务类型 |
+| `broadcast.async` | `false` | 本地广播是否异步投递 |
+| `webflux.scriptThreadPool.coreSize` | `8` | webflux 脚本线程池核心大小 |
+| `webflux.scriptThreadPool.maxSize` | `32` | 最大大小 |
+| `webflux.scriptThreadPool.queueCapacity` | `1000` | 队列容量 |
+
+## 连接
+
+客户端在握手 query 中携带 clientId：
+
+```
+ws://localhost:8080/ws/api?clientId=<clientId>
+```
+
+缺失 clientId 参数或 clientId 超长时以策略违规关闭；会话数超限时以 `SERVICE_OVERLOAD` 关闭。
+
+会话归属的 appId 由握手请求路径解析实例得到，未命中任何实例时取 `fw.plus.ws.appId`。
+
+## 收发消息
+
+文本帧按 `type` 字段路由到订阅脚本：
+
+```json
+{"type": "order-refresh", "keyword": "订单"}
+```
+
+- 非 JSON → `INVALID_JSON`
+- 缺 `type` → `MISSING_TYPE`
+- 无匹配订阅 → `UNKNOWN_TYPE`
+- 脚本异常 → `SCRIPT_ERROR`
+- `ping` 文本或原生 Ping 帧 → 回 `pong`/`Pong`
+
+二进制帧在 `binary.enabled=true` 时按 `binary.type` 进入同一条派发链路，脚本侧通过 `params.data`（Base64）与 `params.length` 取到原始内容；置 `false` 时以 `NOT_ACCEPTABLE` 关闭。
+
+## 广播
+
+应用内引入 Redis 后自动启用跨实例广播：本地会话投递 + Redis 频道发布，接收方按 serverId 排除自身，只做本地投递，不产生回环。
+
+`broadcast.async=true` 时本地投递改为有界线程池异步执行，队列满则丢弃并告警，避免个别慢客户端阻塞广播链路；默认 `false` 保持同步语义。
+
+## 多端点与多基础路径
+
+一份配置可以把同一套 WS 能力（会话管理、广播、订阅派发）挂到多条端点路径上：
+
+```yaml
+fw:
+  plus:
+    ws:
+      path: /ws/api          # 默认实例主端点
+      paths:                 # 默认实例追加端点
+        - /ws/api2
+        - /ws/api3
+```
+
+基础路径来自容器内的 `WsBasePathProvider` Bean，可声明多个：每个基础路径与每条相对路径都会注册，同一完整路径只注册一次。多个候选按 `@Primary` 优先、其余按 `@Order`/`Ordered` 定序；一个都没有时按无基础路径处理。
+
+webflux 栈的展开结果与 webmvc 完全一致，两端共用同一套拼接规则；`path` 显式置空属配置错误，两端表现一致，只在基础路径后追加一个连接斜杠。
+
+## 一个实例 = 一个名字 + 一组端点 + 一个 appId
+
+多个应用共用一套地基时，每个实例一条端点路径、一个 appId，互不串用；默认实例之外纯增量：
+
+```yaml
+fw:
+  plus:
+    ws:
+      appId: default                # 默认实例 appId，端点取顶层 path / paths
+      servers:
+        - key: order                 # 必填非空且全局唯一，不参与握手匹配
+          path: /ws/order
+          paths:
+            - /ws/order-backup
+          appId: order
+        - key: pay
+          path: /ws/pay              # 写完整路径也可以，精确匹配优先
+          appId: pay
+```
+
+匹配按握手请求的完整路径（含 `WsBasePathProvider` 提供的基础路径）进行，顺序为：
+
+1. 精确命中：实例任一端点（`path` 或 `paths`）与请求完整路径完全相等；
+2. 后缀命中：请求路径以实例任一端点结尾且尾段完整（`/my-api` 不会命中实例端点 `/api`）；
+3. 未命中，或实例 `appId` 留空：回落全局 `fw.plus.ws.appId`。
+
+实例 `path` 也可以直接写含基础路径的完整路径，此时精确匹配优先，不会被同尾缀的相对路径抢先。实例命中的 appId 会带进 `WsSessionInfo`、订阅派发（`findEnabledSubscribes(appId, businessType)`）与 Redis 广播过滤，magic 侧的 `ws['xxx']` 数据源 key 就是这个 appId。
+
+实例端点同样参与注册：注册路径 = 默认实例（`path` + `paths`）叠加各命名实例的 `path` 与 `paths`，重复路径只注册一次，规则见上一章。
+
+启动期由 webmvc 与 webflux 两条栈在装配路径上各校验一次，出现以下情形应用启动失败（`IllegalArgumentException`）：
+
+- 实例 `key` 缺失、空串或纯空白；
+- 实例 `key` 在 `servers` 内 trim 后重复；
+- 实例端点（`path` 或 `paths`，规范化后）与默认实例端点或另一实例端点重复；
+- 实例只配 `key`，未配任何端点。
+
+同一实例内部 `path` 与 `paths` 的重复仍按配置顺序去重，不算冲突。
+
+`servers` 不进入 `WsConfig.flatten()`，点号扁平键保持纯标量契约。
+
+## 与宿主自注册的端点并存
+
+地基不独占端点注册来源：
+
+- **webmvc**：Spring 的 `DelegatingWebSocketConfiguration` 收集容器内全部 `WebSocketConfigurer`，宿主的注册器与地基注册器并存生效，互不覆盖。注意 webmvc 栈需要宿主在自己的应用类上声明 `@EnableWebSocket`（或 `@EnableWebSocketMessageBroker`），容器内的 `WebSocketConfigurer` 才会被收集；地基不代开，以免与消息代理场景冲突。
+- **webflux**：地基注册一个 order 为 `LOWEST_PRECEDENCE - 100` 的 `SimpleUrlHandlerMapping`，宿主自带的 mapping 与它互不覆盖，两者由 order 决定先后。
+
+单条路径注册失败只记录日志，不影响其余路径。
+
+## 注意事项
+
+- 命名实例的 appId 需在业务侧登记（订阅、`ws['xxx']` 数据源），否则会话派发不到对应订阅。
+- 端点键只有顶层 `path` / `paths` 一个来源，与命名实例同形；`websocket.path`、`websocket.paths` 已移除，写入时会被 Spring 忽略并按缺省 `/ws/api` 生效，升级时请把自定义路径迁到顶层；`websocket.endpoint`、`websocket.basePath`、`instances` 同样不再识别。
+- 任意入站消息（文本、二进制、Ping、Pong）都会刷新活跃时间，只发业务消息从不发心跳的长连接不会被判超时。
+- 缓存驱逐默认不会主动关闭仍打开的会话；需要回收不发 FIN 就掉线的连接时开启 `session.idleScanEnabled`。
+- 生产环境请把 `websocket.trustedDomain` 配成具体来源，不要留空也不要用 `*`。
+- webflux 栈下订阅脚本在独立有界线程池执行，不会占用 Reactor event loop。

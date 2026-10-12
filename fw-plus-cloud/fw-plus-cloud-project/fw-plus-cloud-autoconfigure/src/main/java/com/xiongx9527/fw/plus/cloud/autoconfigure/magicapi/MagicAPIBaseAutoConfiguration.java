@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.cloud.autoconfigure.magicapi.modules.http.MyHttpMo
 import com.xiongx9527.fw.plus.cloud.autoconfigure.magicapi.modules.http.MySseHttpModule;
 import com.xiongx9527.fw.plus.cloud.autoconfigure.magicapi.plugin.MagicApiPluginAutoConfiguration;
 import org.apache.commons.collections4.MapUtils;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
@@ -24,6 +25,12 @@ import java.util.*;
 @ConditionalOnClass(name={"org.springframework.boot.web.client.RestTemplateBuilder",
         "org.springframework.cloud.client.loadbalancer.LoadBalancerClient",
         "org.ssssssss.magicapi.spring.boot.starter.MagicAPIAutoConfiguration"})
+@AutoConfigureAfter(name = {
+        // 插件配置带 @ConditionalOnBean(MagicResourceService.class)：servlet 下须在 magic-api starter
+        // 之后评估；reactive 下须在 Boot 层 reactive 引擎之后评估，否则该 bean 尚未注册，插件不生效。
+        "org.ssssssss.magicapi.spring.boot.starter.MagicAPIAutoConfiguration",
+        "com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration"
+})
 @Configuration
 @Import({MagicApiPluginAutoConfiguration.class})
 public class MagicAPIBaseAutoConfiguration {

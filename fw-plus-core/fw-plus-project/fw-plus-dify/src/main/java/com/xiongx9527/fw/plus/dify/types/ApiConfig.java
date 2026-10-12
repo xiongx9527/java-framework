@@ -8,8 +8,10 @@ import lombok.Data;
 public class ApiConfig {
     /**
      * Dify Server Address
+     * <p>默认 https://api.dify.ai/v1（Dify 官方云服务），自部署时传入自有基址覆盖。</p>
      */
-    private String server;
+    @Builder.Default
+    private String server = "https://api.dify.ai/v1";
 
     /**
      * Api Key

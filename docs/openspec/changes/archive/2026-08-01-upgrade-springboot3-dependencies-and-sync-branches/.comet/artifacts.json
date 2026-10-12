@@ -1,9 +1,0 @@
-{
-  "openspec_proposal": "openspec/changes/upgrade-springboot3-dependencies-and-sync-branches/proposal.md",
-  "openspec_design": "openspec/changes/upgrade-springboot3-dependencies-and-sync-branches/design.md",
-  "openspec_tasks": "openspec/changes/upgrade-springboot3-dependencies-and-sync-branches/tasks.md",
-  "openspec_delta_spec": "openspec/changes/upgrade-springboot3-dependencies-and-sync-branches/specs/multi-branch-dependency-baselines/spec.md",
-  "handoff_context": "openspec/changes/upgrade-springboot3-dependencies-and-sync-branches/.comet/handoff/design-context.json",
-  "handoff_markdown": "openspec/changes/upgrade-springboot3-dependencies-and-sync-branches/.comet/handoff/design-context.md",
-  "archive_directory": "openspec/changes/archive/2026-08-01-upgrade-springboot3-dependencies-and-sync-branches"
-}

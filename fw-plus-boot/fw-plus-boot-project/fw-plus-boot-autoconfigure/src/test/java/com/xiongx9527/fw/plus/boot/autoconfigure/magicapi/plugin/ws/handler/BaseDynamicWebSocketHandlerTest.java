@@ -1,321 +1,167 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.handler;
 
 import com.alibaba.fastjson2.JSONObject;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.model.WsDataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.model.WsSubscribeInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.service.WsDataSourceInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.service.WsSubscribeInfoMagicResourceStorage;
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.spi.WsInvocationContext;
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.webmvc.ServletWsSession;
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.spi.WsSubscribeScript;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpHeaders;
-import org.springframework.web.socket.BinaryMessage;
-import org.springframework.web.socket.CloseStatus;
-import org.springframework.web.socket.TextMessage;
-import org.springframework.web.socket.WebSocketMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.ssssssss.script.MagicScriptContext;
 
-import java.lang.reflect.Method;
-import java.net.URI;
-import java.security.Principal;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 
+import org.assertj.core.api.Assertions;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+/**
+ * magic 侧业务调度（SPI 实现）的单元测试：订阅来自 magic 资源存储，执行走 magic-script。
+ *
+ * @author zzy
+ */
 class BaseDynamicWebSocketHandlerTest {
 
-	@Test
-	void putBusinessTypeShouldExposeTypeAndBusinessType() {
-		TestDynamicWebSocketHandler handler = new TestDynamicWebSocketHandler();
-		MagicScriptContext context = new MagicScriptContext();
+    @Test
+    void putBusinessTypeShouldExposeTypeAndBusinessType() {
+        BaseDynamicWebSocketHandler handler = handler(Collections.emptyList(), Collections.emptyList());
+        MagicScriptContext context = new MagicScriptContext();
 
-		handler.putBusinessType(context, "init");
+        handler.putBusinessType(context, "init");
 
-		assertThat(context.get("type")).isEqualTo("init");
-		assertThat(context.get("businessType")).isEqualTo("init");
-	}
+        assertThat(context.get("type")).isEqualTo("init");
+        assertThat(context.get("businessType")).isEqualTo("init");
+    }
 
-	@Test
-	void putBusinessMessageContextShouldKeepParams() {
-		TestDynamicWebSocketHandler handler = new TestDynamicWebSocketHandler();
-		MagicScriptContext context = new MagicScriptContext();
-		JSONObject params = new JSONObject();
-		params.put("type", "order-refresh");
+    @Test
+    void putBusinessMessageContextShouldKeepParams() {
+        BaseDynamicWebSocketHandler handler = handler(Collections.emptyList(), Collections.emptyList());
+        MagicScriptContext context = new MagicScriptContext();
+        JSONObject params = new JSONObject();
+        params.put("type", "order-refresh");
 
-		handler.putBusinessMessageContext(context, "order-refresh", params);
+        handler.putBusinessMessageContext(context, "order-refresh", params);
 
-		assertThat(context.get("type")).isEqualTo("order-refresh");
-		assertThat(context.get("businessType")).isEqualTo("order-refresh");
-		assertThat(context.get("params")).isSameAs(params);
-	}
+        assertThat(context.get("type")).isEqualTo("order-refresh");
+        assertThat(context.get("businessType")).isEqualTo("order-refresh");
+        assertThat(context.get("params")).isSameAs(params);
+    }
 
-	@Test
-	void handleMessageShouldReturnTextPongForTextPing() throws Exception {
-		TestDynamicWebSocketHandler handler = new TestDynamicWebSocketHandler();
-		TestWebSocketSession session = openSession("s1");
-		registerSession(handler, session, "app-a", "client-a");
+    @Test
+    void existsAppShouldReflectDataSourceStorage() {
+        BaseDynamicWebSocketHandler handler = handler(
+                Collections.singletonList(dataSourceInfo("default")), Collections.emptyList());
 
-		handler.handleMessage(session, new TextMessage("ping"));
+        assertThat(handler.existsApp("default")).isTrue();
+        assertThat(handler.existsApp("missing")).isFalse();
+    }
 
-		assertThat(session.textMessages).containsExactly("pong");
-		assertThat(session.closeStatus).isNull();
-	}
+    @Test
+    void findEnabledSubscribesShouldFilterByEnabledKeyAndBusinessId() {
+        WsSubscribeInfo initEnabled = subscribeInfo("init", "default", "init", true, "return null;");
+        WsSubscribeInfo initDisabled = subscribeInfo("init", "default", "init", false, "return null;");
+        WsSubscribeInfo otherApp = subscribeInfo("init", "other", "init", true, "return null;");
+        WsSubscribeInfo otherType = subscribeInfo("refresh", "default", "refresh", true, "return null;");
+        BaseDynamicWebSocketHandler handler = handler(Collections.emptyList(),
+                Arrays.asList(initEnabled, initDisabled, otherApp, otherType));
 
-	@Test
-	void handleMessageShouldReturnStructuredErrorForInvalidJson() throws Exception {
-		TestDynamicWebSocketHandler handler = new TestDynamicWebSocketHandler();
-		TestWebSocketSession session = openSession("s2");
-		registerSession(handler, session, "app-a", "client-a");
+        List<? extends WsSubscribeScript> result = handler.findEnabledSubscribes("default", "init");
 
-		handler.handleMessage(session, new TextMessage("not-json"));
+        Assertions.<WsSubscribeScript>assertThat(result).containsExactly(initEnabled);
+    }
 
-		assertThat(session.textMessages).hasSize(1);
-		JSONObject response = JSONObject.parseObject(session.textMessages.get(0));
-		assertThat(response.getBoolean("success")).isFalse();
-		assertThat(response.getString("code")).isEqualTo("INVALID_JSON");
-		assertThat(session.closeStatus).isNull();
-	}
+    @Test
+    void executeOnInitShouldExposeSubscribeBusinessId() {
+        WsSubscribeInfo subscribeInfo = subscribeInfo("init", "default", "init", true,
+                "return type + ':' + businessType + ':' + appId + ':' + clientId + ':' + sessionId;");
+        BaseDynamicWebSocketHandler handler = handler(Collections.emptyList(),
+                Collections.singletonList(subscribeInfo));
+        WsInvocationContext context = new WsInvocationContext(WsInvocationContext.Phase.INIT,
+                "default", "client-a", "sess-1", "init", null, null, null);
 
-	@Test
-	void handleMessageShouldReturnStructuredErrorForMissingType() throws Exception {
-		TestDynamicWebSocketHandler handler = new TestDynamicWebSocketHandler();
-		TestWebSocketSession session = openSession("s3");
-		registerSession(handler, session, "app-a", "client-a");
+        Object result = handler.execute(subscribeInfo, context);
 
-		handler.handleMessage(session, new TextMessage("{\"payload\":1}"));
+        assertThat(result).isEqualTo("init:init:default:client-a:sess-1");
+    }
 
-		assertThat(errorCode(session)).isEqualTo("MISSING_TYPE");
-		assertThat(session.closeStatus).isNull();
-	}
+    @Test
+    void executeOnMessageShouldExposeParamsAndSubscribeAttribute() {
+        WsSubscribeInfo subscribeInfo = subscribeInfo("refresh", "default", "order-refresh", true,
+                "return params.keyword + ':' + type;");
+        BaseDynamicWebSocketHandler handler = handler(Collections.emptyList(),
+                Collections.singletonList(subscribeInfo));
+        WebSocketSession session = mock(WebSocketSession.class);
+        Map<String, Object> attributes = new HashMap<>();
+        when(session.getAttributes()).thenReturn(attributes);
+        JSONObject params = new JSONObject();
+        params.put("keyword", "订单");
+        WsInvocationContext context = new WsInvocationContext(WsInvocationContext.Phase.MESSAGE,
+                "default", "client-a", "sess-1", "order-refresh", params, new ServletWsSession(session), null);
 
-	@Test
-	void handleMessageShouldReturnStructuredErrorForUnknownType() throws Exception {
-		TestDynamicWebSocketHandler handler = new TestDynamicWebSocketHandler();
-		TestWebSocketSession session = openSession("s4");
-		registerSession(handler, session, "app-a", "client-a");
+        Object result = handler.execute(subscribeInfo, context);
 
-		handler.handleMessage(session, new TextMessage("{\"type\":\"unknown\"}"));
+        assertThat(result).isEqualTo("订单:order-refresh");
+        assertThat(attributes.get("subscribeInfo")).isSameAs(subscribeInfo);
+    }
 
-		assertThat(errorCode(session)).isEqualTo("UNKNOWN_TYPE");
-		assertThat(session.closeStatus).isNull();
-	}
+    @Test
+    void executeShouldRejectSubscribeFromForeignImplementation() {
+        BaseDynamicWebSocketHandler handler = handler(Collections.emptyList(), Collections.emptyList());
+        WsSubscribeScript foreign = new WsSubscribeScript() {
+            @Override
+            public String getName() {
+                return "foreign";
+            }
 
-	@Test
-	void handleMessageShouldCloseBinaryMessageWithUnsupportedDataStatus() throws Exception {
-		TestDynamicWebSocketHandler handler = new TestDynamicWebSocketHandler();
-		TestWebSocketSession session = openSession("s5");
-		registerSession(handler, session, "app-a", "client-a");
+            @Override
+            public String getBusinessId() {
+                return "foreign";
+            }
+        };
+        WsInvocationContext context = new WsInvocationContext(WsInvocationContext.Phase.MESSAGE,
+                "default", "client-a", "sess-1", "foreign", null, null, null);
 
-		handler.handleMessage(session, new BinaryMessage(new byte[]{1, 2, 3}));
+        assertThatThrownBy(() -> handler.execute(foreign, context))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
 
-		assertThat(session.closeStatus.getCode()).isEqualTo(CloseStatus.NOT_ACCEPTABLE.getCode());
-		assertThat(session.textMessages).isEmpty();
-	}
+    private static BaseDynamicWebSocketHandler handler(List<WsDataSourceInfo> dataSources,
+                                                       List<WsSubscribeInfo> subscribes) {
+        WsDataSourceInfoMagicResourceStorage dataSourceStorage =
+                mock(WsDataSourceInfoMagicResourceStorage.class);
+        when(dataSourceStorage.findAll()).thenReturn(dataSources);
+        WsSubscribeInfoMagicResourceStorage subscribeStorage =
+                mock(WsSubscribeInfoMagicResourceStorage.class);
+        when(subscribeStorage.findAll()).thenReturn(subscribes);
+        return new BaseDynamicWebSocketHandler(dataSourceStorage, subscribeStorage);
+    }
 
-	@Test
-	void handleMessageShouldReturnScriptErrorWhenSubscribeScriptThrows() throws Exception {
-		WsSubscribeInfo subscribeInfo = new WsSubscribeInfo();
-		subscribeInfo.setKey("app-a");
-		subscribeInfo.setBusinessId("boom");
-		subscribeInfo.setEnabled(true);
-		subscribeInfo.setName("boom-script");
-		subscribeInfo.setScript("throw 'boom';");
-		WsSubscribeInfoMagicResourceStorage storage = mock(WsSubscribeInfoMagicResourceStorage.class);
-		when(storage.findAll()).thenReturn(Collections.singletonList(subscribeInfo));
-		TestDynamicWebSocketHandler handler = new TestDynamicWebSocketHandler(storage);
-		TestWebSocketSession session = openSession("s6");
-		registerSession(handler, session, "app-a", "client-a");
+    private static WsDataSourceInfo dataSourceInfo(String key) {
+        WsDataSourceInfo info = new WsDataSourceInfo();
+        info.setKey(key);
+        info.setName(key);
+        info.setSecret("secret");
+        return info;
+    }
 
-		handler.handleMessage(session, new TextMessage("{\"type\":\"boom\"}"));
-
-		assertThat(errorCode(session)).isEqualTo("SCRIPT_ERROR");
-		assertThat(session.closeStatus).isNull();
-	}
-
-	@Test
-	void scheduledExecutorPoolSizeShouldUseConfiguredValue() throws Exception {
-		Map<String, Object> config = new HashMap<>();
-		config.put("scheduler.delayedClosePoolSize", 4);
-		TestDynamicWebSocketHandler handler = TestDynamicWebSocketHandler.withConfig(config);
-
-		java.lang.reflect.Field field = BaseDynamicWebSocketHandler.class.getDeclaredField("scheduledExecutor");
-		field.setAccessible(true);
-		ScheduledThreadPoolExecutor executor = (ScheduledThreadPoolExecutor) field.get(handler);
-		assertThat(executor.getCorePoolSize()).isEqualTo(4);
-	}
-
-	private static String errorCode(TestWebSocketSession session) {
-		assertThat(session.textMessages).hasSize(1);
-		return JSONObject.parseObject(session.textMessages.get(0)).getString("code");
-	}
-
-	private static TestWebSocketSession openSession(String id) {
-		return new TestWebSocketSession(id, true);
-	}
-
-	private static void registerSession(TestDynamicWebSocketHandler handler, TestWebSocketSession session, String appId, String clientId) throws Exception {
-		Method addSession = BaseDynamicWebSocketHandler.class.getDeclaredMethod("addSession", String.class, WebSocketSession.class, String.class);
-		addSession.setAccessible(true);
-		addSession.invoke(handler, appId, session, clientId);
-	}
-
-	private static class TestDynamicWebSocketHandler extends BaseDynamicWebSocketHandler {
-
-		private static final ThreadLocal<Map<String, Object>> NEXT_CONFIG = new ThreadLocal<>();
-
-		static TestDynamicWebSocketHandler withConfig(Map<String, Object> config) {
-			NEXT_CONFIG.set(config);
-			try {
-				return new TestDynamicWebSocketHandler(mock(WsSubscribeInfoMagicResourceStorage.class));
-			} finally {
-				NEXT_CONFIG.remove();
-			}
-		}
-
-		TestDynamicWebSocketHandler() {
-			this(mock(WsSubscribeInfoMagicResourceStorage.class));
-		}
-
-		TestDynamicWebSocketHandler(WsSubscribeInfoMagicResourceStorage subscribeStorage) {
-			super(mock(WsDataSourceInfoMagicResourceStorage.class), subscribeStorage);
-		}
-
-		private static Map<String, Object> currentConfig() {
-			Map<String, Object> config = NEXT_CONFIG.get();
-			return config == null ? Collections.emptyMap() : config;
-		}
-
-		@Override
-		public Map<String, Object> getConfig() {
-			return currentConfig();
-		}
-
-		@Override
-		void broadcastMessageToClient(String excludedServerId, String appId, String clientId, String message) {
-		}
-
-		@Override
-		void broadcastMessageToAllClient(String excludedServerId, String appId, String message) {
-		}
-
-		@Override
-		public int getMaxClientSessions() {
-			return 100;
-		}
-
-		@Override
-		public int getSessionCacheExpireMinutes() {
-			return 30;
-		}
-
-		@Override
-		public int getCacheConcurrencyLevel() {
-			return 4;
-		}
-	}
-
-	private static class TestWebSocketSession implements WebSocketSession {
-
-		private final String id;
-		private final Map<String, Object> attributes = new HashMap<>();
-		private final List<String> textMessages = new ArrayList<>();
-		private boolean open;
-		private CloseStatus closeStatus;
-
-		TestWebSocketSession(String id, boolean open) {
-			this.id = id;
-			this.open = open;
-		}
-
-		@Override
-		public String getId() {
-			return id;
-		}
-
-		@Override
-		public HttpHeaders getHandshakeHeaders() {
-			return new HttpHeaders();
-		}
-
-		@Override
-		public URI getUri() {
-			return URI.create("ws://localhost/ws/api");
-		}
-
-		@Override
-		public Map<String, Object> getAttributes() {
-			return attributes;
-		}
-
-		@Override
-		public Principal getPrincipal() {
-			return null;
-		}
-
-		@Override
-		public java.net.InetSocketAddress getLocalAddress() {
-			return null;
-		}
-
-		@Override
-		public java.net.InetSocketAddress getRemoteAddress() {
-			return null;
-		}
-
-		@Override
-		public String getAcceptedProtocol() {
-			return null;
-		}
-
-		@Override
-		public void setTextMessageSizeLimit(int messageSizeLimit) {
-		}
-
-		@Override
-		public int getTextMessageSizeLimit() {
-			return 8192;
-		}
-
-		@Override
-		public void setBinaryMessageSizeLimit(int messageSizeLimit) {
-		}
-
-		@Override
-		public int getBinaryMessageSizeLimit() {
-			return 8192;
-		}
-
-		@Override
-		public List<org.springframework.web.socket.WebSocketExtension> getExtensions() {
-			return Collections.emptyList();
-		}
-
-		@Override
-		public void sendMessage(WebSocketMessage<?> message) {
-			if (message instanceof TextMessage) {
-				textMessages.add(((TextMessage) message).getPayload());
-			}
-		}
-
-		@Override
-		public boolean isOpen() {
-			return open;
-		}
-
-		@Override
-		public void close() {
-			close(CloseStatus.NORMAL);
-		}
-
-		@Override
-		public void close(CloseStatus status) {
-			this.closeStatus = status;
-			this.open = false;
-		}
-	}
+    private static WsSubscribeInfo subscribeInfo(String id, String key, String businessId,
+                                                 boolean enabled, String script) {
+        WsSubscribeInfo info = new WsSubscribeInfo();
+        info.setId(id);
+        info.setName("测试脚本");
+        info.setKey(key);
+        info.setBusinessId(businessId);
+        info.setEnabled(enabled);
+        info.setScript(script);
+        return info;
+    }
 }

@@ -4,7 +4,12 @@ server:
 spring:
   application:
       name: ai-sample
+  main:
+    # OpenAI 与 Azure OpenAI 的 langchain4j 自动配置 Bean 名冲突，统一通过应用侧覆盖/禁用
+    allow-bean-definition-overriding: true
   autoconfigure:
+    # ngbatis 传递引入 spring-boot-starter-data-jpa（HikariCP），样例没有 JDBC 用途，
+    # 排除数据源自动配置，避免无 spring.datasource.url 时启动失败
     exclude: org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
 
 
@@ -12,16 +17,12 @@ fw:
   plus:
     uid:
       enabled: false
+    ws:
+      enabled: false
     web:
       jackson:
         write_longs_as_strings:
           enabled: true
-    ai:
-      tinyflow:
-        enabled: true
-        dify:
-          external:
-            enabled: true
 
 fw-plus:
   ai:
@@ -49,7 +50,8 @@ magic-api:
     channel: magic-api:notify:channel
   resource:
     type: file  # 配置接口存储方式，file | database | git
-    location: ${java.io.tmpdir}/fw-plus-ai-magicapi-sample
+    location1: ${java.io.tmpdir}/fw-plus-ai-magicapi-sample
+    location: /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-sample/fw-plus-ai-samples/fw-plus-ai-magicapi-sample/src/main/resources
   prefix: /magic-api  # 前缀
   backup: #备份相关配置
     enable: false #是否启用
@@ -67,10 +69,11 @@ magic-api:
     logic-delete-column: is_del #逻辑删除列
     logic-delete-value: 1 #逻辑删除值
   plugin:
-    tinyflow:
-      enabled: true
-    model:
-      enabled: true
+    elasticsearch:
+      enabled: false
+    s3:
+      admin:
+        enabled: true
     druid:
       aop-patterns:  /*
       stat-view-servlet:
@@ -78,6 +81,14 @@ magic-api:
         login-username: admin
         login-password: 123456
 
+
+# 本地未启动 ES/Neo4j，关闭对应健康检查，避免 actuator 周期性打印 Connection refused 告警
+management:
+  health:
+    elasticsearch:
+      enabled: false
+    neo4j:
+      enabled: false
 
 logging:
   level:

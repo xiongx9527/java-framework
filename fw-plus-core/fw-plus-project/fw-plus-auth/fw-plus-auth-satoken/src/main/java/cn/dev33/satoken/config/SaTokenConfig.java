@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2099 sa-token.cc
+ * Copyright 2020-2099 sa-token.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +15,12 @@
  */
 package cn.dev33.satoken.config;
 
+import cn.dev33.satoken.SaManager;
+import cn.dev33.satoken.json.SaJsonType;
+
 import cn.dev33.satoken.stp.parameter.enums.SaLogoutMode;
 import cn.dev33.satoken.stp.parameter.enums.SaLogoutRange;
+import cn.dev33.satoken.stp.parameter.enums.SaReplacedLoginExitMode;
 import cn.dev33.satoken.stp.parameter.enums.SaReplacedRange;
 import cn.dev33.satoken.util.SaFoxUtil;
 
@@ -27,13 +31,13 @@ import java.io.Serializable;
  *
  * <p>
  *     你可以通过yml、properties、java代码等形式配置本类参数，具体请查阅官方文档:
- *     <a href="https://sa-token.cc">https://sa-token.cc</a>
+ *     <a href="https://sa-token.com">https://sa-token.com</a>
  * </p>
  *
  * @author click33
  * @since 1.10.0
  */
-public class SaTokenConfig implements Serializable {
+public class SaTokenConfig implements SaJsonType, Serializable {
 
 	private static final long serialVersionUID = -6541180061782004705L;
 
@@ -66,6 +70,11 @@ public class SaTokenConfig implements Serializable {
 	 * 在多人登录同一账号时，是否共用一个 token （为 true 时所有登录共用一个 token, 为 false 时每次登录新建一个 token）
 	 */
 	private Boolean isShare = false;
+
+	/**
+	 * 在 isConcurrent=false 时，决定新旧设备谁将放弃会话 (OLD_DEVICE=旧设备下线，新设备登录成功, NEW_DEVICE=新设备登录失败，旧设备维持在线)
+	 */
+	private SaReplacedLoginExitMode replacedLoginExitMode = SaReplacedLoginExitMode.OLD_DEVICE;
 
 	/**
 	 * 当 isConcurrent=false 时，顶人下线的范围 (CURR_DEVICE_TYPE=当前指定的设备类型端, ALL_DEVICE_TYPE=所有设备类型端)
@@ -133,6 +142,12 @@ public class SaTokenConfig implements Serializable {
 	 * 在登录时，是否立即创建对应的 Token-Session （true=在登录时立即创建，false=在第一次调用 getTokenSession() 时创建）
 	 */
 	private Boolean rightNowCreateTokenSession = false;
+
+	/**
+	 * 是否允许 loginId 包含冒号（:），默认 false。
+	 * <p> Sa-Token 持久化 key 使用冒号分段，loginId 含冒号会导致 key 难以解析，不建议使用。 </p>
+	 */
+	private Boolean allowLoginIdColon = false;
 
 	/**
 	 * token 风格（默认可取值：uuid、simple-uuid、random-32、random-64、random-128、tik）
@@ -220,7 +235,7 @@ public class SaTokenConfig implements Serializable {
 	private Boolean checkSameToken = false;
 
 	/**
-	 * Cookie配置对象
+	 * Cookie配置对象 
 	 */
 	public SaCookieConfig cookie = new SaCookieConfig();
 
@@ -347,7 +362,7 @@ public class SaTokenConfig implements Serializable {
 
 	/**
 	 * @param maxLoginCount 同一账号最大登录数量，-1代表不限 （只有在 isConcurrent=true, isShare=false 时此配置项才有意义）
-	 * @return 对象自身
+	 * @return 对象自身 
 	 */
 	public SaTokenConfig setMaxLoginCount(int maxLoginCount) {
 		this.maxLoginCount = maxLoginCount;
@@ -733,6 +748,22 @@ public class SaTokenConfig implements Serializable {
 	}
 
 	/**
+	 * @return 在 isConcurrent=false 时，决定新旧设备谁将放弃会话 (OLD_DEVICE=旧设备下线，新设备登录成功, NEW_DEVICE=新设备登录失败，旧设备维持在线)
+	 */
+	public SaReplacedLoginExitMode getReplacedLoginExitMode() {
+		return replacedLoginExitMode;
+	}
+
+	/**
+	 * @param replacedLoginExitMode 在 isConcurrent=false 时，决定新旧设备谁将放弃会话 (OLD_DEVICE=旧设备下线，新设备登录成功, NEW_DEVICE=新设备登录失败，旧设备维持在线)
+	 * @return 对象自身
+	 */
+	public SaTokenConfig setReplacedLoginExitMode(SaReplacedLoginExitMode replacedLoginExitMode) {
+		this.replacedLoginExitMode = replacedLoginExitMode;
+		return this;
+	}
+
+	/**
 	 * 获取 当 isConcurrent=false 时，顶人下线的范围 (CURR_DEVICE_TYPE=当前指定的设备类型端 ALL_DEVICE_TYPE=所有设备类型端)
 	 *
 	 * @return /
@@ -853,6 +884,26 @@ public class SaTokenConfig implements Serializable {
 	}
 
 	/**
+	 * 获取 是否允许 loginId 包含冒号（:）
+	 *
+	 * @return /
+	 */
+	public Boolean getAllowLoginIdColon() {
+		return this.allowLoginIdColon;
+	}
+
+	/**
+	 * 设置 是否允许 loginId 包含冒号（:）
+	 *
+	 * @param allowLoginIdColon /
+	 * @return 对象自身
+	 */
+	public SaTokenConfig setAllowLoginIdColon(Boolean allowLoginIdColon) {
+		this.allowLoginIdColon = allowLoginIdColon;
+		return this;
+	}
+
+	/**
 	 * @return Cookie 全局配置对象
 	 */
 	public SaCookieConfig getCookie() {
@@ -861,7 +912,7 @@ public class SaTokenConfig implements Serializable {
 
 	/**
 	 * @param cookie Cookie 全局配置对象
-	 * @return 对象自身
+	 * @return 对象自身 
 	 */
 	public SaTokenConfig setCookie(SaCookieConfig cookie) {
 		this.cookie = cookie;
@@ -872,18 +923,19 @@ public class SaTokenConfig implements Serializable {
 	@Override
 	public String toString() {
 		return "SaTokenConfig ["
-				+ "tokenName=" + tokenName
-				+ ", timeout=" + timeout
+				+ "tokenName=" + tokenName 
+				+ ", timeout=" + timeout 
 				+ ", activeTimeout=" + activeTimeout
 				+ ", dynamicActiveTimeout=" + dynamicActiveTimeout
 				+ ", isConcurrent=" + isConcurrent
 				+ ", isShare=" + isShare
 				+ ", replacedRange=" + replacedRange
+				+ ", replacedLoginExitMode=" + replacedLoginExitMode
 				+ ", maxLoginCount=" + maxLoginCount
 				+ ", overflowLogoutMode=" + overflowLogoutMode
 				+ ", maxTryTimes=" + maxTryTimes
 				+ ", isReadBody=" + isReadBody
-				+ ", isReadHeader=" + isReadHeader
+				+ ", isReadHeader=" + isReadHeader 
 				+ ", isReadCookie=" + isReadCookie
 				+ ", isLastingCookie=" + isLastingCookie
 				+ ", isWriteHeader=" + isWriteHeader
@@ -891,23 +943,24 @@ public class SaTokenConfig implements Serializable {
 				+ ", isLogoutKeepFreezeOps=" + isLogoutKeepFreezeOps
 				+ ", isLogoutKeepTokenSession=" + isLogoutKeepTokenSession
 				+ ", rightNowCreateTokenSession=" + rightNowCreateTokenSession
+				+ ", allowLoginIdColon=" + allowLoginIdColon
 				+ ", tokenStyle=" + tokenStyle
-				+ ", dataRefreshPeriod=" + dataRefreshPeriod
+				+ ", dataRefreshPeriod=" + dataRefreshPeriod 
 				+ ", tokenSessionCheckLogin=" + tokenSessionCheckLogin
 				+ ", autoRenew=" + autoRenew
 				+ ", tokenPrefix=" + tokenPrefix
 				+ ", cookieAutoFillPrefix=" + cookieAutoFillPrefix
-				+ ", isPrint=" + isPrint
-				+ ", isLog=" + isLog
-				+ ", logLevel=" + logLevel
+				+ ", isPrint=" + isPrint 
+				+ ", isLog=" + isLog 
+				+ ", logLevel=" + logLevel 
 				+ ", logLevelInt=" + logLevelInt
 				+ ", isColorLog=" + isColorLog
-				+ ", jwtSecretKey=" + jwtSecretKey
+				+ ", jwtSecretKey=" + jwtSecretKey 
 				+ ", httpBasic=" + httpBasic
 				+ ", httpDigest=" + httpDigest
-				+ ", currDomain=" + currDomain
+				+ ", currDomain=" + currDomain 
 				+ ", sameTokenTimeout=" + sameTokenTimeout
-				+ ", checkSameToken=" + checkSameToken
+				+ ", checkSameToken=" + checkSameToken 
 				+ ", cookie=" + cookie
 				+ "]";
 	}
@@ -923,7 +976,6 @@ public class SaTokenConfig implements Serializable {
 	 */
 	@Deprecated
 	public long getActivityTimeout() {
-//		System.err.println("配置项已过期，请更换：sa-token.activity-timeout -> sa-token.active-timeout");
 		return activeTimeout;
 	}
 
@@ -935,7 +987,7 @@ public class SaTokenConfig implements Serializable {
 	 */
 	@Deprecated
 	public SaTokenConfig setActivityTimeout(long activityTimeout) {
-		System.err.println("配置项已过期，请更换：sa-token.activity-timeout -> sa-token.active-timeout");
+		SaManager.log.warn("配置项已过期，请更换：sa-token.activity-timeout -> sa-token.active-timeout");
 		this.activeTimeout = activityTimeout;
 		return this;
 	}

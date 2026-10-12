@@ -1,0 +1,16 @@
+{
+  "change": "mcp-server-multi-instance",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "task_hash_policy": "task-content-v1",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "84dcede56ea0b3dc1e98ae644a2065cc9d5c6ec6a805b816fa0413ed09fda466",
+  "files": [
+    { "path": "docs/openspec/changes/mcp-server-multi-instance/proposal.md", "sha256": "d79ac211add50379454ff961bbcbb6c1ed22cf22af4696b816416b989bf7a6bc" },
+    { "path": "docs/openspec/changes/mcp-server-multi-instance/design.md", "sha256": "4a8c295883e063b28bd8ea5dc3e50057b8372a0b289f5a729d0be97443761cb0" },
+    { "path": "docs/openspec/changes/mcp-server-multi-instance/tasks.md", "sha256": "43a18c7185cb24dcd0320f682ff81211f56d7367f45461516ed3474377e2bd6e" },
+    { "path": "docs/openspec/changes/mcp-server-multi-instance/.openspec.yaml", "sha256": "b0b17d81d9879c1c530bcf1bd09219678dbbcacdcc6e8dd5b150f70fb59d6d58" },
+    { "path": "docs/openspec/changes/mcp-server-multi-instance/specs/mcp-server-starter/spec.md", "sha256": "611b9b028945fdc2e5a1968e8118c61ff5134f56fddb5edd9cec6688ac14ba09" }
+  ]
+}

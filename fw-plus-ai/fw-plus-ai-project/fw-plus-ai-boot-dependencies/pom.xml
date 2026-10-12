@@ -13,29 +13,70 @@
 
     <properties>
         <main.basedir>${basedir}/../..</main.basedir>
-        <!--  milvus-sdk-java版本号 -->
-        <milvus-sdk-java.version>2.6.3</milvus-sdk-java.version>
-        <!--  qdrant-sdk java版本号 -->
-        <qdrant-sdk-java.version>1.11.0</qdrant-sdk-java.version>
-        <!--  weaviate版本号 -->
-        <weaviate-sdk-java.version>4.6.0</weaviate-sdk-java.version>
-		<agents-flex.version>1.3.4</agents-flex.version>
-        <easyAi.version>1.4.9</easyAi.version>
-        <!-- Spring AI版本号 -->
-        <spring-ai.version>1.0.1</spring-ai.version>
-        <!-- Spring AI Alibaba版本号 -->
-        <spring-ai-alibaba.version>1.0.1</spring-ai-alibaba.version>
+        <langgraph4j.version>1.9.3</langgraph4j.version>
+        <!-- AgentScope Java 版本：当前稳定线为 2.0.4；2.1.0-BETA1 为预发布，不进发布线。
+             agentscope-core 的传递依赖（reactor/jackson/opentelemetry 等）会被本 BOM
+             后续 import 的 Spring Boot 3.5.8 dependencyManagement 压到 3.x/2.19.x，见
+             fw-plus-ai-boot-autoconfigure 中 AgentScopeAutoConfiguration 的兼容性注释。 -->
+        <agentscope.version>2.0.4</agentscope.version>
+        <!-- AgentScope Core 2.0.4 声明的最低版本：显式钉住，避免被下面 import 的
+             Spring Boot 3.5.8 dependencyManagement（reactor 2024.0.x=3.7.x /
+             jackson-bom 2.19.4 / opentelemetry 1.49.0）压到低版本导致运行期
+             NoSuchMethodError。必须声明在 fw-plus-dependencies /
+             fw-plus-boot-dependencies import 之前才生效（Maven 同坐标首次声明优先）。 -->
+        <reactor.version>3.8.2</reactor.version>
+        <jackson.version>2.21.1</jackson.version>
+        <opentelemetry.version>1.61.0</opentelemetry.version>
     </properties>
     <dependencyManagement>
         <dependencies>
 
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-dependencies</artifactId>
-                <version>${project.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
+        <dependency>
+            <groupId>org.bsc.langgraph4j</groupId>
+            <artifactId>langgraph4j-core</artifactId>
+            <version>${langgraph4j.version}</version>
+        </dependency>
+
+        <!-- AgentScope Java 全家桶版本管理（core / harness / model 扩展 / a2a / 各 starter 构件）。
+             官方 agentscope-spring-boot-starter 面向 Spring Boot 4 编译（依赖 4.0.1），
+             本分发线通过抄录其自动配置源码（fw-plus-ai-boot-autoconfigure
+             autoconfigure.agentscope 包）适配 Spring Boot 3.5.8，不直接引入官方 starter。 -->
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-bom</artifactId>
+            <version>${agentscope.version}</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+
+        <!-- 与 agentscope-core 2.0.4 对齐的 Reactor：3.8.2 -->
+        <dependency>
+            <groupId>io.projectreactor</groupId>
+            <artifactId>reactor-core</artifactId>
+            <version>${reactor.version}</version>
+        </dependency>
+
+        <!-- 与 agentscope-core 2.0.4 对齐的 Jackson：2.21.1（含 databind/annotations/
+             datatype-jsr310/dataformat-yaml 等全家，覆盖 jackson-bom 管理） -->
+        <dependency>
+            <groupId>com.fasterxml.jackson</groupId>
+            <artifactId>jackson-bom</artifactId>
+            <version>${jackson.version}</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+
+        <!-- 与 agentscope-core 2.0.4 对齐的 OpenTelemetry：1.61.0。
+             用 opentelemetry-bom import 统一管理 api/context/sdk 等全部构件，
+             避免只钉 opentelemetry-api 而其配套 context 仍被 Boot 压到 1.49.0
+             造成同套组件版本错配。 -->
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-bom</artifactId>
+            <version>${opentelemetry.version}</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.boot</groupId>
@@ -45,44 +86,17 @@
                 <scope>import</scope>
             </dependency>
 
-            <!-- weaviate -->
             <dependency>
-                <groupId>io.weaviate</groupId>
-                <artifactId>client</artifactId>
-                <version>${weaviate-sdk-java.version}</version><!-- 或者使用最新版本 -->
-            </dependency>
-            <!-- qdrant -->
-            <dependency>
-                <groupId>io.qdrant</groupId>
-                <artifactId>client</artifactId>
-                <version>${qdrant-sdk-java.version}</version>
-            </dependency>
-            <!-- milvus -->
-            <dependency>
-                <groupId>io.milvus</groupId>
-                <artifactId>milvus-sdk-java</artifactId>
-                <version>${milvus-sdk-java.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.agentsflex</groupId>
-                <artifactId>agents-flex-bom</artifactId>
-                <version>${agents-flex.version}</version>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-dependencies</artifactId>
+                <version>${project.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
 
-            <dependency>
-                <groupId>com.agentsflex</groupId>
-                <artifactId>agents-flex-spring-boot-starter</artifactId>
-                <version>${agents-flex.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.dromara.easyai</groupId>
-                <artifactId>easyAi</artifactId>
-                <version>${easyAi.version}</version>
-            </dependency>
+            <!-- 向量库 SDK 不再单独管理版本：随 langchain4j 的 store 模块（langchain4j-milvus /
+                 langchain4j-qdrant / langchain4j-weaviate 等）传递，版本跟随 langchain4j。
+                 spring-ai / spring-ai-alibaba 版本统一由 core 层 fw-plus-dependencies 管理 -->
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.ai</groupId>
@@ -110,43 +124,72 @@
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.ai</groupId>
-                <artifactId>fw-plus-ai-model-spring-boot-starter</artifactId>
+                <artifactId>fw-plus-ai-mcp-server-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-langchain4j</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Magic-API 插件前端产物载体模块：这些模块不含 Java 源码，只把 src/console/dist
+                 打成 magic-editor/plugins/*.iife.js 放进 jar。使用对应插件控制台面板的工程必须
+                 显式声明它们（依赖的是 jar 里的静态资源，不是 Java 类），否则插件注册时
+                 上报的 javascriptFilename 在 classpath 上找不到对应文件。
+                 与 boot 层 fw-plus-boot-dependencies 对 fw-plus-magicapi-plugin-* 的纳管方式一致。 -->
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.ai</groupId>
+                <artifactId>fw-plus-ai-magicapi-plugin-mcp-server</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.ai</groupId>
-                <artifactId>fw-plus-ai-store-embedding-spring-boot-starter</artifactId>
+                <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-chat-model</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.ai</groupId>
-                <artifactId>fw-plus-ai-magicapi-plugin-vector</artifactId>
+                <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-streaming-chat-model</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.ai</groupId>
-                <artifactId>fw-plus-ai-magicapi-plugin-model</artifactId>
+                <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-language-model</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.ai</groupId>
-                <artifactId>fw-plus-ai-magicapi-plugin-tinyflow</artifactId>
+                <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-streaming-language-model</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.ai</groupId>
-                <artifactId>fw-plus-ai-askdata-spring-boot-starter</artifactId>
+                <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-embedding-model</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.ai</groupId>
-                <artifactId>fw-plus-ai-tinyflow-spring-boot-starter</artifactId>
+                <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-tokenizer</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.ai</groupId>
+                <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-embedding-store</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.ai</groupId>
+                <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-scoring-model</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

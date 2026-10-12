@@ -1,0 +1,30 @@
+import vue from '@vitejs/plugin-vue'
+import path from 'path'
+import pkg from './package.json'
+
+export default {
+    base: './',
+    build: {
+        minify: false,
+        cssCodeSplit: true,
+        outDir: 'dist',
+        lib: {
+            target: 'esnext',
+            formats: ['iife'],
+            entry: path.resolve(__dirname, 'src/index.js'),
+            name: 'MagicLangchain4jTokenizer',
+            fileName: (format) => `magic-langchain4j-tokenizer.${pkg.version}.${format}.js`
+        },
+        rollupOptions: {
+            external: ['vue'],
+            output: {
+                globals: {
+                    vue: 'Vue'
+                }
+            }
+        }
+    },
+    plugins: [
+        vue(),
+    ]
+}

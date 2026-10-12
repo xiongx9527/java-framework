@@ -28,12 +28,14 @@ export default {
                 name: 'Name',
                 key: 'Key',
                 secret: 'Secret Key',
+                path: 'Endpoint Path',
                 description: 'Description',
                 properties: 'Properties',
                 placeholder: {
                     name: 'DataSource Name, Only Display Use',
                     key: 'DataSource Key, Required',
                     secret: 'DataSource Secret Key, Required',
+                    path: 'Bound WS endpoint path, e.g. /ws/api, empty for global config',
                     description: 'Please Enter WS Description, Option',
                     properties: 'JSON object, for example: {"key": "value"}'
                 }

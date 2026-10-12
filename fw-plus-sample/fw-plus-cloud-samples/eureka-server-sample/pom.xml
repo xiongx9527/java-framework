@@ -24,10 +24,6 @@
     <dependencies>
         <dependency>
             <groupId>com.xiongx9527.fw.plus.cloud</groupId>
-            <artifactId>fw-plus-magicapi-spring-cloud-starter</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus.cloud</groupId>
             <artifactId>fw-plus-eureka-server-spring-cloud-starter</artifactId>
         </dependency>
         <dependency>

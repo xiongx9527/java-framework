@@ -64,12 +64,6 @@
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.cloud</groupId>
-                <artifactId>fw-plus-magicapi-spring-cloud-starter</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus.cloud</groupId>
                 <artifactId>fw-plus-admin-server-spring-cloud-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -82,7 +76,7 @@
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.cloud</groupId>
-                <artifactId>fw-plus-magicapi-plugin-eureka</artifactId>
+                <artifactId>fw-plus-cloud-magicapi-plugin-eureka</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

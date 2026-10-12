@@ -12,9 +12,12 @@
     <packaging>pom</packaging>
     <modules>
         <module>fw-plus-ai-magicapi-sample</module>
-        <module>fw-plus-ai-tiny-engine-sample</module>
-        <module>fw-plus-ai-tinyflow-sample</module>
+        <module>fw-plus-ai-mcp-server-sample</module>
+        <module>fw-plus-ai-chat-sample</module>
+        <module>fw-plus-ai-agentscope-sample</module>
+        <module>fw-plus-ai-nl2sql-sample</module>
     </modules>
+    <version>${revision}</version>
     <artifactId>fw-plus-ai-samples</artifactId>
     <properties>
         <main.basedir>${basedir}/../..</main.basedir>
@@ -30,18 +33,21 @@
     <dependencyManagement>
         <dependencies>
 
+            <!-- 先 import AI 层 BOM：其内部已 import fw-plus-boot-dependencies，
+                 且在本层钉住 reactor-core / jackson / opentelemetry（AgentScope 2.0.4 所需，
+                 高于 Boot 3.5.8 默认管理版本）。Maven 同坐标先声明者优先，
+                 因此必须置于 fw-plus-boot-dependencies 之前，否则钉住的版本会被 Boot BOM 压回。 -->
             <dependency>
-                <groupId>com.xiongx9527.fw.plus.boot</groupId>
-                <artifactId>fw-plus-boot-dependencies</artifactId>
+                <groupId>com.xiongx9527.fw.plus.ai</groupId>
+                <artifactId>fw-plus-ai-boot-dependencies</artifactId>
                 <version>${revision}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
 
-
             <dependency>
-                <groupId>com.xiongx9527.fw.plus.ai</groupId>
-                <artifactId>fw-plus-ai-boot-dependencies</artifactId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-boot-dependencies</artifactId>
                 <version>${revision}</version>
                 <type>pom</type>
                 <scope>import</scope>

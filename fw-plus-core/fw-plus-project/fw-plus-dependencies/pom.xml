@@ -25,7 +25,7 @@
         <vesoft-java-client.version>3.8.4</vesoft-java-client.version>
         <vesoft-java-driver.version>5.3.0</vesoft-java-driver.version>
         <!--sa-token版本号-->
-        <sa-token.version>1.45.0</sa-token.version>
+        <sa-token.version>1.46.0</sa-token.version>
         <!--dynamic-tp版本号-->
         <dynamictp.version>1.2.1</dynamictp.version>
         <!--akali版本号-->
@@ -39,13 +39,10 @@
         <!--okhttp版本号-->
         <okhttp.version>5.3.2</okhttp.version>
         <okio.version>3.16.4</okio.version>
-        <!--justauth版本号-->
-        <JustAuth.version>1.16.7</JustAuth.version>
-        <!--jakarta.servlet-api版本号-->
+		<!--javax.servlet-api版本号-->
+        <javax.servlet-api.version>4.0.1</javax.servlet-api.version>
         <jakarta.servlet-api.version>6.1.0</jakarta.servlet-api.version>
         <jakarta-el.version>4.0.2</jakarta-el.version>
-        <!--javax.servlet-api版本号-->
-        <javax.servlet-api.version>4.0.1</javax.servlet-api.version>
         <!--spring-plugin版本号-->
         <spring-plugin.version>2.0.0.RELEASE</spring-plugin.version>
         <!--api-boot版本号-->
@@ -165,6 +162,10 @@
         <!--knife4j版本号-->
         <knife4j-openapi3.version>4.5.0</knife4j-openapi3.version>
         <knife4j-gateway.version>4.5.0</knife4j-gateway.version>
+        <!--springdoc版本号：覆盖 knife4j 4.5.0 传递的 2.2.0——Spring 6.2 移除了
+            ControllerAdviceBean(Object) 构造器，springdoc 2.2.0 访问 /v3/api-docs 即 NoSuchMethodError；
+            2.8.x 配套 Spring Boot 3.4/3.5（3.x 线对应 Boot 4，不适用）-->
+        <springdoc-openapi.version>2.8.17</springdoc-openapi.version>
         <!--apollo版本号-->
         <apollo-client.version>2.5.0</apollo-client.version>
         <!--jodd-core版本号-->
@@ -183,9 +184,7 @@
         <assertj-core.version>3.26.3</assertj-core.version>
         <!--sensitive-word版本号-->
         <sensitive-word.version>0.24.0</sensitive-word.version>
-        <!--jimureport版本号-->
-        <jimureport.version>2.3.4</jimureport.version>
-        <jimureport-echarts.version>2.3.0</jimureport-echarts.version>
+
         <jimunosql.version>2.1.0</jimunosql.version>
         <jimubi.version>2.3.2</jimubi.version>
         <!--jsqlparser版本号-->
@@ -196,13 +195,20 @@
         <protobuf-java.version>3.25.1</protobuf-java.version>
         <!--jakarta版本号-->
         <jakarta.version>6.0.0</jakarta.version>
-		<langchain4j.version>1.18.0</langchain4j.version>
-		<langchain4j-community.version>1.18.0-beta28</langchain4j-community.version>
-        <tinyflow.version>2.0.7</tinyflow.version>
+		<langchain4j.version>1.22.0</langchain4j.version>
+		<langchain4j-community.version>1.21.0-beta31</langchain4j-community.version>
+		<langchain4j-github-models.version>1.19.3-beta29</langchain4j-github-models.version>
+		<spring-ai.version>1.1.8</spring-ai.version>
+		<spring-ai-alibaba.version>1.1.2.4-security-fix</spring-ai-alibaba.version>
+		<spring-ai-alibaba-extensions.version>1.1.2.4-security-fix</spring-ai-alibaba-extensions.version>
         <jedis.version>7.2.1</jedis.version>
         <datastax-java-driver.version>4.17.0</datastax-java-driver.version>
         <infinispan.version>13.0.22.Final</infinispan.version>
-        <neo4j-java-driver.version>4.4.26</neo4j-java-driver.version>
+        <neo4j-java-driver.version>6.0.5</neo4j-java-driver.version>
+        <!--aj-mcp-server版本号-->
+        <aj-mcp-server.version>1.6</aj-mcp-server.version>
+        <!--aj-mcp-client版本号-->
+        <aj-mcp-client.version>1.7</aj-mcp-client.version>
         <maven-enforcer-plugin.version>3.4.1</maven-enforcer-plugin.version>
         <exec-maven-plugin.version>3.1.0</exec-maven-plugin.version>
     </properties>
@@ -263,6 +269,29 @@
                 <scope>import</scope>
             </dependency>
 
+            <!--Spring AI 配置管理-->
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.cloud.ai</groupId>
+                <artifactId>spring-ai-alibaba-bom</artifactId>
+                <version>${spring-ai-alibaba.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.cloud.ai</groupId>
+                <artifactId>spring-ai-alibaba-extensions-bom</artifactId>
+                <version>${spring-ai-alibaba-extensions.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
             <!--langchain4j 配置管理-->
             <dependency>
                 <groupId>dev.langchain4j</groupId>
@@ -273,28 +302,15 @@
             </dependency>
             <dependency>
                 <groupId>dev.langchain4j</groupId>
-                <artifactId>langchain4j-community-redis</artifactId>
+                <artifactId>langchain4j-community-bom</artifactId>
                 <version>${langchain4j-community.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>dev.langchain4j</groupId>
-                <artifactId>langchain4j-community-qianfan</artifactId>
-                <version>${langchain4j-community.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>dev.langchain4j</groupId>
-                <artifactId>langchain4j-community-dashscope</artifactId>
-                <version>${langchain4j-community.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>dev.langchain4j</groupId>
-                <artifactId>langchain4j-community-zhipu-ai</artifactId>
-                <version>${langchain4j-community.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>dev.tinyflow</groupId>
-                <artifactId>tinyflow-core</artifactId>
-                <version>${tinyflow.version}</version>
+                <artifactId>langchain4j-github-models</artifactId>
+                <version>${langchain4j-github-models.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.datastax.oss</groupId>
@@ -434,11 +450,6 @@
                 <artifactId>byte-buddy</artifactId>
                 <version>${byte-buddy.version}</version>
             </dependency>
-            <dependency>
-                <groupId>net.bytebuddy</groupId>
-                <artifactId>byte-buddy-agent</artifactId>
-                <version>${byte-buddy.version}</version>
-            </dependency>
             <!--jakarta.servlet版本统一管理-->
             <dependency>
                 <groupId>jakarta.servlet</groupId>
@@ -449,6 +460,23 @@
                 <groupId>org.glassfish</groupId>
                 <artifactId>jakarta.el</artifactId>
                 <version>${jakarta-el.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>net.bytebuddy</groupId>
+                <artifactId>byte-buddy-agent</artifactId>
+                <version>${byte-buddy.version}</version>
+            </dependency>
+            <!--javax.servlet版本统一管理-->
+            <dependency>
+                <groupId>javax.servlet</groupId>
+                <artifactId>javax.servlet-api</artifactId>
+                <version>${javax.servlet-api.version}</version>
+            </dependency>
+            <!--jakarta.servlet版本统一管理-->
+            <dependency>
+                <groupId>jakarta.servlet</groupId>
+                <artifactId>jakarta.servlet-api</artifactId>
+                <version>${jakarta.version}</version>
             </dependency>
             <!--commons-collections版本统一管理-->
             <dependency>
@@ -684,9 +712,14 @@
             </dependency>
             <dependency>
                 <groupId>com.alibaba</groupId>
-                <artifactId>druid-spring-boot-3-starter</artifactId>
+                <artifactId>druid-spring-boot-starter</artifactId>
                 <version>${druid.version}</version>
             </dependency>
+			<dependency>
+				<groupId>com.alibaba</groupId>
+				<artifactId>druid-spring-boot-3-starter</artifactId>
+				<version>${druid.version}</version>
+			</dependency>
             <!--redis-keeper版本统一管理-->
             <dependency>
                 <groupId>org.codeba</groupId>
@@ -702,7 +735,7 @@
             <!--dynamic-datasource版本统一管理-->
             <dependency>
                 <groupId>com.baomidou</groupId>
-                <artifactId>dynamic-datasource-spring-boot3-starter</artifactId>
+                <artifactId>dynamic-datasource-spring-boot-starter</artifactId>
                 <version>${dynamic-datasource.version}</version>
             </dependency>
             <dependency>
@@ -739,6 +772,11 @@
                 <artifactId>mybatis-plus</artifactId>
                 <version>${mybatis-plus.version}</version>
             </dependency>
+			<dependency>
+				<groupId>com.baomidou</groupId>
+				<artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+				<version>${mybatis-plus.version}</version>
+			</dependency>
             <dependency>
                 <groupId>com.baomidou</groupId>
                 <artifactId>mybatis-plus-core</artifactId>
@@ -751,17 +789,7 @@
             </dependency>
             <dependency>
                 <groupId>com.baomidou</groupId>
-                <artifactId>mybatis-plus-spring</artifactId>
-                <version>${mybatis-plus.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.baomidou</groupId>
                 <artifactId>mybatis-plus-annotation</artifactId>
-                <version>${mybatis-plus.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.baomidou</groupId>
-                <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
                 <version>${mybatis-plus.version}</version>
             </dependency>
             <dependency>
@@ -909,13 +937,50 @@
             <!--knife4j版本统一管理-->
             <dependency>
                 <groupId>com.github.xiaoymin</groupId>
+                <artifactId>knife4j-openapi3-spring-boot-starter</artifactId>
+                <version>${knife4j-openapi3.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.xiaoymin</groupId>
                 <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
+                <version>${knife4j-openapi3.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.xiaoymin</groupId>
+                <artifactId>knife4j-openapi3-webflux-spring-boot-starter</artifactId>
                 <version>${knife4j-openapi3.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.github.xiaoymin</groupId>
                 <artifactId>knife4j-gateway-spring-boot-starter</artifactId>
                 <version>${knife4j-gateway.version}</version>
+            </dependency>
+            <!--springdoc 覆盖 knife4j 传递版本（2.2.0 与 Spring 6.2 不兼容，见属性注释）。
+                各 starter 必须整体对齐同一版本，混用会导致自动配置清单引用不存在的类-->
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-common</artifactId>
+                <version>${springdoc-openapi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>${springdoc-openapi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
+                <version>${springdoc-openapi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+                <version>${springdoc-openapi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webflux-api</artifactId>
+                <version>${springdoc-openapi.version}</version>
             </dependency>
             <!--poi版本统一管理-->
             <!--
@@ -1104,11 +1169,6 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.pdfbox</groupId>
-                <artifactId>pdfbox</artifactId>
-                <version>${fontbox.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.pdfbox</groupId>
                 <artifactId>fontbox</artifactId>
                 <version>${fontbox.version}</version>
             </dependency>
@@ -1152,27 +1212,7 @@
                 <artifactId>protobuf-java</artifactId>
                 <version>${protobuf-java.version}</version>
             </dependency>
-            <!-- jimureport版本统一管理 -->
-            <dependency>
-                <groupId>org.jeecgframework.jimureport</groupId>
-                <artifactId>jimureport-spring-boot3-starter</artifactId>
-                <version>${jimureport.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.jeecgframework.jimureport</groupId>
-                <artifactId>jimureport-echarts-starter</artifactId>
-                <version>${jimureport-echarts.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.jeecgframework.jimureport</groupId>
-                <artifactId>jimureport-nosql-starter</artifactId>
-                <version>${jimunosql.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.jeecgframework.jimureport</groupId>
-                <artifactId>jimubi-spring-boot3-starter</artifactId>
-                <version>${jimubi.version}</version>
-            </dependency>
+
             <!-- fw-plus 版本统一管理 -->
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
@@ -1271,16 +1311,6 @@
             </dependency>
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-report-base</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-report-jimu</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-template</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -1296,38 +1326,20 @@
             </dependency>
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-mcp</artifactId>
+                <artifactId>fw-plus-ai-mcp-server</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <!--aj-mcp-server 版本统一管理-->
             <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-askdata</artifactId>
-                <version>${revision}</version>
+                <groupId>com.ajaxjs</groupId>
+                <artifactId>aj-mcp-server</artifactId>
+                <version>${aj-mcp-server.version}</version>
             </dependency>
+            <!--aj-mcp-client 版本统一管理-->
             <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-model</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-store-embedding</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-tinyflow-core</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-tinyflow-local</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-tinyflow-dify</artifactId>
-                <version>${project.version}</version>
+                <groupId>com.ajaxjs</groupId>
+                <artifactId>aj-mcp-client</artifactId>
+                <version>${aj-mcp-client.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
@@ -1351,16 +1363,15 @@
             </dependency>
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-tiny-engine-core</artifactId>
+                <artifactId>fw-plus-auth-base</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-auth-base</artifactId>
+                <artifactId>fw-plus-auth-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
-
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
@@ -1368,120 +1379,15 @@
                 <version>${project.version}</version>
             </dependency>
 
-
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-langchain4j-core</artifactId>
+                <artifactId>fw-plus-ai-langchain4j-nebula</artifactId>
                 <version>${project.version}</version>
             </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-langchain4j-openai</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-langchain4j-anthropic</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-langchain4j-ollama</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-langchain4j-azure-ai-search</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-langchain4j-azure-open-ai</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-langchain4j-voyage-ai</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-langchain4j-github-models</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-langchain4j-vertex-ai-gemini</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-langchain4j-elasticsearch</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-langchain4j-redis</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-langchain4j-qianfan</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-langchain4j-milvus</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-langchain4j-dashscope</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-langchain4j-adapter</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-langchain4j-reactor</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-ai-langchain4j-neo4j</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-langchain4j-cassandra</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-langchain4j-infinispan</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

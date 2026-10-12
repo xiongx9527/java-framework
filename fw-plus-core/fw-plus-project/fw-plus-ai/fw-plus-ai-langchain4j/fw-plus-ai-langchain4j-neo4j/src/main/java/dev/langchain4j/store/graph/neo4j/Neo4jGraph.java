@@ -19,26 +19,29 @@ import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
 public class Neo4jGraph implements AutoCloseable {
 
-    private static final String NODE_PROPERTIES_QUERY =
-            "CALL apoc.meta.data()\n"
-                    + "YIELD label, other, elementType, type, property\n"
-                    + "WHERE NOT type = \"RELATIONSHIP\" AND elementType = \"node\"\n"
-                    + "WITH label AS nodeLabels, collect({property:property, type:type}) AS properties\n"
-                    + "RETURN {labels: nodeLabels, properties: properties} AS output\n";
+    private static final String NODE_PROPERTIES_QUERY = """
+            CALL apoc.meta.data()
+            YIELD label, other, elementType, type, property
+            WHERE NOT type = "RELATIONSHIP" AND elementType = "node"
+            WITH label AS nodeLabels, collect({property:property, type:type}) AS properties
+            RETURN {labels: nodeLabels, properties: properties} AS output
+            """;
 
-    private static final String REL_PROPERTIES_QUERY =
-            "CALL apoc.meta.data()\n"
-                    + "YIELD label, other, elementType, type, property\n"
-                    + "WHERE NOT type = \"RELATIONSHIP\" AND elementType = \"relationship\"\n"
-                    + "WITH label AS nodeLabels, collect({property:property, type:type}) AS properties\n"
-                    + "RETURN {type: nodeLabels, properties: properties} AS output\n";
+    private static final String REL_PROPERTIES_QUERY = """
+            CALL apoc.meta.data()
+            YIELD label, other, elementType, type, property
+            WHERE NOT type = "RELATIONSHIP" AND elementType = "relationship"
+            WITH label AS nodeLabels, collect({property:property, type:type}) AS properties
+            RETURN {type: nodeLabels, properties: properties} AS output
+            """;
 
-    private static final String RELATIONSHIPS_QUERY =
-            "CALL apoc.meta.data()\n"
-                    + "YIELD label, other, elementType, type, property\n"
-                    + "WHERE type = \"RELATIONSHIP\" AND elementType = \"node\"\n"
-                    + "UNWIND other AS other_node\n"
-                    + "RETURN {start: label, type: property, end: toString(other_node)} AS output\n";
+    private static final String RELATIONSHIPS_QUERY = """
+            CALL apoc.meta.data()
+            YIELD label, other, elementType, type, property
+            WHERE type = "RELATIONSHIP" AND elementType = "node"
+            UNWIND other AS other_node
+            RETURN {start: label, type: property, end: toString(other_node)} AS output
+            """;
 
     private final Driver driver;
 
@@ -63,7 +66,7 @@ public class Neo4jGraph implements AutoCloseable {
     public ResultSummary executeWrite(String queryString) {
 
         try (Session session = this.driver.session()) {
-            return session.writeTransaction(tx -> tx.run(queryString).consume());
+            return session.executeWrite(tx -> tx.run(queryString).consume());
         } catch (ClientException e) {
             throw new Neo4jException("Error executing query: " + queryString, e);
         }
@@ -72,7 +75,7 @@ public class Neo4jGraph implements AutoCloseable {
     public List<Record> executeRead(String queryString) {
 
         try (Session session = this.driver.session()) {
-            return session.readTransaction(tx -> {
+            return session.executeRead(tx -> {
                 Query query = new Query(queryString);
                 Result result = tx.run(query);
                 return result.list();
@@ -101,7 +104,7 @@ public class Neo4jGraph implements AutoCloseable {
         return records.stream()
                 .map(this::getOutput)
                 .map(r -> String.format("%s %s", r.asMap().get("labels"), formatMap(r.get("properties").asList(Value::asMap))))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private List<String> formatRelationshipProperties(List<Record> records) {
@@ -109,7 +112,7 @@ public class Neo4jGraph implements AutoCloseable {
         return records.stream()
                 .map(this::getOutput)
                 .map(r -> String.format("%s %s", r.get("type"), formatMap(r.get("properties").asList(Value::asMap))))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private List<String> formatRelationships(List<Record> records) {
@@ -117,7 +120,7 @@ public class Neo4jGraph implements AutoCloseable {
         return records.stream()
                 .map(r -> getOutput(r).asMap())
                 .map(r -> String.format("(:%s)-[:%s]->(:%s)", r.get("start"), r.get("type"), r.get("end")))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private Value getOutput(Record record) {

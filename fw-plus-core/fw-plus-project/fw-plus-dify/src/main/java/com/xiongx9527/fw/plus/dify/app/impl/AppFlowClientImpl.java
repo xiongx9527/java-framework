@@ -8,12 +8,14 @@ import com.xiongx9527.fw.plus.dify.app.IAppFlowClient;
 import com.xiongx9527.fw.plus.dify.app.params.ParamMessage;
 import com.xiongx9527.fw.plus.dify.app.types.WorkflowStatus;
 import com.xiongx9527.fw.plus.dify.routes.AppRoutes;
+import com.xiongx9527.fw.plus.dify.types.DifyRoute;
 import com.xiongx9527.fw.plus.dify.types.HttpMethod;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.sse.EventSource;
 import okhttp3.sse.EventSourceListener;
 
 import java.util.HashMap;
+import java.util.Map;
 
 @Slf4j
 public class AppFlowClientImpl extends AppBaseClientImpl implements IAppFlowClient {
@@ -104,7 +106,8 @@ public class AppFlowClientImpl extends AppBaseClientImpl implements IAppFlowClie
     }
 
     /**
-     * 停止 Dify 工作流的执行
+     * 停止 Dify 工作流的执行（仅流式任务支持；对应 POST /workflows/tasks/{task_id}/stop，
+     * body 中 user 必填但无需与发起运行的 user 一致——该接口不检查 user 一致性）
      * 
      * <p>该方法通过向 Dify 服务端发送停止请求，中断指定任务 ID 的工作流执行过程。
      * 适用于用户主动取消长时间运行的工作流或需要紧急释放计算资源的场景。</p>
@@ -119,9 +122,12 @@ public class AppFlowClientImpl extends AppBaseClientImpl implements IAppFlowClie
      */
     @Override
     public Boolean stopWorkFlow(String taskId, String user) {
+        DifyRoute route = AppRoutes.WORKFLOW_TASK_STOP.format(new HashMap<String, Object>() {{
+            put("taskId", taskId);
+        }});
+
         String result = SimpleHttpClient.get(config).requestJson(
-                String.format("%s/%s/stop", AppRoutes.WORKFLOW_TASK.getUrl(), taskId),
-                HttpMethod.POST,
+                route,
                 null,
                 new HashMap<String, Object>() {{
                     put("user", user);
@@ -155,7 +161,7 @@ public class AppFlowClientImpl extends AppBaseClientImpl implements IAppFlowClie
     public JSONObject getWorkFlowLog(String keyword, WorkflowStatus status, Integer page, Integer limit) {
         String result = SimpleHttpClient.get(config).requestJson(AppRoutes.WORKFLOW_LOGS, new HashMap<String, Object>() {{
             put("keyword", keyword);
-            put("status", status.name());
+            put("status", status != null ? status.getValue() : null);
             put("page", page);
             put("limit", limit);
         }}, null);
@@ -165,6 +171,94 @@ public class AppFlowClientImpl extends AppBaseClientImpl implements IAppFlowClie
         }
 
         return JSON.parseObject(result);
+    }
+
+    /**
+     * 按 ID 执行工作流（阻塞模式）
+     * <p>执行指定的已发布工作流版本；草稿版本 ID 服务端返回 400 bad_request，
+     * 应用模式不匹配返回 400 not_workflow_app，运行数据仅对相同 user 可见。</p>
+     *
+     * @param workflowId 已发布工作流版本 ID
+     * @param message    ParamMessage，包含 inputs/user/files 等执行参数
+     * @return JSONObject 运行结果（task_id、workflow_run_id、data）
+     */
+    @Override
+    public JSONObject runByIdBlocking(String workflowId, ParamMessage message) {
+        DifyRoute route = AppRoutes.WORKFLOW_RUN_BY_ID.format(new HashMap<String, Object>() {{
+            put("workflowId", workflowId);
+        }});
+
+        String result = requestBlocking(route, null, message.toMap());
+        return JSON.parseObject(result);
+    }
+
+    /**
+     * 按 ID 执行工作流（流式模式）
+     *
+     * @param workflowId 已发布工作流版本 ID
+     * @param message    ParamMessage
+     * @param listener   SSE 事件监听器
+     * @return EventSource
+     */
+    @Override
+    public EventSource runByIdStreaming(String workflowId, ParamMessage message, EventSourceListener listener) {
+        DifyRoute route = AppRoutes.WORKFLOW_RUN_BY_ID.format(new HashMap<String, Object>() {{
+            put("workflowId", workflowId);
+        }});
+
+        return requestStreaming(route, null, message.toMap(), listener);
+    }
+
+    /**
+     * 按 ID 执行工作流（流式模式，使用默认监听器）
+     *
+     * @param workflowId 已发布工作流版本 ID
+     * @param message    ParamMessage
+     * @return EventSource
+     */
+    @Override
+    public EventSource runByIdStreaming(String workflowId, ParamMessage message) {
+        return runByIdStreaming(workflowId, message, new DifyEventSourceBaseListener());
+    }
+
+    /**
+     * 流式获取工作流事件（连接中断或运行暂停后按 workflow_run_id 恢复）
+     * <p>对应 GET /workflow/{workflow_run_id}/events（注意路径为单数 workflow）；
+     * user 必须与发起该运行的 user 一致，否则服务端返回 404；不一致时停止任务接口不检查 user。</p>
+     *
+     * @param workflowRunId        运行 ID
+     * @param user                 终端用户标识（必须与发起者一致）
+     * @param includeStateSnapshot true 时先重放已执行节点的状态快照
+     * @param continueOnPause      true 时流在多次 workflow_paused 之间保持打开
+     * @param listener             SSE 事件监听器
+     * @return EventSource
+     */
+    @Override
+    public EventSource streamWorkflowEvents(String workflowRunId, String user, boolean includeStateSnapshot,
+                                            boolean continueOnPause, EventSourceListener listener) {
+        DifyRoute route = AppRoutes.WORKFLOW_EVENTS.format(new HashMap<String, Object>() {{
+            put("workflowRunId", workflowRunId);
+        }});
+
+        Map<String, Object> query = new HashMap<>();
+        query.put("user", user);
+        query.put("include_state_snapshot", includeStateSnapshot);
+        query.put("continue_on_pause", continueOnPause);
+
+        return SimpleHttpClient.get(config).requestSse(route, query, null, listener);
+    }
+
+    /**
+     * 流式获取工作流事件（默认参数：不重放快照、暂停即关流）
+     *
+     * @param workflowRunId 运行 ID
+     * @param user          终端用户标识
+     * @param listener      SSE 事件监听器
+     * @return EventSource
+     */
+    @Override
+    public EventSource streamWorkflowEvents(String workflowRunId, String user, EventSourceListener listener) {
+        return streamWorkflowEvents(workflowRunId, user, false, false, listener);
     }
 
 }

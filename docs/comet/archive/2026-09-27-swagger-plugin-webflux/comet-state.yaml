@@ -1,0 +1,327 @@
+schema: comet.native.v4
+name: swagger-plugin-webflux
+language: zh-CN
+phase: archive
+status: done
+state_version: 21
+brief: brief.md
+shape_confirmation_hash: 347b3d0522e6f974f85ac401958de7f85f8711efdb01d5c1f5da283d256ed862
+spec_changes:
+  - capability: magicapi-plugin-swagger
+    operation: create
+    source: specs/magicapi-plugin-swagger/spec.md
+workspace:
+  isolation: worktree
+  change_branch: comet/swagger-plugin-webflux
+  target_branch: dev
+  finish: merge
+loop:
+  stage: done
+  goal_cycle: 2
+  iteration: 1
+  attempt: 1
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: null
+acceptance:
+  - id: A1
+    source: brief.md
+    text: servlet 栈回归：既有 servlet 契约测试全部通过；文档端点路径与内容与改造前一致（默认
+      `/v2/api-docs/magic-api/swagger2.json`，Swagger 2.0 JSON，不加 base 前缀）。
+    result: passed
+    reason:
+      text: 三项 Runtime 正式检查回执与当前实现版本对应（源码 16:04:37 → 回执 16:42-16:44）：magicapi 全包
+        393/393（含
+        PluginFrontendMetadataTest.swaggerDoesNotExposeMissingFrontendResource、enabled=false
+        隔离场景）、插件模块 1/1（MagicApiSwaggerFrontendClasspathTest）。servlet
+        支线重构逐行等价（resolveLocation/Provider 构建搬入
+        SwaggerEndpointSupport，端点注册方式与时机未变），端点路径/内容/注册时机与改造前一致。全量 631 中唯一 16
+        个失败均在 web.ws.*，经主工作区对照确认为旧基线既有失败，与本 change 无关。
+      truncated: false
+  - id: A2
+    source: brief.md
+    text: webflux 栈：纯 REACTIVE 应用（仅 `spring-boot-starter-webflux`）下 swagger
+      文档端点被注册并返回等价的 Swagger 2.0 JSON。
+    result: passed
+    reason:
+      text: MagicSwaggerWebFluxTest 11/11（回执时间晚于源码）。HTTP 层证据：WebTestClient GET
+        /v2/api-docs/magic-api/swagger2.json → 200 + application/json +
+        swagger=2.0 + info.title 正确；自定义 location 覆盖生效且默认路径未注册；注册表经
+        MagicApiRegistryView 收敛，WebFluxRequestMagicDynamicRegistry 为
+        AbstractMagicDynamicRegistry<ApiInfo> 子类，与 servlet 共享
+        SwaggerEndpointSupport/SwaggerProvider。
+      truncated: false
+  - id: A3
+    source: brief.md
+    text: webflux 控制台：`/plugins` 清单包含 swagger 条目，knife4j webflux 文档
+      UI（`/doc.html`）可访问。
+    result: passed
+    reason:
+      text: /plugins HTTP 级验证：GET /magic-api/web/plugins → 200 且返回体含
+        "name":"swagger"。knife4j webflux
+        子项为判别性依赖断言（org.springdoc.webflux.ui.SwaggerConfig 可加载 + doc.html
+        类路径资源），并经独立静态核验补强：knife4j-openapi3-webflux-spring-boot-starter:4.5.0（实拉版本与
+        BOM 一致）传递 springdoc-openapi-webflux-ui:1.7.0，其 spring.factories 登记
+        SwaggerConfig（反编译确认 @ConditionalOnWebApplication(REACTIVE)、挂载
+        /doc.html、servlet 不激活）；spring-webflux 为 compile 非 optional，brief/spec
+        的取舍描述属实。
+      truncated: false
+  - id: A4
+    source: brief.md
+    text: 互斥性：classpath 同时存在 servlet 与 reactive 时，按 Spring Boot
+      推导的应用类型只激活一条支线，不双注册、不双端点。
+    result: passed
+    reason:
+      text: 双栈互斥双向测试通过（servlet runner 下 webflux 配置类不实例化、reactive runner 下 servlet
+        配置类不实例化）；测试 classpath 同时含两种 starter，等价混合 classpath 场景；单一实例由 mapping 断言与
+        MagicAPIWebFluxMapping 幂等注册保证；引导级登记经 AutoConfiguration.imports
+        真实文件与构建产物双重核对（target/classes 中第 15 行已含
+        MagicSwaggerWebFluxConfiguration）。
+      truncated: false
+builder_handoff:
+  candidate_id: 91075d59-cd0a-4765-a519-a36291836dd9
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:7c802975-187e-4a53-b531-ef439e07b74f
+  iteration: 1
+  summary:
+    text: 第 2 轮修复（回应 Verifier attempt 2 的三项 blocked）：1) 修正正式检查命令的模块路径（此前 -f 少两级目录导致
+      2/3 检查未执行）；2) 测试补强至 11 项：WebTestClient 端到端（GET
+      /v2/api-docs/magic-api/swagger2.json → 200 + application/json +
+      swagger=2.0 + info.title）、自定义 magic-api.swagger.location 覆盖、enabled=false
+      双栈无端点、/magic-api/web/plugins 返回体含 swagger 条目、AutoConfiguration.imports
+      真实文件包含 MagicSwaggerWebFluxConfiguration（引导级登记验证）、knife4j webflux
+      判别性断言（org.springdoc.webflux.ui.SwaggerConfig 类存在）；3) 修复 Boot 2.7
+      withPropertyValues 不可变 API 导致的属性丢失缺陷（合并数组一次传入）；4) 清理
+      SwaggerEndpointSupport.getGroupName() 未用方法；5) 产物对齐（已随 Runtime 要求重新确认
+      Shape）：knife4j webflux 非 optional 取舍、webflux 端点仅 GET 语义，写入 brief 约束与 spec
+      已知边界；6) core BOM 与 boot 层已安装到本地仓库（根聚合器构建需 -nsu）。
+    truncated: false
+  addressed_acceptance_ids:
+    - A1
+    - A2
+    - A3
+    - A4
+  checks:
+    - name:
+        text: mvn test -Dtest=MagicSwaggerWebFluxTest（fw-plus-boot-autoconfigure，-nsu）
+        truncated: false
+      result: passed
+      note:
+        text: 11/11：端点注册、HTTP 200+JSON、文档内容、location 覆盖、开关、/plugins 返回体、支线互斥双向、imports
+          引导级、knife4j webflux 依赖判别
+        truncated: false
+    - name:
+        text: mvn test
+          -Dtest=com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.**.*Test（fw-plus-boot-autoconfigure，-nsu）
+        truncated: false
+      result: passed
+      note:
+        text: 393/393：magicapi 全包回归（含
+          PluginFrontendMetadataTest、MagicAPIWebFluxControllerTest、各插件配置），servlet
+          与 webflux 爆炸半径全覆盖
+        truncated: false
+    - name:
+        text: mvn test（fw-plus-magicapi-plugin-swagger，-nsu）
+        truncated: false
+      result: passed
+      note:
+        text: 1/1：MagicApiSwaggerFrontendClasspathTest（servlet 前端资源契约）
+        truncated: false
+    - name:
+        text: mvn test 全量（fw-plus-boot-autoconfigure，-nsu）
+        truncated: false
+      result: failed
+      note:
+        text: 631 测试中 16 个 ws 族失败——已证实为 worktree 旧基线既有失败（同样 4 个类在主工作区 14/14 全绿；wsModule
+          依赖的 AbstractWebSocketHandler/WsConfig 在主工作区未提交的 ws 修复中才齐全）；本 change
+          未触碰 ws 代码；sample 全栈测试同因该基线问题无法启动，未纳入正式检查
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: worktree 基线为较旧 dev 提交：ws 族测试与 sample 全栈测试在该基线上既有失败（主工作区对照全绿），待合并到含 ws 修复的
+        dev 后转绿；正式检查按本次爆炸半径（magicapi 包 + swagger 插件模块）提交
+      truncated: false
+    - text: webflux /doc.html 无端到端访问断言：以判别性依赖断言（org.springdoc.webflux.ui.SwaggerConfig
+        类存在 + doc.html 类路径资源）替代，实际 UI 访问依赖 springdoc webflux 自动配置在宿主应用的装配
+      truncated: false
+    - text: webflux 文档端点仅响应 GET（servlet 不限方法），功能等价性已写入 spec 已知边界
+      truncated: false
+    - text: knife4j webflux 变体非 optional：servlet 应用类路径新增惰性 spring-webflux jar，已在
+        brief/spec 明确接受
+      truncated: false
+    - text: 正式检查前需保证 ~/.m2 含本 worktree 的 core BOM（已安装）；根聚合器构建建议带 -nsu，否则远程旧
+        0.1.1-SNAPSHOT 快照会覆盖本地新装 BOM
+      truncated: false
+  known_limits_truncated: false
+  review: null
+  submitted_at: 2026-09-27T08:41:32.547Z
+blockers: []
+verification:
+  candidate_id: 91075d59-cd0a-4765-a519-a36291836dd9
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:b1b89df6-d708-4250-9a2f-bcd6a0b9db1b
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: swagger-webflux-contract-tests
+      name:
+        text: swagger webflux 栈支线契约测试（MagicSwaggerWebFluxTest）
+        truncated: false
+      argv_display:
+        - text: -f
+          truncated: false
+        - text: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/pom.xml
+          truncated: false
+        - text: test
+          truncated: false
+        - text: -Dtest=MagicSwaggerWebFluxTest
+          truncated: false
+        - text: -DfailIfNoTests=false
+          truncated: false
+        - text: -nsu
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 15988
+    - id: magicapi-package-regression
+      name:
+        text: magicapi 全包回归测试（servlet 与 webflux 爆炸半径）
+        truncated: false
+      argv_display:
+        - text: -f
+          truncated: false
+        - text: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/pom.xml
+          truncated: false
+        - text: test
+          truncated: false
+        - text: -Dtest=com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.**.*Test
+          truncated: false
+        - text: -DfailIfNoTests=false
+          truncated: false
+        - text: -nsu
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 71887
+    - id: swagger-plugin-module-tests
+      name:
+        text: swagger 插件模块测试（servlet 前端资源契约）
+        truncated: false
+      argv_display:
+        - text: -f
+          truncated: false
+        - text: fw-plus-boot/pom.xml
+          truncated: false
+        - text: test
+          truncated: false
+        - text: -pl
+          truncated: false
+        - text: fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-swagger
+          truncated: false
+        - text: -DfailIfNoTests=false
+          truncated: false
+        - text: -nsu
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 8175
+  summary:
+    text: 三项正式检查回执齐备且与实现版本对应：契约测试 11/11、magicapi 全包 393/393、插件模块 1/1；git diff 无夹带（ws
+      族 16 个失败为旧基线既有问题，主工作区对照全绿）。HTTP 层证据、引导级登记、双栈互斥断言齐备，四项验收全部通过。
+    truncated: false
+  risks:
+    - text: /doc.html 仍无端到端 HTTP 断言（已列为 known limit，以反编译 springdoc SwaggerConfig 的条件与
+        spring.factories 登记独立补强）
+      truncated: false
+    - text: spec 场景「paths 包含已注册接口」与双栈 paths 逐条等价未断言（测试 registry 为空）
+      truncated: false
+    - text: MagicSwaggerWebFluxConfiguration 的
+        @ConditionalOnMissingBean(SwaggerUiConfigParameters.class) 标注在返回
+        SwaggerUiConfigProperties 的方法上，为从 servlet 支线照搬的既有怪癖，真实应用中 bean 顺序可能影响
+        knife4j UI 分组 URL 注入
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-09-27T08:53:01.790Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: execution-error
+    unresolved_ids: []
+    summary:
+      text: "本轮启动的独立只读 Verifier subagent 因平台模型路由错误执行失败（model_not_found:
+        stepaudio-2.5-asr，HTTP 404），未产生任何验收结论；候选实现与已登记检查未受影响。"
+      truncated: false
+    completed_at: 2026-09-27T07:44:55.001Z
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 2
+    outcome: blocked
+    unresolved_ids:
+      - A1
+      - A2
+      - A3
+    summary:
+      text: 实现本体与 W3/S2/U2 设计约束吻合，无明显无关改动夹带；主要缺口为三项证据不足：正式检查命令路径错误导致 2/3 检查未执行（A1/A2
+        无有效回执）、servlet 全栈契约未运行（A1）、webflux 文档端点与 knife4j UI
+        证据止于类路径/方法级（A2/A3）。下一轮 Build 需修正检查命令、补齐测试与回执、明确 knife4j webflux 依赖 scope
+        的产物表述。
+      truncated: false
+    completed_at: 2026-09-27T08:00:31.742Z
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 2
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: Verifier 判定 3 项受阻（A1/A2/A3），根因均为实现/测试侧可自修的问题：正式检查命令模块路径写错导致 2/3
+        检查未执行无回执；webflux 证据止于类路径/方法级，缺 HTTP 层与引导级断言；servlet 全栈回归未运行。返回
+        Build：修正检查命令路径、补 WebTestClient 端到端/location 覆盖/关闭开关/plugins 返回体/imports
+        引导级/doc.html 判别性测试、运行 autoconfigure 全量与 sample 全栈回归、明确 knife4j webflux
+        依赖 scope 的产物表述并清理未用方法。
+      truncated: false
+    completed_at: 2026-09-27T08:03:38.968Z
+  - goal_cycle: 1
+    iteration: 2
+    attempt: 0
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: Native Shape artifacts changed
+      truncated: false
+    completed_at: 2026-09-27T08:22:24.476Z
+  - goal_cycle: 2
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: 三项正式检查回执齐备且与实现版本对应：契约测试 11/11、magicapi 全包 393/393、插件模块 1/1；git diff 无夹带（ws
+        族 16 个失败为旧基线既有问题，主工作区对照全绿）。HTTP 层证据、引导级登记、双栈互斥断言齐备，四项验收全部通过。
+      truncated: false
+    completed_at: 2026-09-27T08:53:01.790Z
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pass
+verification_report: verification.md
+archived: true
+created_at: 2026-09-27T06:57:35.898Z

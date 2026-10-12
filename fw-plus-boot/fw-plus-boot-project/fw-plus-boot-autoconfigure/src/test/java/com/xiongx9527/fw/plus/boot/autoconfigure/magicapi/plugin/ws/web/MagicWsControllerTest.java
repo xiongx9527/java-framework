@@ -1,10 +1,10 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.web;
 
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.handler.BaseDynamicWebSocketHandler;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.model.WsDataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.model.WsSubscribeInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.service.WsDataSourceInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.service.WsSubscribeInfoMagicResourceStorage;
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.handler.AbstractWebSocketHandler;
 import org.junit.jupiter.api.Test;
 import org.ssssssss.magicapi.core.config.MagicConfiguration;
 import org.ssssssss.magicapi.core.model.JsonBean;
@@ -102,18 +102,10 @@ class MagicWsControllerTest {
 	}
 
 	@Test
-	void datasourceTestShouldReturnOkWhenTokenSecretIsConfigured() {
-		BaseDynamicWebSocketHandler handler = mock(BaseDynamicWebSocketHandler.class);
-		MagicWsController controller = new MagicWsController(new MagicConfiguration(), null, null, null) {
-			@Override
-			public Map<String, Object> getConfig() {
-				Map<String, Object> config = new HashMap<>();
-				config.put("token.secret", "01234567890123456789012345678901");
-				return config;
-			}
-		};
+	void datasourceTestShouldReturnOkWhenWebSocketHandlerAvailable() {
+		AbstractWebSocketHandler handler = mock(AbstractWebSocketHandler.class);
+		MagicWsController controller = controller(null, null, handler);
 
-		controller = controller(null, null, handler);
 		JsonBean<Object> result = controller.test(dataSourceInfo());
 
 		assertThat(result.getCode()).isEqualTo(1);
@@ -130,15 +122,8 @@ class MagicWsControllerTest {
 
 	private MagicWsController controller(WsSubscribeInfoMagicResourceStorage subscribeStorage,
 	                                    WsDataSourceInfoMagicResourceStorage dataSourceStorage,
-	                                    BaseDynamicWebSocketHandler handler) {
-		return new MagicWsController(new MagicConfiguration(), subscribeStorage, dataSourceStorage, handler) {
-			@Override
-			public Map<String, Object> getConfig() {
-				Map<String, Object> config = new HashMap<>();
-				config.put("token.secret", "01234567890123456789012345678901");
-				return config;
-			}
-		};
+	                                    AbstractWebSocketHandler handler) {
+		return new MagicWsController(new MagicConfiguration(), subscribeStorage, dataSourceStorage, handler);
 	}
 
 	private WsSubscribeInfo subscribeInfo(String id, String key, String businessId, String script) {

@@ -29,8 +29,8 @@ server:
 spring:
     datasource:
         driver-class-name: com.mysql.cj.jdbc.Driver
-        password: JG*Rds@2016#
-        url: jdbc:mysql://rm-2zeahl1u6585jhc86o.mysql.rds.aliyuncs.com:3306/biz_evaluation?allowMultiQueries=true&useUnicode=true&useSSL=false&serverTimezone=Asia/Shanghai
+        password: xxxxx
+        url: jdbc:mysql://xxxxx3306/biz_evaluation?allowMultiQueries=true&useUnicode=true&useSSL=false&serverTimezone=Asia/Shanghai
         username: root
     mvc:
         pathmatch:

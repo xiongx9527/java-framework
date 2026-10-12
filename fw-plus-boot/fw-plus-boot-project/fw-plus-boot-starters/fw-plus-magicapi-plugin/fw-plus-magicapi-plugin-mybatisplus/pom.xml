@@ -29,13 +29,17 @@
     </build>
 
     <dependencies>
+        <!-- optional：宿主自行选择 mybatis-plus 装配形态（fw-plus-mp-spring-boot-starter 或原生 starter），
+             插件不把 spring-jdbc/数据源链强制传递给宿主 -->
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-boot-starter</artifactId>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>com.github.yulichang</groupId>
             <artifactId>mybatis-plus-join-extension</artifactId>
+            <optional>true</optional>
         </dependency>
     </dependencies>
 </project>

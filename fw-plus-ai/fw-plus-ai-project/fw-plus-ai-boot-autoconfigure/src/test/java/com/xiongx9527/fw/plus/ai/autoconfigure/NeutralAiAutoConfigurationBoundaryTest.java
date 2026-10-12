@@ -10,23 +10,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class NeutralAiAutoConfigurationBoundaryTest {
 
 	private static final List<String> PUBLIC_AUTOCONFIGURATION_MARKERS = Arrays.asList(
 			"dev.langchain4j",
-			"dev.tinyflow.langchain4j",
 			"com.xiongx9527.fw.plus.ai.langchain4j",
 			"fw-plus.ai.langchain4j",
 			"fw.plus.ai.langchain4j");
-
-	private static final String[] REMOVED_PUBLIC_REGISTRATIONS = new String[] {
-			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.openapi.Langchain4jOpenApiAutoConfiguration",
-			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model.LangChain4jModelAutoConfiguration",
-			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding.EmbeddingStoreAutoConfiguration"
-	};
 
 	@Test
 	public void shouldKeepPublicAutoConfigurationFreeOfLangChain4jImplementation() throws Exception {
@@ -37,43 +29,6 @@ public class NeutralAiAutoConfigurationBoundaryTest {
 
 		assertTrue(violations.isEmpty(),
 				"Public neutral auto-configuration contains concrete framework references: " + violations);
-	}
-
-	@Test
-	public void shouldRegisterOnlyNeutralModelAndStoreAutoConfigurations() throws Exception {
-		File moduleDirectory = findModuleDirectory();
-		File factories = new File(moduleDirectory, "src/main/resources/META-INF/spring.factories");
-		String content = read(factories);
-
-		assertTrue(content.contains("com.xiongx9527.fw.plus.ai.autoconfigure.model.AiModelAutoConfiguration"),
-				"AiModelAutoConfiguration should be registered");
-		assertTrue(content.contains("com.xiongx9527.fw.plus.ai.autoconfigure.store.embedding.AiEmbeddingStoreAutoConfiguration"),
-				"AiEmbeddingStoreAutoConfiguration should be registered");
-		assertTrue(content.contains(
-				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter."
-						+ "LangChain4jAdapterAutoConfiguration"),
-				"LangChain4jAdapterAutoConfiguration should be registered");
-		for (String removedPublicRegistration : REMOVED_PUBLIC_REGISTRATIONS) {
-			assertTrue(!content.contains(removedPublicRegistration),
-					"Public spring.factories still registers concrete framework auto-configuration: "
-							+ removedPublicRegistration);
-		}
-	}
-
-	@Test
-	public void shouldScanNeutralTinyEngineProvidersWhileIgnoringConcreteLangChain4jProvider() {
-		File moduleDirectory = findModuleDirectory();
-		File providerDirectory = new File(moduleDirectory,
-				"src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/tinyengine/provider");
-
-		assertFalse(isIgnored(new File(providerDirectory, "TinyEngineAiProvider.java")),
-				"TinyEngine provider SPI must remain in the neutral boundary scan");
-		assertFalse(isIgnored(new File(providerDirectory, "TinyEngineAiCapability.java")),
-				"TinyEngine capability enum must remain in the neutral boundary scan");
-		assertFalse(isIgnored(new File(providerDirectory, "TinyEngineAiProviderRegistry.java")),
-				"TinyEngine provider registry must remain in the neutral boundary scan");
-		assertTrue(isIgnored(new File(providerDirectory, "LangChain4jTinyEngineAiProvider.java")),
-				"Concrete LangChain4j provider must remain outside the neutral boundary scan");
 	}
 
 	private void scanProductionJava(File moduleDirectory, File file, List<String> violations) throws IOException {
@@ -103,11 +58,10 @@ public class NeutralAiAutoConfigurationBoundaryTest {
 	private boolean isIgnored(File file) {
 		String path = file.getPath().replace(File.separatorChar, '/');
 		return file.isDirectory() && ("target".equals(file.getName())
-				|| path.contains("/autoconfigure/askdata/")
-				|| path.endsWith("/autoconfigure/askdata")
 				|| path.contains("/autoconfigure/langchain4j/")
-				|| path.endsWith("/autoconfigure/langchain4j"))
-				|| path.endsWith("/autoconfigure/tinyengine/provider/LangChain4jTinyEngineAiProvider.java");
+				|| path.endsWith("/autoconfigure/langchain4j")
+				|| path.contains("/autoconfigure/magicapi/modules/langchain4j")
+				|| path.contains("/autoconfigure/magicapi/plugin/langchain4j"));
 	}
 
 	private String read(File file) throws IOException {

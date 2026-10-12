@@ -1,0 +1,40 @@
+[ERROR] COMPILATION ERROR : 
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-openai/src/main/java/dev/langchain4j/openai/spring/AutoConfig.java:[29,31] 无法访问dev.langchain4j.model.chat.ChatLanguageModel
+  找不到dev.langchain4j.model.chat.ChatLanguageModel的类文件
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-openai/src/main/java/dev/langchain4j/openai/spring/AutoConfig.java:[36,40] 无法访问dev.langchain4j.model.chat.StreamingChatLanguageModel
+  找不到dev.langchain4j.model.chat.StreamingChatLanguageModel的类文件
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-openai/src/main/java/dev/langchain4j/openai/spring/AutoConfig.java:[43,35] 无法访问dev.langchain4j.model.language.LanguageModel
+  找不到dev.langchain4j.model.language.LanguageModel的类文件
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-openai/src/main/java/dev/langchain4j/openai/spring/AutoConfig.java:[50,44] 无法访问dev.langchain4j.model.language.StreamingLanguageModel
+  找不到dev.langchain4j.model.language.StreamingLanguageModel的类文件
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-openai/src/main/java/dev/langchain4j/openai/spring/AutoConfig.java:[57,36] 无法访问dev.langchain4j.model.embedding.TokenCountEstimator
+  找不到dev.langchain4j.model.embedding.TokenCountEstimator的类文件
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-openai/src/main/java/dev/langchain4j/openai/spring/AutoConfig.java:[64,37] 无法访问dev.langchain4j.model.moderation.ModerationModel
+  找不到dev.langchain4j.model.moderation.ModerationModel的类文件
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-openai/src/main/java/dev/langchain4j/openai/spring/AutoConfig.java:[71,32] 无法访问dev.langchain4j.model.image.ImageModel
+  找不到dev.langchain4j.model.image.ImageModel的类文件
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.10.1:compile (default-compile) on project fw-plus-ai-langchain4j-openai: Compilation failure: Compilation failure: 
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-openai/src/main/java/dev/langchain4j/openai/spring/AutoConfig.java:[29,31] 无法访问dev.langchain4j.model.chat.ChatLanguageModel
+[ERROR]   找不到dev.langchain4j.model.chat.ChatLanguageModel的类文件
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-openai/src/main/java/dev/langchain4j/openai/spring/AutoConfig.java:[36,40] 无法访问dev.langchain4j.model.chat.StreamingChatLanguageModel
+[ERROR]   找不到dev.langchain4j.model.chat.StreamingChatLanguageModel的类文件
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-openai/src/main/java/dev/langchain4j/openai/spring/AutoConfig.java:[43,35] 无法访问dev.langchain4j.model.language.LanguageModel
+[ERROR]   找不到dev.langchain4j.model.language.LanguageModel的类文件
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-openai/src/main/java/dev/langchain4j/openai/spring/AutoConfig.java:[50,44] 无法访问dev.langchain4j.model.language.StreamingLanguageModel
+[ERROR]   找不到dev.langchain4j.model.language.StreamingLanguageModel的类文件
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-openai/src/main/java/dev/langchain4j/openai/spring/AutoConfig.java:[57,36] 无法访问dev.langchain4j.model.embedding.TokenCountEstimator
+[ERROR]   找不到dev.langchain4j.model.embedding.TokenCountEstimator的类文件
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-openai/src/main/java/dev/langchain4j/openai/spring/AutoConfig.java:[64,37] 无法访问dev.langchain4j.model.moderation.ModerationModel
+[ERROR]   找不到dev.langchain4j.model.moderation.ModerationModel的类文件
+[ERROR] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-openai/src/main/java/dev/langchain4j/openai/spring/AutoConfig.java:[71,32] 无法访问dev.langchain4j.model.image.ImageModel
+[ERROR]   找不到dev.langchain4j.model.image.ImageModel的类文件
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+[ERROR] 
+[ERROR] After correcting the problems, you can resume the build with the command
+[ERROR]   mvn <args> -rf :fw-plus-ai-langchain4j-openai

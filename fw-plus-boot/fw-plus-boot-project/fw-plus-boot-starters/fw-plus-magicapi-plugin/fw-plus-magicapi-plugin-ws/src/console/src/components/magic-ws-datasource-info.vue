@@ -13,6 +13,10 @@
       <magic-input v-model:value="info.secret" :placeholder="$i('ws.datasource.form.placeholder.secret')" type="password" width="100%" />
     </div>
     <div class="magic-form-row">
+      <label>{{ $i('ws.datasource.form.path') }}</label>
+      <magic-input v-model:value="info.path" :placeholder="$i('ws.datasource.form.placeholder.path')" width="100%" />
+    </div>
+    <div class="magic-form-row">
       <label>{{ $i('ws.datasource.form.description') }}</label>
       <magic-input v-model:value="info.description" :placeholder="$i('ws.datasource.form.placeholder.description')" width="100%" />
     </div>

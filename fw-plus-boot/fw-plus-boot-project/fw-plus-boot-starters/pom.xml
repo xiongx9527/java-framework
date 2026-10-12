@@ -16,17 +16,16 @@
         <module>fw-plus-mp-spring-boot-starter</module>
         <module>fw-plus-jdbc-spring-boot-starter</module>
         <module>fw-plus-redis-spring-boot-starter</module>
-        <module>fw-plus-jimu-spring-boot-starter</module>
+
         <module>fw-plus-file-storage-spring-boot-starter</module>
         <module>fw-plus-magicapi-spring-boot-starter</module>
-        <module>fw-plus-tiny-engine-spring-boot-starter</module>
         <module>fw-plus-magicapi-plugin</module>
-        <module>fw-plus-uid-spring-boot-starter</module>
         <module>fw-plus-mqtt-server-spring-boot-starter</module>
         <module>fw-plus-mqtt-client-spring-boot-starter</module>
         <module>fw-plus-template-spring-boot-starter</module>
         <module>fw-plus-influxdb-spring-boot-starter</module>
         <module>fw-plus-admin-server-spring-boot-starter</module>
+        <module>fw-plus-ws-spring-boot-starter</module>
     </modules>
     <artifactId>fw-plus-boot-starters</artifactId>
     <name>Fw-Plus-Boot Starters</name>

@@ -129,7 +129,12 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Properties;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class NebulaJdbcExample {
+	private static final Logger log = LoggerFactory.getLogger(NebulaJdbcExample.class);
+
 	public static void main(String[] args) throws Exception {
 		Properties properties = new Properties();
 		properties.setProperty("user", "root");
@@ -143,7 +148,7 @@ public class NebulaJdbcExample {
 					 "SELECT id, name, age FROM player WHERE id = 'player100' LIMIT 10")) {
 
 			while (resultSet.next()) {
-				System.out.println(resultSet.getString("name"));
+				log.info("name = {}", resultSet.getString("name"));
 			}
 		}
 	}
@@ -160,7 +165,12 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class NebulaPreparedStatementExample {
+	private static final Logger log = LoggerFactory.getLogger(NebulaPreparedStatementExample.class);
+
 	public static void main(String[] args) throws Exception {
 		try (Connection connection = DriverManager.getConnection(
 				"jdbc:nebula://127.0.0.1:9669/basketballplayer?user=root&password=nebula");
@@ -171,7 +181,7 @@ public class NebulaPreparedStatementExample {
 
 			try (ResultSet resultSet = statement.executeQuery()) {
 				while (resultSet.next()) {
-					System.out.println(resultSet.getString(1));
+					log.info("name = {}", resultSet.getString(1));
 				}
 			}
 		}
@@ -237,10 +247,12 @@ statement.executeUpdate("DELETE EDGE serve \"player100\"->\"team204\"");
 ## ResultSet 用法
 
 ```java
+private static final Logger log = LoggerFactory.getLogger(NebulaJdbcExample.class);
+
 try (ResultSet resultSet = statement.executeQuery("SELECT id, name FROM player LIMIT 10")) {
 	while (resultSet.next()) {
 		String id = resultSet.getString("id");
-		System.out.println(id);
+		log.info("id = {}", id);
 	}
 }
 ```
@@ -250,10 +262,12 @@ try (ResultSet resultSet = statement.executeQuery("SELECT id, name FROM player L
 为了保留 `vesoft-inc/nebula-java` 和早期驱动的能力，`Statement` / `PreparedStatement` 仍支持直接执行 NebulaGraph nGQL：
 
 ```java
+private static final Logger log = LoggerFactory.getLogger(NebulaJdbcExample.class);
+
 try (ResultSet resultSet = statement.executeQuery("MATCH (v) RETURN v LIMIT 10")) {
 	while (resultSet.next()) {
 		Object value = resultSet.getObject(1);
-		System.out.println(value);
+		log.info("value = {}", value);
 	}
 }
 ```
@@ -279,9 +293,11 @@ URL homepage = resultSet.getURL("homepage");
 ## 元数据
 
 ```java
+private static final Logger log = LoggerFactory.getLogger(NebulaJdbcExample.class);
+
 try (Connection connection = DriverManager.getConnection(url, properties)) {
-	System.out.println(connection.getMetaData().getDatabaseProductName());
-	System.out.println(connection.getMetaData().getDriverName());
+	log.info("databaseProductName = {}", connection.getMetaData().getDatabaseProductName());
+	log.info("driverName = {}", connection.getMetaData().getDriverName());
 }
 ```
 

@@ -19,14 +19,12 @@
         <module>fw-plus-poi</module>
         <module>fw-plus-jdbc</module>
         <module>fw-plus-nosql</module>
-        <module>fw-plus-report</module>
         <module>fw-plus-auth</module>
         <module>fw-plus-template</module>
         <module>fw-plus-ai</module>
         <module>fw-plus-magicapi</module>
         <module>fw-plus-graph</module>
         <module>fw-plus-dify</module>
-        <module>fw-plus-tiny-engine</module>
     </modules>
     <artifactId>fw-plus-project</artifactId>
     <name>Fw-Plus Project</name>

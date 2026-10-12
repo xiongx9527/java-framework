@@ -82,12 +82,12 @@
 
         <dependency>
             <groupId>com.xiongx9527.fw.plus.boot</groupId>
-            <artifactId>fw-plus-magicapi-plugin-mqtt</artifactId>
+            <artifactId>fw-plus-magicapi-plugin-mqtt-server</artifactId>
         </dependency>
 
         <dependency>
             <groupId>com.xiongx9527.fw.plus.boot</groupId>
-            <artifactId>fw-plus-magicapi-plugin-mqttclient</artifactId>
+            <artifactId>fw-plus-magicapi-plugin-mqtt-client</artifactId>
         </dependency>
 
         <dependency>
@@ -208,25 +208,41 @@
         </dependency>
 
         <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-mcp-server</artifactId>
+            <version>${revision}</version>
+        </dependency>
+
+        <dependency>
             <groupId>com.xiongx9527.fw.plus.boot</groupId>
-            <artifactId>fw-plus-magicapi-plugin-mcp</artifactId>
+            <artifactId>fw-plus-magicapi-plugin-java-entity</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-mybatisplus</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-mybatisflex</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-spring-bean</artifactId>
+        </dependency>
+
+        <!-- mybatisplus 插件把 mybatis-plus-boot-starter 引入 classpath 后会激活
+             MpAutoConfiguration → MpBaseAutoConfiguration，需 fw-plus-mp-base 提供 MpSqlInjector -->
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-mp-base</artifactId>
         </dependency>
 
         <dependency>
             <groupId>com.xiongx9527.fw.plus.boot</groupId>
             <artifactId>fw-plus-magicapi-plugin-word</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus.ai</groupId>
-            <artifactId>fw-plus-ai-magicapi-plugin-model</artifactId>
-            <version>${revision}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus.ai</groupId>
-            <artifactId>fw-plus-ai-magicapi-plugin-vector</artifactId>
-            <version>${revision}</version>
         </dependency>
 
         <dependency>

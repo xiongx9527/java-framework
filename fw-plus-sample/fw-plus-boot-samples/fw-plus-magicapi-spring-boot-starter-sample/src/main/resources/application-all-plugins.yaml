@@ -10,6 +10,10 @@ fw:
     config:
       event:
         apollo-enabled: false
+    # 全插件样例不接数据源：mybatisplus 插件仅把 mybatis-plus-boot-starter 带上 classpath，
+    # 关闭 mp 自动配置以避免其 DataSource 单例条件在离线样例中触发装配失败
+    mp:
+      enabled: false
 
 spring:
   autoconfigure:
@@ -20,6 +24,15 @@ spring:
       - org.springframework.boot.autoconfigure.neo4j.Neo4jAutoConfiguration
       - org.springframework.boot.autoconfigure.data.neo4j.Neo4jDataAutoConfiguration
       - org.springframework.boot.autoconfigure.data.neo4j.Neo4jRepositoriesAutoConfiguration
+      # 默认 profile 的 redis 是占位地址，会拦住 mcpRedisMessageListenerContainer 启动；
+      # 该 profile 用于"无外部资源"地验证全部插件装配，故排除 redis 自动配置。
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+      # config-server 需要 git uri；样例只验证插件装配，不需要真起一个配置中心。
+      # spring.cloud.config.enabled=false 关不掉 actuator 的 configServerHealthIndicator，
+      # 它仍会创建 EnvironmentRepository，因此排除自动配置类。
+      - org.springframework.cloud.config.server.config.ConfigServerAutoConfiguration
+      - org.springframework.cloud.config.server.config.ConfigServerHealthIndicatorAutoConfiguration
   cloud:
     config:
       enabled: false
@@ -39,3 +52,6 @@ magic-api:
   resource:
     type: file
     location: ${java.io.tmpdir}/fw-plus-magicapi-all-plugins
+  plugin:
+    mqtt:
+      enabled: true

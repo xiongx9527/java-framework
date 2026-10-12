@@ -1,0 +1,159 @@
+schema: comet.native.children.v2
+acceptance_index:
+  A1:
+    source: "brief.md"
+    text: "Scenario: 正常问数——WHEN 问数实例已配置（数据源+向量库+LLM）且表结构已登记，用户提问\"上月订单总额\" THEN 返回正确的 SQL 执行结果数据与自然语言解读"
+  A2:
+    source: "brief.md"
+    text: "Scenario: 非查数据意图——WHEN 用户提问与数据无关（如闲聊天气） THEN 不生成 SQL，返回无法回答数据问题的提示"
+  A3:
+    source: "brief.md"
+    text: "Scenario: JSON 契约失败——WHEN LLM 返回非法 JSON 或空 SQL THEN 明确报错（含原始内容），不编造结果"
+  A4:
+    source: "brief.md"
+    text: "Scenario: regenerate 自愈——WHEN 执行失败后触发重新生成 THEN 新一轮携带上一次错误信息与完整上下文"
+  A5:
+    source: "brief.md"
+    text: "Scenario: ReAct 自主修复——WHEN SQL 生成自愈环节启动 THEN ReAct agent 可调用 get_table_schema / execute_readonly_sql / validate_sql 工具自主查证与修正，最终 SQL 通过校验；达到轮数上限则如实报告失败与已尝试轨迹"
+  A6:
+    source: "brief.md"
+    text: "Scenario: SQL 预览确认——WHEN 实例配置为确认执行模式 THEN 生成的 SQL 先展示给用户（可编辑），用户确认后才执行；自动执行模式不受影响"
+  A7:
+    source: "brief.md"
+    text: "Scenario: SQL 人工调整——WHEN 用户对已生成（含自动执行模式）的 SQL 手动修改并提交 THEN 系统执行调整后的 SQL（仍过只读校验与数据权限回调），返回新结果并保存为记录；调整后为非 SELECT/非法 SQL 时拒绝执行"
+  A8:
+    source: "brief.md"
+    text: "Scenario: EXPLAIN 预检——WHEN 确认模式下用户确认执行 THEN 先 EXPLAIN 检查执行成本，命中全表扫描等高风险特征时警告并可拒绝"
+  A9:
+    source: "brief.md"
+    text: "Scenario: 多轮指代改写——WHEN 多轮对话中出现指代（如\"那 3 月份呢\"） THEN 经上下文改写后正确理解指代并生成 SQL"
+  A10:
+    source: "brief.md"
+    text: "Scenario: 闲聊兜底——WHEN 开启闲聊兜底（chitchat-enabled）且用户闲聊 THEN 通用对话 agent 自然回复（不查库不生成 SQL）；WHEN 关闭该开关 THEN 返回无法回答数据问题的提示"
+  A11:
+    source: "brief.md"
+    text: "Scenario: 闲聊分支 RAG/MCP——WHEN 问数实例的闲聊分支配置了 contentRetriever/MCP 工具 THEN 闲聊时可检索知识库/调用外部工具回答；未配置则纯兜底回复"
+  A12:
+    source: "brief.md"
+    text: "Scenario: 行数限制——WHEN 生成的 SQL 未含行数限制 THEN 最外层自动约束（默认 1000），且子查询内不含限制"
+  A13:
+    source: "brief.md"
+    text: "Scenario: 多方言——WHEN 数据源为 Oracle/达梦等非 MySQL 库 THEN 提示词应用对应方言示例，生成 SQL 符合该方言语法"
+  A14:
+    source: "brief.md"
+    text: "Scenario: 多实例隔离——WHEN 配置两个问数实例绑定不同数据源/模型 THEN 各自问数互不影响"
+  A15:
+    source: "brief.md"
+    text: "Scenario: 会话上下文裁剪——WHEN 多轮对话超过历史轮数上限 THEN 早轮历史按策略裁剪/摘要，生成仍正常"
+  A16:
+    source: "brief.md"
+    text: "Scenario: 限流配额——WHEN 用户问数次数达到配置的配额上限 THEN 返回明确的配额提示，不再调用 LLM ## 管理端插件（nl2sql-admin）"
+  A17:
+    source: "brief.md"
+    text: "Scenario: 表结构管理——WHEN 登记表/列及业务注释并触发向量化 THEN 表结构进入向量库可供表匹配"
+  A18:
+    source: "brief.md"
+    text: "Scenario: 术语库——WHEN 配置术语映射后问数 THEN 生成过程使用标准词"
+  A19:
+    source: "brief.md"
+    text: "Scenario: 数据训练——WHEN 人工保存正确 SQL 示例后提相似问题 THEN 生成命中该示例"
+  A20:
+    source: "brief.md"
+    text: "Scenario: 自定义提示词——WHEN 配置自定义提示词 THEN 生成时覆盖/追加默认规则"
+  A21:
+    source: "brief.md"
+    text: "Scenario: 提示词版本化——WHEN 提示词/方言示例修改后 THEN 可查看历史版本并回滚"
+  A22:
+    source: "brief.md"
+    text: "Scenario: 管理端操作审计——WHEN 管理端变更配置（表结构/策略/提示词等） THEN 记录操作人与变更前后快照，可查询"
+  A23:
+    source: "brief.md"
+    text: "Scenario: 结果反馈——WHEN 用户对问数结果点赞/点踩 THEN 反馈入待改进池（点踩自动收集问题与生成的 SQL），管理员可据此补术语/校准示例"
+  A24:
+    source: "brief.md"
+    text: "Scenario: 结果导出——WHEN 用户对问数结果导出 THEN 生成 Excel/CSV 文件下载，并可同时导出图表图片（PNG）"
+  A25:
+    source: "brief.md"
+    text: "Scenario: 术语/示例模板导入导出——WHEN 管理员导出术语库/训练示例 THEN 得到可按模板回填再导入的 Excel 文件；导入后按最新配置生效"
+  A26:
+    source: "brief.md"
+    text: "Scenario: 数据源 schema 导入导出——WHEN 管理员导出某数据源的 schema 配置 THEN 可在另一实例导入，复用表结构登记与本地注释"
+  A27:
+    source: "brief.md"
+    text: "Scenario: schema 变更检测——WHEN 触发变更检测（定时/手动） THEN 对比业务库实际 schema 与已登记表结构，差异（新表/新列/类型变更）提醒管理员补登记/重向量化"
+  A28:
+    source: "brief.md"
+    text: "Scenario: 成本看板——WHEN 管理员查看成本看板 THEN 按用户/实例/时间段展示 token 消耗与问数次数统计 ## 数据权限（nl2sql-security）"
+  A29:
+    source: "brief.md"
+    text: "Scenario: 回调转换——WHEN 业务注册了 SQL 回调 THEN 框架把生成的原始 SQL + 用户标识交给回调，执行回调返回的 SQL"
+  A30:
+    source: "brief.md"
+    text: "Scenario: 无回调放行——WHEN 未注册回调 THEN 生成的 SQL 原样执行（只读校验仍生效）"
+  A31:
+    source: "brief.md"
+    text: "Scenario: fail-closed——WHEN 回调抛异常或返回空/非 SELECT SQL THEN 拒绝执行并明确报错"
+  A32:
+    source: "brief.md"
+    text: "Scenario: 租户隔离示例——WHEN 业务的回调按用户租户改写 SQL（附加 tenant_id 条件） THEN 越租户数据不可见"
+  A33:
+    source: "brief.md"
+    text: "Scenario: 策略管理——WHEN 管理端新增/修改/停用数据权限策略或回调函数 THEN 问数执行时按最新配置生效"
+  A34:
+    source: "brief.md"
+    text: "Scenario: SQL 传递安全——WHEN 回调为远程调用且加密开关启用 THEN SQL 载荷经非对称加密（管理端生成的密钥对）+ 签名传递；开关关闭时明文传递；用户端默认不展示原始 SQL 明文；日志不输出完整 SQL"
+  A35:
+    source: "brief.md"
+    text: "Scenario: 敏感配置加密——WHEN 管理端保存数据源密码/LLM api-key 等敏感字段 THEN 以加密形态写入共享配置存储，API 服务读取时解密 ## 用户端 UI（nl2sql-user-ui）"
+  A36:
+    source: "brief.md"
+    text: "Scenario: 流式对话——WHEN 用户端发起问数 THEN SSE 流式返回过程与最终数据/解读"
+  A37:
+    source: "brief.md"
+    text: "Scenario: 图表切换——WHEN 返回结果后切换图表类型 THEN 按数据正确渲染表格/柱状/折线/饼图 ## 图表与看板（nl2sql-chart-dashboard）"
+  A38:
+    source: "brief.md"
+    text: "Scenario: LLM 图表推荐——WHEN 问数返回结果 THEN LLM 依据结果自动产出图表配置（类型/轴，柱/条/线/饼/表），前端据此渲染"
+  A39:
+    source: "brief.md"
+    text: "Scenario: 服务端出图——WHEN 需要图片形态（导出/非流式场景） THEN 服务端按图表配置渲染为 PNG（对齐 SQLBot g2-ssr 能力）"
+  A40:
+    source: "brief.md"
+    text: "Scenario: 数据分页列表——WHEN 用户查看问数结果数据列表 THEN 后端按 page/size 服务端分页返回当前页数据与总行数，翻页结果正确"
+  A41:
+    source: "brief.md"
+    text: "Scenario: dashboard——WHEN 用户将多次问数结果保存到看板 THEN 看板按配置展示图表 ## 集成（nl2sql-integrations）"
+  A42:
+    source: "brief.md"
+    text: "Scenario: MCP 问数——WHEN MCP 客户端通过对外 API 服务的 MCP 接口调用问数能力 THEN 返回与对话通道一致的问数结果（复用同一问数核心与配置）"
+  A43:
+    source: "brief.md"
+    text: "Scenario: MCP 对外能力全覆盖——WHEN MCP 客户端通过 MCP 接口调用会话历史与图表数据能力 THEN 返回与 REST/SSE 通道一致的结果（会话列表/消息历史、问数结果图表数据）"
+  A44:
+    source: "brief.md"
+    text: "Scenario: Excel 导入——WHEN 导入 Excel 数据 THEN 生成可查询表并可问数"
+  A45:
+    source: "brief.md"
+    text: "Scenario: API 对接——WHEN 业务方用自己的 UI 调用问数 API THEN 依据公开接口契约完成对话问数（含流式），不依赖我们的用户端 UI"
+  A46:
+    source: "brief.md"
+    text: "Scenario: UI 对接——WHEN 业务系统以嵌入/弹窗方式集成我们提供的用户端对话 UI THEN 对话功能在嵌入环境中可用"
+children:
+  - name: nl2sql-core
+    depends_on: []
+    covers: [A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16]
+  - name: nl2sql-admin
+    depends_on: []
+    covers: [A17, A18, A19, A20, A21, A22, A23, A24, A25, A26, A27, A28]
+  - name: nl2sql-security
+    depends_on: [nl2sql-core]
+    covers: [A29, A30, A31, A32, A33, A34, A35]
+  - name: nl2sql-user-ui
+    depends_on: [nl2sql-core]
+    covers: [A36, A37]
+  - name: nl2sql-chart-dashboard
+    depends_on: [nl2sql-user-ui]
+    covers: [A38, A39, A40, A41]
+  - name: nl2sql-integrations
+    depends_on: [nl2sql-core]
+    covers: [A42, A43, A44, A45, A46]

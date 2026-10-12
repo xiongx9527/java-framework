@@ -18,7 +18,6 @@ target/
 *.iws
 *.iml
 *.ipr
-!/logDir_IS_UNDEFINED/
 .flattened-pom.xml
 
 ### NetBeans ###

@@ -1,0 +1,17 @@
+{
+  "change": "ai-magicapi-mcp-plugin",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "task_hash_policy": "task-content-v1",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "ae490fa62a0d9991ef66995a16be538eaa66f0328c0431e3f098a92f4a136780",
+  "files": [
+    { "path": "docs/openspec/changes/ai-magicapi-mcp-plugin/proposal.md", "sha256": "b70e335e32119656d092ea63bd74b741296d41989417b692224a058f15d842bf" },
+    { "path": "docs/openspec/changes/ai-magicapi-mcp-plugin/design.md", "sha256": "573fc0c41fe5ca5b88998c99111a00cd5d437c1d20cb4e1e783e3bba440dca71" },
+    { "path": "docs/openspec/changes/ai-magicapi-mcp-plugin/tasks.md", "sha256": "a486a3bf18c6bcc35d801804629c1ded5e815d0060d2bbf940e81c4e2f5cb8e3" },
+    { "path": "docs/openspec/changes/ai-magicapi-mcp-plugin/.openspec.yaml", "sha256": "8ce533eab9c047a4566f79d81b21eb252f3437f591dee942f9dbb2669f23cdfb" },
+    { "path": "docs/openspec/changes/ai-magicapi-mcp-plugin/specs/magicapi-mcp-plugin/spec.md", "sha256": "f06a3e636c15ee5bf2875a521b3faa1e1b7d6fd1ff8cd25582ae86324f6460c0" },
+    { "path": "docs/openspec/changes/ai-magicapi-mcp-plugin/specs/mcp-server-starter/spec.md", "sha256": "e8aaf78d73aceea8c851f5e34274d9368f915ab8475e6e6680d897818c95d524" }
+  ]
+}

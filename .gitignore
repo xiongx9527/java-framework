@@ -3,3 +3,11 @@
 /.worktrees/
 /.superpowers/
 /.comet/runtime/
+# >>> Comet managed project state >>>
+!/.comet/
+/.comet/*
+!/.comet/config.yaml
+# <<< Comet managed project state <<<
+
+# 样例测试运行日志
+logDir_IS_UNDEFINED/

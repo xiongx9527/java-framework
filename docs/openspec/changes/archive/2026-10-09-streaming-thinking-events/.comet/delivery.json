@@ -1,0 +1,9 @@
+{
+  "action": "push",
+  "targetBranch": "springboot3",
+  "remote": "origin",
+  "schemaVersion": 1,
+  "changeIdentity": "run:777c7052-9254-4725-a218-e64e8f82557d",
+  "authorizationId": "9ae2384b-19d8-4395-ba1f-89380547d808",
+  "authorizedRemoteUrl": "https://github.com/xiongx9527/java-framework.git"
+}

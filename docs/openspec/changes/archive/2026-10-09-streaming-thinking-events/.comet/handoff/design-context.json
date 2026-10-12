@@ -1,0 +1,17 @@
+{
+  "change": "streaming-thinking-events",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "task_hash_policy": "task-content-v1",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "76587e45129aa5ee297585ea8c9d93ad552758018770b697b9e4635333c7798e",
+  "files": [
+    { "path": "docs/openspec/changes/streaming-thinking-events/proposal.md", "sha256": "6fe045b71c229bace725de892903b7945fa825b1e8e6ae5473a7ac047c1ba072" },
+    { "path": "docs/openspec/changes/streaming-thinking-events/design.md", "sha256": "07ff3b5eedb7689f843b1bae552875e2a904653787f876bd62d02fa37e2a8752" },
+    { "path": "docs/openspec/changes/streaming-thinking-events/tasks.md", "sha256": "25320c7bb726d5f92d1919fbc17279d1acac02986c17bbb0630fd7f7d6a1ebcc" },
+    { "path": "docs/openspec/changes/streaming-thinking-events/.openspec.yaml", "sha256": "ad734da2ba5f4c5a6979a8bbb6bad4db20fb21ec275ceca5f24842fbdfaf5bef" },
+    { "path": "docs/openspec/changes/streaming-thinking-events/specs/langchain4j-model-datasource-plugins/spec.md", "sha256": "bcff0663deba464b63a78627e391675495ce4c3021d2815eae4b7171a50a3f51" },
+    { "path": "docs/openspec/changes/streaming-thinking-events/specs/langchain4j-streaming-thinking-events/spec.md", "sha256": "a2f779e9070663440558e68a09de9f9e96a6ef5e30e38a292adfd3beeb3398b6" }
+  ]
+}

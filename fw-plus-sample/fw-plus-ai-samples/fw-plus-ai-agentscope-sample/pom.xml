@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.xiongx9527.fw.plus.ai</groupId>
+        <artifactId>fw-plus-ai-samples</artifactId>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>fw-plus-ai-agentscope-sample</artifactId>
+
+    <properties>
+        <maven.test.skip>false</maven.test.skip>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <maven.install.skip>true</maven.install.skip>
+        <maven.deploy.skip>true</maven.deploy.skip>
+    </properties>
+
+    <!-- AgentScope 2.0.4 需要高于 Spring Boot 3.5.8 默认管理版本的
+         reactor-core / jackson / opentelemetry。fw-plus-ai-boot-dependencies 已在其中
+         钉住（reactor 3.8.2 / jackson 2.21.1 / opentelemetry 1.61.0），但 core 层
+         fw-plus-dependencies 直接单条声明了 opentelemetry-api 1.56.0（在父 POM
+         继承链上先展开），会压回 AI BOM 中 opentelemetry-bom 的版本。此处按 Maven
+         “就近/直接声明优先” 规则再显式钉住一份，保证样例运行期与 agentscope-core 对齐。 -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.projectreactor</groupId>
+                <artifactId>reactor-core</artifactId>
+                <version>3.8.2</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>2.21.1</version>
+            </dependency>
+            <dependency>
+                <groupId>io.opentelemetry</groupId>
+                <artifactId>opentelemetry-api</artifactId>
+                <version>1.61.0</version>
+            </dependency>
+            <dependency>
+                <groupId>io.opentelemetry</groupId>
+                <artifactId>opentelemetry-context</artifactId>
+                <version>1.61.0</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!-- fw-plus-ai-boot-starter 由父 POM fw-plus-ai-samples 统一引入：其携带的
+             fw-plus-ai-boot-autoconfigure 内含 AgentscopeAutoConfiguration，
+             在 classpath 出现 io.agentscope.core.ReActAgent 时按条件装配
+             Memory / Toolkit / ReActAgent bean。 -->
+
+        <!-- AgentScope Java core：版本由 fw-plus-ai-boot-dependencies 的 agentscope-bom 管理。
+             在 fw-plus-ai-boot-autoconfigure 中该依赖为 optional，故样例需显式引入。 -->
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-core</artifactId>
+        </dependency>
+
+        <!-- Ollama 模型扩展（提供 OllamaChatModel）：版本由 agentscope-bom 管理 -->
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-extensions-model-ollama</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+</project>

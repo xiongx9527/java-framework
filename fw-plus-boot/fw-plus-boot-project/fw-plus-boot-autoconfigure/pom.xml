@@ -46,6 +46,39 @@
             <optional>true</optional>
         </dependency>
 
+        <!--实例认证内核：WS 握手认证复用 InstanceAuthRegistry，不重复实现 provider 解析（optional，按 classpath 条件装配）-->
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-auth-core</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+        <!--Sa-Token provider 实现（optional，按 classpath 条件装配）-->
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-auth-satoken</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <!--WS 地基（magic 无关）：连接/鉴权/会话/心跳/广播 + SPI，magic 侧实现 SPI。代码在本模块 ...autoconfigure.web.ws 包内-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <!--WS 跨实例广播（可选，未引入 Redis 时自动降级为单机广播）-->
+        <dependency>
+            <groupId>org.springframework.data</groupId>
+            <artifactId>spring-data-redis</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
         <dependency>
             <groupId>com.xiongx9527.fw.plus.boot</groupId>
             <artifactId>fw-plus-boot</artifactId>
@@ -372,13 +405,6 @@
         </dependency>
 
         <dependency>
-            <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-tiny-engine-core</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
             <scope>compile</scope>
@@ -421,33 +447,6 @@
             <optional>true</optional>
         </dependency>
 
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-report-jimu</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>org.jeecgframework.jimureport</groupId>
-            <artifactId>jimureport-spring-boot3-starter</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>org.jeecgframework.jimureport</groupId>
-            <artifactId>jimureport-nosql-starter</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>org.jeecgframework.jimureport</groupId>
-            <artifactId>jimubi-spring-boot3-starter</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
 
         <!--
         <dependency>
@@ -545,6 +544,12 @@
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
+        <dependency>
+            <groupId>com.github.xiaoymin</groupId>
+            <artifactId>knife4j-openapi3-webflux-spring-boot-starter</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
 
         <!--rocketmq-->
         <dependency>
@@ -591,6 +596,18 @@
             <scope>compile</scope>
             <optional>true</optional>
             <exclusions>
+                <!--
+                  pulsar-client 会传递引入 log4j-slf4j-impl，与 Spring Boot 默认的 logback 形成
+                  双 SLF4J 绑定：SLF4J 绑到 Log4j，而 Spring Boot 仍按 logback 初始化，
+                  LogbackLoggingSystem.getLoggerContext() 直接抛
+                  "LoggerFactory is not a Logback LoggerContext but Logback is on the classpath"。
+                  本模块的 @SpringBootTest（真实 Servlet 容器）会因此在启动期失败。
+                  该依赖为 optional，排除只影响本模块自身 classpath，不会传递给使用方。
+                -->
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-slf4j-impl</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
 
@@ -600,6 +617,11 @@
             <scope>compile</scope>
             <optional>true</optional>
             <exclusions>
+                <!-- 同 pulsar-client：排除重复的 log4j SLF4J 绑定，避免与 logback 冲突 -->
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-slf4j-impl</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
 
@@ -804,6 +826,29 @@
             <artifactId>seata-server</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
+            <exclusions>
+                <!--
+                  seata-server 传递引入 slf4j-reload4j，与 Spring Boot 自带的 logback-classic
+                  形成第二个 SLF4J 绑定（pulsar 那一路的 log4j-slf4j-impl 已另行排除）。
+                  保留唯一绑定 logback，否则本模块的 @SpringBootTest 会在启动期抛
+                  "LoggerFactory is not a Logback LoggerContext but Logback is on the classpath"。
+                  optional 依赖的排除不影响使用方。
+                -->
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-reload4j</artifactId>
+                </exclusion>
+                <!--
+                  seata-console 是 Spring Boot 2 时代的控制台构件，传递 javax.servlet-api，
+                  会让 magic-api 的 javaee servlet 配置条件也得到满足，与 jakarta 版双注册
+                  magicRequestContextHolder（BeanDefinitionOverrideException）。
+                  Spring Boot 3 栈只应看到 jakarta.servlet，故排除。
+                -->
+                <exclusion>
+                    <groupId>javax.servlet</groupId>
+                    <artifactId>javax.servlet-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -819,7 +864,22 @@
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
-
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.elasticsearch.client</groupId>
+            <artifactId>elasticsearch-rest-client</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.freemarker</groupId>
+            <artifactId>freemarker</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
     </dependencies>
 
 </project>

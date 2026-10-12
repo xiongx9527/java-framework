@@ -1,326 +1,240 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter.LangChain4jAdapterAutoConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.context.annotation.Import;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStream;
-import java.io.ByteArrayOutputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
+/**
+ * 装配收口回归（A.6）：springboot3 分支删除了 dev 的顶层 {@code LangChain4jAutoConfiguration}
+ * 及 11 个 {@code LangChain4j*AutoConfiguration}，{@code AutoConfiguration.imports} 中
+ * LangChain4j 条目只剩 {@code support.LangChain4jSupportAutoConfiguration}。
+ */
 public class LangChain4jAutoConfigurationRegistrationTest {
 
-	private static final String MODEL_AUTO_CONFIGURATION =
-			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter.LangChain4jAdapterAutoConfiguration";
+	/** 收口后 imports 中 LangChain4j 自动配置（support 支撑 + intent 意图，均为合并后保留条目）。 */
+	private static final String SUPPORT_CONFIG =
+			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.LangChain4jSupportAutoConfiguration";
 
-	private static final String[] REQUIRED_STARTER_DEPENDENCIES = new String[] {
-			"fw-plus-ai-model-spring-boot-starter",
-			"fw-plus-ai-store-embedding-spring-boot-starter",
-			"fw-plus-ai-langchain4j-adapter",
-			"fw-plus-ai-boot-autoconfigure"
+	/** dev 合并（2eb068baf）新增的意图自动配置，imports 取并集后一并保留。 */
+	private static final String INTENT_CONFIG =
+			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.LangChain4jIntentAutoConfiguration";
+
+	private static final String IMPORTS_RESOURCE =
+			"META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports";
+
+	/** 收口时删除的顶层配置（含根配置），按包名前缀校验。 */
+	private static final String LANGCHAIN4J_PACKAGE = "com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.";
+
+	/** 根配置类名（已删除）。 */
+	private static final String ROOT_CONFIG = LANGCHAIN4J_PACKAGE + "LangChain4jAutoConfiguration";
+
+	/** 旧装配体系的 11 个模型/检索器配置（已删除）。 */
+	private static final String[] REMOVED_CONFIGS = new String[] {
+			LANGCHAIN4J_PACKAGE + "LangChain4jCoreAutoConfiguration",
+			LANGCHAIN4J_PACKAGE + "LangChain4jOpenAiAutoConfiguration",
+			LANGCHAIN4J_PACKAGE + "LangChain4jAnthropicAutoConfiguration",
+			LANGCHAIN4J_PACKAGE + "LangChain4jOllamaAutoConfiguration",
+			LANGCHAIN4J_PACKAGE + "LangChain4jAzureAiSearchContentRetrieverAutoConfiguration",
+			LANGCHAIN4J_PACKAGE + "LangChain4jAzureOpenAiAutoConfiguration",
+			LANGCHAIN4J_PACKAGE + "LangChain4jVoyageAiAutoConfiguration",
+			LANGCHAIN4J_PACKAGE + "LangChain4jGitHubModelsAutoConfiguration",
+			LANGCHAIN4J_PACKAGE + "LangChain4jVertexAiGeminiAutoConfiguration",
+			LANGCHAIN4J_PACKAGE + "LangChain4jQianfanAutoConfiguration",
+			LANGCHAIN4J_PACKAGE + "LangChain4jDashScopeAutoConfiguration"
 	};
 
-	private static final String[] PROVIDER_SDK_ARTIFACTS = new String[] {
-			"langchain4j-open-ai",
-			"langchain4j-ollama",
-			"langchain4j-dashscope",
-			"langchain4j-anthropic",
-			"langchain4j-azure-open-ai"
-	};
+	@Test
+	public void shouldRegisterOnlySupportAutoConfigurationInImports() throws Exception {
+		Set<String> langchain4jImports = new LinkedHashSet<String>();
+		for (String className : readImports()) {
+			if (className.startsWith(LANGCHAIN4J_PACKAGE)) {
+				langchain4jImports.add(className);
+			}
+		}
 
-	private static final String[] EXPECTED_IMPORTS = new String[] {
-			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jCoreAutoConfiguration",
-			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jOpenAiAutoConfiguration",
-			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jAnthropicAutoConfiguration",
-			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jOllamaAutoConfiguration",
-			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jAzureAiSearchAutoConfiguration",
-			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jAzureOpenAiAutoConfiguration",
-			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jVoyageAiAutoConfiguration",
-			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jGitHubModelsAutoConfiguration",
-			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jVertexAiGeminiAutoConfiguration",
-			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jElasticsearchEmbeddingStoreAutoConfiguration",
-			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jRedisEmbeddingStoreAutoConfiguration",
-			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jQianfanAutoConfiguration",
-			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jMilvusEmbeddingStoreAutoConfiguration",
-			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jDashScopeAutoConfiguration"
-	};
-
-	private static final Map<String, String[]> EXPECTED_CLASS_CONDITIONS = new LinkedHashMap<String, String[]>();
-
-	static {
-		EXPECTED_CLASS_CONDITIONS.put(
-				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jCoreAutoConfiguration",
-				new String[] {
-						"dev.langchain4j.model.chat.ChatModel",
-						"dev.langchain4j.model.chat.StreamingChatModel",
-						"dev.langchain4j.service.spring.AiService"
-				});
-		EXPECTED_CLASS_CONDITIONS.put(
-				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jOpenAiAutoConfiguration",
-				new String[] {
-						"dev.langchain4j.model.openai.OpenAiChatModel",
-						"dev.langchain4j.model.openai.OpenAiStreamingChatModel",
-						"dev.langchain4j.model.openai.OpenAiEmbeddingModel"
-				});
-		EXPECTED_CLASS_CONDITIONS.put(
-				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jAnthropicAutoConfiguration",
-				new String[] {
-						"dev.langchain4j.model.anthropic.AnthropicChatModel",
-						"dev.langchain4j.model.anthropic.AnthropicStreamingChatModel"
-				});
-		EXPECTED_CLASS_CONDITIONS.put(
-				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jOllamaAutoConfiguration",
-				new String[] {
-						"dev.langchain4j.model.ollama.OllamaChatModel",
-						"dev.langchain4j.model.ollama.OllamaStreamingChatModel",
-						"dev.langchain4j.model.ollama.OllamaEmbeddingModel"
-				});
-		EXPECTED_CLASS_CONDITIONS.put(
-				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jAzureAiSearchAutoConfiguration",
-				new String[] {
-						"dev.langchain4j.rag.content.retriever.azure.search.AzureAiSearchContentRetriever",
-						"dev.langchain4j.store.embedding.azure.search.AzureAiSearchEmbeddingStore"
-				});
-		EXPECTED_CLASS_CONDITIONS.put(
-				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jAzureOpenAiAutoConfiguration",
-				new String[] {
-						"dev.langchain4j.model.azure.AzureOpenAiChatModel",
-						"dev.langchain4j.model.azure.AzureOpenAiStreamingChatModel",
-						"dev.langchain4j.model.azure.AzureOpenAiEmbeddingModel"
-				});
-		EXPECTED_CLASS_CONDITIONS.put(
-				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jVoyageAiAutoConfiguration",
-				new String[] {
-						"dev.langchain4j.model.voyageai.VoyageAiEmbeddingModel",
-						"dev.langchain4j.model.voyageai.VoyageAiScoringModel"
-				});
-		EXPECTED_CLASS_CONDITIONS.put(
-				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jGitHubModelsAutoConfiguration",
-				new String[] {
-						"dev.langchain4j.model.github.GitHubModelsChatModel",
-						"dev.langchain4j.model.github.GitHubModelsStreamingChatModel",
-						"dev.langchain4j.model.github.GitHubModelsEmbeddingModel"
-				});
-		EXPECTED_CLASS_CONDITIONS.put(
-				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jVertexAiGeminiAutoConfiguration",
-				new String[] {
-						"dev.langchain4j.model.vertexai.gemini.VertexAiGeminiChatModel",
-						"dev.langchain4j.model.vertexai.gemini.VertexAiGeminiStreamingChatModel"
-				});
-		EXPECTED_CLASS_CONDITIONS.put(
-				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jElasticsearchEmbeddingStoreAutoConfiguration",
-				new String[] {
-						"dev.langchain4j.store.embedding.elasticsearch.ElasticsearchEmbeddingStore"
-				});
-		EXPECTED_CLASS_CONDITIONS.put(
-				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jRedisEmbeddingStoreAutoConfiguration",
-				new String[] {
-						"dev.langchain4j.community.store.embedding.redis.RedisEmbeddingStore"
-				});
-		EXPECTED_CLASS_CONDITIONS.put(
-				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jQianfanAutoConfiguration",
-				new String[] {
-						"dev.langchain4j.community.model.qianfan.QianfanChatModel",
-						"dev.langchain4j.community.model.qianfan.QianfanStreamingChatModel",
-						"dev.langchain4j.community.model.qianfan.QianfanEmbeddingModel"
-				});
-		EXPECTED_CLASS_CONDITIONS.put(
-				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jMilvusEmbeddingStoreAutoConfiguration",
-				new String[] {
-						"dev.langchain4j.store.embedding.milvus.MilvusEmbeddingStore"
-				});
-		EXPECTED_CLASS_CONDITIONS.put(
-				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jDashScopeAutoConfiguration",
-				new String[] {
-						"dev.langchain4j.community.model.dashscope.QwenChatModel",
-						"dev.langchain4j.community.model.dashscope.QwenStreamingChatModel",
-						"dev.langchain4j.community.model.dashscope.QwenEmbeddingModel"
-				});
+		Set<String> expected = new LinkedHashSet<String>();
+		expected.add(SUPPORT_CONFIG);
+		expected.add(INTENT_CONFIG);
+		assertEquals(expected, langchain4jImports,
+				"AutoConfiguration.imports 中 LangChain4j 条目应只剩 support + intent 两个支撑自动配置");
 	}
 
 	@Test
-	public void shouldImportAllLocalLangChain4jAutoConfigurations() {
-		Set<String> actualImports = importClassNames(LangChain4jAutoConfiguration.class);
+	public void shouldRemoveLegacyLangChain4jAutoConfigurations() {
+		String[] removed = new String[REMOVED_CONFIGS.length + 1];
+		System.arraycopy(REMOVED_CONFIGS, 0, removed, 0, REMOVED_CONFIGS.length);
+		removed[REMOVED_CONFIGS.length] = ROOT_CONFIG;
 
-		assertEquals(new LinkedHashSet<String>(Arrays.asList(EXPECTED_IMPORTS)), actualImports);
+		for (String className : removed) {
+			try {
+				Class.forName(className);
+				throw new AssertionError("收口的自动配置类应已删除: " + className);
+			} catch (ClassNotFoundException expected) {
+				// Expected: legacy auto-configurations have been removed on this branch.
+			}
+		}
 	}
 
 	@Test
-	public void shouldDeclareEnabledConditionOnRootAutoConfiguration() {
-		ConditionalOnProperty conditional = LangChain4jAutoConfiguration.class.getAnnotation(ConditionalOnProperty.class);
+	public void shouldDeclareEnabledConditionOnSupportAutoConfiguration() throws Exception {
+		Class<?> supportConfig = Class.forName(SUPPORT_CONFIG);
+		ConditionalOnProperty conditional = supportConfig.getAnnotation(ConditionalOnProperty.class);
 
-		assertNotNull("LangChain4jAutoConfiguration should declare @ConditionalOnProperty", conditional);
+		assertNotNull(conditional, "LangChain4jSupportAutoConfiguration should declare @ConditionalOnProperty");
 		assertEquals("fw.plus.ai.langchain4j", conditional.prefix());
 		assertEquals("true", conditional.havingValue());
-		assertTrue("LangChain4jAutoConfiguration should be enabled by default", conditional.matchIfMissing());
+		assertTrue(conditional.matchIfMissing(), "LangChain4jSupportAutoConfiguration should be enabled by default");
 		assertEquals("enabled", conditional.name()[0]);
 	}
 
 	@Test
-	public void shouldDeclareClassConditionOnRootAutoConfiguration() {
-		ConditionalOnClass conditional = LangChain4jAutoConfiguration.class.getAnnotation(ConditionalOnClass.class);
+	public void shouldDeclareClassConditionOnSupportAutoConfiguration() throws Exception {
+		Class<?> supportConfig = Class.forName(SUPPORT_CONFIG);
+		ConditionalOnClass conditional = supportConfig.getAnnotation(ConditionalOnClass.class);
 
-		assertNotNull("LangChain4jAutoConfiguration should declare @ConditionalOnClass", conditional);
-		assertEquals(new LinkedHashSet<String>(Arrays.asList("dev.langchain4j.spring.LangChain4jAutoConfig")),
-				classNames(conditional));
-	}
-
-	@Test
-	public void shouldDeclareEnabledConditionOnEveryImportedConfiguration() throws Exception {
-		for (String className : EXPECTED_IMPORTS) {
-			Class<?> importedClass = Class.forName(className);
-			ConditionalOnProperty conditional = importedClass.getAnnotation(ConditionalOnProperty.class);
-
-			assertNotNull(className + " should declare @ConditionalOnProperty", conditional);
-			assertEquals("true", conditional.havingValue());
-			assertTrue(className + " should be enabled by default", conditional.matchIfMissing());
-			assertEquals("enabled", conditional.name()[0]);
-		}
-	}
-
-	@Test
-	public void shouldDeclareClassConditionOnEveryImportedConfiguration() throws Exception {
-		for (String className : EXPECTED_IMPORTS) {
-			Class<?> importedClass = Class.forName(className);
-			ConditionalOnClass conditional = importedClass.getAnnotation(ConditionalOnClass.class);
-
-			assertNotNull(className + " should declare @ConditionalOnClass", conditional);
-			assertEquals(new LinkedHashSet<String>(Arrays.asList(EXPECTED_CLASS_CONDITIONS.get(className))),
-					classNames(conditional));
-		}
-	}
-
-	@Test
-	public void shouldRegisterAdapterAutoConfigurationInSpringFactories() throws Exception {
-		String factoriesContent = read("META-INF/spring.factories");
-		String importsContent = read("META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports");
-		Properties factories = new Properties();
-		factories.load(new java.io.StringReader(factoriesContent));
-
-		String autoConfigurations = factories.getProperty("org.springframework.boot.autoconfigure.EnableAutoConfiguration");
-		assertNotNull("EnableAutoConfiguration entries should be present", autoConfigurations);
-		assertTrue("LangChain4jAdapterAutoConfiguration should be registered",
-				Arrays.asList(autoConfigurations.replace("\\n", "").split("\\s*,\\s*")).contains(MODEL_AUTO_CONFIGURATION));
-		assertEquals("LangChain4jAdapterAutoConfiguration should occur once in spring.factories", 1,
-				occurrences(factoriesContent, MODEL_AUTO_CONFIGURATION));
-		assertEquals("LangChain4jAdapterAutoConfiguration should occur once in AutoConfiguration.imports", 1,
-				occurrences(importsContent, MODEL_AUTO_CONFIGURATION));
-		assertTrue("Adapter root should not import legacy provider autoconfiguration eagerly",
-				!importClassNames(LangChain4jAdapterAutoConfiguration.class)
-						.contains(LangChain4jAutoConfiguration.class.getName()));
-	}
-
-	private String read(String location) throws Exception {
-		InputStream inputStream = getClass().getClassLoader().getResourceAsStream(location);
-		assertNotNull(location + " should be present", inputStream);
-		try {
-			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-			byte[] buffer = new byte[1024];
-			int length;
-			while ((length = inputStream.read(buffer)) >= 0) {
-				outputStream.write(buffer, 0, length);
-			}
-			return new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
-		} finally {
-			inputStream.close();
-		}
-	}
-
-	private int occurrences(String content, String value) {
-		int count = 0;
-		int index = 0;
-		while ((index = content.indexOf(value, index)) >= 0) {
-			count++;
-			index += value.length();
-		}
-		return count;
-	}
-
-	@Test
-	public void shouldKeepCoreAdapterProviderSdkDependenciesOptIn() throws Exception {
-		File adapterPom = findAdapterPom();
-		assertTrue("Adapter POM should exist: " + adapterPom.getAbsolutePath(), adapterPom.isFile());
-
-		Set<String> artifactIds = dependencyArtifactIds(adapterPom);
-		assertTrue("Core adapter should depend on fw-plus-ai-model", artifactIds.contains("fw-plus-ai-model"));
-		assertTrue("Core adapter should depend on fw-plus-ai-store-embedding", artifactIds.contains("fw-plus-ai-store-embedding"));
-		assertTrue("Core adapter should depend on langchain4j-core", artifactIds.contains("langchain4j-core"));
-		assertFalse("Core adapter must not depend on a removed Spring Boot starter", artifactIds.contains("fw-plus-ai-langchain4j-adapter-spring-boot-starter"));
-		for (String requiredDependency : REQUIRED_STARTER_DEPENDENCIES) {
-			if (!"fw-plus-ai-langchain4j-adapter".equals(requiredDependency)) {
-				assertFalse("Core adapter must not aggregate Boot starter " + requiredDependency,
-						artifactIds.contains(requiredDependency));
-			}
-		}
-		for (String providerSdkArtifact : PROVIDER_SDK_ARTIFACTS) {
-			assertTrue("Core adapter must not directly depend on " + providerSdkArtifact,
-					!artifactIds.contains(providerSdkArtifact));
-		}
-	}
-
-	private Set<String> importClassNames(Class<?> type) {
-		Import importAnnotation = type.getAnnotation(Import.class);
-		assertNotNull(importAnnotation);
-
-		Set<String> classNames = new LinkedHashSet<String>();
-		for (Class<?> importClass : importAnnotation.value()) {
-			classNames.add(importClass.getName());
-		}
-		return classNames;
-	}
-
-	private Set<String> classNames(ConditionalOnClass conditional) {
-		Set<String> classNames = new LinkedHashSet<String>();
+		assertNotNull(conditional, "LangChain4jSupportAutoConfiguration should declare @ConditionalOnClass");
+		Set<String> actual = new LinkedHashSet<String>();
 		for (Class<?> type : conditional.value()) {
-			classNames.add(type.getName());
+			actual.add(type.getName());
 		}
-		classNames.addAll(Arrays.asList(conditional.name()));
-		return classNames;
+		actual.addAll(java.util.Arrays.asList(conditional.name()));
+		assertEquals(new LinkedHashSet<String>(java.util.Arrays.asList("dev.langchain4j.Experimental")), actual);
 	}
 
-	private File findAdapterPom() {
+	@Test
+	public void shouldRemoveLegacyEmbeddingStoreAutoConfigurationBypasses() {
+		for (String className : new String[] {
+				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jAzureAiSearchAutoConfiguration",
+				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jElasticsearchEmbeddingStoreAutoConfiguration",
+				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jRedisEmbeddingStoreAutoConfiguration",
+				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jMilvusEmbeddingStoreAutoConfiguration"
+		}) {
+			try {
+				Class.forName(className);
+				throw new AssertionError("Legacy store auto-configuration should be absent: " + className);
+			} catch (ClassNotFoundException expected) {
+				// Expected: all legacy store auto-configurations have been removed.
+			}
+		}
+	}
+
+	@Test
+	public void shouldDropRemovedStoreBypassWrappersAndKeepProviderSdksOptional() throws Exception {
+		File pom = findProjectFile("fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml");
+		Map<String, String> scopes = dependencyScopes(pom);
+
+		for (String wrapper : new String[] {
+				"fw-plus-ai-langchain4j-elasticsearch",
+				"fw-plus-ai-langchain4j-redis",
+				"fw-plus-ai-langchain4j-milvus"
+		}) {
+			assertFalse(scopes.containsKey(wrapper), "Removed store bypass wrapper should not remain: " + wrapper);
+		}
+
+		// store 工厂直接在 main 里使用官方 SDK 类型，因此必须是编译期依赖；
+		// 同时以 optional 声明，避免把供应商 jar 传递给下游使用方。
+		// milvus-sdk-java 不再单独声明：随 langchain4j-milvus 传递（见 527d1971）。
+		// langchain4j-redis 已随 langchain4j 1.20.2 基线升级移除（13d03f86c），不再期望。
+		Map<String, Boolean> optionals = dependencyOptionals(pom);
+		for (String providerSdk : new String[] {
+				"langchain4j-elasticsearch",
+				"langchain4j-milvus",
+				"langchain4j-qdrant",
+				"langchain4j-weaviate"
+		}) {
+			assertEquals("compile", scopes.get(providerSdk), providerSdk + " should be on the compile classpath");
+			assertEquals(Boolean.TRUE, optionals.get(providerSdk),
+					providerSdk + " should be optional so it is not propagated downstream");
+		}
+	}
+
+	/** 读取 classpath 上的 {@code AutoConfiguration.imports} 全部条目。 */
+	private List<String> readImports() throws Exception {
+		InputStream in = getClass().getClassLoader().getResourceAsStream(IMPORTS_RESOURCE);
+		assertNotNull(in, IMPORTS_RESOURCE + " not found on classpath");
+		List<String> entries = new ArrayList<String>();
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+			String line;
+			while ((line = reader.readLine()) != null) {
+				String trimmed = line.trim();
+				if (!trimmed.isEmpty() && !trimmed.startsWith("#")) {
+					entries.add(trimmed);
+				}
+			}
+		}
+		if (entries.isEmpty()) {
+			fail(IMPORTS_RESOURCE + " should not be empty");
+		}
+		return entries;
+	}
+
+	private File findProjectFile(String relativePath) {
 		File currentDirectory = new File(System.getProperty("user.dir"));
 		while (currentDirectory != null) {
-			File adapterPom = new File(currentDirectory,
-					"fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/"
-							+ "fw-plus-ai-langchain4j-adapter/pom.xml");
-			if (adapterPom.isFile()) {
-				return adapterPom;
+			File file = new File(currentDirectory, relativePath);
+			if (file.isFile()) {
+				return file;
 			}
 			currentDirectory = currentDirectory.getParentFile();
 		}
-		return new File("fw-plus-ai-langchain4j-adapter/pom.xml");
+		return new File(relativePath);
 	}
 
-	private Set<String> dependencyArtifactIds(File pom) throws Exception {
+	private Map<String, String> dependencyScopes(File pom) throws Exception {
 		Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(pom);
 		NodeList dependencies = document.getElementsByTagName("dependency");
-		Set<String> artifactIds = new LinkedHashSet<String>();
+		Map<String, String> scopes = new LinkedHashMap<String, String>();
 		for (int index = 0; index < dependencies.getLength(); index++) {
 			Element dependency = (Element) dependencies.item(index);
-			NodeList artifactIdElements = dependency.getElementsByTagName("artifactId");
-			if (artifactIdElements.getLength() > 0) {
-				artifactIds.add(artifactIdElements.item(0).getTextContent().trim());
+			NodeList artifactIds = dependency.getElementsByTagName("artifactId");
+			if (artifactIds.getLength() == 0) {
+				continue;
 			}
+			NodeList scopeElements = dependency.getElementsByTagName("scope");
+			String scope = scopeElements.getLength() == 0
+					? "compile" : scopeElements.item(0).getTextContent().trim();
+			scopes.put(artifactIds.item(0).getTextContent().trim(), scope);
 		}
-		return artifactIds;
+		return scopes;
+	}
+
+	private Map<String, Boolean> dependencyOptionals(File pom) throws Exception {
+		Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(pom);
+		NodeList dependencies = document.getElementsByTagName("dependency");
+		Map<String, Boolean> optionals = new LinkedHashMap<String, Boolean>();
+		for (int index = 0; index < dependencies.getLength(); index++) {
+			Element dependency = (Element) dependencies.item(index);
+			NodeList artifactIds = dependency.getElementsByTagName("artifactId");
+			if (artifactIds.getLength() == 0) {
+				continue;
+			}
+			NodeList optionalElements = dependency.getElementsByTagName("optional");
+			boolean optional = optionalElements.getLength() > 0
+					&& Boolean.parseBoolean(optionalElements.item(0).getTextContent().trim());
+			optionals.put(artifactIds.item(0).getTextContent().trim(), optional);
+		}
+		return optionals;
 	}
 }

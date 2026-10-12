@@ -30,9 +30,9 @@ export default (opt) => {
         datasources: [{
             type: 'redis-datasource',
             icon: '#magic-redis-redis',
-            title: i18n.format('redis.datasource.title'),
-            name: i18n.format('redis.datasource.name'),
-            service: MagicRedisDataSource(opt.request, i18n.format, opt.modal, opt.JavaClass),
+            title: i18n.format('redis.datasource.common.title'),
+            name: i18n.format('redis.datasource.common.name'),
+            service: MagicRedisDataSource(opt.request, i18n.format, opt.modal),
             component: MagicRedisDatasourceInfo
         }]
     }

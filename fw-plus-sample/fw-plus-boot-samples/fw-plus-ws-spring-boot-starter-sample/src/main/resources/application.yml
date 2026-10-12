@@ -1,0 +1,35 @@
+server:
+  port: 8080
+
+fw:
+  plus:
+    ws:
+      enabled: true
+      appId: default
+      path: /ws/api              # 默认实例主端点，路径在顶层，与 servers[].path 同形
+      paths:                     # 默认实例追加端点，与主路径共用同一套处理器
+        - /ws/api2
+      auth:
+        # 默认实例认证 provider：未配置即拒绝握手（fail-closed）；示例显式放行
+        provider: permit-all
+      servers:
+        # 一个实例 = 一个 key + 一组端点 + 一个 appId，与默认实例并存且为纯增量
+        - key: report
+          path: /ws/api3
+          appId: report
+          auth:
+            # 命名实例不从顶层 auth 继承，需各自显式配置
+            provider: permit-all
+      websocket:
+        # 演示用：允许任意来源；生产请改为具体域名
+        trustedDomain: '*'
+      binary:
+        enabled: true
+        type: binary
+      broadcast:
+        # 默认同步；置 true 时本地广播提交到有界线程池
+        async: false
+
+logging:
+  level:
+    com.xiongx9527.fw.plus.boot.autoconfigure.web.ws: info

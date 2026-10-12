@@ -1,0 +1,16 @@
+{
+  "change": "mcp-spring-boot-starter",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "task_hash_policy": "task-content-v1",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "7709f601d2047703a4bd8c4600d450bafd945ca32e591a14875c6d09b0b00c59",
+  "files": [
+    { "path": "docs/openspec/changes/mcp-spring-boot-starter/proposal.md", "sha256": "2dbde76f0e29c06313268b24812b7f968cbb5fe9b7dcb676eb8b81366860e3e2" },
+    { "path": "docs/openspec/changes/mcp-spring-boot-starter/design.md", "sha256": "3492847016d101f018de2891b4e56584997f8f834b046126acfd248508b7dec9" },
+    { "path": "docs/openspec/changes/mcp-spring-boot-starter/tasks.md", "sha256": "7cf880b8022de6908859d53f0e683c0f7a49726c26fedb138984ace765401d48" },
+    { "path": "docs/openspec/changes/mcp-spring-boot-starter/.openspec.yaml", "sha256": "d04b6ad7c1b1e5eb9e8ec8cfdae94bc49d29216b59b73cea7a3cc1de9d508463" },
+    { "path": "docs/openspec/changes/mcp-spring-boot-starter/specs/mcp-server-starter/spec.md", "sha256": "ad334cef23aa21e9d9aebfa4134d44b214012911ec738e1301febb753e1091b5" }
+  ]
+}
