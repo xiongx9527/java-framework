@@ -43,7 +43,7 @@ class MyFileStorageServiceTest {
 		when(storage.exists(any(FileInfo.class))).thenReturn(true);
 
 		assertTrue(service(storage, "uploads").exists(
-				"https://bucket.storage.example/uploads/tinyflow/tenant-a/object.txt"));
+				"https://bucket.storage.example/uploads/tenant-a/object.txt"));
 		verify(storage).exists(any(FileInfo.class));
 	}
 
