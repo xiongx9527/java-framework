@@ -30,6 +30,7 @@ class AgenticIsolationTest {
             AgenticHumanInTheLoopBuilder.class,
             AgenticUntypedAgentBuilder.class,
             AgenticTypedAgentBuilder.class,
+            AgenticBuilder.class,
             AgenticA2ABuilder.class,
             AgenticA2ATypedBuilder.class,
             AgenticSupervisor.class,
