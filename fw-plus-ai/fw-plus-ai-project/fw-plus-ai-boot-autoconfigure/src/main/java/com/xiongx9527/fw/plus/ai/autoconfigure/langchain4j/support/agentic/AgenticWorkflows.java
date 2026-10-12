@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentClassifier;
 import dev.langchain4j.agentic.AgenticServices;
 import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.agentic.scope.AgenticScope;
@@ -14,7 +15,9 @@ import java.util.function.Predicate;
 /**
  * langchain4j-agentic 能力的统一门面（隔离层）：sequence / loop / conditional / parallel /
  * parallelMapper / supervisor / planner / humanInTheLoop / 单 agent（typed / untyped）/
- * 声明式 createAgenticSystem / A2A 构建器与 graph 入口。
+ * 声明式 createAgenticSystem / A2A 构建器与 graph 入口；
+ * 以及跨切面辅助：{@link #agenticToolProvider}（agent-as-tool）、
+ * {@link #intentRouting}（意图条件路由，一次编排只判一次意图）。
  *
  * <p>业务与 magic 脚本只接触本类与其 builder/句柄，不直接依赖实验性的 agentic 原生 API；
  * 必要时本类可退化为手写编排而不影响使用方。门面无状态、不依赖 Spring 容器，
@@ -215,6 +218,16 @@ public final class AgenticWorkflows {
     public static <T extends org.bsc.langgraph4j.state.AgentState> dev.langchain4j.service.tool.ToolProvider graphToolProvider(
             org.bsc.langgraph4j.CompiledGraph<T> compiledGraph, String toolName, String toolDescription) {
         return AgenticToolProviders.graphToolProvider(compiledGraph, toolName, toolDescription);
+    }
+
+    /**
+     * 意图条件路由入口：把意图分类接到条件编排（{@link #conditional()}），让「按意图选分支」
+     * 在一次编排内只判一次意图。等价于 {@code AgenticIntentRouting.of(classifier)}。
+     *
+     * @see AgenticIntentRouting
+     */
+    public static <I extends Enum<I>> AgenticIntentRouting<I> intentRouting(IntentClassifier<I> classifier) {
+        return AgenticIntentRouting.of(classifier);
     }
 
     // ------------------------------------------------------------------
