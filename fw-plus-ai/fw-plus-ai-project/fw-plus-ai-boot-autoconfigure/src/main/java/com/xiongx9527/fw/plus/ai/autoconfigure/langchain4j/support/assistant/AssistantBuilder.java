@@ -1,5 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.AgenticPipelineRegistry;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.AgenticToolProviders;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.aggregate.AggregatingToolProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentClassifier;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentRag;
@@ -66,6 +68,10 @@ import java.util.function.Function;
  * RAG 检索段与工具往返不进历史，只在本轮请求里带出。无有效字符的 AI 回复一律不沉淀。
  * 检索段不进历史由 {@code storeRetrievedContentInChatMemory(false)} 保证——langchain4j 该开关默认
  * {@code true}，会把拼了检索内容的整条 user message 写进记忆。
+ *
+ * <p>agentic 编排接入（agent-as-tool）：{@link #agentic} 把编排产物挂为工具，另有
+ * {@link #agenticByKey}（注册中心 key 引用）与 {@link #agenticGraph}（langgraph4j 编译图）两条入口，
+ * 内部复用 {@code AgenticToolProviders} 包装为 {@code ToolProvider}。</p>
  */
 public class AssistantBuilder {
 
@@ -350,6 +356,64 @@ private Integer rerankMaxResults;
 			}
 		}
 		return this;
+	}
+
+	/**
+	 * agent-as-tool：把 agentic 编排产物挂为工具，主 LLM 依据工具描述自主决定何时调用，
+	 * 编排结果作为工具返回值回传。可多次调用累积，等价于
+	 * {@code toolProvider(AgenticToolProviders.agenticToolProvider(...))}。
+	 *
+	 * @param pipeline        编排产物（如 {@code AgenticWorkflows.sequence()...build()}）
+	 * @param toolName        工具名（LLM 可见）
+	 * @param toolDescription 工具描述（LLM 据此决定是否调用）
+	 * @param outputKey       从编排产出中提取的字段名；{@code null} 表示原样输出
+	 * @param inputKeys       工具入参名，逐个声明为字符串属性并作为编排输入 state
+	 */
+	public AssistantBuilder agentic(dev.langchain4j.agentic.UntypedAgent pipeline, String toolName,
+			String toolDescription, String outputKey, String... inputKeys) {
+		if (pipeline == null) {
+			throw new IllegalArgumentException("agentic 需要非 null 的编排产物（UntypedAgent）");
+		}
+		return toolProvider(AgenticToolProviders.agenticToolProvider(pipeline, toolName, toolDescription,
+				outputKey, inputKeys));
+	}
+
+	/**
+	 * agent-as-tool（注册中心版）：按 {@link AgenticPipelineRegistry} 的 key 引用编排，
+	 * 调用方无需接触 agentic 类型。key 未注册时抛 {@link IllegalArgumentException}（含已注册 key 列表）。
+	 *
+	 * @param registry        编排注册中心
+	 * @param agenticKey      编排 key
+	 * @param toolName        工具名（LLM 可见）
+	 * @param toolDescription 工具描述（LLM 据此决定是否调用）
+	 * @param outputKey       从编排产出中提取的字段名；{@code null} 表示原样输出
+	 * @param inputKeys       工具入参名，逐个声明为字符串属性并作为编排输入 state
+	 */
+	public AssistantBuilder agenticByKey(AgenticPipelineRegistry registry, String agenticKey, String toolName,
+			String toolDescription, String outputKey, String... inputKeys) {
+		if (registry == null) {
+			throw new IllegalArgumentException("agenticByKey 需要非 null 的 AgenticPipelineRegistry");
+		}
+		return toolProvider(AgenticToolProviders.agenticToolProviderByKey(registry, agenticKey, toolName,
+				toolDescription, outputKey, inputKeys));
+	}
+
+	/**
+	 * agent-as-tool（langgraph4j 图版）：把编译图挂为工具，工具入参即图的 state，
+	 * 图终止后的 state 作为工具返回值回传。等价于
+	 * {@code toolProvider(AgenticToolProviders.graphToolProvider(...))}。
+	 *
+	 * @param compiledGraph   langgraph4j 编译图
+	 * @param toolName        工具名（LLM 可见）
+	 * @param toolDescription 工具描述（LLM 据此决定是否调用）
+	 */
+	public AssistantBuilder agenticGraph(
+			org.bsc.langgraph4j.CompiledGraph<? extends org.bsc.langgraph4j.state.AgentState> compiledGraph,
+			String toolName, String toolDescription) {
+		if (compiledGraph == null) {
+			throw new IllegalArgumentException("agenticGraph 需要非 null 的 CompiledGraph");
+		}
+		return toolProvider(AgenticToolProviders.graphToolProvider(compiledGraph, toolName, toolDescription));
 	}
 
 	/**
