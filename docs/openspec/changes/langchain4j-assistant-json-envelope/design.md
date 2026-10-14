@@ -183,7 +183,8 @@ canonical_spec: openspec
 ### D12. 帧形态开关的作用面
 
 开关开启后，接管范围限定为**既有的、调用方未自带 `done` 数据映射与完成回调的流式对话入口**，
-白名单只有两个重载：`streamToSse(memoryId, message)`、`(memoryId, message, startData)`。
+白名单三个重载：`streamToSse(String message)`（内部委托第二项，因此同样被接管）、
+`streamToSse(memoryId, message)`、`(memoryId, message, startData)`。
 
 不接管（保持现状，白名单之外一律不动）：带 `doneDataMapper` 的重载、带 `onStarted`/`onDone` 的重载（调用方已显式声明
 "由我决定 done 内容"）、`streamToSse(memoryId, context, message)`（`context` 是调用方显式给出的系统提示定制，
@@ -192,7 +193,9 @@ canonical_spec: openspec
 `generateTextToSse(...)`（显式直连补全）、既有非流式 `chat(...)`（返回 `String`，见 D11）。
 
 > 白名单与排除项在 Verify 集成审查（W-1）后由一句话措辞改为逐项列名：原措辞"未自带 mapping/回调的流式对话入口"
-> 按字面会把自带 `context` 的重载也算进去，与实现不一致。行为未变，只是把已实现边界写明（tasks 6.2）。
+> 按字面会把自带 `context` 的重载也算进去，与实现不一致。第 2 次针对性复核又发现该次列名**漏了单参重载**
+> `streamToSse(String)`——它经委托同样被接管（`SimpleAssistantEnvelopeTest#switchOnTakesOverSingleArgOverload`
+> 已断言、`SimpleAssistant` Javadoc 也已按接管描述），现补全（tasks 7.1）。行为始终未变，只是把已实现边界写明。
 
 实现方式：`SimpleAssistant` 增加一个**可选的信封处理器字段**（`null` = 未启用）与一个新增的 setter，
 在无 mapper 的 `streamToSse` 重载内部前置分支：处理器存在 → 交编排件；否则原样走 `doStreamToSse(...)`。

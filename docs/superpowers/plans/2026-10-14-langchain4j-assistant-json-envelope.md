@@ -172,11 +172,13 @@ base-ref: e98ba52df64a716833afb0f9a1f3ace8069d153e
 
 ### 5.2 两条通道同形断言 <!-- comet-task-ref:78c61a0b-0c2b-438d-b86c-9731e3030b3f -->
 
-- **范围**：同一轮次分别取流式 `done` 信封（`doneDataMapper`/`onDone` 侧信道）与非流式返回，比较键结构 /
-  `ok` / `business` / `result` / `v`。
+- **范围**：同一轮次分别取流式 `done` 信封（**反射读真实 SSE 帧**，见「测试硬限制（已修订）」约定）与非流式
+  返回，比较键结构 / `ok` / `business` / `result` / `v`。
 - **依赖**：5.1。
-- **约束**：不解析真实 `SseEmitter` 帧（内部构造、无注入点），把该限制写进测试类注释。
-- **验收**：同形断言通过。
+- **约束**：强于初版计划：初版「不解析真实 `SseEmitter` 帧、改用 `doneDataMapper`/`onDone` 侧信道」的结论已被
+  Build 阶段独立审查（M1）证伪并作废；实际做法是反射读 `ResponseBodyEmitter.earlySendAttempts` 拿真实帧
+  （tasks 7.2 同步本行）。
+- **验收**：同形断言通过（样例 `EnvelopeChannelSameShapeTest` 3 例）。
 
 ### 5.3 回归与证据 <!-- comet-task-ref:c654c4e4-994c-49c2-bded-59382ec2317f -->
 
@@ -221,7 +223,34 @@ base-ref: e98ba52df64a716833afb0f9a1f3ace8069d153e
 - **依赖**：6.1–6.3。
 - **验收**：文档与实现/规格口径一致，构建证据重跑通过。
 
+## 第 7 组：Verify 第二轮修复（第 2 次针对性复核发现的偏差）
 
+> 依据：第 2 次针对性独立复核结论 PASS（无 CRITICAL/IMPORTANT），但报告 3 项第 6 组自己引入的文档瑕疵
+> 与 1 项覆盖缺口；按用户指示修复。`verify_failures` 2（上限 3）。
+
+### 7.1 接管白名单措辞补全 <!-- comet-task-ref:2d267093-f796-4ebf-be48-d0c210b0c688 -->
+
+- **范围**：delta spec 与 `design.md` D12 的白名单由「两个重载」改为「三个重载」，补上单参
+  `streamToSse(String message)`（实际经委托同样被接管），并新增 Scenario「单参重载委托后的形态」。
+- **依赖**：6.2（同一处措辞的收尾）。
+- **约束**：行为不变；只补列名与验收场景，不放宽也不收紧接管范围。
+- **验收**：spec / design / 代码注释三处口径一致；新 Scenario 对应既有断言 `switchOnTakesOverSingleArgOverload`。
+
+### 7.2 计划文件修正 <!-- comet-task-ref:4cb1673d-9daa-411a-81e2-16984deda06f -->
+
+- **范围**：本计划 5.2 正文的过时约定改为与顶部约定及 `tasks.md` 5.2 一致的真实帧方案；恢复被误替换的
+  `## 风险与回退` 标题。
+- **依赖**：无。
+- **验收**：本文件内部无自相矛盾，标题层级完整。
+
+### 7.3 补覆盖缺口 <!-- comet-task-ref:73d8bd88-d6c2-4b99-97c8-883d01f953eb -->
+
+- **范围**：新增用例证明「无契约注册（`contract == null`）+ 单次 `TRUE`」仍不产出 `result`（兜底 `chat` 轮次）。
+- **依赖**：6.1。
+- **约束**：覆盖既有短路语义，无 RED（先有实现，后补断言）。
+- **验收**：`EnvelopeAssistantTest` 全绿，模块全量 `test` 全绿。
+
+## 风险与回退
 
 - **回退路径**：帧形态开关默认关，关闭即回到现状，无需回滚代码；应急可只关分类开关（全部落 `chat`）。
 - **高不确定点**：`EphemeralChatMemory` 读路径的可见性（任务 3.5 核实，兜底为直接读 store 快照）。

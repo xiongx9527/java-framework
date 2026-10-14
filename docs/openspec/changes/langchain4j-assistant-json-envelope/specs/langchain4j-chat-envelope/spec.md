@@ -111,11 +111,11 @@ JSON 结果，让前端与调用方不必再解析自由文本。
 开关开启后，同一会话内的帧形态 SHALL 恒定，不得逐轮变化。
 
 开关开启后，接管范围 SHALL 限定为既有的、调用方未自带 `done` 数据映射与完成回调、且未自带 `context`
-（系统提示定制）的两个流式对话入口：`streamToSse(memoryId, message)` 与
-`streamToSse(memoryId, message, startData)`，白名单之外的重载一律不动。调用方自带映射或回调的入口、
-自带 `context` 的 `streamToSse(memoryId, context, message)`、带检索过滤条件的流式入口与非流式对话入口，
-SHALL NOT 被接管并 SHALL 保持现状。自带 `context` 的入口不被接管，是因为该参数是调用方显式给出的系统提示
-定制，接管后会被契约或全局系统提示取代，等于静默丢弃调用方的定制语义。
+（系统提示定制）的流式对话入口，白名单为三个重载：`streamToSse(String message)`（内部委托下述第二项）、
+`streamToSse(memoryId, message)` 与 `streamToSse(memoryId, message, startData)`；白名单之外的重载一律不动。
+调用方自带映射或回调的入口、自带 `context` 的 `streamToSse(memoryId, context, message)`、带检索过滤条件的
+流式入口与非流式对话入口，SHALL NOT 被接管并 SHALL 保持现状。自带 `context` 的入口不被接管，是因为该参数是
+调用方显式给出的系统提示定制，接管后会被契约或全局系统提示取代，等于静默丢弃调用方的定制语义。
 非流式信封 SHALL 由新增的独立入口提供，既有方法的返回形态 SHALL NOT 改变。
 
 #### Scenario: 开关关闭
@@ -137,6 +137,11 @@ SHALL NOT 被接管并 SHALL 保持现状。自带 `context` 的入口不被接�
 
 - **WHEN** 帧形态开关已开启，调用方调用带检索过滤条件的流式入口
 - **THEN** 该入口保持现状，不被帧形态开关接管
+
+#### Scenario: 单参重载委托后的形态
+
+- **WHEN** 帧形态开关已开启，调用方调用只带用户消息的单参入口 `streamToSse(String)`
+- **THEN** 该入口（经其内部委托的 `streamToSse(memoryId, message)`）同样输出信封，帧形态与会话内其它轮次一致
 
 #### Scenario: 自带 context 的流式入口
 

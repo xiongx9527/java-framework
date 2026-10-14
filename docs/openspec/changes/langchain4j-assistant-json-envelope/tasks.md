@@ -39,6 +39,15 @@
 - [x] 6.3 并发与装配加固（审查 W-2/W-3）：`SimpleAssistant.envelopeRuntime` 字段加 `volatile`；`EnvelopeSessionMemory` Javadoc 注明同一 `memoryId` 的轮次需调用方串行（底层 store 为读改写、非原子） <!-- comet-task:17e8edcd-8848-4c2d-8c1c-f52bb0e5b081 -->
 - [x] 6.4 文档同步（审查 W-4/S-1/S-2 与恢复阶段发现的过时表述）：`design.md` 组件与文件清单中 `AssistantBuilder` 一行改为实际装配方式；`design.md` 测试策略「拿不到真实 SSE 帧」段落、计划「测试硬限制」约定与本文件 5.2 措辞同步为「反射读真实帧」方案；`design.md` 与 `proposal.md` 补记开关开启时 `start` 帧时序变化、开关关闭时助手配置仍绑定并校验的行为前移；`proposal.md` 风险节「隔离记忆标识」对策同步为实际采用的「直连模型、重试零写入」；`SimpleAssistantEnvelopeTest` 类注释中的过时结论一并订正 <!-- comet-task:ddaf372b-4b92-4c8d-8a7a-6e637865a114 -->
 
+## 7. Verify 第二轮修复（第 2 次针对性复核发现的文档偏差与覆盖补充）
+
+> 依据：第 2 次针对性独立复核结论 PASS（无 CRITICAL/IMPORTANT），但发现 3 项第 6 组修复轮自己引入的
+> 文档瑕疵 + 1 项覆盖缺口；按用户指示"修复未完成的问题"回 Build 处置。`verify_failures=2`（上限 3）。
+
+- [x] 7.1 接管白名单措辞补全（复核 WARNING #1，使 6.2 的"三处口径一致"验收真正达成）：delta spec `langchain4j-chat-envelope/spec.md` 与 `design.md` D12 的白名单由"两个重载"改为"三个重载"，补上单参入口 `streamToSse(String message)`（内部委托 `streamToSse(memoryId, message)`、实际同样被接管，测试 `switchOnTakesOverSingleArgOverload` 与 `SimpleAssistant` Javadoc 均已按接管描述），并新增同名 Scenario「单参重载委托后的形态」；行为不变 <!-- comet-task:2d267093-f796-4ebf-be48-d0c210b0c688 -->
+- [x] 7.2 计划文件修正（复核 WARNING #2 + SUGGESTION #3）：`docs/superpowers/plans/2026-10-14-langchain4j-assistant-json-envelope.md` 5.2 正文由过时的「`doneDataMapper`/`onDone` 侧信道 + 不解析真实帧」改为与同文件顶部约定及 `tasks.md` 5.2 一致的「反射读 `ResponseBodyEmitter.earlySendAttempts` 真实帧」；恢复被误替换掉的 `## 风险与回退` 标题（其下三条 bullet 现悬空在 6.4 之下） <!-- comet-task:4cb1673d-9daa-411a-81e2-16984deda06f -->
+- [x] 7.3 补覆盖缺口（复核 SUGGESTION #4）：新增一条用例证明「无契约注册（`contract == null`）+ 单次调用 `TRUE`」仍不产出 `result`（兜底 `chat` 轮次，没有契约就没有可校验的 schema），避免该 Javadoc 承诺仅靠单一布尔表达式保证；覆盖既有短路语义，无 RED <!-- comet-task:73d8bd88-d6c2-4b99-97c8-883d01f953eb -->
+
 ## Workflow follow-up
 
 - 进入 Verify 阶段验证实现与产物一致，并记录验证报告。

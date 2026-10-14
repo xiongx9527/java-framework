@@ -97,6 +97,22 @@ class EnvelopeAssistantTest {
 		assertThat(envelope.getText()).isEmpty();
 	}
 
+	@Test
+	void callOverrideOnWithoutAnyContractStillProducesNoResult() {
+		// 兜底轮次没有契约也就没有可校验的 schema：此时单次开启也不产出 result（Javadoc 承诺的短路语义）
+		RecordingChatCaller caller = new RecordingChatCaller();
+		caller.reply = "没有注册任何业务，只能闲聊";
+		EnvelopeAssistant entry = entry(new ScriptedModel(classifiedAs("chat")), caller);
+
+		ChatEnvelope envelope = entry.chat(MEMORY_ID, "随便聊聊", Boolean.TRUE);
+
+		assertThat(envelope.isOk()).isTrue();
+		assertThat(envelope.getBusiness()).isEqualTo(BusinessRegistry.FALLBACK);
+		assertThat(envelope.getResult()).isNull();
+		assertThat(envelope.getText()).isEqualTo("没有注册任何业务，只能闲聊");
+		assertThat(caller.calls).containsExactly("session-1|随便聊聊");
+	}
+
 	// -------------------------------------------------- 非结构化轮次
 
 	@Test
