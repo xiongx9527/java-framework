@@ -29,8 +29,15 @@
 ## 5. 样例与集成验证
 
 - [x] 5.1 样例模块新增两个假业务契约与假模型（同一 `RecordingChatModel` 同时承担分类与生成），离线（零 API Key）覆盖四条路径：分类命中且结构化成功、分类命中但校验失败、业务追问、分类未命中落闲聊；断言结构化轮次不发 `token` 帧、`start` 帧含 `tokens`；`./fw-plus-core/mvnw -f fw-plus-sample/pom.xml -o -pl fw-plus-ai-samples/fw-plus-ai-structured-output-sample test -Dmaven.test.skip=false` 通过 <!-- comet-task:22363fcc-9fea-4751-8b52-6079087d3fe5 -->
-- [x] 5.2 断言同一轮次的两条通道同形：流式 `done` 帧的信封（经 `doneDataMapper`/`onDone` 侧信道取回）与非流式入口返回的信封在键结构、`ok`、`business`、`result`、`v` 上一致；不尝试解析真实 `SseEmitter` 帧（内部构造、无注入点），把该限制写进测试类注释 <!-- comet-task:78c61a0b-0c2b-438d-b86c-9731e3030b3f -->
+- [x] 5.2 断言同一轮次的两条通道同形：流式 `done` 帧的信封与非流式入口返回的信封在键结构、`ok`、`business`、`result`、`v` 上一致；实际做法强于初版计划——反射读取 `ResponseBodyEmitter.earlySendAttempts` 取**真实 SSE 帧**逐键逐值比较，初版"不解析真实帧、只用侧信道"的约定已由 Build 阶段独立审查（M1）证伪并作废（措辞于 Verify 修复轮 6.4 同步） <!-- comet-task:78c61a0b-0c2b-438d-b86c-9731e3030b3f -->
 - [x] 5.3 跑该模块全量测试确认既有 641 例未受影响（尤其开关关闭时的既有行为），并执行 `cd fw-plus-ai && ./mvnw -o -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure install -DskipTests` 使样例取到新版本后复跑样例 <!-- comet-task:c654c4e4-994c-49c2-bded-59382ec2317f -->
+
+## 6. Verify 修复轮（最终集成审查 NEEDS-FIX：1 IMPORTANT + 4 WARNING + 2 SUGGESTION）
+
+- [x] 6.1 补齐结构化开关「单次调用」层的产品入口（审查 I-1，必修）：新增 `EnvelopeRuntime.decide(memoryId, message, Boolean structuredOverride)` 与 `EnvelopeAssistant.chat(memoryId, message, Boolean structuredOverride)`，把单次覆盖透传进 `resolveEnabled`（现有 2 参重载委托 `null`、行为不变），使「单次调用 > 业务契约 > 全局」三层在规格中承诺的覆盖顺序对产品入口可达；TDD 先 RED 后 GREEN，覆盖「契约开启时单次关闭 → 该次调用不产出 result」「契约关闭时单次开启 → 该次调用产出 result」两条；`cd fw-plus-ai && ./mvnw -o -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure test -Dmaven.test.skip=false` 全绿 <!-- comet-task:c3987a65-b179-4500-a21e-09da7adf9626 -->
+- [x] 6.2 接管边界措辞精确化（审查 W-1，用户已选定方案）：delta spec `langchain4j-chat-envelope/spec.md` 的接管条款写明接管的两个既有重载与「调用方自带 context 的重载不接管」及理由，并补一条同名 Scenario；同步 `design.md` D12 与 `SimpleAssistant#envelopeRuntime` Javadoc 的「不接管」清单；补边界锁定断言 `SimpleAssistantEnvelopeTest#contextOverloadIsNotTakenOver`（当前实现已满足，无 RED） <!-- comet-task:69774a43-ed83-4adb-95f9-ec7b3f22d54c -->
+- [x] 6.3 并发与装配加固（审查 W-2/W-3）：`SimpleAssistant.envelopeRuntime` 字段加 `volatile`；`EnvelopeSessionMemory` Javadoc 注明同一 `memoryId` 的轮次需调用方串行（底层 store 为读改写、非原子） <!-- comet-task:17e8edcd-8848-4c2d-8c1c-f52bb0e5b081 -->
+- [x] 6.4 文档同步（审查 W-4/S-1/S-2 与恢复阶段发现的过时表述）：`design.md` 组件与文件清单中 `AssistantBuilder` 一行改为实际装配方式；`design.md` 测试策略「拿不到真实 SSE 帧」段落、计划「测试硬限制」约定与本文件 5.2 措辞同步为「反射读真实帧」方案；`design.md` 与 `proposal.md` 补记开关开启时 `start` 帧时序变化、开关关闭时助手配置仍绑定并校验的行为前移；`proposal.md` 风险节「隔离记忆标识」对策同步为实际采用的「直连模型、重试零写入」；`SimpleAssistantEnvelopeTest` 类注释中的过时结论一并订正 <!-- comet-task:ddaf372b-4b92-4c8d-8a7a-6e637865a114 -->
 
 ## Workflow follow-up
 

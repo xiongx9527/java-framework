@@ -42,9 +42,9 @@ import static org.mockito.Mockito.when;
 /**
  * 帧形态开关接管既有无 mapper 流式入口的验收测试。
  *
- * <p><b>可观测性限制（重要）</b>：{@code SseEmitter} 在 {@code SimpleAssistant} 内部构造、没有注入点
- * （{@code ResponseBodyEmitter.initialize(Handler)} 是包私有），因此本测试<b>不解析真实 SSE 帧</b>，
- * 只用三处可观测证据断言「帧内容的不变量」：</p>
+ * <p><b>本测试的可观测范围</b>：{@code SseEmitter} 在 {@code SimpleAssistant} 内部构造、没有公开注入点，
+ * 因此<b>本测试不解析真实 SSE 帧</b>（真实帧的逐键逐值断言在样例侧 {@code EnvelopeChannelSameShapeTest}：
+ * 反射读取 {@code ResponseBodyEmitter.earlySendAttempts}），只用三处可观测证据断言「帧内容的不变量」：</p>
  *
  * <ol>
  *   <li>信封对象本身：由 {@code EnvelopeRuntimeTest} / {@code EnvelopeAssistantTest} 覆盖；</li>
@@ -211,6 +211,18 @@ class SimpleAssistantEnvelopeTest {
 		assertThat(emitter).isNotNull();
 		assertThat(startedRequestId.get()).as("start 事件仍回传 32 位 requestId").hasSize(32);
 		assertThat(done).containsExactly("杭州多云");
+		assertThat(model.requests).as("未被接管：不应发生分类调用").isEmpty();
+	}
+
+	@Test
+	void contextOverloadIsNotTakenOver() {
+		// 自带 context（系统提示定制）的入口不在接管白名单内：调用方的 context 原样传给既有通道
+		when(provider.stream(MEMORY_ID, "你是一个诗人", contents("讲个故事"))).thenReturn(fakeStream("杭州", "多云"));
+
+		SseEmitter emitter = simpleWith(envelope(order())).streamToSse(MEMORY_ID, "你是一个诗人", "讲个故事");
+
+		assertThat(emitter).isNotNull();
+		verify(provider).stream(MEMORY_ID, "你是一个诗人", contents("讲个故事"));
 		assertThat(model.requests).as("未被接管：不应发生分类调用").isEmpty();
 	}
 

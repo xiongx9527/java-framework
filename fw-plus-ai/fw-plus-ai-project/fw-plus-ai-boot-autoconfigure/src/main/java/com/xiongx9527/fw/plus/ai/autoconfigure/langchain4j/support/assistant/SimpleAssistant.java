@@ -757,8 +757,10 @@ public class SimpleAssistant {
 
 	// -------------------------------------------------- 信封（可选：装上以后既有无 mapper 流式入口按信封协议输出）
 
-	/** 信封处理器；经 {@link #envelopeRuntime(EnvelopeRuntime)} 装上（{@code null} = 未装，所有入口行为不变） */
-	private EnvelopeRuntime envelopeRuntime;
+	/** 信封处理器；经 {@link #envelopeRuntime(EnvelopeRuntime)} 装上（{@code null} = 未装，所有入口行为不变）。
+	 * {@code volatile}：Spring 装配在启动期单线程写入，但 setter 是 public，加 {@code volatile} 让运行期
+	 * 重新装配与请求线程之间也有可见性保证。 */
+	private volatile EnvelopeRuntime envelopeRuntime;
 
 	/**
 	 * 安装信封处理器（链式，可选）：装上以后，既有无 mapper 的流式入口
@@ -768,8 +770,10 @@ public class SimpleAssistant {
 	 * {@code done} 帧 data 为信封 JSON；结构化轮次不逐字下发（没有 {@code token} 帧），
 	 * 非结构化轮次逐字下发。{@code token} 帧始终是纯文本。
 	 *
-	 * <p>不接管这些入口（调用方已显式声明 done 内容由自己决定）：
+	 * <p>不接管这些入口（白名单之外一律保持现状）：
 	 * 带 {@code doneDataMapper} 的重载、带 {@code onStarted}/{@code onDone} 的重载、
+	 * {@link #streamToSse(String, String, String)}（调用方自带 {@code context}，即系统提示定制；
+	 * 接管后会被契约/全局系统提示取代，等于静默丢弃调用方语义）、
 	 * {@link #streamToSseWithFilter}、{@link #generateTextToSse(String)} 系列、以及既有的
 	 * {@link #chat(String, String)} 等非流式入口。</p>
 	 *
@@ -800,7 +804,9 @@ public class SimpleAssistant {
 		return doStreamToSse(memoryId, DEFAULT_CONTEXT, message, null, null, null, null);
 	}
 
-	/** 同上（带 context，动态系统提示定制）；第三参传 null 时需显式转型，避免与 Object/Consumer 重载二义 */
+	/** 同上（带 context，动态系统提示定制）；第三参传 null 时需显式转型，避免与 Object/Consumer 重载二义。
+	 * <p>装了信封处理器也<b>不接管</b>本重载：{@code context} 是调用方显式给出的系统提示定制，
+	 * 接管后会被契约/全局系统提示取代，等于静默丢弃调用方的定制语义。</p> */
 	public SseEmitter streamToSse(String memoryId, String context, String message) {
 		return doStreamToSse(memoryId, normalizeContext(context), message, null, null, null, null);
 	}

@@ -8,13 +8,13 @@ subagent_dispatch: null
 tdd_mode: tdd
 review_mode: standard
 isolation: current
-verify_mode: null
+verify_mode: full
 auto_transition: true
 base_ref: e98ba52df64a716833afb0f9a1f3ace8069d153e
 design_doc: docs/openspec/changes/langchain4j-assistant-json-envelope/design.md
 plan: docs/superpowers/plans/2026-10-14-langchain4j-assistant-json-envelope.md
 verify_result: pending
-verify_failures: 0
+verify_failures: 1
 verification_report: null
 branch_status: pending
 created_at: 2026-10-14
@@ -28,4 +28,4 @@ handoff_hash: e2f75b027ff64a72c116f710c3b41aeffeb39650f41aa819e04ddbbf5f60b8cb
 classic_profile: full
 classic_migration: 1
 run_id: 8235cbd7-dc0f-47d2-832f-0f7a88c7740d
-check_epoch: 3
+check_epoch: 5

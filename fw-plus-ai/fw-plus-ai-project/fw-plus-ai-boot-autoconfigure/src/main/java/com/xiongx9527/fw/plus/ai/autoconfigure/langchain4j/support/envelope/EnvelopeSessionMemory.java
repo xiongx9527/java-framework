@@ -32,6 +32,12 @@ import java.util.List;
  *
  * <p><b>闲聊轮次不要调用 {@link #recordTurn}</b>：非结构化轮次经 AiServices 走既有记忆通道，
  * 已经写过一次，再写会重复。</p>
+ *
+ * <p><b>并发边界（调用方职责）</b>：底层 {@link ChatMemoryStore}（如 {@code InMemoryChatMemoryStore}）
+ * 的消息读写是 {@code get → 修改 → put} 的非原子读改写，本类每次读写都会重建一次窗口。
+ * 因此<b>同一 {@code memoryId} 的轮次需由调用方串行</b>：并发跑同一会话的两轮，后写回的一轮可能
+ * 覆盖前一轮新增的历史消息。这是既有 store 的既有特性（既有 AiServices 通道同样如此），本类未引入
+ * 也不可能靠内部加锁消除——真要并发需要换成原子/带锁的 store 实现。</p>
  */
 public final class EnvelopeSessionMemory {
 

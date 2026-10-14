@@ -60,7 +60,12 @@ fw-plus 的 LangChain4j 集成目前只有一种对话输出形态：把模型�
 - 调用面：SSE `done` 帧与非流式返回的形态，**仅在帧形态开关开启后生效**；关闭时零影响。
 - 样例：`fw-plus-sample/fw-plus-ai-samples/` 新增样例模块，并在聚合 POM 注册。
 - 依赖：不新增第三方依赖（复用 fastjson2 `JSONSchema`，2.0.53 自带、Java 8 可用）。
-- 兼容性：帧形态开关默认关，既有 Magic-API 脚本与调用方无需改动。
+- 兼容性：帧形态开关默认关，既有 Magic-API 脚本与调用方无需改动。开启后有两处可感知变化，均只在开关开启时生效：
+  （1）`start` 帧 `data` 由 requestId 字符串变为对象 `{requestId, business, tokens}`，且**改到业务分类完成之后才发出**
+  （比现状晚一帧），调用方传入的 `startData` 不再使用——前端应按类型分支解析 `data`；
+  （2）结构化轮次不再逐字下发（没有 `token` 帧），结果在 `done` 帧一次给出。
+- 行为前移（开关关闭时唯一的一处）：助手配置 `fw.plus.ai.langchain4j.assistant.*` 始终绑定并在启动期校验，
+  因此即使信封开关关闭，非法的助手配置也会 fail-fast（与"启动期非法配置立即失败"的规格一致，属有意为之）。
 - 不在范围内：`fw-plus-core`、`fw-plus-boot`、`fw-plus-cloud` 三个库层零改动。
 
 ## 非目标
@@ -76,8 +81,10 @@ fw-plus 的 LangChain4j 集成目前只有一种对话输出形态：把模型�
 
 ## 关键未知项与风险
 
-- 重试污染记忆：重试会经 `EphemeralChatMemory` + `PERSIST_NON_TOOL_FINAL_ANSWER` 把校验错误原文
-  沉淀进该 `memoryId` 的历史。对策：重试使用隔离的记忆标识，错误只经提示词回喂，不写入会话历史。
+- 重试污染记忆：若重试走业务 `memoryId`（`EphemeralChatMemory` + `PERSIST_NON_TOOL_FINAL_ANSWER`），
+  校验错误原文会沉淀进该 `memoryId` 的历史。对策（以 Design D8/D14 为准，比本节初稿更简单）：
+  结构化轮次**直连 `ChatLanguageModel`、不经 AiServices**，重试期间不写任何历史，错误只经提示词回喂；
+  轮次结束才写回"用户原文 + 结果摘要"。本节初稿记的"重试使用隔离的记忆标识"未采用。
 - 每轮分类的调用开销：路由只由分类决定后，每轮会多一次轻量模型调用（只判业务名）。对策：提示词极短、
   以已注册业务名做枚举约束，判定失败直接落 `chat`，不引入结果缓存（缓存会破坏“每轮重新判定”）。
 - 空回复伪装成功：模型空回复时流式 mapper 收到的是 `[DONE]`，收敛件必须把它降级为 `ok=false`，

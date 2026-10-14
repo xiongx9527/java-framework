@@ -93,6 +93,21 @@ public final class EnvelopeRuntime {
 	 * @return 本轮判定结果；分类不可用 / 未命中 / 任何异常一律回落兜底 {@value BusinessRegistry#FALLBACK} 轮次
 	 */
 	public Round decide(String memoryId, String message) {
+		return decide(memoryId, message, null);
+	}
+
+	/**
+	 * 同上，携带<b>单次调用</b>层的形态覆盖（三层覆盖顺序的最高层：单次调用 &gt; 业务契约 &gt; 全局默认）。
+	 *
+	 * <p>本层是规格三层覆盖中「单次调用」的唯一产品入口——既有流式入口的签名不可改动，
+	 * 因此单次覆盖只在非流式信封入口提供（{@code EnvelopeAssistant.chat(memoryId, message, Boolean)}）。</p>
+	 *
+	 * @param structuredOverride 本次调用是否强制产出结构化结果：{@code null} = 不覆盖（按业务契约与全局配置）；
+	 *                           {@code TRUE}/{@code FALSE} = 本次调用开启/关闭结构化。
+	 *                           兜底轮次（未命中任何契约）恒为非结构化——没有契约就没有可校验的 schema，
+	 *                           此时 {@code TRUE} 也不产出 result
+	 */
+	public Round decide(String memoryId, String message, Boolean structuredOverride) {
 		String requestId = newRequestId();
 		BusinessRouter.RoutedTurn turn = null;
 		try {
@@ -104,7 +119,7 @@ public final class EnvelopeRuntime {
 		BusinessContract contract = turn == null ? null : turn.getContract();
 		String business = turn == null ? BusinessRegistry.FALLBACK : turn.getBusiness();
 		boolean structured = contract != null
-				&& properties.getStructured().resolveEnabled(null, contract.getStructured());
+				&& properties.getStructured().resolveEnabled(structuredOverride, contract.getStructured());
 		String version = contract == null ? ChatEnvelope.DEFAULT_VERSION : contract.getVersion();
 		return new Round(requestId, business, contract, structured, version);
 	}

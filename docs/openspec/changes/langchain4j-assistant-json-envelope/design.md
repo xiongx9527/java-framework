@@ -182,12 +182,17 @@ canonical_spec: openspec
 
 ### D12. 帧形态开关的作用面
 
-开关开启后，接管范围限定为**既有的、调用方未自带 `done` 数据映射与回调的流式对话入口**
-（`streamToSse(memoryId, message)`、`(memoryId, message, startData)`）。
+开关开启后，接管范围限定为**既有的、调用方未自带 `done` 数据映射与完成回调的流式对话入口**，
+白名单只有两个重载：`streamToSse(memoryId, message)`、`(memoryId, message, startData)`。
 
-不接管（保持现状）：带 `doneDataMapper` 的重载、带 `onStarted`/`onDone` 的重载（调用方已显式声明
-"由我决定 done 内容"）、`streamToSseWithFilter(...)`（检索过滤语义不同，先不与之纠缠）、
+不接管（保持现状，白名单之外一律不动）：带 `doneDataMapper` 的重载、带 `onStarted`/`onDone` 的重载（调用方已显式声明
+"由我决定 done 内容"）、`streamToSse(memoryId, context, message)`（`context` 是调用方显式给出的系统提示定制，
+接管后会被契约/全局系统提示取代，等于静默丢弃调用方语义）、
+`streamToSseWithFilter(...)`（检索过滤语义不同，先不与之纠缠）、
 `generateTextToSse(...)`（显式直连补全）、既有非流式 `chat(...)`（返回 `String`，见 D11）。
+
+> 白名单与排除项在 Verify 集成审查（W-1）后由一句话措辞改为逐项列名：原措辞"未自带 mapping/回调的流式对话入口"
+> 按字面会把自带 `context` 的重载也算进去，与实现不一致。行为未变，只是把已实现边界写明（tasks 6.2）。
 
 实现方式：`SimpleAssistant` 增加一个**可选的信封处理器字段**（`null` = 未启用）与一个新增的 setter，
 在无 mapper 的 `streamToSse` 重载内部前置分支：处理器存在 → 交编排件；否则原样走 `doStreamToSse(...)`。
@@ -309,23 +314,25 @@ store 快照（读路径不依赖 EphemeralChatMemory 的视图）。
 | `Langchain4jAssistantProperties` | `@ConfigurationProperties("fw.plus.ai.langchain4j.assistant")` |
 | `EnvelopeSessionMemory` | 会话记忆读写口（同一 `ChatMemoryStore`；读快照、写回结果摘要） |
 | `EnvelopeRuntime` | 编排：分类 → 契约 → 结构化/非结构化 → 收敛；供流式与非流式复用 |
-| `EnvelopeAssistant` | 非流式信封入口：`ChatEnvelope chat(String memoryId, String message)` |
+| `EnvelopeAssistant` | 非流式信封入口：`ChatEnvelope chat(String memoryId, String message)`；单次调用层覆盖走重载 `chat(String, String, Boolean)` |
 
 对既有类的**新增式**改动（不动任何既有签名）：
 
 | 位置 | 改动 |
 | --- | --- |
-| `SimpleAssistant` | 新增可选信封处理器字段 + 新增 setter；无 mapper 的 `streamToSse` 重载内加一个前置分支 |
-| `AssistantBuilder` | 新增装配期配置方法，把 runtime 传给 `SimpleAssistant` |
-| `LangChain4jSupportAutoConfiguration` | 新增 `@EnableConfigurationProperties(Langchain4jAssistantProperties.class)` 与嵌套配置类（`EnvelopeRuntime` + 安装器） |
+| `SimpleAssistant` | 新增可选信封处理器字段（`volatile`）+ 新增链式 setter；无 mapper 的 `streamToSse` 重载内加一个前置分支 |
+| `LangChain4jSupportAutoConfiguration` | 新增 `@EnableConfigurationProperties(Langchain4jAssistantProperties.class)`、嵌套配置类与 `EnvelopeRuntimeInstaller`（`SmartInitializingSingleton`，启动期调用 `SimpleAssistant#envelopeRuntime(...)` 完成装配） |
 | `Rule` / `Rules` | 点号路径与 `fromSchema`（第 1 组任务） |
+
+> 注（审查 W-4 同步）：装配**未经过 `AssistantBuilder`**（原计划里的那一行已删除）。纯 Java 场景由调用方
+> 自行链式调用 `SimpleAssistant#envelopeRuntime(...)`；Spring 场景由上面的 `EnvelopeRuntimeInstaller` 在启动期完成。
 
 ### 配置项（键名以实现为准）
 
 | 配置 | 层级 | 默认 | 说明 |
 | --- | --- | --- | --- |
 | 帧形态开关 | 全局 | `false` | 开启后接管既有无 mapper 流式入口；会话内恒定 |
-| 结构化开关 | 全局 / 业务 / 单次 | `false` | 覆盖顺序：单次 > 业务 > 全局 |
+| 结构化开关 | 全局 / 业务 / 单次 | `false` | 覆盖顺序：单次 > 业务 > 全局；单次层经 `EnvelopeAssistant.chat(memoryId, message, Boolean)` 提供（流式入口签名不可加参） |
 | 分类开关 | 全局 | `true` | 每轮以已注册业务名做一次结构化判定；关闭则全部轮次落 `chat` |
 | 分类历史条数 | 全局 | `3` | 分类输入附带的最近用户消息条数（`0` = 只看本轮） |
 | 分类尝试次数 | 全局 | `1` | 分类判定尝试次数 |
@@ -348,14 +355,17 @@ store 快照（读路径不依赖 EphemeralChatMemory 的视图）。
    `generate(List<ChatMessage>, StreamingResponseHandler<AiMessage>)` 发若干 token 后 `onComplete`。
    覆盖：开关关闭时既有 `streamToSse` 交互与输出不变、开关开启时接管并给出信封、结构化轮次不发 token 帧、
    流式不重试、分类命中/未命中、业务命中但结构化关、重试后历史不含错误原文。
-3. **通道同形**：同一轮次分别取流式 mapper 输出与非流式入口返回，比较键结构 / `ok` / `business` / `result`。
+3. **通道同形**：同一轮次分别取流式 `done` 帧（**反射读真实 SSE 帧**，见下）与非流式入口返回，
+   逐键逐值比较键结构 / `ok` / `business` / `result` / `v`。
 4. **样例端到端**：两假业务离线覆盖四条路径（分类命中成功后结构化、命中但校验失败、业务追问、未命中落闲聊）。
 5. **回归**：模块既有 641 例全绿；开关关闭时既有行为断言不变。
 
-**已知测试硬限制（重要）**：`SseEmitter` 在 `streamTokenStreamToSse` 内部 `new SseEmitter(0L)`，无注入点，
-无法从外部解析真实帧。因此"帧里放什么"的不变量**收敛为三处断言**：
-(a) `EnvelopeRuntime`/`EnvelopeAssembler` 输出的信封对象单测；(b) `onStarted`/`onDone` 回调侧信道；
-(c) 对 `Assistant` 的交互校验（`verify(assistant).stream(...)`）。不尝试解析真实 SSE 帧，避免 Build 阶段白费功夫。
+**测试硬限制（已修订）**：`SseEmitter` 在 `streamTokenStreamToSse` 内部 `new SseEmitter(0L)`，无公开注入点。
+初版据此写下"无法从外部解析真实帧、只用三处侧信道断言"的约定——**该结论已被 Build 阶段独立审查（M1）证伪并作废**：
+反射读取 `ResponseBodyEmitter.earlySendAttempts`（私有 `LinkedHashSet`，有序）即可拿到真实帧，每组事件 3 个元素
+（前缀 String + 数据本体 + `"\n\n"`）。样例侧 `EnvelopeChannelSameShapeTest` 因此改为对真实帧逐键逐值断言
+（强于初版计划；本段落与计划约定、`tasks.md` 5.2 措辞由 Verify 修复轮一并同步）。三处侧信道断言仍保留在
+模块侧 `SimpleAssistantEnvelopeTest`（它作帧来源与交互断言，不解析帧）。
 
 ## Risks / Trade-offs
 

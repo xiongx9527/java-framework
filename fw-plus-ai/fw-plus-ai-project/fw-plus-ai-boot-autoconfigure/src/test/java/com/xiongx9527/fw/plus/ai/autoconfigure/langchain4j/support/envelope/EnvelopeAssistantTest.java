@@ -65,6 +65,38 @@ class EnvelopeAssistantTest {
 		assertThat(envelope.getText()).isEqualTo(ChatEnvelope.DEFAULT_FAILURE_TEXT);
 	}
 
+	// -------------------------------------------------- 单次调用覆盖（三层覆盖顺序）
+
+	@Test
+	void callOverrideOffSuppressesStructuredEvenWhenContractEnablesIt() {
+		// 规格「单次调用覆盖业务契约」：契约开了结构化开关，本次调用显式关闭 → 本次不产出 result
+		RecordingChatCaller caller = new RecordingChatCaller();
+		caller.reply = "这次先不用结构化";
+		EnvelopeAssistant entry = entry(new ScriptedModel(classifiedAs("order")), caller, order());
+
+		ChatEnvelope envelope = entry.chat(MEMORY_ID, "帮我查订单 A1", Boolean.FALSE);
+
+		assertThat(envelope.isOk()).isTrue();
+		assertThat(envelope.getBusiness()).isEqualTo("order");
+		assertThat(envelope.getResult()).isNull();
+		assertThat(envelope.getText()).isEqualTo("这次先不用结构化");
+		assertThat(caller.calls).containsExactly("session-1|帮我查订单 A1");
+	}
+
+	@Test
+	void callOverrideOnForcesStructuredWhenContractOptsOut() {
+		// 覆盖顺序：单次调用 > 业务契约（契约关闭、本次调用开启 → 仍产出 result）
+		EnvelopeAssistant entry = entry(new ScriptedModel(classifiedAs("refund"), "{\"orderId\":\"R9\"}"),
+				new RecordingChatCaller(), refund());
+
+		ChatEnvelope envelope = entry.chat(MEMORY_ID, "我要退款", Boolean.TRUE);
+
+		assertThat(envelope.isOk()).isTrue();
+		assertThat(envelope.getBusiness()).isEqualTo("refund");
+		assertThat(envelope.getResult().getString("orderId")).isEqualTo("R9");
+		assertThat(envelope.getText()).isEmpty();
+	}
+
 	// -------------------------------------------------- 非结构化轮次
 
 	@Test

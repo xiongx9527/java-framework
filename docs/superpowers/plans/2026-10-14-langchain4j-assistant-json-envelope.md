@@ -24,8 +24,9 @@ base-ref: e98ba52df64a716833afb0f9a1f3ace8069d153e
   - 模块全量：`cd fw-plus-ai && ./mvnw -o -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure test -Dmaven.test.skip=false`
   - 供样例取新版本：`cd fw-plus-ai && ./mvnw -o -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure install -DskipTests`
   - 样例：`./fw-plus-core/mvnw -f fw-plus-sample/pom.xml -o -pl fw-plus-ai-samples/fw-plus-ai-structured-output-sample test -Dmaven.test.skip=false`
-- **测试硬限制**：`SseEmitter` 在 `streamTokenStreamToSse` 内部构造、无注入点，禁止尝试解析真实 SSE 帧；
-  帧内容不变量只用「信封对象单测 + `onStarted`/`onDone` 回调侧信道 + 对 `Assistant` 的交互校验」三处断言。
+- **测试硬限制（已修订，见 6.4）**：`SseEmitter` 在 `streamTokenStreamToSse` 内部构造、无公开注入点，
+  但**可经反射读取 `ResponseBodyEmitter.earlySendAttempts` 拿到真实 SSE 帧**（每组事件 = 前缀 String + 数据本体 + `"\n\n"`）。
+  样例侧 `EnvelopeChannelSameShapeTest` 据此对真实帧逐键逐值断言；原「禁止尝试解析真实 SSE 帧、只用三处侧信道」的约定已作废。
 - **既有基线**：模块现有 641 例测试必须保持全绿；开关关闭时既有行为逐字节不变。
 
 ## 第 1 组：结构化输出规则增强（无外部依赖，先做）
@@ -183,7 +184,44 @@ base-ref: e98ba52df64a716833afb0f9a1f3ace8069d153e
 - **依赖**：5.2。
 - **验收**：两条命令都通过；随后录制 build 证据并跑 `comet guard langchain4j-assistant-json-envelope build --apply`。
 
-## 风险与回退
+## 第 6 组：Verify 修复轮（最终集成审查 NEEDS-FIX 后回 Build 修复）
+
+> 依据：Verify 阶段独立集成审查结论 NEEDS-FIX（1 IMPORTANT + 4 WARNING + 2 SUGGESTION），
+> `comet state transition ... verify-fail` 后回本阶段修复；失败计数 `verify_failures=1`（未到 3 次上限）。
+
+### 6.1 单次调用层产品入口（I-1 必修） <!-- comet-task-ref:c3987a65-b179-4500-a21e-09da7adf9626 -->
+
+- **范围**：`EnvelopeRuntime.decide(memoryId, message, Boolean)` 与 `EnvelopeAssistant.chat(memoryId, message, Boolean)`
+  两个新增入口，把 `callOverride` 传进 `resolveEnabled`；现有 2 参重载委托 `null`，签名与行为不变。
+- **依赖**：无。
+- **约束**：零签名改动（只新增重载）；`contract == null` 时单次开启也不产出 result（没有契约即没有 schema）；
+  单次覆盖只在非流式信封入口提供，流式接管路径形态由全局/契约决定（既有签名不可加参）。
+- **验收**：TDD RED（新入口符号未解析）→ GREEN；`EnvelopeAssistantTest` 新增两例覆盖「契约开→单次关」与
+  「契约关→单次开」，模块全量 `test` 全绿。
+
+### 6.2 接管边界措辞精确化（W-1，用户已选定方案） <!-- comet-task-ref:69774a43-ed83-4adb-95f9-ec7b3f22d54c -->
+
+- **范围**：delta spec 接管条款写明两个接管重载 + 明确排除自带 `context` 的重载并给理由；同步 D12 与
+  `SimpleAssistant#envelopeRuntime` 的「不接管」清单。
+- **依赖**：无。
+- **约束**：行为不变；措辞精确化与已批准的 D12 白名单一致，不改变接管范围本身。
+- **验收**：spec / design / 代码注释三处口径一致，无新增行为变化。
+
+### 6.3 并发与装配加固（W-2/W-3） <!-- comet-task-ref:17e8edcd-8848-4c2d-8c1c-f52bb0e5b081 -->
+
+- **范围**：`envelopeRuntime` 字段加 `volatile`；`EnvelopeSessionMemory` Javadoc 注明同一 `memoryId` 轮次需串行。
+- **依赖**：无。
+- **验收**：编译与既有测试全绿（加固本身不可断言，说明写入注释）。
+
+### 6.4 文档同步（W-4/S-1/S-2 + 过时表述） <!-- comet-task-ref:ddaf372b-4b92-4c8d-8a7a-6e637865a114 -->
+
+- **范围**：design 组件表 `AssistantBuilder` 行改为实际装配方式；design 测试策略「拿不到真实帧」段落、
+  本计划「测试硬限制」约定与 `tasks.md` 5.2 措辞同步为反射读真实帧方案；design/proposal 补记
+  `start` 帧时序变化与开关关闭时配置校验仍前移的说明。
+- **依赖**：6.1–6.3。
+- **验收**：文档与实现/规格口径一致，构建证据重跑通过。
+
+
 
 - **回退路径**：帧形态开关默认关，关闭即回到现状，无需回滚代码；应急可只关分类开关（全部落 `chat`）。
 - **高不确定点**：`EphemeralChatMemory` 读路径的可见性（任务 3.5 核实，兜底为直接读 store 快照）。
