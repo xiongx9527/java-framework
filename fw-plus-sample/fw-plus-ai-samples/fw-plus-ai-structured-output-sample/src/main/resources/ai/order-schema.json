@@ -1,0 +1,10 @@
+{
+  "type": "object",
+  "properties": {
+    "orderId": { "type": "string" },
+    "quantity": { "type": "integer" },
+    "status": { "type": "string", "enum": ["paid", "unpaid"] }
+  },
+  "required": ["orderId", "quantity"],
+  "additionalProperties": false
+}

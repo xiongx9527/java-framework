@@ -14,6 +14,7 @@
         <module>fw-plus-ai-magicapi-sample</module>
         <module>fw-plus-ai-mcp-server-sample</module>
         <module>fw-plus-ai-chat-sample</module>
+        <module>fw-plus-ai-structured-output-sample</module>
     </modules>
     <version>${revision}</version>
     <artifactId>fw-plus-ai-samples</artifactId>
