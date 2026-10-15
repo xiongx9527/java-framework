@@ -2,6 +2,7 @@
 change: langchain4j-assistant-json-envelope
 design-doc: docs/openspec/changes/langchain4j-assistant-json-envelope/design.md
 base-ref: e98ba52df64a716833afb0f9a1f3ace8069d153e
+archived-with: 2026-10-15-langchain4j-assistant-json-envelope
 ---
 
 # 实施计划：通用聊天助手 JSON 信封

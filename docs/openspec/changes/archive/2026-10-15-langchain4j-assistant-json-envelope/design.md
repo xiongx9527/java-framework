@@ -2,6 +2,8 @@
 comet_change: langchain4j-assistant-json-envelope
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-10-15-langchain4j-assistant-json-envelope
+status: final
 ---
 
 # Design
