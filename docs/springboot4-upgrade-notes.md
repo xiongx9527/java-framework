@@ -115,6 +115,21 @@
 - 联动保留：`poi` 系版本与仓内 EasyPoi fork / poi-tl 联动，不在本轮调整；`jsqlparser 4.6`（datachange SQL 解析行为依赖，不跨大版本）。
 - 待各层处置：`spring-plugin-core 2.0.0.RELEASE`（暂未确认 Boot 层 knife4j fork 的传递依赖需求，留待 2.2 核对）；`x-file-storage 2.2.1`（2.3.0 可用，留待 Boot 层 file-storage 消费点验证时一并评估）。
 
+### 1.4 仓位（revision）变更记录（2026-10-16，用户裁定）
+
+四个库层 `<revision>` 与 `fw-plus-sample` 聚合器由 `0.3.0-SNAPSHOT` 升为 `0.4.0-SNAPSHOT`（覆盖原「不调版本号」约束；
+裁定留痕见 change 的 `design.md` 既定约束节与协调检查点）。
+
+联动对齐：`fw-plus-boot` / `fw-plus-cloud` / `fw-plus-ai` 对上层 parent（`fw-plus-parent` / `fw-plus-boot-parent`）的硬编码版本引用；
+根 `pom.xml` 补齐 `<revision>` 属性（原为未定义，会以字面量 `${revision}` 作为自身版本安装，现 `project.version` 解析为 `0.4.0-SNAPSHOT`）；
+被跟踪的 13 个 `.flattened-pom.xml`（Cloud 8 + Sample 5）；文档基线（`AGENTS.md` / `README.md` / `CLAUDE.md` / 本说明 / `docs/langchain4j-agentic-guide.md`）；
+图 JDBC 两处 `0.1.1-SNAPSHOT` 残留（Neo4j / Nebula 驱动版本串）。Sample 子 pom 的 `${revision}` 经 `fw-plus-boot-build` 解析，随 Boot 层天然联动，无需逐文件修改。
+
+重建验证：Core `clean install`（含测试）在 `0.4.0-SNAPSHOT` 下 BUILD SUCCESS，**240 tests / 0F / 0E / 3 skipped**（log `core-build-0.4.0.log`）；
+安装 `fw-plus-build:0.4.0-SNAPSHOT.pom` 父引用仍为 4.1.1。Sample 聚合器 validate 现为**预期性暂红**——报错精确命中
+`fw-plus-boot-parent:0.4.0-SNAPSHOT` 与 `fw-plus-boot-dependencies:0.4.0-SNAPSHOT` 未安装（证明 `${revision}` 联动已生效），
+随 Boot / Cloud / AI 层重建（2.x / 3.x / 4.x）消解；5.x 复验聚合器校验、6.x 根收口。
+
 ---
 
 ## 2. 破坏性适配清单（编译 / 测试驱动，逐点记录）
@@ -170,7 +185,7 @@ easy-trans 4.0.x（Boot4 线，groupId `org.dromara`）把包名从 `com.fhs.*` 
 Maven 语义下**父链继承的 dependencyManagement 先于 import 展开且优先**，导致 73 项 `org.springframework.boot:*`
 （含全部 `spring-boot-starter-*` 与 `spring-boot-maven-plugin`）仍解析到 3.5.8。处置：parent 直接对齐 4.1.1
 （版本单点原则：父与 BOM 必须同线）。修复后 `help:effective-pom` 全量复查：`3.5.8` 残留 **0 处**，
-`spring-boot` 等构件统一 4.1.1；安装产物 `fw-plus-build:0.3.0-SNAPSHOT.pom` 父引用同步为 4.1.1（跨层传播生效）。
+`spring-boot` 等构件统一 4.1.1；安装产物 `fw-plus-build:0.4.0-SNAPSHOT.pom` 父引用同步为 4.1.1（跨层传播生效）。
 
 父链对齐后连带暴露并修复的两处兼容问题：
 
@@ -214,6 +229,9 @@ MF 样例补 `spring-boot-starter-jdbc`、mate 样例迁移验证等）。
 | Core 构建 | `cd fw-plus-core && JAVA_HOME=<zulu-21> ./mvnw clean install -DskipTests` | ✅ BUILD SUCCESS（矩阵升级后 37.98s；兜底升级后 52.9s） |
 | Core 测试 | `cd fw-plus-core && ./mvnw clean test` | ✅ 237 tests / 0 failures / 0 errors / 3 skipped（17 个模块） |
 | Core 构建+测试（C-1 修复后） | `cd fw-plus-core && JAVA_HOME=<zulu-21> ./mvnw clean install`（含测试） | ✅ BUILD SUCCESS，240 tests / 0 failures / 0 errors / 3 skipped（1:04 min） |
+| Core 构建+测试（revision 0.4.0 重建） | `cd fw-plus-core && JAVA_HOME=<zulu-21> ./mvnw clean install`（含测试） | ✅ BUILD SUCCESS，240 tests / 0 failures / 0 errors / 3 skipped |
+| 根 pom 版本解析（新增 `<revision>` 属性） | `./mvnw -N help:evaluate -Dexpression=project.version -DforceStdout` | ✅ `0.4.0-SNAPSHOT` |
+| Sample 聚合器（0.4.0） | `./mvnw -f fw-plus-sample/pom.xml validate` | ⏳ 预期性暂红：命中 `fw-plus-boot-*:0.4.0-SNAPSHOT` 未安装，随 2.x/3.x/4.x 重建消解 |
 | Core 父链残差核对 | `help:effective-pom` 全量 dump 复查 | ✅ `3.5.8` 残留 0 处，关键构件统一 4.1.1 |
 | Core 关键解析核对 | `dependency:tree`（servlet-api / guava / bcprov / byte-buddy / commons-lang3） | ✅ 6.1.0 / 33.7.2-jre / 1.86 / 1.18.11 / 3.20.0 |
 | Boot / Cloud / AI / Sample | 见各层章节 | ⏳ |

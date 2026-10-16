@@ -75,7 +75,7 @@ final class Neo4jJdbcProxies {
                             return "fw-plus-neo4j-jdbc";
                         }
                         if ("getDriverVersion".equals(name)) {
-                            return "0.1.1-SNAPSHOT";
+                            return "0.4.0-SNAPSHOT";
                         }
                         if ("getURL".equals(name)) {
                             return config.getJdbcUrl();

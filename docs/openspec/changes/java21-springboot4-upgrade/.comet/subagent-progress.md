@@ -31,6 +31,8 @@ Review rounds: 1
 - C-1 修复后全量证据: cd fw-plus-core &amp;&amp; JAVA_HOME=zulu-21 ./mvnw clean install（含测试）-&gt; BUILD SUCCESS，240 tests / 0F / 0E / 3 skipped（1:04 min；log core-build-post-c1-4.log）
 - 独立复查轮完成: 结论通过；MINOR「List 用例补索引 jsonPath 探针」已采纳补入并复测 3/3 通过（log common-retest-probe.log）；@Test 注解风格与模块既有约定一致，留待 JUnit Jupiter 迁移时处理
 - 修订待办: 用户裁定本仓四层 revision 需改版本号（目标值待确认后执行：四层 pom + sample + 文档基线 + 图 JDBC/CLAUDE.md 0.1.1 残留对齐）
+- revision 仓位变更完成（用户裁定）: 四层 revision 与跨层 parent 引用、sample 聚合器、根 pom revision 属性、13 个被跟踪 .flattened-pom.xml、文档基线（AGENTS/README/CLAUDE/升级说明/agentic 指南）、图 JDBC 两处 0.1.1 残留全部对齐 0.4.0-SNAPSHOT；change design.md 与升级说明 1.4 节留裁定备注
+- 0.4.0 重建证据: Core clean install（含测试）BUILD SUCCESS，240 tests / 0F / 0E / 3 skipped；.m2 新增 48 个 0.4.0-SNAPSHOT 目录；fw-plus-build:0.4.0-SNAPSHOT.pom 父引用 4.1.1；根 pom project.version=0.4.0-SNAPSHOT（log core-build-0.4.0.log）
+- Sample validate（0.4.0）预期性暂红并留证: 报错精确命中 fw-plus-boot-parent:0.4.0-SNAPSHOT 与 fw-plus-boot-dependencies:0.4.0-SNAPSHOT 未安装，证明 revision 联动传播生效；随 Boot/Cloud/AI 重建（2.x/3.x/4.x）消解，5.x 复验（log sample-validate-post-bump.log）
 
 ## Unresolved
-- revision 目标版本号待用户确认（本仓四层 0.3.0-SNAPSHOT -&gt; 新值）

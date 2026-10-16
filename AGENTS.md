@@ -9,7 +9,7 @@
 
 ## 项目概述
 
-fw-plus 是 9527 的 Java 开发框架，基于 Spring Boot 3.5.8（Jakarta EE / JDK 17），提供 Spring Boot 自动化配置、Spring Cloud 扩展、MyBatis-Plus/Flex 增强、Magic-API 插件、AI（LangChain4j / Spring AI / Spring AI Alibaba / AgentScope / LangGraph4j）集成、图数据库 JDBC 驱动等能力。四个库层当前版本为 `0.3.0-SNAPSHOT`，通过 `${revision}` + `flatten-maven-plugin` 管理；`fw-plus-sample` 样例聚合器固定使用 `0.3.0-SNAPSHOT`，不使用 `flatten-maven-plugin`。
+fw-plus 是 9527 的 Java 开发框架，基于 Spring Boot 3.5.8（Jakarta EE / JDK 17），提供 Spring Boot 自动化配置、Spring Cloud 扩展、MyBatis-Plus/Flex 增强、Magic-API 插件、AI（LangChain4j / Spring AI / Spring AI Alibaba / AgentScope / LangGraph4j）集成、图数据库 JDBC 驱动等能力。四个库层当前版本为 `0.4.0-SNAPSHOT`，通过 `${revision}` + `flatten-maven-plugin` 管理；`fw-plus-sample` 样例聚合器固定使用 `0.4.0-SNAPSHOT`，不使用 `flatten-maven-plugin`。
 
 **当前分支**：仓库处于 `springboot3` 分支（Spring Boot 2.7.18 → 3.5.8 迁移线）。Java 版本为 JDK 17，Servlet/校验等已切到 `jakarta.*` 命名空间。迁移详情、版本矩阵与待办见 `docs/springboot3-upgrade-notes.md`。
 
@@ -358,7 +358,7 @@ cd fw-plus-core && ./mvnw clean deploy -DskipTests
 - **缩进**: 使用 Tab（与现有 `pom.xml` 文件一致），保持与周围文件风格统一。
 - **模块命名**: kebab-case — `fw-plus-core`、`fw-plus-boot`、`fw-plus-mp`。
 - **包命名**: `com.xiongx9527.fw.plus.*` — 如 `com.xiongx9527.fw.plus.mp`、`com.xiongx9527.fw.plus.common`。
-- **POM 属性**: 四个库层使用 `${revision}`（当前 `0.3.0-SNAPSHOT`）作为版本属性（flatten-maven-plugin 负责解析）；`fw-plus-sample` 聚合器固定使用 `0.3.0-SNAPSHOT`，不使用 flatten。
+- **POM 属性**: 四个库层使用 `${revision}`（当前 `0.4.0-SNAPSHOT`）作为版本属性（flatten-maven-plugin 负责解析）；`fw-plus-sample` 聚合器固定使用 `0.4.0-SNAPSHOT`，不使用 flatten。
 - **格式化**: 未找到显式的格式化配置，保持所编辑文件的现有风格。
 - **资源文件**: 当前工作区未包含运行态 `resources/`。若单独检出该目录，JSON 数据源定义位于 `resources/datasource/`，共享配置文件位于 `resources/config/`。
 

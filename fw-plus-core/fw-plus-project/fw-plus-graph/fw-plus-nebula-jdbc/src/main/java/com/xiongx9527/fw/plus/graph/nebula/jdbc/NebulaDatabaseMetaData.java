@@ -93,7 +93,7 @@ public class NebulaDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public String getDriverVersion() throws SQLException {
-		return "0.1.1-SNAPSHOT";
+		return "0.4.0-SNAPSHOT";
 	}
 
 	@Override

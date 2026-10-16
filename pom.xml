@@ -9,6 +9,10 @@
     <version>${revision}</version>
     <packaging>pom</packaging>
 
+    <properties>
+        <revision>0.4.0-SNAPSHOT</revision>
+    </properties>
+
     <modules>
         <module>fw-plus-core</module>
         <module>fw-plus-boot</module>

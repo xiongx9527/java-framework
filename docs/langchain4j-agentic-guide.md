@@ -678,7 +678,7 @@ return rows;
 <dependency>
     <groupId>com.xiongx9527.fw.plus.ai</groupId>
     <artifactId>fw-plus-ai-boot-starter</artifactId>
-    <version>0.3.0-SNAPSHOT</version>
+    <version>0.4.0-SNAPSHOT</version>
 </dependency>
 <!-- 如需直接使用原生 API（应避免） -->
 <dependency>

@@ -16,6 +16,8 @@ canonical_spec: openspec
   - Magic-API 为仓内自维护 2.2.2（jakarta 线，经内网 Nexus 解析），版本号不随意变更；EasyPoi 为仓内 fork；
   - 不发版、不调版本号（维持 0.3.0-SNAPSHOT）；不做 Boot 3/4 双栈；
   - 样例聚合器固定 0.3.0-SNAPSHOT、无 flatten；`.worktrees/` 不参与根构建。
+  - （2026-10-16 用户裁定，修订上两条）本 change 内四层 revision 与样例聚合器版本由 `0.3.0-SNAPSHOT` 升为 `0.4.0-SNAPSHOT`；
+    同步对齐跨层 parent 引用、根 pom `${revision}` 属性、被跟踪 flatten 产物、文档基线与图 JDBC `0.1.1-SNAPSHOT` 残留。仍不发版（不产出正式 release）。
 - 勘察已核实的关键事实（2026-10）：
   - Spring Boot 4.1.1 为 4.1 线最新补丁（2026-08-20，OSS 支持至 2027-07-31）；4.1.1 管理 Spring Framework 7.0.9 / Spring Security 7.1.1 / Tomcat 11.0.24；
   - Spring Cloud 2025.1.3（Oakwood，2026-08-20）；官方兼容表：2025.1.x 自 2025.1.2 起兼容 Boot 4.1.x；

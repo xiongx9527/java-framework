@@ -17,7 +17,7 @@
 
 项目强调按需组合，而不是要求应用一次性引入所有能力：
 
-- **统一版本**：每层提供 BOM 与 Parent，四个库层使用同一 `0.3.0-SNAPSHOT` 版本线。
+- **统一版本**：每层提供 BOM 与 Parent，四个库层使用同一 `0.4.0-SNAPSHOT` 版本线。
 - **自动配置**：Boot、Cloud 与 AI 层通过 AutoConfiguration 和 Starter 收敛集成成本。
 - **插件化扩展**：Magic-API 将数据源、消息、任务、认证、文档、MCP 与低代码能力拆分为独立插件。
 - **中立 AI 边界**：模型与向量存储使用中立接口，LangChain4j / Spring AI 作为显式 Adapter 接入。
@@ -249,8 +249,8 @@ java-framework/
 
 | 范围 | 版本方式 | Flatten |
 | --- | --- | --- |
-| Core / Boot / Cloud / AI | `${revision}`，当前为 `0.3.0-SNAPSHOT` | 使用 `flatten-maven-plugin` |
-| Sample | 固定 `0.3.0-SNAPSHOT` | 不使用 Flatten |
+| Core / Boot / Cloud / AI | `${revision}`，当前为 `0.4.0-SNAPSHOT` | 使用 `flatten-maven-plugin` |
+| Sample | 固定 `0.4.0-SNAPSHOT` | 不使用 Flatten |
 
 四个库层按同一版本号发布，不单独发布某个层的不同版本。层间构建产物通过本地 Maven 仓库或制品仓库传递。
 
