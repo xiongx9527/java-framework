@@ -21,7 +21,8 @@ import java.util.Set;
  * 基于 mem0 兼容 REST 服务的 {@link dev.langchain4j.store.memory.chat.ChatMemoryStore}
  * （逐条消息存储，原文直存不经过 LLM 抽取）。
  *
- * <p>存储映射（mem0 字段 ←→ memId 四段契约 {@code {tenantId}:{appId}:{agentId}:{userId}}）：</p>
+ * <p>存储映射（mem0 字段 ←→ memId 四段契约 {@code {tenantId}:{appId}:{agentId}:{userId}}，
+ * 五段场景同样按 4 段维度解析，不改变消息通道语义）：</p>
  * <ul>
  *   <li>{@code run_id} = memId 原样（会话隔离的正确性唯一来源，写读同逻辑天然自洽）；</li>
  *   <li>{@code user_id} = 段[3]、{@code agent_id} = 段[2]、{@code app_id} = 段[1]
@@ -31,7 +32,7 @@ import java.util.Set;
  *       {@code user_id} / {@code agent_id} / {@code app_id} 与 {@code message_seq}（排序依据）、
  *       {@code message_type}；</li>
  *   <li>读取（{@code GET /memories}）按 {@code user_id + agent_id + run_id} 服务端过滤——
- *       三者均无配置回退漂移，历史数据不因改配置而失联；</li>
+ *       三者均无配置回退漂移，历史数据不因改配置而失联（run_id 支持 4/5 段）；</li>
  *   <li>记忆正文为 {@code {\"seq\":n,\"msg\":[…]}} 包装 JSON：序号编入正文保证同会话内文本唯一，
  *       规避 mem0 按精确哈希对同范围重复文本去重导致的丢消息；内层 {@code msg} 即基类约定的
  *       「单元素消息 JSON 数组」，读取时拆包还原；</li>

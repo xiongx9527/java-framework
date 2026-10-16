@@ -65,4 +65,45 @@ class ChatMemoryIdsTest {
 		assertThat(ChatMemoryIds.parseTenantId(memoryId, "x")).isEqualTo("t1");
 		assertThat(ChatMemoryIds.parseUserId(memoryId, "x")).isEqualTo("u1");
 	}
+
+	@Test
+	void buildFiveSegments() {
+		assertThat(ChatMemoryIds.build("t1", "crm", "bot", "u1", "s1")).isEqualTo("t1:crm:bot:u1:s1");
+	}
+
+	@Test
+	void buildFiveSegmentsRejectsEmptySession() {
+		assertThatThrownBy(() -> ChatMemoryIds.build("t1", "crm", "bot", "u1", ""))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("sessionId");
+		assertThatThrownBy(() -> ChatMemoryIds.build("t1", "crm", "bot", "u1", null))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("sessionId");
+	}
+
+	@Test
+	void buildFiveSegmentsRejectsSeparatorInSession() {
+		assertThatThrownBy(() -> ChatMemoryIds.build("t1", "crm", "bot", "u1", "s:1"))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("分隔符");
+	}
+
+	@Test
+	void parseFirstFourSegmentsFromFiveSegmentKey() {
+		String memoryId = "t1:crm:bot:u1:s1";
+		assertThat(ChatMemoryIds.parseTenantId(memoryId, "x")).isEqualTo("t1");
+		assertThat(ChatMemoryIds.parseAppId(memoryId, "x")).isEqualTo("crm");
+		assertThat(ChatMemoryIds.parseAgentId(memoryId, "x")).isEqualTo("bot");
+		assertThat(ChatMemoryIds.parseUserId(memoryId, "x")).isEqualTo("u1");
+	}
+
+	@Test
+	void parseSessionId() {
+		assertThat(ChatMemoryIds.parseSessionId("t1:crm:bot:u1:s1", "x")).isEqualTo("s1");
+		assertThat(ChatMemoryIds.parseSessionId("t1:crm:bot:u1", "x")).isEqualTo("x");
+		assertThat(ChatMemoryIds.parseSessionId("t1:crm:bot:u1", null))
+				.isEqualTo(ChatMemoryIds.DEFAULT_SESSION_ID);
+		assertThat(ChatMemoryIds.parseSessionId(null)).isEqualTo(ChatMemoryIds.DEFAULT_SESSION_ID);
+		assertThat(ChatMemoryIds.parseSessionId("t1:crm:bot:u1:")).isEqualTo(ChatMemoryIds.DEFAULT_SESSION_ID);
+	}
 }

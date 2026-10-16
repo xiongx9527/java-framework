@@ -1,0 +1,18 @@
+{
+  "change": "langchain4j-assistant-json-envelope",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "task_hash_policy": "task-content-v1",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "e2f75b027ff64a72c116f710c3b41aeffeb39650f41aa819e04ddbbf5f60b8cb",
+  "files": [
+    { "path": "docs/openspec/changes/langchain4j-assistant-json-envelope/proposal.md", "sha256": "d22b8d31edc5ddcf58614d64b925f28fa7371038bc0c6b450921cb13d3f969ef" },
+    { "path": "docs/openspec/changes/langchain4j-assistant-json-envelope/design.md", "sha256": "45eaada21e717d2f36c532f15a6a92857080274e356c6e4be89da0b2805c4742" },
+    { "path": "docs/openspec/changes/langchain4j-assistant-json-envelope/tasks.md", "sha256": "5724df22480db3294260fb10a955d29d1340387b6784296c7ceca7f5bda04a55" },
+    { "path": "docs/openspec/changes/langchain4j-assistant-json-envelope/.openspec.yaml", "sha256": "cd54fe01555559ffd5cf6f7f1d1b06209492e5ba9147cdc3800201c09e2291d0" },
+    { "path": "docs/openspec/changes/langchain4j-assistant-json-envelope/specs/langchain4j-assistant-business-routing/spec.md", "sha256": "9c96fffb9a3eb168082f17aa552f9a0d3ead5e84f715afdcd4584e8a56049bc1" },
+    { "path": "docs/openspec/changes/langchain4j-assistant-json-envelope/specs/langchain4j-chat-envelope/spec.md", "sha256": "462c72c1108bbb9a677ef26ae8881508a64af799a8a08d65077c4aa06362c899" },
+    { "path": "docs/openspec/changes/langchain4j-assistant-json-envelope/specs/langchain4j-structured-output/spec.md", "sha256": "766cc2cfa93aed48e72404eba6cf6db933d50356162d063c43587efd1c869e05" }
+  ]
+}

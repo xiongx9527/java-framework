@@ -1,0 +1,9 @@
+{
+  "action": "push",
+  "targetBranch": "comet/langchain4j-session-memory",
+  "remote": "origin",
+  "schemaVersion": 1,
+  "changeIdentity": "run:f8434ad8-676c-4380-ae23-6f3fae9c7e06",
+  "authorizationId": "813601d0-9d80-4152-9497-487184765e86",
+  "authorizedRemoteUrl": "https://github.com/xiongx9527/java-framework.git"
+}

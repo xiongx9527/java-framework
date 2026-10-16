@@ -1,10 +1,15 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.envelope.ChatEnvelope;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.envelope.EnvelopeRuntime;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentClassifier;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentContext;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatstore.ChatMemoryIds;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.session.DailySessionIdResolver;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.session.SessionContext;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.session.SessionIdResolver;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
@@ -138,6 +143,12 @@ public class SimpleAssistant {
 	/** memId 段[3]：用户 */
 	private String userId;
 
+	/** 会话标识（可显式设置，否则走 {@link #sessionResolver}） */
+	private String sessionId;
+
+	/** 会话标识解析器（默认 {@link DailySessionIdResolver}） */
+	private SessionIdResolver sessionResolver = new DailySessionIdResolver();
+
 	/** 是否调用过 {@link #dimensions} 设置维度 */
 	private boolean dimensionsConfigured;
 
@@ -220,10 +231,64 @@ public class SimpleAssistant {
 		return dimensions(ChatMemoryIds.DEFAULT_TENANT_ID, appId, agentId, userId);
 	}
 
-	/** 当前 memId：设置过 {@link #dimensions} 时为四段拼接值（实例内固定），否则返回 {@value #DEFAULT_MEMORY_ID} */
+	/** 当前 memId：保持四段契约（不新增 session 段）——现有测试断言不变 */
 	public String memoryId() {
 		return dimensionsConfigured
 				? ChatMemoryIds.build(tenantId, appId, agentId, userId)
+				: DEFAULT_MEMORY_ID;
+	}
+
+	/** 设置会话标识 */
+	public SimpleAssistant session(String sessionId) {
+		if (sessionId != null) {
+			String trimmed = sessionId.trim();
+			if (trimmed.contains(ChatMemoryIds.SEPARATOR)) {
+				throw new IllegalArgumentException("SimpleAssistant.session: sessionId 不允许包含分隔符 '"
+						+ ChatMemoryIds.SEPARATOR + "': " + sessionId);
+			}
+			if (!trimmed.isEmpty()) {
+				this.sessionId = trimmed;
+			}
+		}
+		return this;
+	}
+
+	/** 设置会话解析器 */
+	public SimpleAssistant sessionResolver(SessionIdResolver resolver) {
+		if (resolver != null) {
+			this.sessionResolver = resolver;
+		}
+		return this;
+	}
+
+	/** 解析有效会话标识 */
+	public String sessionId() {
+		if (sessionId != null && !sessionId.trim().isEmpty()) {
+			return sessionId.trim();
+		}
+		SessionContext ctx = new SessionContext(tenantId, appId, agentId, userId,
+				dimensionsConfigured ? memoryId() : DEFAULT_MEMORY_ID);
+		if (sessionResolver != null) {
+			String resolved = sessionResolver.resolve(ctx);
+			if (resolved != null && !resolved.trim().isEmpty()) {
+				return resolved.trim();
+			}
+		}
+		return ChatMemoryIds.DEFAULT_SESSION_ID;
+	}
+
+	/**
+	 * 生效 memoryId：对话/检索路径实际使用的记忆键（会话隔离锚点）。
+	 *
+	 * <ul>
+	 *   <li>已设维度：5 段 {@code {tenantId}:{appId}:{agentId}:{userId}:{sessionId}}，会话隔离生效；</li>
+	 *   <li>未设维度：保持既有默认键 {@link #DEFAULT_MEMORY_ID}（单会话，不引入会话段，
+	 *       不改变既有非维度调用方与已存数据；设计 §3.2 已声明「段数不足 5 → 会话隔离消失」的退化风险）。</li>
+	 * </ul>
+	 */
+	public String effectiveMemoryId() {
+		return dimensionsConfigured
+				? ChatMemoryIds.build(tenantId, appId, agentId, userId, sessionId())
 				: DEFAULT_MEMORY_ID;
 	}
 
@@ -247,7 +312,7 @@ public class SimpleAssistant {
 	 * {@code AssistantBuilder.retrievalOnly()}）下可用。
 	 */
 	public List<Content> retrieve(String message) {
-		return retrieve(memoryId(), message);
+		return retrieve(effectiveMemoryId(), message);
 	}
 
 	/** 只检索：memoryId 自定（可做检索侧会话区分），返回命中的内容列表 */
@@ -537,9 +602,9 @@ public class SimpleAssistant {
 		}
 	}
 
-	/** 一次性对话：memoryId 取 {@link #memoryId()}（维度拼接值，未设置维度时为 {@value #DEFAULT_MEMORY_ID}），context 为空 */
+	/** 一次性对话：memoryId 取 {@link #effectiveMemoryId()}（已设维度时为 5 段会话键，未设维度时为 {@value #DEFAULT_MEMORY_ID}），context 为空 */
 	public String chat(String message) {
-		return chat(memoryId(), message);
+		return chat(effectiveMemoryId(), message);
 	}
 
 	/** 会话对话：memoryId 自定（决定会话记忆），context 为空 */
@@ -552,9 +617,9 @@ public class SimpleAssistant {
 		return requireAssistant().chat(memoryId, normalizeContext(context), textContents(message));
 	}
 
-	/** 流式：memoryId 取 {@link #memoryId()}（未设置维度时为 {@value #DEFAULT_MEMORY_ID}），context 为空，返回原始 {@link TokenStream} */
+	/** 流式：memoryId 取 {@link #effectiveMemoryId()}（未设维度时为 {@value #DEFAULT_MEMORY_ID}），context 为空，返回原始 {@link TokenStream} */
 	public TokenStream stream(String message) {
-		return stream(memoryId(), message);
+		return stream(effectiveMemoryId(), message);
 	}
 
 	/** 流式：返回原始 {@link TokenStream}，需要自定义回调时用 */
@@ -571,7 +636,7 @@ public class SimpleAssistant {
 
 	/**
 	 * 多模态对话：contents 为文本 / 图片 / 文档等内容列表（
-	 * {@code dev.langchain4j.data.message.Content}），memoryId 取 {@link #memoryId()}，context 为空。
+	 * {@code dev.langchain4j.data.message.Content}），memoryId 取 {@link #effectiveMemoryId()}，context 为空。
 	 *
 	 * <p>纯文本内容走原生管线（模板 / 工具 / RAG / 记忆与 String 形态一致）；
 	 * 含图片或文档时直调模型——RAG 照走、记忆写文本占位（{@code [图片]} / {@code [文档:x.pdf]} + 文本）、
@@ -580,7 +645,7 @@ public class SimpleAssistant {
 	 * @throws IllegalArgumentException contents 为空
 	 */
 	public String chat(List<dev.langchain4j.data.message.Content> contents) {
-		return chat(memoryId(), DEFAULT_CONTEXT, contents);
+		return chat(effectiveMemoryId(), DEFAULT_CONTEXT, contents);
 	}
 
 	/** 多模态对话：memoryId 自定（决定会话记忆），context 为空 */
@@ -597,9 +662,9 @@ public class SimpleAssistant {
 		return requireAssistant().chat(memoryId, context, contents);
 	}
 
-	/** 多模态流式：memoryId 取 {@link #memoryId()}，context 为空，返回原始 {@link TokenStream} */
+	/** 多模态流式：memoryId 取 {@link #effectiveMemoryId()}，context 为空，返回原始 {@link TokenStream} */
 	public TokenStream stream(List<dev.langchain4j.data.message.Content> contents) {
-		return stream(memoryId(), DEFAULT_CONTEXT, contents);
+		return stream(effectiveMemoryId(), DEFAULT_CONTEXT, contents);
 	}
 
 	/** 多模态流式：memoryId 自定，context 为空 */
@@ -825,6 +890,36 @@ public class SimpleAssistant {
 		return emitter;
 	}
 
+	// -------------------------------------------------- 信封（可选：装上以后既有无 mapper 流式入口按信封协议输出）
+
+	/** 信封处理器；经 {@link #envelopeRuntime(EnvelopeRuntime)} 装上（{@code null} = 未装，所有入口行为不变）。
+	 * {@code volatile}：Spring 装配在启动期单线程写入，但 setter 是 public，加 {@code volatile} 让运行期
+	 * 重新装配与请求线程之间也有可见性保证。 */
+	private volatile EnvelopeRuntime envelopeRuntime;
+
+	/**
+	 * 安装信封处理器（链式，可选）：装上以后，既有无 mapper 的流式入口
+	 * （{@link #streamToSse(String, String)} 与 {@link #streamToSse(String, String, Object)}，
+	 * 以及委托前者的 {@link #streamToSse(String)}）的 {@code start} / {@code done} 帧按信封协议输出：
+	 * {@code start} 帧 data 为 {@code {requestId, business, tokens}}（分类完成后才发，因此发得比现状晚），
+	 * {@code done} 帧 data 为信封 JSON；结构化轮次不逐字下发（没有 {@code token} 帧），
+	 * 非结构化轮次逐字下发。{@code token} 帧始终是纯文本。
+	 *
+	 * <p>不接管这些入口（白名单之外一律保持现状）：
+	 * 带 {@code doneDataMapper} 的重载、带 {@code onStarted}/{@code onDone} 的重载、
+	 * {@link #streamToSse(String, String, String)}（调用方自带 {@code context}，即系统提示定制；
+	 * 接管后会被契约/全局系统提示取代，等于静默丢弃调用方语义）、
+	 * {@link #streamToSseWithFilter}、{@link #generateTextToSse(String)} 系列、以及既有的
+	 * {@link #chat(String, String)} 等非流式入口。</p>
+	 *
+	 * <p>装上后 {@code start} 帧 data 由框架决定，调用方传入的 {@code startData} 不再使用。
+	 * 未装时所有入口行为与现在完全一致。</p>
+	 */
+	public SimpleAssistant envelopeRuntime(EnvelopeRuntime envelopeRuntime) {
+		this.envelopeRuntime = envelopeRuntime;
+		return this;
+	}
+
 	/**
 	 * SSE 推流（自动生成 requestId）：调用模型前先发 {@code start} 事件把 requestId 交给前端，
 	 * 再逐段推 {@code token}；推理模型思考时推 {@code thinking}/{@code thinking-done}，
@@ -832,22 +927,36 @@ public class SimpleAssistant {
 	 * 结束时发 {@code done} 事件并完成，异常自动 completeWithError；客户端断开时取消模型调用。
 	 * 每个事件都带 SSE 标准 id 字段（值为本轮 requestId），前端可用 {@code lastEventId} 取到。
 	 * SseEmitter 不设超时（0L），由生成速度决定。
+	 *
+	 * <p>装了信封处理器时改走信封协议（见 {@link #envelopeRuntime(EnvelopeRuntime)}）。</p>
 	 */
 	public SseEmitter streamToSse(String message) {
-		return streamToSse(memoryId(), message);
+		return streamToSse(effectiveMemoryId(), message);
 	}
 
 	public SseEmitter streamToSse(String memoryId, String message) {
+		if (envelopeRuntime != null) {
+			return envelopeStreamToSse(memoryId, message);
+		}
 		return doStreamToSse(memoryId, DEFAULT_CONTEXT, message, null, null, null, null);
 	}
 
-	/** 同上（带 context，动态系统提示定制）；第三参传 null 时需显式转型，避免与 Object/Consumer 重载二义 */
+	/** 同上（带 context，动态系统提示定制）；第三参传 null 时需显式转型，避免与 Object/Consumer 重载二义。
+	 * <p>装了信封处理器也<b>不接管</b>本重载：{@code context} 是调用方显式给出的系统提示定制，
+	 * 接管后会被契约/全局系统提示取代，等于静默丢弃调用方的定制语义。</p> */
 	public SseEmitter streamToSse(String memoryId, String context, String message) {
 		return doStreamToSse(memoryId, normalizeContext(context), message, null, null, null, null);
 	}
 
-	/** 同上（start 事件 data 由调用方提供，如自己的聊天记录ID；null 时用自动生成的 requestId） */
+	/**
+	 * 同上（start 事件 data 由调用方提供，如自己的聊天记录ID；null 时用自动生成的 requestId）。
+	 *
+	 * <p>装了信封处理器时改走信封协议，{@code startData} 不再使用（start 帧 data 由框架决定）。</p>
+	 */
 	public SseEmitter streamToSse(String memoryId, String message, Object startData) {
+		if (envelopeRuntime != null) {
+			return envelopeStreamToSse(memoryId, message);
+		}
 		return doStreamToSse(memoryId, DEFAULT_CONTEXT, message, startData, null, null, null);
 	}
 
@@ -886,15 +995,75 @@ public class SimpleAssistant {
 	}
 
 	/**
+	 * 信封模式的 SSE 推流：先分类（此间不发帧），分类完成后按本轮形态分流。
+	 *
+	 * <ul>
+	 *   <li>结构化轮次：发 {@code start} 帧（data 含本轮业务名）后一次性生成结果，
+	 *       {@code done} 帧 data 为信封 JSON；<b>不逐字下发</b>——模型输出是 JSON，逐字下发没有意义，
+	 *       且失败要能重发（重发会让调用方收到重复内容），因此也不重试（一次定结果）。</li>
+	 *   <li>非结构化轮次：走既有 AiServices 通道逐字下发正文，{@code start} 帧 data 为判定结果，
+	 *       {@code done} 帧 data 为把正文收敛成信封的 JSON。</li>
+	 * </ul>
+	 *
+	 * <p>信封分支自身不新增失败点：判定不出形态时退回原路径。</p>
+	 */
+	private SseEmitter envelopeStreamToSse(String memoryId, String message) {
+		EnvelopeRuntime runtime = envelopeRuntime;
+		EnvelopeRuntime.Round round;
+		try {
+			round = runtime.decide(memoryId, message);
+		} catch (Throwable t) {
+			// decide 已自行收敛成兜底轮次；这里只是最后兜底：宁可退回原路径，也不让信封分支成为新的失败点
+			return doStreamToSse(memoryId, DEFAULT_CONTEXT, message, null, null, null, null);
+		}
+		if (round.isStructured()) {
+			return structuredEnvelopeToSse(runtime, round, memoryId, message);
+		}
+		// 非结构化：逐字下发（既有通道）+ start 帧 data 为判定结果 + done 帧 data 为信封
+		return streamTokenStreamToSse(round.getRequestId(), stream(memoryId, DEFAULT_CONTEXT, message),
+				round.getStartData(), text -> runtime.chatEnvelope(round, text).toJsonObject(), null, null);
+	}
+
+	/** 结构化轮次的 SSE：start（判定结果）→ 一次性生成 → done（信封） */
+	private SseEmitter structuredEnvelopeToSse(EnvelopeRuntime runtime, EnvelopeRuntime.Round round,
+			String memoryId, String message) {
+		SseEmitter emitter = new SseEmitter(0L);
+		try {
+			// 分类完成后才发 start：data 里带本轮业务名与「是否逐字下发」
+			emitter.send(SseEmitter.event().name(EVENT_START).id(round.getRequestId())
+					.data(round.getStartData()));
+		} catch (Exception e) {
+			emitter.completeWithError(e);
+			return emitter;
+		}
+		try {
+			ChatEnvelope envelope = runtime.structuredRoundOnce(round, memoryId, message);
+			emitter.send(SseEmitter.event().name(EVENT_DONE).id(round.getRequestId())
+					.data(envelope.toJsonObject()));
+			emitter.complete();
+		} catch (Throwable t) {
+			// 不逐字下发的轮次没有「半截输出」问题，异常按既有 error 帧语义收场
+			completeWithError(emitter, round.getRequestId(), true, t);
+		}
+		return emitter;
+	}
+
+	/**
 	 * 将给定 {@link TokenStream} 以 SSE 推流：start/token/thinking/tool-call/tool-result/retrieved/
 	 * done/error 事件链与客户端断开取消逻辑与常规流式完全一致，
-	 * 供常规流式与带过滤直连流式（{@link #streamToSseWithFilter}）共用。
+	 * 供常规流式与带过滤直连流式（{@link #streamToSseWithFilter}）共用。本轮 requestId 自动生成。
 	 */
 	private SseEmitter streamTokenStreamToSse(TokenStream tokenStream, Object startData,
 			java.util.function.Function<String, Object> doneDataMapper,
 			Consumer<String> onStarted, Consumer<String> onDone) {
+		return streamTokenStreamToSse(newRequestId(), tokenStream, startData, doneDataMapper, onStarted, onDone);
+	}
+
+	/** 同上，但本轮 requestId 由调用方给定（信封模式用它把事件 id 与 start 帧 data 里的 requestId 对齐） */
+	private SseEmitter streamTokenStreamToSse(String requestId, TokenStream tokenStream, Object startData,
+			java.util.function.Function<String, Object> doneDataMapper,
+			Consumer<String> onStarted, Consumer<String> onDone) {
 		SseEmitter emitter = new SseEmitter(0L);
-		String requestId = java.util.UUID.randomUUID().toString().replace("-", "");
 		// 客户端断开/超时后置位：后续事件不再推送；捕获到 StreamingHandle 后同时取消模型流式调用
 		// （langchain4j 1.20.2 起 TokenStream 的 WithContext 回调可拿到 StreamingHandle）
 		java.util.concurrent.atomic.AtomicBoolean cancelled = new java.util.concurrent.atomic.AtomicBoolean(false);
@@ -993,21 +1162,31 @@ public class SimpleAssistant {
 					}
 				})
 				.onError(throwable -> {
-					try {
-						if (!cancelled.get()) {
-							// 出错也告知前端：先发 error 事件（data 为错误信息）
-							emitter.send(SseEmitter.event().name(EVENT_ERROR).id(requestId)
-									.data(throwable.getMessage() == null
-											? throwable.getClass().getSimpleName() : throwable.getMessage()));
-						}
-					} catch (Exception ignored) {
-						// 客户端已断开等场景：发送失败不影响按错误结束
-					} finally {
-						emitter.completeWithError(throwable);
-					}
+					// 既有语义：先发 error 事件（data 为错误信息），再按错误结束；客户端已断开时只结束不发帧
+					completeWithError(emitter, requestId, !cancelled.get(), throwable);
 				})
 				.start();
 		return emitter;
+	}
+
+	/** 以错误结束本轮：{@code sendError} 为 true 时先发 error 帧（data 为错误信息）；发送失败不影响按错误结束 */
+	private static void completeWithError(SseEmitter emitter, String requestId, boolean sendError,
+			Throwable throwable) {
+		try {
+			if (sendError) {
+				emitter.send(SseEmitter.event().name(EVENT_ERROR).id(requestId)
+						.data(throwable.getMessage() == null
+								? throwable.getClass().getSimpleName() : throwable.getMessage()));
+			}
+		} catch (Exception ignored) {
+			// 客户端已断开等场景：发送失败不影响按错误结束
+		} finally {
+			emitter.completeWithError(throwable);
+		}
+	}
+
+	private static String newRequestId() {
+		return java.util.UUID.randomUUID().toString().replace("-", "");
 	}
 
 	/**

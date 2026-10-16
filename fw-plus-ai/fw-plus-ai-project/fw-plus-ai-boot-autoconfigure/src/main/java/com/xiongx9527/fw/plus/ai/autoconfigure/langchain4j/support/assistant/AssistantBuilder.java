@@ -3,6 +3,12 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.AgenticPipelineRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.AgenticToolProviders;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.aggregate.AggregatingToolProvider;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextAwareChatMemory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextInjector;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextMaintenance;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextProvider;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextRequest;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextStrategy;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentClassifier;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentRag;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentSupplier;
@@ -12,8 +18,13 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.aggregate.Wei
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.EphemeralChatMemory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.EphemeralChatMemoryProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.LengthBoundedAiPersistenceStrategy;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatstore.ChatMemoryIds;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.PersistToolResultsAiPersistenceStrategy;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.session.SessionIdResolver;
 
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
@@ -21,6 +32,7 @@ import dev.langchain4j.memory.chat.TokenWindowChatMemory;
 import dev.langchain4j.model.TokenCountEstimator;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.model.language.StreamingLanguageModel;
 import dev.langchain4j.rag.DefaultRetrievalAugmentor;
@@ -45,6 +57,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -202,6 +215,18 @@ private Integer rerankMaxResults;
 	/** 意图分类器：经 {@link #intent(IntentClassifier)} 挂载；同时注入产出的 SimpleAssistant */
 	private IntentClassifier<?> intentClassifier;
 
+	/** 上下文组合策略（默认 {@code memory-and-enriched}）；控制是否注入附加来源（摘要等） */
+	private ContextStrategy contextStrategy = ContextStrategy.MEMORY_AND_ENRICHED;
+
+	/** 有序上下文来源集合（如 {@code SummaryContextProvider}）；空则不注入 */
+	private final List<ContextProvider> contextProviders = new ArrayList<ContextProvider>();
+
+	/** 上下文维护钩子（读时兜底，如 {@code SummaryMaintenance}） */
+	private final List<ContextMaintenance> contextMaintenances = new ArrayList<ContextMaintenance>();
+
+	/** 会话标识解析器（默认在 {@link SimpleAssistant} 内为 daily）；配置 {@code session.session-id-resolver} 时覆盖 */
+	private SessionIdResolver sessionResolver;
+
 	/** 对话模型（必填）：{@code langchain4jChatModel['key']} 或任意 {@link ChatModel} 实例 */
 	public AssistantBuilder chatModel(ChatModel model) {
 		this.chatModel = model;
@@ -303,6 +328,46 @@ private Integer rerankMaxResults;
 	/** 记忆：直接用 {@link ChatMemoryProvider}（想保留工具往返等完整历史时用这条） */
 	public AssistantBuilder chatMemoryProvider(ChatMemoryProvider provider) {
 		this.chatMemoryProvider = provider;
+		return this;
+	}
+
+	/** 上下文组合策略：{@code memory} / {@code enriched} / {@code memory-and-enriched}（默认后者） */
+	public AssistantBuilder contextStrategy(ContextStrategy strategy) {
+		if (strategy != null) {
+			this.contextStrategy = strategy;
+		}
+		return this;
+	}
+
+	/** 注册一个有序上下文来源（如 {@code new SummaryContextProvider(summaryStore)}），可传多个 */
+	public AssistantBuilder contextProvider(ContextProvider... providers) {
+		if (providers != null) {
+			for (ContextProvider provider : providers) {
+				if (provider != null) {
+					this.contextProviders.add(provider);
+				}
+			}
+		}
+		return this;
+	}
+
+	/** 注册上下文维护钩子（读时兜底，如 {@code new SummaryMaintenance(engine, windowSize)}），可传多个 */
+	public AssistantBuilder contextMaintenance(ContextMaintenance... maintenances) {
+		if (maintenances != null) {
+			for (ContextMaintenance maintenance : maintenances) {
+				if (maintenance != null) {
+					this.contextMaintenances.add(maintenance);
+				}
+			}
+		}
+		return this;
+	}
+
+	/** 会话标识解析器：配置 {@code session.session-id-resolver}（daily/explicit）时覆盖默认 daily */
+	public AssistantBuilder sessionResolver(SessionIdResolver resolver) {
+		if (resolver != null) {
+			this.sessionResolver = resolver;
+		}
 		return this;
 	}
 
@@ -707,6 +772,10 @@ private Integer rerankMaxResults;
 		if (contentRetriever instanceof SimpleAssistant.FilterableRetriever filterable) {
 			assistant.filterableRetriever(filterable);
 		}
+		// 会话标识解析器：配置 session.session-id-resolver 时覆盖默认 daily
+		if (sessionResolver != null) {
+			assistant.sessionResolver(sessionResolver);
+		}
 		return assistant;
 	}
 
@@ -786,6 +855,11 @@ private Integer rerankMaxResults;
 		if (augmentor != null) {
 			builder.retrievalAugmentor(augmentor);
 		}
+		// 上下文注入：记忆读侧在 1.x 时序下看不到本轮用户消息，故注入点前移到请求装配之后、
+		// 模型调用之前（chatRequestTransformer），把统一上下文渲染为前置系统消息。
+		if (contextStrategy.injectsEnriched() && !contextProviders.isEmpty()) {
+			builder.chatRequestTransformer(enrichedContextTransformer());
+		}
 		return new MultimodalAssistantBridge(builder.build(), chatModel, streamingModel,
 				memoryProvider, systemMessageProvider, augmentor);
 	}
@@ -816,7 +890,7 @@ private Integer rerankMaxResults;
 						.chatMemoryStore(store)
 						.build();
 			}
-			return EphemeralChatMemory.builder(delegate, store)
+			ChatMemory ephemeral = EphemeralChatMemory.builder(delegate, store)
 					.aiPersistenceStrategy(resolvedStrategy)
 					.ephemeralSeparators(separators)
 					.stripRagFromHistory(ephemeralStripRagFromHistory)
@@ -824,7 +898,90 @@ private Integer rerankMaxResults;
 					.sendToolResultsInCurrentTurn(ephemeralSendToolResultsInCurrentTurn)
 					.sendToolRequestsInCurrentTurn(ephemeralSendToolRequestsInCurrentTurn)
 					.build();
+			return wrapContextAware(memoryId, ephemeral);
 		};
+	}
+
+	/**
+	 * 用 {@link ContextAwareChatMemory} 包裹记忆做上下文维护（写时滚动 + 读时兜底）；
+	 * 策略为 {@code memory} 或未注册来源时原样返回（不维护、零开销）。会话键即当前
+	 * effective memoryId（5 段），userId 由 memoryId 段[3] 解析（跨会话维度）。
+	 *
+	 * <p>注意：上下文「注入」不在记忆读侧承担——langchain4j 1.x 一轮内先读记忆、后写本轮
+	 * 用户消息，读取时看不到本轮输入；注入由 {@link #enrichedContextTransformer()} 挂在
+	 * AiServices 的 {@code chatRequestTransformer} 上完成。</p>
+	 */
+	private ChatMemory wrapContextAware(Object memoryId, ChatMemory delegate) {
+		if (!contextStrategy.injectsEnriched() || contextProviders.isEmpty()) {
+			return delegate;
+		}
+		final String sessionKey = memoryId == null ? null : memoryId.toString();
+		final String userId = sessionKey == null ? null
+				: ChatMemoryIds.parseUserId(sessionKey, ChatMemoryIds.DEFAULT_USER_ID);
+		return new ContextAwareChatMemory(delegate,
+				latest -> new ContextRequest(sessionKey, sessionKey, userId, latest), contextMaintenances);
+	}
+
+	/**
+	 * 上下文注入器：挂在 AiServices 的 {@code chatRequestTransformer} 上（请求装配后、模型调用前），
+	 * 把 {@link ContextInjector} 渲染的统一上下文作为前置系统消息注入；无内容时不改变请求。
+	 *
+	 * <p>与记忆读侧注入等价的信息（会话键 / userId / 本轮用户输入）在此处均可获得：本轮用户消息
+	 * 已在请求里（取最后一条 {@link UserMessage}），跨会话维度由 memoryId 段[3] 解析，RAG 检索段
+	 * 按 {@link EphemeralChatMemory} 同一分隔符口径剥离，保证来源拿到的是用户原话。</p>
+	 */
+	private BiFunction<ChatRequest, Object, ChatRequest> enrichedContextTransformer() {
+		final ContextInjector injector = new ContextInjector(contextProviders, contextStrategy);
+		final List<String> separators = ephemeralSeparators != null
+				? new ArrayList<String>(ephemeralSeparators)
+				: Collections.singletonList(EphemeralChatMemory.DEFAULT_RAG_SEPARATOR);
+		return (request, memoryId) -> {
+			String sessionKey = memoryId == null ? null : memoryId.toString();
+			String userId = sessionKey == null ? null
+					: ChatMemoryIds.parseUserId(sessionKey, ChatMemoryIds.DEFAULT_USER_ID);
+			String latest = latestUserText(request.messages(), separators);
+			String context = injector.render(new ContextRequest(sessionKey, sessionKey, userId, latest));
+			if (context == null || context.isEmpty()) {
+				return request;
+			}
+			List<ChatMessage> messages = new ArrayList<ChatMessage>(request.messages().size() + 1);
+			messages.add(SystemMessage.from(context));
+			messages.addAll(request.messages());
+			return request.toBuilder().messages(messages).build();
+		};
+	}
+
+	/** 请求中最后一条用户消息的文本：无单文本（多模态）回落 {@code null}，并按需剥离 RAG 检索段 */
+	private static String latestUserText(List<ChatMessage> messages, List<String> separators) {
+		if (messages == null) {
+			return null;
+		}
+		for (int i = messages.size() - 1; i >= 0; i--) {
+			ChatMessage message = messages.get(i);
+			if (message instanceof UserMessage) {
+				UserMessage userMessage = (UserMessage) message;
+				return stripRetrievalSegment(
+						userMessage.hasSingleText() ? userMessage.singleText() : null, separators);
+			}
+		}
+		return null;
+	}
+
+	/** 剥离 RAG 检索段（与 {@link EphemeralChatMemory} 同一分隔符口径），保留用户原话 */
+	private static String stripRetrievalSegment(String text, List<String> separators) {
+		if (text == null || text.isEmpty() || separators == null) {
+			return text;
+		}
+		for (String separator : separators) {
+			if (separator == null || separator.isEmpty()) {
+				continue;
+			}
+			int anchor = text.indexOf(separator);
+			if (anchor >= 0) {
+				return text.substring(0, anchor);
+			}
+		}
+		return text;
 	}
 
 	/**
