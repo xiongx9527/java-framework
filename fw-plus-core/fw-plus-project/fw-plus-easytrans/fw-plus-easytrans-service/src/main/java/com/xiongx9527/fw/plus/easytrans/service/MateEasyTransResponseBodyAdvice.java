@@ -1,12 +1,12 @@
 package com.xiongx9527.fw.plus.easytrans.service;
 
-import com.fhs.core.trans.anno.IgnoreTrans;
-import com.fhs.core.trans.anno.TransMethodResult;
-import com.fhs.core.trans.anno.TransSett;
-import com.fhs.core.trans.vo.VO;
-import com.fhs.trans.advice.EasyTransResponseBodyAdvice;
-import com.fhs.trans.service.impl.TransService;
-import com.fhs.trans.utils.TransUtil;
+import org.dromara.core.trans.anno.IgnoreTrans;
+import org.dromara.core.trans.anno.TransMethodResult;
+import org.dromara.core.trans.anno.TransSett;
+import org.dromara.core.trans.vo.VO;
+import org.dromara.trans.advice.EasyTransResponseBodyAdvice;
+import org.dromara.trans.service.impl.TransService;
+import org.dromara.trans.utils.TransUtil;
 import com.xiongx9527.fw.plus.easytrans.service.util.MateEasyTransUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;

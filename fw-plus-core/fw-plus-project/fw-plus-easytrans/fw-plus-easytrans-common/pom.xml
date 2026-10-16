@@ -24,7 +24,7 @@
             <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>com.fhs-opensource</groupId>
+            <groupId>org.dromara</groupId>
             <artifactId>easy-trans-anno</artifactId>
         </dependency>
     </dependencies>

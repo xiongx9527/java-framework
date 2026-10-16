@@ -1,15 +1,15 @@
 package com.xiongx9527.fw.plus.easytrans.service;
 
 import com.alibaba.fastjson.JSONArray;
-import com.fhs.common.utils.ConverterUtils;
-import com.fhs.common.utils.StringUtil;
-import com.fhs.core.trans.anno.Trans;
-import com.fhs.core.trans.constant.TransType;
-import com.fhs.core.trans.vo.VO;
-import com.fhs.trans.listener.TransMessageListener;
-import com.fhs.trans.service.impl.SimpleTransService;
-import com.fhs.trans.service.impl.TransService;
-import com.fhs.trans.vo.BasicVO;
+import org.dromara.common.utils.ConverterUtils;
+import org.dromara.common.utils.StringUtil;
+import org.dromara.core.trans.anno.Trans;
+import com.xiongx9527.fw.plus.easytrans.annotation.TransType;
+import org.dromara.core.trans.vo.VO;
+import org.dromara.trans.listener.TransMessageListener;
+import org.dromara.trans.service.impl.SimpleTransService;
+import org.dromara.trans.service.impl.TransService;
+import org.dromara.trans.vo.BasicVO;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.LoggerFactory;

@@ -17,8 +17,6 @@ import com.baomidou.mybatisplus.core.mapper.Mapper;
 import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import com.baomidou.mybatisplus.core.toolkit.ArrayUtils;
 import com.baomidou.mybatisplus.core.toolkit.ExceptionUtils;
-import com.github.yulichang.adapter.base.tookit.VersionUtils;
-import com.github.yulichang.adapter.v3431.AbstractMethodV3431;
 import com.github.yulichang.method.DeleteJoin;
 import com.github.yulichang.method.SelectJoinCount;
 import com.github.yulichang.method.SelectJoinList;
@@ -113,30 +111,20 @@ public class MPJSqlInjector extends MpSqlInjector {
     }
 
     /**
-     * 根据MyBatis Plus版本获取Join相关的扩展方法。
+     * 获取Join相关的扩展方法。
      *
      * @return Join相关的方法列表
      */
     private List<AbstractMethod> getJoinMethod() {
         List<AbstractMethod> list = new ArrayList();
-        if (VersionUtils.compare(VersionUtils.getVersion(), "3.5.0") >= 0) {
-            list.add(new DeleteJoin(SqlMethod.DELETE_JOIN.getMethod()));
-            list.add(new UpdateJoin(SqlMethod.UPDATE_JOIN.getMethod()));
-            list.add(new UpdateJoinAndNull(SqlMethod.UPDATE_JOIN_AND_NULL.getMethod()));
-            list.add(new SelectJoinCount(SqlMethod.SELECT_JOIN_COUNT.getMethod()));
-            list.add(new SelectJoinOne(SqlMethod.SELECT_JOIN_ONE.getMethod()));
-            list.add(new SelectJoinList(SqlMethod.SELECT_JOIN_LIST.getMethod()));
-            list.add(new SelectJoinPage(SqlMethod.SELECT_JOIN_PAGE.getMethod()));
-        } else {
-            list.add(new DeleteJoin());
-            list.add(new UpdateJoin());
-            list.add(new UpdateJoinAndNull());
-            list.add(new SelectJoinCount());
-            list.add(new SelectJoinOne());
-            list.add(new SelectJoinList());
-            list.add(new SelectJoinPage());
-        }
-
+        // mybatis-plus-join 1.5.9 起仅支持 MyBatis-Plus 3.5.0+，旧版本分支与其 adapter 包一并移除
+        list.add(new DeleteJoin(SqlMethod.DELETE_JOIN.getMethod()));
+        list.add(new UpdateJoin(SqlMethod.UPDATE_JOIN.getMethod()));
+        list.add(new UpdateJoinAndNull(SqlMethod.UPDATE_JOIN_AND_NULL.getMethod()));
+        list.add(new SelectJoinCount(SqlMethod.SELECT_JOIN_COUNT.getMethod()));
+        list.add(new SelectJoinOne(SqlMethod.SELECT_JOIN_ONE.getMethod()));
+        list.add(new SelectJoinList(SqlMethod.SELECT_JOIN_LIST.getMethod()));
+        list.add(new SelectJoinPage(SqlMethod.SELECT_JOIN_PAGE.getMethod()));
         return list;
     }
 

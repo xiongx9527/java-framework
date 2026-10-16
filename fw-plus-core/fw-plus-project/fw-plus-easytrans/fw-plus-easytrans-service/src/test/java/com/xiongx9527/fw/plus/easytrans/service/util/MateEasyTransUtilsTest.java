@@ -1,7 +1,7 @@
 package com.xiongx9527.fw.plus.easytrans.service.util;
 
-import com.fhs.core.trans.vo.VO;
-import com.fhs.trans.service.impl.TransService;
+import org.dromara.core.trans.vo.VO;
+import org.dromara.trans.service.impl.TransService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.system.CapturedOutput;

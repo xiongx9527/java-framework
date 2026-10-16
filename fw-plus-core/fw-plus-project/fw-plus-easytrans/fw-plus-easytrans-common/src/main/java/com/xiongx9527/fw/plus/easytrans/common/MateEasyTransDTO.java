@@ -2,8 +2,8 @@ package com.xiongx9527.fw.plus.easytrans.common;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.annotation.JSONField;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fhs.core.trans.util.ReflectUtils;
-import com.fhs.core.trans.vo.TransPojo;
+import org.dromara.core.trans.util.ReflectUtils;
+import org.dromara.core.trans.vo.TransPojo;
 
 import java.lang.reflect.Field;
 import java.util.LinkedHashMap;

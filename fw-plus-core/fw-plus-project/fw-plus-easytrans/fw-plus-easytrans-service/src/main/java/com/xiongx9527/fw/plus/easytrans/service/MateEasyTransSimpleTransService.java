@@ -1,6 +1,6 @@
 package com.xiongx9527.fw.plus.easytrans.service;
 
-import com.fhs.trans.service.impl.SimpleTransService;
+import org.dromara.trans.service.impl.SimpleTransService;
 
 /**
  * MateEasyTransSimpleTransService 类

@@ -1,9 +1,9 @@
 package com.xiongx9527.fw.plus.easytrans.service;
 
-import com.fhs.core.trans.anno.TransSett;
-import com.fhs.trans.aop.TransMethodResultAop;
-import com.fhs.trans.service.impl.TransService;
-import com.fhs.trans.utils.TransUtil;
+import org.dromara.core.trans.anno.TransSett;
+import org.dromara.trans.aop.TransMethodResultAop;
+import org.dromara.trans.service.impl.TransService;
+import org.dromara.trans.utils.TransUtil;
 import com.xiongx9527.fw.plus.easytrans.service.util.MateEasyTransUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -59,7 +59,7 @@ public class MateEasyTransTransMethodResultAop {//extends TransMethodResultAop  
      * @return 被拦截方法的执行结果，经过翻译处理
      * @throws Throwable 如果方法执行或翻译过程中抛出异常
      */
-    @Around("( @annotation(com.fhs.core.trans.anno.TransMethodResult) && ( @target(org.springframework.web.bind.annotation.RestController) || @target(org.springframework.stereotype.Controller))  )")
+    @Around("( @annotation(org.dromara.core.trans.anno.TransMethodResult) && ( @target(org.springframework.web.bind.annotation.RestController) || @target(org.springframework.stereotype.Controller))  )")
     public Object transResult(ProceedingJoinPoint joinPoint) throws Throwable {
         //执行原始方法
         Object proceed = joinPoint.proceed();

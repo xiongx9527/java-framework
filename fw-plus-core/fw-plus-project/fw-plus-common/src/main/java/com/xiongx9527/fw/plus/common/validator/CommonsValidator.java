@@ -14,8 +14,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.validator.GenericValidator;
 import org.apache.commons.validator.routines.EmailValidator;
 import org.hibernate.validator.internal.engine.constraintvalidation.ConstraintValidatorContextImpl;
-import org.hibernate.validator.internal.engine.path.NodeImpl;
-import org.hibernate.validator.internal.engine.path.PathImpl;
 import org.springframework.core.MethodParameter;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.ExpressionParser;
@@ -290,9 +288,9 @@ public class CommonsValidator {
      * @param validatorContext 验证器上下文，用于获取节点路径信息
      * @return 返回一个包含节点路径的列表如果无法获取节点路径或输入为null，则返回空列表
      */
-    private static List<NodeImpl> getNodePath(ConstraintValidatorContext validatorContext) {
+    private static List<Path.Node> getNodePath(ConstraintValidatorContext validatorContext) {
         // 初始化节点列表
-        List<NodeImpl> nodeList = new ArrayList<>();
+        List<Path.Node> nodeList = new ArrayList<>();
         try{
             // 检查验证器上下文是否非空且是ConstraintValidatorContextImpl类型的实例
             if (null != validatorContext && validatorContext instanceof ConstraintValidatorContextImpl) {
@@ -300,13 +298,13 @@ public class CommonsValidator {
                 ConstraintValidatorContextImpl validatorContextImpl = (ConstraintValidatorContextImpl) validatorContext;
                 // 设置basePath字段可访问，以便获取节点路径信息
                 constraintValidatorContextImplBasePathField.setAccessible(Boolean.TRUE);
-                // 从验证器上下文中获取basePath对象
-                PathImpl basePath = (PathImpl) constraintValidatorContextImplBasePathField.get(validatorContextImpl);
+                // 从验证器上下文中获取basePath对象（Hibernate Validator 9 起实现为 MutablePath，统一按 jakarta.validation.Path 接口访问）
+                Path basePath = (Path) constraintValidatorContextImplBasePathField.get(validatorContextImpl);
                 // 如果basePath非空，则遍历其节点并添加到节点列表中
                 if (null != basePath) {
                     Iterator<Path.Node> iterator = basePath.iterator();
                     while (iterator.hasNext()) {
-                        nodeList.add((NodeImpl) iterator.next());
+                        nodeList.add(iterator.next());
                     }
                 }
             }
@@ -387,7 +385,7 @@ public class CommonsValidator {
             // 获取表单数据
             Object formData = getFormData();
             // 获取验证器上下文中的节点路径列表，用于构建JSON路径
-            List<NodeImpl> nodePathList = ListUtils.emptyIfNull(getNodePath(validatorContext));
+            List<Path.Node> nodePathList = ListUtils.emptyIfNull(getNodePath(validatorContext));
             int size = nodePathList.size();
             // 初始化JSON路径
             String jsonPath = "$";
@@ -397,8 +395,8 @@ public class CommonsValidator {
             Object parentData = null;
             // 遍历节点路径列表，构建JSON路径并获取父级数据
             for (int i = 0; i < size; i++) {
-                NodeImpl node = nodePathList.get(i);
-                jsonPath += StrUtil.DOT + node.asString();
+                Path.Node node = nodePathList.get(i);
+                jsonPath += StrUtil.DOT + node.toString();
                 if (null != node.getIndex()) {
                     index = node.getIndex();
                 }
@@ -407,7 +405,7 @@ public class CommonsValidator {
                 }
             }
             if (ObjectUtils.isEmpty(parentData)) {
-                parentData = JSONPath.eval(formData, jsonPath.replace(StrUtil.DOT + nodePathList.get(size - 1).asString(), StrUtil.EMPTY));
+                parentData = JSONPath.eval(formData, jsonPath.replace(StrUtil.DOT + nodePathList.get(size - 1).toString(), StrUtil.EMPTY));
             }
             // 创建并填充验证所需的参数映射
             Map<String,Object> validMap = createValidMap(annotation,formData, parentData,jsonPath, index, fieldValue);

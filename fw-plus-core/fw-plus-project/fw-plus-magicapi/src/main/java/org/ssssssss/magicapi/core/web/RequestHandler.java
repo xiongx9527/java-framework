@@ -494,7 +494,7 @@ public class RequestHandler extends MagicController {
 		}
 		Set<String> exposeHeaders = new HashSet<>(16);
 		if (returnValue instanceof ResponseEntity) {
-			exposeHeaders.addAll(((ResponseEntity<?>) returnValue).getHeaders().keySet());
+			exposeHeaders.addAll(((ResponseEntity<?>) returnValue).getHeaders().headerNames());
 		}
 		if (requestEntity.isRequestedFromTest()) {
 			MagicHttpServletResponse response = requestEntity.getResponse();

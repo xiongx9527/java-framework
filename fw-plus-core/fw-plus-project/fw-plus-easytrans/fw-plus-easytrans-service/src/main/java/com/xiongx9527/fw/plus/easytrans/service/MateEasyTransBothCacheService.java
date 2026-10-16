@@ -1,8 +1,8 @@
 package com.xiongx9527.fw.plus.easytrans.service;
 
-import com.fhs.cache.service.BothCacheService;
-import com.fhs.cache.service.RedisCacheService;
-import com.fhs.common.utils.StringUtil;
+import org.dromara.cache.service.BothCacheService;
+import org.dromara.cache.service.RedisCacheService;
+import org.dromara.common.utils.StringUtil;
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;

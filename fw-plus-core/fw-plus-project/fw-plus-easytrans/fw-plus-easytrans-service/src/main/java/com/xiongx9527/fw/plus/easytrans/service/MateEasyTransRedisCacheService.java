@@ -1,6 +1,6 @@
 package com.xiongx9527.fw.plus.easytrans.service;
 
-import com.fhs.cache.service.RedisCacheService;
+import org.dromara.cache.service.RedisCacheService;
 /**
  * MateEasyTransRedisCacheService 类
  *

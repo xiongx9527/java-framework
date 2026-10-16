@@ -13,7 +13,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.8</version>
+		<version>4.1.1</version>
 		<relativePath /> <!-- lookup parent from repository -->
 	</parent>
 	<packaging>pom</packaging>
@@ -26,7 +26,7 @@
 	<name>Fw-Plus Build</name>
 	<properties>
 		<revision>0.3.0-SNAPSHOT</revision>
-		<jdk.version>17</jdk.version>
+		<jdk.version>21</jdk.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.encoding>UTF-8</maven.compiler.encoding>
 		<maven-compiler-plugin.version>3.10.1</maven-compiler-plugin.version>

@@ -1,0 +1,16 @@
+{
+  "change": "java21-springboot4-upgrade",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "task_hash_policy": "task-content-v1",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "4c6faca0bdf1a1cd62d176460c9a75244a8953237a537a7498b8440d4f39f445",
+  "files": [
+    { "path": "docs/openspec/changes/java21-springboot4-upgrade/proposal.md", "sha256": "3cce69e9b4096ad353e475a5b12880472ebb7dbd452dcd80bbc605edff4f2a42" },
+    { "path": "docs/openspec/changes/java21-springboot4-upgrade/design.md", "sha256": "43e500652333680777d5796cae2543ebd554d358ede2d7738b50d5e44f766c52" },
+    { "path": "docs/openspec/changes/java21-springboot4-upgrade/tasks.md", "sha256": "a822efdd48dcc94ce43b038a7529ac69a4ee8f1f2668e86c7999da11211bd174" },
+    { "path": "docs/openspec/changes/java21-springboot4-upgrade/.openspec.yaml", "sha256": "9cfa2ab963a8c9b58eecdb9fd5b55544e988fee8de8b887226ffc32d27744459" },
+    { "path": "docs/openspec/changes/java21-springboot4-upgrade/specs/platform-baseline/spec.md", "sha256": "27d6eff999588ba20574e715ae8b5da294a49434d1ab3a5a90a788bb37fdecbd" }
+  ]
+}

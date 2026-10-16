@@ -20,6 +20,11 @@
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-easytrans-common</artifactId>
         </dependency>
+        <!-- 直接使用上游 TransType 接口供 fw-plus 扩展常量继承（坐标随上游 4.0.x 迁移至 org.dromara） -->
+        <dependency>
+            <groupId>org.dromara</groupId>
+            <artifactId>easy-trans-anno</artifactId>
+        </dependency>
     </dependencies>
 
 </project>

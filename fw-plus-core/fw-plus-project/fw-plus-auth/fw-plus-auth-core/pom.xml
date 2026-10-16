@@ -14,11 +14,6 @@
     <name>fw-plus-auth-core</name>
     <description>通用实例级认证框架：provider 注册、classpath 可选装配、fail-closed、主体与 scope 抽象</description>
 
-    <properties>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-    </properties>
-
     <dependencies>
         <!-- 仅依赖 fw-plus-common（工具类），零 Spring 依赖 -->
         <dependency>
@@ -62,8 +57,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
                     <encoding>UTF-8</encoding>
                     <annotationProcessorPaths>
                         <path>

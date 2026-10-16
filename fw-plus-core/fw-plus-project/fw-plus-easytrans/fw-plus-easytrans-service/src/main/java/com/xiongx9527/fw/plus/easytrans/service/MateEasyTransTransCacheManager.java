@@ -1,12 +1,12 @@
 package com.xiongx9527.fw.plus.easytrans.service;
 
-import com.fhs.cache.service.RedisCacheService;
-import com.fhs.cache.service.TransCacheManager;
-import com.fhs.common.utils.ConverterUtils;
-import com.fhs.common.utils.JsonUtils;
-import com.fhs.core.trans.constant.TransType;
-import com.fhs.trans.service.impl.RpcTransService;
-import com.fhs.trans.service.impl.SimpleTransService;
+import org.dromara.cache.service.RedisCacheService;
+import org.dromara.cache.service.TransCacheManager;
+import org.dromara.common.utils.ConverterUtils;
+import org.dromara.common.utils.JsonUtils;
+import com.xiongx9527.fw.plus.easytrans.annotation.TransType;
+import org.dromara.trans.service.impl.RpcTransService;
+import org.dromara.trans.service.impl.SimpleTransService;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.HashMap;

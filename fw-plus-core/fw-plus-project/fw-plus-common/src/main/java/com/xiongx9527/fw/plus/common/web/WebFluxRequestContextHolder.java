@@ -201,7 +201,7 @@ public class WebFluxRequestContextHolder {
         @Override
         public Enumeration<String> getHeaderNames() {
             if (this.exchange != null) {
-                return Collections.enumeration(new ArrayList<>(this.exchange.getRequest().getHeaders().keySet()));
+                return Collections.enumeration(new ArrayList<>(this.exchange.getRequest().getHeaders().headerNames()));
             }
             return null;
         }

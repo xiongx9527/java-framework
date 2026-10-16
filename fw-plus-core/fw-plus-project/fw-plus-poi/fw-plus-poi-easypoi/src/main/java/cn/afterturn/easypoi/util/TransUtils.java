@@ -1,7 +1,7 @@
 package cn.afterturn.easypoi.util;
 
 import cn.afterturn.easypoi.excel.entity.FwPlusTemplateExportParams;
-import com.fhs.trans.service.impl.TransService;
+import org.dromara.trans.service.impl.TransService;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import com.xiongx9527.fw.plus.easytrans.service.util.MateEasyTransUtils;
 import lombok.extern.slf4j.Slf4j;

@@ -1,18 +1,18 @@
 package com.xiongx9527.fw.plus.easytrans.service;
 
 import cn.hutool.core.util.StrUtil;
-import com.fhs.common.utils.CheckUtils;
-import com.fhs.common.utils.ConverterUtils;
-import com.fhs.core.trans.anno.Trans;
-import com.fhs.core.trans.constant.TransType;
-import com.fhs.core.trans.util.ReflectUtils;
-import com.fhs.core.trans.vo.VO;
+import org.dromara.common.utils.CheckUtils;
+import org.dromara.common.utils.ConverterUtils;
+import org.dromara.core.trans.anno.Trans;
+import com.xiongx9527.fw.plus.easytrans.annotation.TransType;
+import org.dromara.core.trans.util.ReflectUtils;
+import org.dromara.core.trans.vo.VO;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import com.fhs.trans.service.impl.EnumTransService;
-import com.fhs.trans.service.impl.TransService;
+import org.dromara.trans.service.impl.EnumTransService;
+import org.dromara.trans.service.impl.TransService;
 import com.xiongx9527.fw.plus.common.validator.IEnumValiatorService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;

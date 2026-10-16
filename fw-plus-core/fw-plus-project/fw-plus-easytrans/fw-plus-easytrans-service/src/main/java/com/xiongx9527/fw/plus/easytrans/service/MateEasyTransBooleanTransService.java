@@ -1,10 +1,10 @@
 package com.xiongx9527.fw.plus.easytrans.service;
 
-import com.fhs.core.trans.anno.Trans;
-import com.fhs.core.trans.constant.TransType;
-import com.fhs.core.trans.vo.VO;
-import com.fhs.trans.service.impl.ITransTypeService;
-import com.fhs.trans.service.impl.TransService;
+import org.dromara.core.trans.anno.Trans;
+import com.xiongx9527.fw.plus.easytrans.annotation.TransType;
+import org.dromara.core.trans.vo.VO;
+import org.dromara.trans.service.impl.ITransTypeService;
+import org.dromara.trans.service.impl.TransService;
 import com.xiongx9527.fw.plus.common.validator.IEnumValiatorService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;

@@ -1,13 +1,13 @@
 package com.xiongx9527.fw.plus.easytrans.service;
 
-import com.fhs.common.utils.ConverterUtils;
-import com.fhs.core.trans.anno.RpcTrans;
-import com.fhs.core.trans.util.ReflectUtils;
-import com.fhs.core.trans.vo.VO;
-import com.fhs.trans.controller.TransProxyController;
-import com.fhs.trans.service.impl.SimpleTransService;
-import com.fhs.trans.vo.BasicVO;
-import com.fhs.trans.vo.FindByIdsQueryPayload;
+import org.dromara.common.utils.ConverterUtils;
+import org.dromara.core.trans.anno.RpcTrans;
+import org.dromara.core.trans.util.ReflectUtils;
+import org.dromara.core.trans.vo.VO;
+import org.dromara.trans.controller.TransProxyController;
+import org.dromara.trans.service.impl.SimpleTransService;
+import org.dromara.trans.vo.BasicVO;
+import org.dromara.trans.vo.FindByIdsQueryPayload;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;

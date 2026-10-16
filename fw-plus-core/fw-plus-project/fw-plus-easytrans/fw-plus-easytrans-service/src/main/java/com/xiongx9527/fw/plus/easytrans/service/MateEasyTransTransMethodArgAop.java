@@ -1,9 +1,9 @@
 package com.xiongx9527.fw.plus.easytrans.service;
 
 import com.alibaba.fastjson2.JSON;
-import com.fhs.core.trans.anno.TransSett;
-import com.fhs.trans.aop.TransMethodResultAop;
-import com.fhs.trans.service.impl.TransService;
+import org.dromara.core.trans.anno.TransSett;
+import org.dromara.trans.aop.TransMethodResultAop;
+import org.dromara.trans.service.impl.TransService;
 import com.xiongx9527.fw.plus.easytrans.service.util.MateEasyTransUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ArrayUtils;
