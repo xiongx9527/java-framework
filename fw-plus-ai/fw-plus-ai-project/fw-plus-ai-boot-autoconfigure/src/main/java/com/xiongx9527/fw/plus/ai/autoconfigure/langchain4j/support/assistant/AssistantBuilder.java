@@ -25,6 +25,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.session.Sessi
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.invocation.InvocationContext;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
@@ -33,6 +34,7 @@ import dev.langchain4j.model.TokenCountEstimator;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.model.language.StreamingLanguageModel;
 import dev.langchain4j.rag.DefaultRetrievalAugmentor;
@@ -59,6 +61,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 /**
  * 助手构建器：把 {@code AiServices} 的装配过程做成脚本可直接链式调用的形态，
@@ -122,6 +125,15 @@ public class AssistantBuilder {
 	private StreamingLanguageModel streamingLanguageModel;
 
 	private Function<Object, String> systemMessageProvider;
+
+	/** 系统提示变换（原生 systemMessageTransformer 槽位）：系统提示求值之后、发送之前变换；返回 null 移除系统提示 */
+	private BiFunction<String, InvocationContext, String> systemMessageTransformer;
+
+	/** 请求变换（原生 chatRequestTransformer 槽位）：框架内部步骤之后执行，对最终 ChatRequest 有最终话语权 */
+	private BiFunction<ChatRequest, Object, ChatRequest> chatRequestTransformer;
+
+	/** 助手级请求参数：非空字段覆盖每轮请求的同名字段，其余字段原样保留 */
+	private ChatRequestParameters chatRequestParameters;
 
 	private ChatMemoryProvider chatMemoryProvider;
 
@@ -293,6 +305,53 @@ private Integer rerankMaxResults;
 	/** 系统提示：自定义 provider（入参为 memoryId），如包装 {@code langchain4jSystemMessageProvider} 的求值结果 */
 	public AssistantBuilder systemMessageProvider(Function<Object, String> provider) {
 		this.systemMessageProvider = provider;
+		return this;
+	}
+
+	/**
+	 * 系统提示变换：在系统提示求值（{@link #systemMessage(String)} / {@link #systemMessageProvider(Function)}，
+	 * 含技能目录拼接）之后对最终文本做一次变换，由 fork 原生 {@code AiServices.systemMessageTransformer(...)}
+	 * 槽位承接；返回 {@code null} 表示移除系统提示。
+	 */
+	public AssistantBuilder systemMessageTransformer(UnaryOperator<String> transformer) {
+		this.systemMessageTransformer = transformer == null ? null : (message, invocation) -> transformer.apply(message);
+		return this;
+	}
+
+	/**
+	 * 系统提示变换（带 {@link InvocationContext}）：可按本轮调用上下文（memoryId 等）条件变换，其余同
+	 * {@link #systemMessageTransformer(UnaryOperator)}。
+	 */
+	public AssistantBuilder systemMessageTransformer(BiFunction<String, InvocationContext, String> transformer) {
+		this.systemMessageTransformer = transformer;
+		return this;
+	}
+
+	/**
+	 * 请求变换：对最终 {@link ChatRequest}（消息 + 参数）的透传扩展点，由 fork 原生
+	 * {@code AiServices.chatRequestTransformer(...)} 槽位承接。
+	 *
+	 * <p>执行顺序：框架内部步骤（统一上下文注入、{@link #chatRequestParameters(ChatRequestParameters)}
+	 * 合并）在前，本变换在最后——拿到的是即将发给模型的完整请求，可自由增删改。</p>
+	 */
+	public AssistantBuilder chatRequestTransformer(UnaryOperator<ChatRequest> transformer) {
+		this.chatRequestTransformer = transformer == null ? null : (request, memoryId) -> transformer.apply(request);
+		return this;
+	}
+
+	/** 请求变换（带 memoryId）：同 {@link #chatRequestTransformer(UnaryOperator)}，可按会话维度区分 */
+	public AssistantBuilder chatRequestTransformer(BiFunction<ChatRequest, Object, ChatRequest> transformer) {
+		this.chatRequestTransformer = transformer;
+		return this;
+	}
+
+	/**
+	 * 助手级请求参数（temperature / topP / maxOutputTokens / responseFormat 等）：
+	 * 非空字段覆盖每轮请求的同名字段——本轮未设置的字段（工具规格、本轮响应格式等）原样保留，
+	 * 对模型级默认参数（模型的 {@code defaultRequestParameters}）同样优先。
+	 */
+	public AssistantBuilder chatRequestParameters(ChatRequestParameters parameters) {
+		this.chatRequestParameters = parameters;
 		return this;
 	}
 
@@ -833,6 +892,9 @@ private Integer rerankMaxResults;
 		if (effectiveSystemMessage != null) {
 			builder.systemMessageProvider(effectiveSystemMessage);
 		}
+		if (systemMessageTransformer != null) {
+			builder.systemMessageTransformer(systemMessageTransformer);
+		}
 		if (!tools.isEmpty()) {
 			builder.tools(tools);
 		}
@@ -857,8 +919,10 @@ private Integer rerankMaxResults;
 		}
 		// 上下文注入：记忆读侧在 1.x 时序下看不到本轮用户消息，故注入点前移到请求装配之后、
 		// 模型调用之前（chatRequestTransformer），把统一上下文渲染为前置系统消息。
-		if (contextStrategy.injectsEnriched() && !contextProviders.isEmpty()) {
-			builder.chatRequestTransformer(enrichedContextTransformer());
+		// 有效变换链按序：内部上下文注入 → 助手级请求参数合并 → 用户自定义变换（最后执行，有最终话语权）
+		BiFunction<ChatRequest, Object, ChatRequest> requestTransformer = resolveChatRequestTransformer();
+		if (requestTransformer != null) {
+			builder.chatRequestTransformer(requestTransformer);
 		}
 		return new MultimodalAssistantBridge(builder.build(), chatModel, streamingModel,
 				memoryProvider, systemMessageProvider, augmentor);
@@ -920,6 +984,40 @@ private Integer rerankMaxResults;
 				: ChatMemoryIds.parseUserId(sessionKey, ChatMemoryIds.DEFAULT_USER_ID);
 		return new ContextAwareChatMemory(delegate,
 				latest -> new ContextRequest(sessionKey, sessionKey, userId, latest), contextMaintenances);
+	}
+
+	/**
+	 * 组装有效请求变换链，按序执行：内部上下文注入 → 助手级请求参数合并 →
+	 * 用户自定义变换（{@link #chatRequestTransformer(BiFunction)}，最后执行、有最终话语权）。
+	 * 三者都未配置时返回 {@code null}（不注册变换器，保持零开销）。
+	 */
+	private BiFunction<ChatRequest, Object, ChatRequest> resolveChatRequestTransformer() {
+		List<BiFunction<ChatRequest, Object, ChatRequest>> chain =
+				new ArrayList<BiFunction<ChatRequest, Object, ChatRequest>>();
+		if (contextStrategy.injectsEnriched() && !contextProviders.isEmpty()) {
+			chain.add(enrichedContextTransformer());
+		}
+		if (chatRequestParameters != null) {
+			chain.add((request, memoryId) -> request.toBuilder()
+					.parameters(request.parameters().overrideWith(chatRequestParameters))
+					.build());
+		}
+		if (chatRequestTransformer != null) {
+			chain.add(chatRequestTransformer);
+		}
+		if (chain.isEmpty()) {
+			return null;
+		}
+		if (chain.size() == 1) {
+			return chain.get(0);
+		}
+		return (request, memoryId) -> {
+			ChatRequest current = request;
+			for (BiFunction<ChatRequest, Object, ChatRequest> step : chain) {
+				current = step.apply(current, memoryId);
+			}
+			return current;
+		};
 	}
 
 	/**
