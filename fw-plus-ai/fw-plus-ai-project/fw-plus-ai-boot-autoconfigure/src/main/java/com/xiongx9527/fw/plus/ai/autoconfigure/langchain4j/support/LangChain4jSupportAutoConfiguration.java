@@ -10,6 +10,8 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.logging.ChatC
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatstore.ChatMemoryStoreProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatstore.ChatMemoryTenantResolver;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatstore.Mem0ChatMemoryStore;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.summary.InMemorySummaryStore;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.summary.SummaryStore;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.rag.DifyContentRetriever;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.rag.DifyRagProperties;
 import com.xiongx9527.fw.plus.dify.dataset.IDatasetClient;
@@ -60,11 +62,12 @@ import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
 @ConditionalOnClass(name = "dev.langchain4j.Experimental")
 @ConditionalOnProperty(prefix = "fw.plus.ai.langchain4j", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(ChatMemoryStoreProperties.class)
-@Import({LangChain4jSupportAutoConfiguration.Mem0ChatMemoryStoreConfiguration.class,
-		LangChain4jSupportAutoConfiguration.InMemoryChatMemoryStoreConfiguration.class,
-		LangChain4jSupportAutoConfiguration.DifyRagPropertiesConfiguration.class,
-		LangChain4jSupportAutoConfiguration.AssistantEnvelopeConfiguration.class,
-		LangChain4jIntentAutoConfiguration.class})
+	@Import({LangChain4jSupportAutoConfiguration.Mem0ChatMemoryStoreConfiguration.class,
+			LangChain4jSupportAutoConfiguration.InMemoryChatMemoryStoreConfiguration.class,
+			LangChain4jSupportAutoConfiguration.DifyRagPropertiesConfiguration.class,
+			LangChain4jSupportAutoConfiguration.AssistantEnvelopeConfiguration.class,
+			LangChain4jSupportAutoConfiguration.SummaryMemoryConfiguration.class,
+			LangChain4jIntentAutoConfiguration.class})
 public class LangChain4jSupportAutoConfiguration {
 
 	@Bean
@@ -235,6 +238,27 @@ public class LangChain4jSupportAutoConfiguration {
 		public EnvelopeRuntimeInstaller envelopeRuntimeInstaller(ObjectProvider<SimpleAssistant> assistants,
 				ObjectProvider<EnvelopeRuntime> runtime) {
 			return new EnvelopeRuntimeInstaller(assistants, runtime);
+		}
+	}
+
+	/**
+	 * 会话摘要存储装配：默认注册进程内 {@link SummaryStore}（{@link InMemorySummaryStore}），
+	 * 使用方自定义 {@code SummaryStore} Bean 即自动覆盖（Jdbc 实现可另加依赖后注入）。
+	 *
+	 * <p>摘要来源/维护钩子不在此装配：它们需要按 magic-api 运行时构造的对话模型与 tokenizer
+	 * 现场组装，收口在 {@code Langchain4jModuleConfiguration#simpleAssistant} 的
+	 * {@code SummaryMemoryAssembler.apply(...)}。</p>
+	 */
+	@Configuration(proxyBeanMethods = false)
+	static class SummaryMemoryConfiguration {
+
+		/** 默认进程内摘要存储：仅当使用方未提供 {@link SummaryStore} 时兜底 */
+		@Bean
+		@ConditionalOnProperty(prefix = Langchain4jAssistantProperties.PREFIX, name = "session.summary.enabled",
+				havingValue = "true", matchIfMissing = true)
+		@ConditionalOnMissingBean(SummaryStore.class)
+		public SummaryStore inMemorySummaryStore() {
+			return new InMemorySummaryStore();
 		}
 	}
 

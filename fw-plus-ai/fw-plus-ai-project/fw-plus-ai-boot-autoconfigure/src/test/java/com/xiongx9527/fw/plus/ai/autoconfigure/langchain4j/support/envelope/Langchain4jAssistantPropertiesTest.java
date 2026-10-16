@@ -43,6 +43,16 @@ class Langchain4jAssistantPropertiesTest {
 			assertThat(properties.getClassifier().getHistoryUserMessages()).isEqualTo(3);
 			assertThat(properties.getClassifier().getMaxAttempts()).isEqualTo(1);
 			assertThat(properties.getSession().getWindowSize()).isEqualTo(20);
+			// 会话兜底与上下文策略默认值（设计 D1/D2）
+			assertThat(properties.getSession().getSessionIdResolver()).isEqualTo("daily");
+			assertThat(properties.getSession().getContextStrategy()).isEqualTo("memory-and-enriched");
+			// 一级摘要默认值（设计 §9）：默认 refine、双阈值与 rebuild-every 生效
+			assertThat(properties.getSession().getSummary().isEnabled()).isTrue();
+			assertThat(properties.getSession().getSummary().getStrategy()).isEqualTo("refine");
+			assertThat(properties.getSession().getSummary().getTriggerTokens()).isEqualTo(4000);
+			assertThat(properties.getSession().getSummary().getKeepTokens()).isEqualTo(3000);
+			assertThat(properties.getSession().getSummary().getMaxSummaryTokens()).isEqualTo(800);
+			assertThat(properties.getSession().getSummary().getRebuildEvery()).isEqualTo(10);
 		});
 	}
 
@@ -64,6 +74,29 @@ class Langchain4jAssistantPropertiesTest {
 					assertThat(properties.getClassifier().getHistoryUserMessages()).isZero();
 					assertThat(properties.getClassifier().getMaxAttempts()).isEqualTo(2);
 					assertThat(properties.getSession().getWindowSize()).isEqualTo(50);
+				});
+	}
+
+	@Test
+	void bindsSessionResolversContextStrategyAndSummary() {
+		contextRunner.withPropertyValues(
+				PREFIX + ".session.session-id-resolver=explicit",
+				PREFIX + ".session.context-strategy=enriched",
+				PREFIX + ".session.summary.enabled=false",
+				PREFIX + ".session.summary.strategy=rebuild",
+				PREFIX + ".session.summary.trigger-tokens=2000",
+				PREFIX + ".session.summary.keep-tokens=1500",
+				PREFIX + ".session.summary.max-summary-tokens=400",
+				PREFIX + ".session.summary.rebuild-every=5").run(context -> {
+					Langchain4jAssistantProperties properties = context.getBean(Langchain4jAssistantProperties.class);
+					assertThat(properties.getSession().getSessionIdResolver()).isEqualTo("explicit");
+					assertThat(properties.getSession().getContextStrategy()).isEqualTo("enriched");
+					assertThat(properties.getSession().getSummary().isEnabled()).isFalse();
+					assertThat(properties.getSession().getSummary().getStrategy()).isEqualTo("rebuild");
+					assertThat(properties.getSession().getSummary().getTriggerTokens()).isEqualTo(2000);
+					assertThat(properties.getSession().getSummary().getKeepTokens()).isEqualTo(1500);
+					assertThat(properties.getSession().getSummary().getMaxSummaryTokens()).isEqualTo(400);
+					assertThat(properties.getSession().getSummary().getRebuildEvery()).isEqualTo(5);
 				});
 	}
 
@@ -117,6 +150,18 @@ class Langchain4jAssistantPropertiesTest {
 		contextRunner.withPropertyValues(PREFIX + ".session.window-size=0").run(context -> {
 			assertThat(context).hasFailed();
 			assertThat(describe(context.getStartupFailure())).contains(PREFIX + ".session.window-size");
+		});
+		contextRunner.withPropertyValues(PREFIX + ".session.summary.trigger-tokens=0").run(context -> {
+			assertThat(context).hasFailed();
+			assertThat(describe(context.getStartupFailure())).contains(PREFIX + ".session.summary.trigger-tokens");
+		});
+		contextRunner.withPropertyValues(PREFIX + ".session.summary.keep-tokens=0").run(context -> {
+			assertThat(context).hasFailed();
+			assertThat(describe(context.getStartupFailure())).contains(PREFIX + ".session.summary.keep-tokens");
+		});
+		contextRunner.withPropertyValues(PREFIX + ".session.summary.rebuild-every=-1").run(context -> {
+			assertThat(context).hasFailed();
+			assertThat(describe(context.getStartupFailure())).contains(PREFIX + ".session.summary.rebuild-every");
 		});
 	}
 

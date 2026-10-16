@@ -6,6 +6,9 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.Intent
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentContext;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatstore.ChatMemoryIds;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.session.DailySessionIdResolver;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.session.SessionContext;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.session.SessionIdResolver;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -107,6 +110,12 @@ public class SimpleAssistant {
 	/** memId 段[3]：用户 */
 	private String userId;
 
+	/** 会话标识（可显式设置，否则走 {@link #sessionResolver}） */
+	private String sessionId;
+
+	/** 会话标识解析器（默认 {@link DailySessionIdResolver}） */
+	private SessionIdResolver sessionResolver = new DailySessionIdResolver();
+
 	/** 是否调用过 {@link #dimensions} 设置维度 */
 	private boolean dimensionsConfigured;
 
@@ -185,10 +194,64 @@ public class SimpleAssistant {
 		return dimensions(ChatMemoryIds.DEFAULT_TENANT_ID, appId, agentId, userId);
 	}
 
-	/** 当前 memId：设置过 {@link #dimensions} 时为四段拼接值（实例内固定），否则返回 {@value #DEFAULT_MEMORY_ID} */
+	/** 当前 memId：保持四段契约（不新增 session 段）——现有测试断言不变 */
 	public String memoryId() {
 		return dimensionsConfigured
 				? ChatMemoryIds.build(tenantId, appId, agentId, userId)
+				: DEFAULT_MEMORY_ID;
+	}
+
+	/** 设置会话标识 */
+	public SimpleAssistant session(String sessionId) {
+		if (sessionId != null) {
+			String trimmed = sessionId.trim();
+			if (trimmed.contains(ChatMemoryIds.SEPARATOR)) {
+				throw new IllegalArgumentException("SimpleAssistant.session: sessionId 不允许包含分隔符 '"
+						+ ChatMemoryIds.SEPARATOR + "': " + sessionId);
+			}
+			if (!trimmed.isEmpty()) {
+				this.sessionId = trimmed;
+			}
+		}
+		return this;
+	}
+
+	/** 设置会话解析器 */
+	public SimpleAssistant sessionResolver(SessionIdResolver resolver) {
+		if (resolver != null) {
+			this.sessionResolver = resolver;
+		}
+		return this;
+	}
+
+	/** 解析有效会话标识 */
+	public String sessionId() {
+		if (sessionId != null && !sessionId.trim().isEmpty()) {
+			return sessionId.trim();
+		}
+		SessionContext ctx = new SessionContext(tenantId, appId, agentId, userId,
+				dimensionsConfigured ? memoryId() : DEFAULT_MEMORY_ID);
+		if (sessionResolver != null) {
+			String resolved = sessionResolver.resolve(ctx);
+			if (resolved != null && !resolved.trim().isEmpty()) {
+				return resolved.trim();
+			}
+		}
+		return ChatMemoryIds.DEFAULT_SESSION_ID;
+	}
+
+	/**
+	 * 生效 memoryId：对话/检索路径实际使用的记忆键（会话隔离锚点）。
+	 *
+	 * <ul>
+	 *   <li>已设维度：5 段 {@code {tenantId}:{appId}:{agentId}:{userId}:{sessionId}}，会话隔离生效；</li>
+	 *   <li>未设维度：保持既有默认键 {@link #DEFAULT_MEMORY_ID}（单会话，不引入会话段，
+	 *       不改变既有非维度调用方与已存数据；设计 §3.2 已声明「段数不足 5 → 会话隔离消失」的退化风险）。</li>
+	 * </ul>
+	 */
+	public String effectiveMemoryId() {
+		return dimensionsConfigured
+				? ChatMemoryIds.build(tenantId, appId, agentId, userId, sessionId())
 				: DEFAULT_MEMORY_ID;
 	}
 
@@ -212,7 +275,7 @@ public class SimpleAssistant {
 	 * {@code AssistantBuilder.retrievalOnly()}）下可用。
 	 */
 	public List<Content> retrieve(String message) {
-		return retrieve(memoryId(), message);
+		return retrieve(effectiveMemoryId(), message);
 	}
 
 	/** 只检索：memoryId 自定（可做检索侧会话区分），返回命中的内容列表 */
@@ -464,9 +527,9 @@ public class SimpleAssistant {
 		}
 	}
 
-	/** 一次性对话：memoryId 取 {@link #memoryId()}（维度拼接值，未设置维度时为 {@value #DEFAULT_MEMORY_ID}），context 为空 */
+	/** 一次性对话：memoryId 取 {@link #effectiveMemoryId()}（已设维度时为 5 段会话键，未设维度时为 {@value #DEFAULT_MEMORY_ID}），context 为空 */
 	public String chat(String message) {
-		return chat(memoryId(), message);
+		return chat(effectiveMemoryId(), message);
 	}
 
 	/** 会话对话：memoryId 自定（决定会话记忆），context 为空 */
@@ -479,9 +542,9 @@ public class SimpleAssistant {
 		return requireAssistant().chat(memoryId, normalizeContext(context), textContents(message));
 	}
 
-	/** 流式：memoryId 取 {@link #memoryId()}（未设置维度时为 {@value #DEFAULT_MEMORY_ID}），context 为空，返回原始 {@link TokenStream} */
+	/** 流式：memoryId 取 {@link #effectiveMemoryId()}（未设维度时为 {@value #DEFAULT_MEMORY_ID}），context 为空，返回原始 {@link TokenStream} */
 	public TokenStream stream(String message) {
-		return stream(memoryId(), message);
+		return stream(effectiveMemoryId(), message);
 	}
 
 	/** 流式：返回原始 {@link TokenStream}，需要自定义回调时用 */
@@ -498,7 +561,7 @@ public class SimpleAssistant {
 
 	/**
 	 * 多模态对话：contents 为文本 / 图片 / 文档等内容列表（
-	 * {@code dev.langchain4j.data.message.Content}），memoryId 取 {@link #memoryId()}，context 为空。
+	 * {@code dev.langchain4j.data.message.Content}），memoryId 取 {@link #effectiveMemoryId()}，context 为空。
 	 *
 	 * <p>纯文本内容走原生管线（模板 / 工具 / RAG / 记忆与 String 形态一致）；
 	 * 含图片或文档时直调模型——RAG 照走、记忆写文本占位（{@code [图片]} / {@code [文档:x.pdf]} + 文本）、
@@ -507,7 +570,7 @@ public class SimpleAssistant {
 	 * @throws IllegalArgumentException contents 为空
 	 */
 	public String chat(List<dev.langchain4j.data.message.Content> contents) {
-		return chat(memoryId(), DEFAULT_CONTEXT, contents);
+		return chat(effectiveMemoryId(), DEFAULT_CONTEXT, contents);
 	}
 
 	/** 多模态对话：memoryId 自定（决定会话记忆），context 为空 */
@@ -524,9 +587,9 @@ public class SimpleAssistant {
 		return requireAssistant().chat(memoryId, context, contents);
 	}
 
-	/** 多模态流式：memoryId 取 {@link #memoryId()}，context 为空，返回原始 {@link TokenStream} */
+	/** 多模态流式：memoryId 取 {@link #effectiveMemoryId()}，context 为空，返回原始 {@link TokenStream} */
 	public TokenStream stream(List<dev.langchain4j.data.message.Content> contents) {
-		return stream(memoryId(), DEFAULT_CONTEXT, contents);
+		return stream(effectiveMemoryId(), DEFAULT_CONTEXT, contents);
 	}
 
 	/** 多模态流式：memoryId 自定，context 为空 */
@@ -794,7 +857,7 @@ public class SimpleAssistant {
 	 * <p>装了信封处理器时改走信封协议（见 {@link #envelopeRuntime(EnvelopeRuntime)}）。</p>
 	 */
 	public SseEmitter streamToSse(String message) {
-		return streamToSse(memoryId(), message);
+		return streamToSse(effectiveMemoryId(), message);
 	}
 
 	public SseEmitter streamToSse(String memoryId, String message) {

@@ -1,0 +1,17 @@
+{
+  "change": "langchain4j-session-memory",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "task_hash_policy": "task-content-v1",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "957a89dfc7486ee97cf0c29e6cb355c831def955936571a24de9541429324754",
+  "files": [
+    { "path": "docs/openspec/changes/langchain4j-session-memory/proposal.md", "sha256": "1e45e780cf932eadf7c67c254b9d74ea0ba7ea2b91d25b8579ae8447f353cd57" },
+    { "path": "docs/openspec/changes/langchain4j-session-memory/design.md", "sha256": "b4948677c25d4a8da0f13e2d1aa539e6516d7cb9d12271214311f42db0701c0f" },
+    { "path": "docs/openspec/changes/langchain4j-session-memory/tasks.md", "sha256": "70514cc07c5fd1a8545b6950bf286c8eef6294f198fe8198aab24f152b8bab1f" },
+    { "path": "docs/openspec/changes/langchain4j-session-memory/.openspec.yaml", "sha256": "c5936a7e8ac90455175dd905c9e8fb9d33cf82476be795f24133b51ef95c3d96" },
+    { "path": "docs/openspec/changes/langchain4j-session-memory/specs/langchain4j-context-injection/spec.md", "sha256": "3148ec6e33b00bad367b3fc05496ddeb17e68206918d4aa11ecbb61a164e8f8d" },
+    { "path": "docs/openspec/changes/langchain4j-session-memory/specs/langchain4j-session-memory/spec.md", "sha256": "3dbc9e7cfeb33599e0336075163777acb433f63b823dde358c665c64315841c7" }
+  ]
+}

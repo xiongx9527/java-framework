@@ -260,6 +260,30 @@ public class Langchain4jAssistantProperties implements InitializingBean {
 		/** 会话窗口条数默认值 */
 		public static final int DEFAULT_WINDOW_SIZE = 20;
 
+		/** 会话能力总开关（默认 {@code true}）；关闭后不进行会话兜底与摘要维护 */
+		private boolean enabled = true;
+
+		/** 会话标识解析器（默认 {@value #DEFAULT_SESSION_ID_RESOLVER}：按天兜底） */
+		private String sessionIdResolver = DEFAULT_SESSION_ID_RESOLVER;
+
+		/** 会话标识解析器默认值 */
+		public static final String DEFAULT_SESSION_ID_RESOLVER = "daily";
+
+		/** 空闲超时分钟数（默认 {@value #DEFAULT_IDLE_TIMEOUT_MINUTES}）；{@code idle-timeout} 解析器用 */
+		private int idleTimeoutMinutes = DEFAULT_IDLE_TIMEOUT_MINUTES;
+
+		/** 空闲超时默认值（分钟） */
+		public static final int DEFAULT_IDLE_TIMEOUT_MINUTES = 30;
+
+		/** 上下文组合策略（默认 {@value #DEFAULT_CONTEXT_STRATEGY}） */
+		private String contextStrategy = DEFAULT_CONTEXT_STRATEGY;
+
+		/** 上下文组合策略默认值 */
+		public static final String DEFAULT_CONTEXT_STRATEGY = "memory-and-enriched";
+
+		/** 一级会话摘要配置 */
+		private final Summary summary = new Summary();
+
 		public int getWindowSize() {
 			return windowSize;
 		}
@@ -268,10 +292,50 @@ public class Langchain4jAssistantProperties implements InitializingBean {
 			this.windowSize = windowSize;
 		}
 
+		public String getSessionIdResolver() {
+			return sessionIdResolver;
+		}
+
+		public void setSessionIdResolver(String sessionIdResolver) {
+			this.sessionIdResolver = sessionIdResolver;
+		}
+
+		public boolean isEnabled() {
+			return enabled;
+		}
+
+		public void setEnabled(boolean enabled) {
+			this.enabled = enabled;
+		}
+
+		public int getIdleTimeoutMinutes() {
+			return idleTimeoutMinutes;
+		}
+
+		public void setIdleTimeoutMinutes(int idleTimeoutMinutes) {
+			this.idleTimeoutMinutes = idleTimeoutMinutes;
+		}
+
+		public String getContextStrategy() {
+			return contextStrategy;
+		}
+
+		public void setContextStrategy(String contextStrategy) {
+			this.contextStrategy = contextStrategy;
+		}
+
+		public Summary getSummary() {
+			return summary;
+		}
+
 		public void validate() {
 			if (windowSize < 1) {
 				throw illegal("session.window-size", windowSize, "会话窗口条数必须 >= 1");
 			}
+			if (idleTimeoutMinutes < 1) {
+				throw illegal("session.idle-timeout-minutes", idleTimeoutMinutes, "空闲超时分钟数必须 >= 1");
+			}
+			summary.validate();
 		}
 
 		/** 运行期热更新：非法值保留旧值并告警 */
@@ -282,6 +346,130 @@ public class Langchain4jAssistantProperties implements InitializingBean {
 			}
 			this.windowSize = value;
 			return true;
+		}
+
+		// -------------------------------------------------- 会话摘要
+
+		/** 一级滚动会话摘要配置 */
+		public static class Summary {
+
+			/** 摘要开关（默认 {@code true}） */
+			private boolean enabled = true;
+
+			/** 摘要策略（默认 {@value #DEFAULT_STRATEGY}：增量精炼） */
+			private String strategy = DEFAULT_STRATEGY;
+
+			/** 摘要形态（默认 {@code hybrid}：结构化硬约束 + 自由文本主线） */
+			private String form = "hybrid";
+
+			/** 触发阈值（默认 {@value #DEFAULT_TRIGGER_TOKENS}）：历史累计超过才触发摘要 */
+			private int triggerTokens = DEFAULT_TRIGGER_TOKENS;
+
+			/** 压缩目标（默认 {@value #DEFAULT_KEEP_TOKENS}）：摘要压缩到该 token 以内 */
+			private int keepTokens = DEFAULT_KEEP_TOKENS;
+
+			/** 摘要正文 token 上限（默认 {@value #DEFAULT_MAX_SUMMARY_TOKENS}） */
+			private int maxSummaryTokens = DEFAULT_MAX_SUMMARY_TOKENS;
+
+			/** 每连续多少次增量精炼插入一次全量重摘（默认 {@value #DEFAULT_REBUILD_EVERY}） */
+			private int rebuildEvery = DEFAULT_REBUILD_EVERY;
+
+			/** 摘要用便宜小模型标识（模型 key 或 FQCN）；留空表示抽取式回退（不调 LLM） */
+			private String summarizeModel;
+
+			/** 摘要策略默认值 */
+			public static final String DEFAULT_STRATEGY = "refine";
+
+			/** 触发阈值默认值 */
+			public static final int DEFAULT_TRIGGER_TOKENS = 4000;
+
+			/** 压缩目标默认值 */
+			public static final int DEFAULT_KEEP_TOKENS = 3000;
+
+			/** 摘要正文 token 上限默认值 */
+			public static final int DEFAULT_MAX_SUMMARY_TOKENS = 800;
+
+			/** 全量重摘间隔默认值 */
+			public static final int DEFAULT_REBUILD_EVERY = 10;
+
+			public boolean isEnabled() {
+				return enabled;
+			}
+
+			public void setEnabled(boolean enabled) {
+				this.enabled = enabled;
+			}
+
+			public String getStrategy() {
+				return strategy;
+			}
+
+			public void setStrategy(String strategy) {
+				this.strategy = strategy;
+			}
+
+			public String getForm() {
+				return form;
+			}
+
+			public void setForm(String form) {
+				this.form = form;
+			}
+
+			public int getTriggerTokens() {
+				return triggerTokens;
+			}
+
+			public void setTriggerTokens(int triggerTokens) {
+				this.triggerTokens = triggerTokens;
+			}
+
+			public int getKeepTokens() {
+				return keepTokens;
+			}
+
+			public void setKeepTokens(int keepTokens) {
+				this.keepTokens = keepTokens;
+			}
+
+			public int getMaxSummaryTokens() {
+				return maxSummaryTokens;
+			}
+
+			public void setMaxSummaryTokens(int maxSummaryTokens) {
+				this.maxSummaryTokens = maxSummaryTokens;
+			}
+
+			public int getRebuildEvery() {
+				return rebuildEvery;
+			}
+
+			public void setRebuildEvery(int rebuildEvery) {
+				this.rebuildEvery = rebuildEvery;
+			}
+
+			public String getSummarizeModel() {
+				return summarizeModel;
+			}
+
+			public void setSummarizeModel(String summarizeModel) {
+				this.summarizeModel = summarizeModel;
+			}
+
+			public void validate() {
+				if (triggerTokens < 1) {
+					throw illegal("session.summary.trigger-tokens", triggerTokens, "摘要触发阈值必须 >= 1");
+				}
+				if (keepTokens < 1) {
+					throw illegal("session.summary.keep-tokens", keepTokens, "摘要压缩目标必须 >= 1");
+				}
+				if (maxSummaryTokens < 1) {
+					throw illegal("session.summary.max-summary-tokens", maxSummaryTokens, "摘要正文上限必须 >= 1");
+				}
+				if (rebuildEvery < 0) {
+					throw illegal("session.summary.rebuild-every", rebuildEvery, "全量重摘间隔必须 >= 0（0 = 不重摘）");
+				}
+			}
 		}
 	}
 }
