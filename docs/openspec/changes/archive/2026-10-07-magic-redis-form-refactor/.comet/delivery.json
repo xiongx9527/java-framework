@@ -1,0 +1,9 @@
+{
+  "action": "push",
+  "targetBranch": "dev",
+  "remote": "origin",
+  "schemaVersion": 1,
+  "changeIdentity": "run:6be1ff1d-52c5-4dcd-a170-5234ee763b86",
+  "authorizationId": "45fa87fd-bcc2-4e86-a862-f8a76b83f400",
+  "authorizedRemoteUrl": "https://github.com/xiongx9527/java-framework.git"
+}

@@ -18,16 +18,16 @@
         <dependencies>
 
             <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-dependencies</artifactId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-boot-dependencies</artifactId>
                 <version>${project.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
 
             <dependency>
-                <groupId>com.xiongx9527.fw.plus.boot</groupId>
-                <artifactId>fw-plus-boot-dependencies</artifactId>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-dependencies</artifactId>
                 <version>${project.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
@@ -69,6 +69,65 @@
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-ai-langchain4j</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Magic-API 插件前端产物载体模块：这些模块不含 Java 源码，只把 src/console/dist
+                 打成 magic-editor/plugins/*.iife.js 放进 jar。使用对应插件控制台面板的工程必须
+                 显式声明它们（依赖的是 jar 里的静态资源，不是 Java 类），否则插件注册时
+                 上报的 javascriptFilename 在 classpath 上找不到对应文件。
+                 与 boot 层 fw-plus-boot-dependencies 对 fw-plus-magicapi-plugin-* 的纳管方式一致。 -->
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.ai</groupId>
+                <artifactId>fw-plus-ai-magicapi-plugin-mcp-server</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.ai</groupId>
+                <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-chat-model</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.ai</groupId>
+                <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-streaming-chat-model</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.ai</groupId>
+                <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-language-model</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.ai</groupId>
+                <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-streaming-language-model</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.ai</groupId>
+                <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-embedding-model</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.ai</groupId>
+                <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-tokenizer</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.ai</groupId>
+                <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-embedding-store</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.ai</groupId>
+                <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-scoring-model</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

@@ -7,7 +7,6 @@ com.xiongx9527.fw.plus.boot.autoconfigure.jdbc.JdbcAutoConfiguration
 com.xiongx9527.fw.plus.boot.autoconfigure.mybatis.MybatisAutoConfiguration
 com.xiongx9527.fw.plus.boot.autoconfigure.template.TemplateAutoConfiguration
 com.xiongx9527.fw.plus.boot.autoconfigure.uid.UIDAutoConfiguration
-com.xiongx9527.fw.plus.boot.autoconfigure.report.ReportAutoConfiguration
 com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.MqttAutoConfiguration
 com.xiongx9527.fw.plus.boot.autoconfigure.config.ConfigConfiguration
 com.xiongx9527.fw.plus.boot.autoconfigure.admin.server.AdminServerAutoConfiguration

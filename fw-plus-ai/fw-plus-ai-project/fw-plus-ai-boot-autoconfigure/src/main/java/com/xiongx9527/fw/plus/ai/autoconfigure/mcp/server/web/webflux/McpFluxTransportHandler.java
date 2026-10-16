@@ -87,8 +87,9 @@ class McpFluxTransportHandler {
 		if (!sse.isOriginAllowed(request.headers().firstHeader(headerNames.origin()))) {
 			return ServerResponse.status(HttpStatus.FORBIDDEN).build();
 		}
-		if (!isAuthorized(null, request)) {
-			return ServerResponse.status(HttpStatus.UNAUTHORIZED).build();
+		HttpStatus authorizationFailure = authorizationFailureStatus(null, request, null);
+		if (authorizationFailure != null) {
+			return ServerResponse.status(authorizationFailure).build();
 		}
 
 		String uuid = UUID.randomUUID().toString();
@@ -121,8 +122,9 @@ class McpFluxTransportHandler {
 		// scope 裁剪需要请求体中的 JSON-RPC method，故授权后移到 body 读取之后（与 post() 一致）。
 		return request.bodyToMono(String.class).defaultIfEmpty("")
 				.flatMap(body -> {
-					if (!isAuthorized(uuid, request, body)) {
-						return ServerResponse.status(HttpStatus.UNAUTHORIZED).build();
+					HttpStatus authorizationFailure = authorizationFailureStatus(uuid, request, body);
+					if (authorizationFailure != null) {
+						return ServerResponse.status(authorizationFailure).build();
 					}
 					return Mono.<SyncResult>fromCallable(() -> callSseHandle(sse, uuid, body)).subscribeOn(pool)
 							.flatMap(this::toResponse);
@@ -144,8 +146,9 @@ class McpFluxTransportHandler {
 		// scope 裁剪需要请求体中的 JSON-RPC method，故授权后移到 body 读取之后。
 		return request.bodyToMono(String.class).defaultIfEmpty("")
 				.flatMap(body -> {
-					if (!isAuthorized(session, request, body)) {
-						return ServerResponse.status(HttpStatus.UNAUTHORIZED).build();
+					HttpStatus authorizationFailure = authorizationFailureStatus(session, request, body);
+					if (authorizationFailure != null) {
+						return ServerResponse.status(authorizationFailure).build();
 					}
 					return handlePost(transport, body, request);
 				});
@@ -168,8 +171,9 @@ class McpFluxTransportHandler {
 		if (session != null && !runtime.hasSession(session)) {
 			return ServerResponse.notFound().build();
 		}
-		if (!isAuthorized(session, request)) {
-			return ServerResponse.status(HttpStatus.UNAUTHORIZED).build();
+		HttpStatus authorizationFailure = authorizationFailureStatus(session, request, null);
+		if (authorizationFailure != null) {
+			return ServerResponse.status(authorizationFailure).build();
 		}
 
 		java.util.concurrent.Callable<HttpResult> callable = () -> transport.delete(session, headers(request));
@@ -186,8 +190,9 @@ class McpFluxTransportHandler {
 		if (session == null || !runtime.hasSession(session)) {
 			return ServerResponse.notFound().build();
 		}
-		if (!isAuthorized(session, request)) {
-			return ServerResponse.status(HttpStatus.UNAUTHORIZED).build();
+		HttpStatus authorizationFailure = authorizationFailureStatus(session, request, null);
+		if (authorizationFailure != null) {
+			return ServerResponse.status(authorizationFailure).build();
 		}
 
 		// 响应状态必须在事件流之前确定：先与内核同步打开事件流拿到结果，
@@ -260,32 +265,26 @@ class McpFluxTransportHandler {
 	}
 
 	/**
-	 * 认证并处理"匿名即拒绝"：未配置认证服务或认证关闭时为放行主体，
-	 * 开了认证但 token 无效时是匿名主体。
+	 * 认证并处理授权失败：认证失败（未绑定认证服务或凭据无效）返回 401；
+	 * 认证通过但 scope 不足返回 403。scope 裁剪只对明确映射到 tools/resources/prompts
+	 * 的操作执行，PermitAll 主体显式绕过裁剪。
 	 *
-	 * <p>开启 scope 裁剪时，认证通过后再按请求体对应的 capability 校验主体 scopes；
-	 * 未开启、非能力操作或主体未携带 scope 信息时一律放行。</p>
-	 *
-	 * @return 通过返回 {@code true}
+	 * @return 认证或 scope 授权失败时返回对应状态码，通过时返回 {@code null}
 	 */
-	private boolean isAuthorized(String sessionId, ServerRequest request) {
-		return isAuthorized(sessionId, request, null);
-	}
-
-	private boolean isAuthorized(String sessionId, ServerRequest request, String body) {
-		McpAuthService authService = runtime.getAuthService();
+	private HttpStatus authorizationFailureStatus(String sessionId, ServerRequest request, String body) {
+		com.xiongx9527.fw.plus.auth.core.AuthService authService = runtime.getAuthService();
 		if (authService == null) {
-			return true;
+			return HttpStatus.UNAUTHORIZED;
 		}
-		McpPrincipal principal = authService.authenticate(new McpRequest(sessionId, runtime.getTransport(),
-				endpoint(), body, headers(request)));
-		if (principal == McpPrincipal.ANONYMOUS) {
-			return false;
+		McpPrincipal principal = McpAuthService.adapt(authService).authenticate(new McpRequest(runtime.getKey(), sessionId,
+				runtime.getTransport(), endpoint(), body, headers(request)));
+		if (principal == null || !principal.isAuthenticated()) {
+			return HttpStatus.UNAUTHORIZED;
 		}
 		if (isScopeCheckEnabled() && !McpCapabilities.covers(principal, McpCapabilities.ofBody(body))) {
-			return false;
+			return HttpStatus.FORBIDDEN;
 		}
-		return true;
+		return null;
 	}
 
 	private boolean isScopeCheckEnabled() {

@@ -1,0 +1,35 @@
+
+> magic-editor@2.2.2 build
+> vite build
+
+(node:6398) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+vite v2.9.18 building for production...
+<script src="./config-js"> in "/index.html" can't be bundled without type="module" attribute
+transforming...
+transforming...
+✓ 88 modules transformed.
+✓ 144 modules transformed.
+✓ 167 modules transformed.
+rendering chunks...
+✓ 1239 modules transformed.
+rendering chunks...
+dist/assets/editor.worker.cb3a44e8.js              89.17 KiB
+dist/assets/json.worker.8a4f410d.js                214.07 KiB
+dist/assets/html.worker.8970adb6.js                525.47 KiB
+dist/assets/PoetsenOne.14047964.woff2              52.35 KiB
+dist/assets/JetBrainsMono-Regular.bceff071.woff2   67.81 KiB
+dist/assets/login-bg.b2c96d9d.svg                  11.96 KiB
+dist/assets/logo-magic-api.7bf52c65.png            16.08 KiB
+dist/assets/codicon.d86f69b1.ttf                   66.29 KiB
+dist/index.html                                    3.40 KiB
+dist/assets/axios.1135a622.js                      36.61 KiB / gzip: 14.69 KiB
+dist/assets/style.e49f7931.css                     135.42 KiB / gzip: 24.98 KiB
+dist/assets/vue.da6d0aab.js                        117.92 KiB / gzip: 46.34 KiB
+dist/assets/index.3294c1a4.js                      735.17 KiB / gzip: 254.05 KiB
+dist/assets/vendor.acdbaa0b.js                     3450.39 KiB / gzip: 864.88 KiB
+
+(!) Some chunks are larger than 500 KiB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/guide/en/#outputmanualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.

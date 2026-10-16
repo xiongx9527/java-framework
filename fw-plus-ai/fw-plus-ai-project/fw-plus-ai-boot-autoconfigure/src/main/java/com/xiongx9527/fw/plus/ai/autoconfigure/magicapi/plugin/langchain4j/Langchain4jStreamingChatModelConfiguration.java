@@ -24,7 +24,7 @@ public class Langchain4jStreamingChatModelConfiguration extends AbstractLangchai
     private static final String JAVASCRIPT_FILENAME = "magic-langchain4j-streaming-chat-model.1.0.0.iife.js";
 
     public Langchain4jStreamingChatModelConfiguration() {
-        super("langchain4j-streaming-chat-model", "MagicLangchain4jStreamingChatModel", JAVASCRIPT_FILENAME);
+        super("langchain4j-streaming-chat-model", "MagicLangchain4jStreamingChatModel", JAVASCRIPT_FILENAME, false);
     }
 
     @Bean

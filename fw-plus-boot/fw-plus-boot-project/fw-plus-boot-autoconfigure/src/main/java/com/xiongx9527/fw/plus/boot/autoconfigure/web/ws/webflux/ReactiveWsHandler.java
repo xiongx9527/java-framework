@@ -3,6 +3,8 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.webflux;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.alibaba.fastjson2.JSONValidator;
+import com.xiongx9527.fw.plus.auth.core.InstanceAuthRegistry;
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.auth.WsAuthSupport;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.common.WsBaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.common.WsInstanceResolver;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.config.WsConfig;
@@ -17,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.web.reactive.socket.CloseStatus;
+import org.springframework.web.reactive.socket.HandshakeInfo;
 import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -58,6 +61,11 @@ public class ReactiveWsHandler implements org.springframework.web.reactive.socke
 
 	private WsBusinessDispatcher businessDispatcher;
 
+	/**
+	 * 实例认证注册表：由自动配置注入；直接实例化（测试）时回落到默认注册表。
+	 */
+	private InstanceAuthRegistry authRegistry = new InstanceAuthRegistry();
+
 	public ReactiveWsHandler(WsConfig wsConfig) {
 		this.wsConfig = wsConfig;
 		this.config = new WsBaseService() {
@@ -85,10 +93,21 @@ public class ReactiveWsHandler implements org.springframework.web.reactive.socke
 		this.businessDispatcher = businessDispatcher;
 	}
 
+	/**
+	 * 注入实例认证注册表；未注入时使用默认注册表（仍按 {@code fw.plus.ws.auth} 配置解析 provider）。
+	 *
+	 * @param authRegistry 实例认证注册表
+	 */
+	public void setAuthRegistry(InstanceAuthRegistry authRegistry) {
+		if (authRegistry != null) {
+			this.authRegistry = authRegistry;
+		}
+	}
+
 	@Override
 	public Mono<Void> handle(WebSocketSession session) {
 		WsSession wsSession = new ReactiveWsSession(session);
-		AuthResult auth = authenticate(session.getHandshakeInfo().getUri());
+		AuthResult auth = authenticate(session.getHandshakeInfo());
 		if (!auth.accepted) {
 			return session.close(new CloseStatus(auth.status.getCode(), auth.reason));
 		}
@@ -250,9 +269,27 @@ public class ReactiveWsHandler implements org.springframework.web.reactive.socke
 		}
 	}
 
-	private AuthResult authenticate(URI uri) {
+	private AuthResult authenticate(HandshakeInfo handshakeInfo) {
+		URI uri = handshakeInfo == null ? null : handshakeInfo.getUri();
 		String query = uri == null ? null : uri.getQuery();
 		Map<String, String> params = parseQueryParams(query);
+		String path = uri == null ? null : uri.getPath();
+
+		// 握手认证：query 参数与请求头合并为同一份凭据，按命中实例 provider 校验（fail-closed）
+		Map<String, String> headerValues = new HashMap<>();
+		if (handshakeInfo != null && handshakeInfo.getHeaders() != null) {
+			handshakeInfo.getHeaders().forEach((name, values) -> {
+				if (values != null && !values.isEmpty()) {
+					headerValues.put(name, values.get(0));
+				}
+			});
+		}
+		Map<String, String> credentials = WsAuthSupport.mergeCredentials(query, headerValues);
+		if (!new WsAuthSupport(wsConfig, authRegistry).isAuthenticated(path, credentials)) {
+			log.error("WebSocket handshake authentication failed for path: {}", path);
+			return AuthResult.reject(org.springframework.web.socket.CloseStatus.POLICY_VIOLATION, "认证失败");
+		}
+
 		String clientId = params.get(config.getClientIdParamName());
 		if (StringUtils.isBlank(clientId)) {
 			log.error("Missing required parameter: {}", config.getClientIdParamName());

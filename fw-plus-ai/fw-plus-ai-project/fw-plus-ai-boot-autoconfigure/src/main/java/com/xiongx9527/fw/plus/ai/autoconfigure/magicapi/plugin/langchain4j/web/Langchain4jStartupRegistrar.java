@@ -6,6 +6,8 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jEmbeddingStoreDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.registry.Langchain4jEmbeddingStoreMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.resource.Langchain4jEmbeddingStoreMagicResourceStorage;
+import java.util.List;
+
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import org.slf4j.Logger;
@@ -64,7 +66,16 @@ public class Langchain4jStartupRegistrar implements SmartLifecycle {
     }
 
     private void retryFailedStores() {
-        for (Object entity : magicResourceService.listFiles(storeStorage.folder() + ":0")) {
+        List<?> entities;
+        try {
+            entities = magicResourceService.listFiles(storeStorage.folder() + ":0");
+        } catch (RuntimeException e) {
+            // 全新工程尚未创建 embedding-store 分组时 listFiles 会抛「找不到分组信息」，
+            // 兜底重试钩子不允许阻断应用启动
+            logger.warn("LangChain4j embedding-store 启动重试跳过: 无法读取资源目录, 原因: {}", e.getMessage());
+            return;
+        }
+        for (Object entity : entities) {
             if (!(entity instanceof Langchain4jEmbeddingStoreInfo)) {
                 continue;
             }

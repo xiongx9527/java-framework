@@ -230,6 +230,13 @@
                 <version>${jjwt.version}</version>
             </dependency>
 
+            <!-- 覆盖 debezium-bom 对 mockito-core 的降级（其值为 3.0.0），保持与 Spring Boot 一致 -->
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>${mockito.version}</version>
+            </dependency>
+
             <!--debezium-->
             <dependency>
                 <groupId>io.debezium</groupId>

@@ -32,7 +32,7 @@ public class Langchain4jChatModelConfiguration extends AbstractLangchain4jPlugin
 
     public Langchain4jChatModelConfiguration(Langchain4jModelFactoryRegistry factories,
             ObjectProvider<MagicDynamicLangchain4jEmbeddingModelDataSource> embeddingModels) {
-        super("langchain4j-chat-model", "MagicLangchain4jChatModel", JAVASCRIPT_FILENAME);
+        super("langchain4j-chat-model", "MagicLangchain4jChatModel", JAVASCRIPT_FILENAME, false);
         this.factories = factories;
         this.embeddingModels = embeddingModels;
     }

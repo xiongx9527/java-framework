@@ -52,8 +52,10 @@ public class McpServerInitializer implements ApplicationRunner {
         for (String basePackage : resolveBasePackages(properties, context, runtimes)) {
             try {
                 scanner.register(java.util.Collections.singletonList(basePackage), featureMgrs);
-            } catch (Exception e) {
-                throw new IllegalStateException("Unable to scan MCP features in package '" + basePackage + "'", e);
+            } catch (RuntimeException | Error e) {
+                // 扫描期异常已在 McpFeatureScanner 内按包降级（记告警跳过），走到这里说明是能力注册失败：
+                // 实例化不了 @McpService 类、或能力绑定到未声明的 server key，属真实配置错误，必须中断启动
+                throw new IllegalStateException("Unable to register MCP capabilities in package '" + basePackage + "'", e);
             }
         }
 

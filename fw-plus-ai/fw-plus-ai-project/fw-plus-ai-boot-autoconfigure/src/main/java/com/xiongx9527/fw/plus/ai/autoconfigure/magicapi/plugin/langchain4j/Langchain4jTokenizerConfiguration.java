@@ -24,7 +24,7 @@ public class Langchain4jTokenizerConfiguration extends AbstractLangchain4jPlugin
     private static final String JAVASCRIPT_FILENAME = "magic-langchain4j-tokenizer.1.0.0.iife.js";
 
     public Langchain4jTokenizerConfiguration() {
-        super("langchain4j-tokenizer", "MagicLangchain4jTokenizer", JAVASCRIPT_FILENAME);
+        super("langchain4j-tokenizer", "MagicLangchain4jTokenizer", JAVASCRIPT_FILENAME, false);
     }
 
     @Bean

@@ -4,7 +4,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mybatisflex.sta
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mybatisflex.starter.MyBatisFlexProperties;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mybatisflex.module.MybatisFlexModule;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mybatisplus.module.MybatisPlusModule;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mybatisplus.starter.MybatisPlusModuleConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mybatisplus.starter.MybatisPlusConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 
@@ -14,7 +14,7 @@ class PluginPackageStructureTest {
 
 	@Test
 	void mybatisPlusAndFlexFollowPluginPackageStructure() {
-		assertThat(MybatisPlusModuleConfiguration.class.getPackage().getName()).endsWith(".mybatisplus.starter");
+		assertThat(MybatisPlusConfiguration.class.getPackage().getName()).endsWith(".mybatisplus.starter");
 		assertThat(MybatisPlusModule.class.getPackage().getName()).endsWith(".mybatisplus.module");
 		assertThat(MyBatisFlexConfiguration.class.getPackage().getName()).endsWith(".mybatisflex.starter");
 		assertThat(MyBatisFlexProperties.class.getPackage().getName()).endsWith(".mybatisflex.starter");
@@ -33,7 +33,7 @@ class PluginPackageStructureTest {
 
 	@Test
 	void mybatisPlusConfigurationRequiresPlusAndJoinClasses() {
-		ConditionalOnClass conditionalOnClass = MybatisPlusModuleConfiguration.class
+		ConditionalOnClass conditionalOnClass = MybatisPlusConfiguration.class
 				.getAnnotation(ConditionalOnClass.class);
 		assertThat(conditionalOnClass.name())
 				.contains("com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean")

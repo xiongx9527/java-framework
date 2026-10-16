@@ -53,12 +53,12 @@ curl -N localhost:8080/api/chat/stream -H 'Content-Type: application/json' \
 
 ## 系统提示（systemMessageProvider）
 
-系统提示由 `ChatAssistantConfig.systemMessageProvider` 提供，**没有使用 `@SystemMessage` 注解**——注解是静态的，provider 才能按会话定制：
+系统提示由 `AssistantBuilder.systemMessageProvider` 提供（实现挂在 `SystemPromptBuilder` 上），**没有使用 `@SystemMessage` 注解**——注解是静态的，provider 才能按会话定制：
 
 ```java
-AiServices.builder(Assistant.class)
+new AssistantBuilder()
         ...
-        .systemMessageProvider(this::systemMessage);   // 每次调用都执行
+        .systemMessageProvider(systemPromptBuilder::build);   // 每次调用都执行
 ```
 
 `Assistant` 的两个方法把 `sessionId` 作为第一个参数并标注 `@MemoryId`，LangChain4j 每次调用会把该实参透传给 provider，因此提示词末尾的「当前会话标识」是客户端真实传入的值：
@@ -73,7 +73,7 @@ TokenStream stream(@MemoryId String sessionId, String message);
 - `sessionId` 留空（或纯空白）时 Controller 兜底为 `default`，**不能传 null**——LangChain4j 0.35.0 的 `DefaultAiServices.findMemoryId` 对 `@MemoryId` 收到 null 会直接抛 `IllegalArgumentException`，兜底逻辑由 `ChatControllerTest` 的 sessionId 用例覆盖。
 - 0.35.0 的 `AiServices` 上没有 `systemMessage(String)`，只有 `systemMessageProvider(Function<Object, String>)`；若方法上同时存在 `@SystemMessage` 注解，注解优先、provider 不再生效。
 - provider 返回的字符串同样支持 `{{变量}}` 模板，变量取自方法参数上 `@V("name")` 标注的值。
-- 同一个 `sessionId` 将来接入 `ChatMemoryProvider` 时就是记忆键，届时多轮会话上下文按它隔离。
+- 同一个 `sessionId` 就是会话记忆键（`@MemoryId`），多轮会话上下文按它隔离。
 
 ## 打印模型上下文
 
@@ -126,18 +126,19 @@ langchain4j:
 
 ## 多轮记忆与个人信息
 
-`Assistant` 首个参数 `@MemoryId String sessionId` 兼任会话记忆键，也决定读取哪份个人资料：`ChatAssistantConfig.chatMemoryProvider` 按它隔离多轮上下文，同一 sessionId 的多次对话会带上历史，不同 sessionId 互不干扰。
+`Assistant` 首个参数 `@MemoryId String sessionId` 兼任会话记忆键，也决定读取哪份个人资料：`AssistantBuilder` 的内置记忆按它隔离多轮上下文，同一 sessionId 的多次对话会带上历史，不同 sessionId 互不干扰。
 
 ```java
-AiServices.builder(Assistant.class)
-        ...
-        .chatMemoryProvider(chatMemoryProvider)
+new AssistantBuilder()
+        .memory(MAX_MEMORY_MESSAGES)   // MessageWindowChatMemory，默认 20 条
+        .memoryStore(chatMemoryStore)  // 共享存储 Bean
+        ...                            // build() 时内置包一层 EphemeralChatMemory
 ```
 
 实现要点：
 
-- `MessageWindowChatMemory` 按 `memoryId` 建实例，窗口 `MAX_MEMORY_MESSAGES = 20` 条，超出自动淘汰最早的消息；**SystemMessage 不占窗口额度**（淘汰时跳过）。
-- **store 必须是共享 Bean**：在 provider 的 lambda 里 `new InMemoryChatMemoryStore()` 会让每次 `get` 都拿到空存储，多轮上下文静默失效——由 `ChatAssistantConfigTest` 锁定。
+- 内置记忆为 `MessageWindowChatMemory`（按 `memoryId` 建实例）外包 `EphemeralChatMemory`，窗口 `MAX_MEMORY_MESSAGES = 20` 条，超出自动淘汰最早的消息；**SystemMessage 不占窗口额度**（淘汰时跳过）。
+- **store 必须是共享 Bean**：在 `.memoryStore(...)` 里传每次 new 的存储实例会让多轮上下文静默失效；`ChatAssistantConfig` 把它声明为独立 Bean，`assistant` Bean 注入使用。
 - 默认用进程内 `InMemoryChatMemoryStore`，重启即丢。生产换成实现 `ChatMemoryStore` 的 Redis / JDBC 存储即可；注意 `updateMessages` 是读全量再全量写回，落库前最好先按窗口裁剪。
 
 ### 系统提示与个人信息放哪
@@ -160,27 +161,28 @@ AiServices.builder(Assistant.class)
 
 两类数据是**本轮临时**的，不该沉淀为会话记忆：RAG 检索内容（按当前 query 检索）、工具往返（一次调用内的过程数据）。而框架把两者都无条件写进了 memory：检索结果被拼进 user message（`DefaultAiServices:136-139` → `:158`），工具往返在 `:248`/`:270` 直接 add。
 
-`ai/EphemeralChatMemory` 补上这一层：
+框架的 `EphemeralChatMemory`（`com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.EphemeralChatMemory`）补上这一层，并支持「AI 回复要不要带到下一轮」的策略配置：
 
-```java
-add(USER 含 RAG)               → 只写用户原话，RAG 暂存
-add(AI 带 toolExecutionRequests) → 不写 memory，暂存
-add(TOOL_RESPONSE)             → 不写 memory，暂存
-messages()                     → 历史 + RAG 拼回最后一条 user + 工具对原序插在其后
+```text
+add(USER 含 RAG)                 → 只写用户原话，RAG 暂存
+add(AI 带 toolExecutionRequests) → 只在本轮请求里带出，不写持久历史
+add(TOOL_RESPONSE)               → 只在本轮请求里带出，不写持久历史
+add(下一轮 USER)                 → 轮次边界：先按策略沉淀上一轮输出，再追加本轮 USER
+messages()                       → 系统提示 + 历史原话 + 按策略沉淀的上一轮回答 + 本轮 RAG/工具对
 ```
 
-发给模型的请求与不剥时**完全一致**（本轮的 RAG 和工具往返都在，顺序不变），只是 store 里干净。下一轮 `provider.get` 拿到新实例，暂存为空，历史里只剩「用户原话 / 系统提示 / 最终回复」。
+默认策略 `PERSIST_LAST_FINAL_ANSWER`：把上一轮的**最终回答**放到 `TAIL`（最靠近下一轮），既解决「AI 回复给不到下一轮」，又不把工具往返带进下一轮。其它内置策略（`DROP_ALL_AI`＝旧的「只留系统提示与用户原话」、`PERSIST_ALL_FINAL_ANSWERS`、`PERSIST_ALL_AI_DROP_TOOL_MESSAGES`、`PERSIST_CONCLUSION_MARKED_AI` 等）与自定义策略见 `AiPersistenceStrategy`；位置用 `AiPersistencePosition` 表达（`HEAD` / `AFTER_SYSTEM` / `MIDDLE` / `BEFORE_LAST_USER` / `TAIL` …），实现「关键放前尾、不重要放中间」。纯空白回复不含有效字符，一律不沉淀。
 
-**代价（产品上要先接受）**：追问「刚才查到的结果」时，历史只剩最终回复文本——若回复未复述具体数值，该依据不可找回（工具只能重调）。这也是为什么 RAG 剥得、工具往返要权衡：RAG 随时可重新检索，工具结果拿回来是有成本的。
+发给模型的请求里，本轮的 RAG 与工具往返照旧齐全、顺序不变；区别只在 store 里沉淀了什么。`AssistantBuilder` 侧用 `.aiPersistenceStrategy(...)` / `.ephemeralChatMemory(...)` 配置，Spring 侧走 `fw.plus.magicapi.langchain4j.simple-assistant.ephemeral.*`。
 
-若只想去掉 RAG 残留、保留工具往返，把该类里两个 `TOOL_EXECUTION` 分支改回 `delegate.add(message)` 即可。
+**代价（产品上要先接受）**：追问「刚才查到的结果」时，历史里只有最终回答文本（工具往返默认不沉淀）——若回复未复述具体数值，该依据不可找回（工具只能重调）。这也是为什么 RAG 剥得、工具往返要权衡：RAG 随时可重新检索，工具结果拿回来是有成本的。
 
 注入格式由 `ai/RagMessageCodec` 统一封装，调用方只面对三个方法，谁也碰不到字面量：
 
 ```java
 template()               → RagAutoConfig 构造 injector 用（不用框架默认模板）
 join(userText, rag)      → 拼成注入形态
-split(text)              → 拆回 [用户原话, 检索内容]，EphemeralChatMemory 与 ChatContextLogger 用
+split(text)              → 拆回 [用户原话, 检索内容]，ChatContextLogger 用（框架 EphemeralChatMemory 另按可配置分隔串剥离）
 ```
 
 `RagMessageCodecTest` 用真实 injector 走一遍，断言「模板产出能被 split 原样拆回」——格式只有一个地方定义，不存在改了一半的可能。
@@ -221,13 +223,12 @@ Content-Type: application/json
 |---|---|
 | `ChatSampleApplication` | 启动类 |
 | `ai/Assistant` | `AiServices` 声明式接口：`chat` / `stream`，参数只有 `@MemoryId sessionId` 与 `@UserMessage message` |
-| `ai/ChatAssistantConfig` | 自建两个模型 Bean（挂 `ChatModelListener`）+ 装配模型/工具/RAG/记忆/系统提示 |
+| `ai/ChatAssistantConfig` | 自建两个模型 Bean（挂 `ChatModelListener`），经框架 `AssistantBuilder` 装配模型/工具/RAG/记忆/系统提示 |
 | `ai/OllamaProperties` | `langchain4j.ollama.*` 配置绑定（框架侧类是包私有，样例需自声明） |
 | `ai/SystemPromptBuilder` | 拼装系统提示：人设 + profile |
 | `ai/SystemPromptBuilder` | 拼装系统提示：人设 + profile + 检索资料 |
 | `ai/FilteringContentRetriever` | 挂在 augmentor 上：score 阈值 + metadata 过滤 + 《title》渲染 |
 | `ai/ChatContextLogger` | `ChatModelListener`：打印系统提示 / 工具清单 / tool_call / tool_response |
-| `ai/EphemeralChatMemory` | `ChatMemory` 装饰器：RAG 与工具往返都不进历史，只在本轮请求里拼回 |
 | `ai/UserProfileProvider` | 个人信息提供者（内存 mock + 60 秒缓存），演示 profile 注入系统提示 |
 | `ai/WeatherTools` | `@Tool` 天气查询（本地 mock 数据） |
 | `ai/knowledge/RemoteKnowledgeBaseContentRetriever` | 调远程知识库接口的 `ContentRetriever` |

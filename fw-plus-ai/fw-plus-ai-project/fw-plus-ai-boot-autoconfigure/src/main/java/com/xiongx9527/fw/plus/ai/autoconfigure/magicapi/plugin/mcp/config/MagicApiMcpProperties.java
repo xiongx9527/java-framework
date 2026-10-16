@@ -138,6 +138,8 @@ public class MagicApiMcpProperties {
 
 		private Tools tools;
 
+		private Auth auth;
+
 		public String getKey() {
 			return key;
 		}
@@ -176,6 +178,27 @@ public class MagicApiMcpProperties {
 
 		public void setTools(Tools tools) {
 			this.tools = tools;
+		}
+
+		public Auth getAuth() {
+			return auth;
+		}
+
+		public void setAuth(Auth auth) {
+			this.auth = auth;
+		}
+	}
+
+	public static class Auth {
+
+		private String provider;
+
+		public String getProvider() {
+			return provider;
+		}
+
+		public void setProvider(String provider) {
+			this.provider = provider;
 		}
 	}
 

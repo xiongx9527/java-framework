@@ -78,7 +78,7 @@ public class ChatController {
 
 		String sessionId = resolveSessionId(request.getSessionId());
 		// start 事件 data 用 sessionId（前端可直接关联会话/聊天记录）；SSE 不设超时，由模型生成速度决定
-		return new SimpleAssistant(assistant).streamToSse(sessionId, message, sessionId);
+		return new SimpleAssistant(assistant).streamToSse(sessionId, message);
 	}
 
 	/**

@@ -16,7 +16,7 @@ import org.ssssssss.magicapi.core.config.MagicPluginConfiguration;
 import org.ssssssss.magicapi.core.model.Plugin;
 
 @Slf4j
-@ConditionalOnProperty(prefix = "magic-api.plugin.druid", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "magic-api.plugin.druid", name = "enabled", havingValue = "true")
 @ConditionalOnClass(name = {"com.alibaba.druid.pool.DruidDataSource"})
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @Configuration
@@ -27,18 +27,18 @@ import org.ssssssss.magicapi.core.model.Plugin;
         DruidFilterConfiguration.class})
 public class MagicAPIDruidConfiguration implements MagicPluginConfiguration {
 	private static final String JAVASCRIPT_FILENAME = "magic-druid.1.0.0.iife.js";
-	private static final String FRONTEND_RESOURCE = "magic-editor/plugins/" + JAVASCRIPT_FILENAME;
 
     /**
-     * 获取插件实例
+     * 获取插件实例。
+     *
+     * <p>始终上报完整三元组（标识 + 全局名 + 前端产物名），不按前端产物是否落在 classpath
+     * 上改变上报内容——产物在不在 classpath 是使用方的依赖配置问题，编码进注册逻辑只会让
+     * 「依赖漏声明」在运行期表现为「插件静默消失」，排查成本远高于控制台直接报 404。
      *
      * @return 返回名为"druid"的插件对象
      */
     @Override
     public Plugin plugin() {
-		if (MagicAPIDruidConfiguration.class.getClassLoader().getResource(FRONTEND_RESOURCE) == null) {
-			return new Plugin("druid");
-		}
 		return new Plugin("druid", "MagicDruid", JAVASCRIPT_FILENAME);
     }
 

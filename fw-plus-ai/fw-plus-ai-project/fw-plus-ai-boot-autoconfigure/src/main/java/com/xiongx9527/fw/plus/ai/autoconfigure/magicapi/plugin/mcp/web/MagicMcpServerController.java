@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.model.MagicDy
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.model.MagicMcpServerInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.service.MagicMcpServerInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.service.MagicMcpServerMagicDynamicRegistry;
+import com.xiongx9527.fw.plus.auth.core.InstanceAuthRegistry;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.ListUtils;
@@ -16,11 +17,18 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 /**
  * MCP server 实例控制台接口：查看运行实例、连接校验与删除前校验。
+ *
+ * <p>{@code MagicDynamicMcpServer} / {@code MagicMcpServerMagicDynamicRegistry} 带
+ * {@code @ConditionalOnBean(McpRuntimeFactory.class)}，未装配 MCP server runtime 时（样例
+ * 或不引入 mcp runtime 依赖的场景）这两个 Bean 不存在。控制台端点要能用（不抛
+ * {@code NoSuchBeanDefinitionException}），故一律经 {@link #dynamicDataSource()} 取 Bean，
+ * 缺失时返回空列表/提示，而不是 500。</p>
  */
 @Slf4j
 public class MagicMcpServerController extends MagicController implements MagicExceptionHandler {
@@ -34,12 +42,40 @@ public class MagicMcpServerController extends MagicController implements MagicEx
 	}
 
 	/**
-	 * 全部运行中的 MCP server 实例。
+	 * 获取 MCP server 动态数据源；未装配（Bean 缺失）时返回 {@code null}。
+	 */
+	private MagicDynamicMcpServer dynamicDataSource() {
+		Map<String, MagicDynamicMcpServer> beans = SpringUtils.getBeansOfType(MagicDynamicMcpServer.class);
+		if (beans.isEmpty()) {
+			log.warn("MagicDynamicMcpServer bean 未装配，MCP server 控制台能力不可用（可忽略：未启用 MCP server runtime）");
+			return null;
+		}
+		return beans.values().iterator().next();
+	}
+
+	/**
+	 * 获取 MCP server 动态注册表；未装配（Bean 缺失）时返回 {@code null}。
+	 */
+	private MagicMcpServerMagicDynamicRegistry dynamicRegistry() {
+		Map<String, MagicMcpServerMagicDynamicRegistry> beans =
+				SpringUtils.getBeansOfType(MagicMcpServerMagicDynamicRegistry.class);
+		if (beans.isEmpty()) {
+			log.warn("MagicMcpServerMagicDynamicRegistry bean 未装配，MCP server 控制台能力不可用（可忽略：未启用 MCP server runtime）");
+			return null;
+		}
+		return beans.values().iterator().next();
+	}
+
+	/**
+	 * 全部运行中的 MCP server 实例；runtime 未装配时返回空列表。
 	 */
 	@RequestMapping("/mcp/server/list")
 	@ResponseBody
 	public JsonBean<List<Map<String, Object>>> list() {
-		MagicDynamicMcpServer dataSource = SpringUtils.getBean(MagicDynamicMcpServer.class);
+		MagicDynamicMcpServer dataSource = dynamicDataSource();
+		if (dataSource == null) {
+			return new JsonBean<>(1, "MCP server runtime 未装配，返回空实例列表", Collections.emptyList());
+		}
 		return new JsonBean<>(dataSource.serverSummaries());
 	}
 
@@ -60,6 +96,28 @@ public class MagicMcpServerController extends MagicController implements MagicEx
 	}
 
 	/**
+	 * 数据源连接测试：按控制台表单临时构建 MCP server 实例探测配置可用性
+	 * （不落库、不注册、不影响运行中实例）。与「保存前校验」{@code /mcp/server/test}
+	 * （仅静态字段校验）不同，本接口会真实装配 runtime 并立即关闭 transport 释放。
+	 */
+	@RequestMapping("/mcp/datasource/test")
+	@ResponseBody
+	public JsonBean<Object> datasourceTest(@RequestBody MagicMcpServerInfo info) {
+		MagicMcpServerInfoMagicResourceStorage storage =
+				SpringUtils.getBean(MagicMcpServerInfoMagicResourceStorage.class);
+		try {
+			storage.validate(info);
+		} catch (IllegalArgumentException e) {
+			return new JsonBean<>(e.getMessage());
+		}
+		MagicDynamicMcpServer dataSource = dynamicDataSource();
+		if (dataSource == null) {
+			return new JsonBean<>("MCP server runtime 未装配，无法测试连接（未启用 MCP server runtime）");
+		}
+		return new JsonBean<>(dataSource.testConnection(info));
+	}
+
+	/**
 	 * 删除前校验：实例已停用时才允许删除。
 	 */
 	@RequestMapping("/mcp/server/doDelete")
@@ -77,7 +135,10 @@ public class MagicMcpServerController extends MagicController implements MagicEx
 	@RequestMapping("/mcp/server/changeConnected")
 	@ResponseBody
 	public JsonBean<Object> changeConnected(@RequestBody MagicMcpServerInfo info) {
-		MagicDynamicMcpServer dataSource = SpringUtils.getBean(MagicDynamicMcpServer.class);
+		MagicDynamicMcpServer dataSource = dynamicDataSource();
+		if (dataSource == null) {
+			return new JsonBean<>("MCP server runtime 未装配，无法启停实例（未启用 MCP server runtime）");
+		}
 		if (!info.isEnabled()) {
 			dataSource.destroyClientByKey(info.getKey());
 			return new JsonBean<>("ok");
@@ -94,7 +155,11 @@ public class MagicMcpServerController extends MagicController implements MagicEx
 	@RequestMapping("/mcp/server/refresh")
 	@ResponseBody
 	public JsonBean<Object> refresh() {
-		SpringUtils.getBean(MagicDynamicMcpServer.class).refreshTools();
+		MagicDynamicMcpServer dataSource = dynamicDataSource();
+		if (dataSource == null) {
+			return new JsonBean<>("MCP server runtime 未装配，无法刷新工具（未启用 MCP server runtime）");
+		}
+		dataSource.refreshTools();
 		return new JsonBean<>("ok");
 	}
 
@@ -104,8 +169,10 @@ public class MagicMcpServerController extends MagicController implements MagicEx
 	@RequestMapping("/mcp/server/defined")
 	@ResponseBody
 	public JsonBean<Object> defined() {
-		MagicMcpServerMagicDynamicRegistry registry =
-				SpringUtils.getBean(MagicMcpServerMagicDynamicRegistry.class);
+		MagicMcpServerMagicDynamicRegistry registry = dynamicRegistry();
+		if (registry == null) {
+			return new JsonBean<>(1, "MCP server runtime 未装配，返回空定义列表", Collections.emptyList());
+		}
 		return new JsonBean<>(registry.mappings());
 	}
 
@@ -117,5 +184,16 @@ public class MagicMcpServerController extends MagicController implements MagicEx
 	public JsonBean<Object> defaults() {
 		MagicApiMcpProperties properties = SpringUtils.getBean(MagicApiMcpProperties.class);
 		return new JsonBean<>(ListUtils.emptyIfNull(properties.getServers()));
+	}
+
+	/**
+	 * 当前 classpath 可用的认证 provider 清单：供控制台表单渲染可选项
+	 * （与 Starter 的 InstanceAuthRegistry.availableProviders 同一份清单，缺失模块不可选）。
+	 */
+	@RequestMapping("/mcp/server/authProviders")
+	@ResponseBody
+	public JsonBean<Object> authProviders() {
+		return new JsonBean<>(InstanceAuthRegistry.availableProviders(
+				InstanceAuthRegistry.class.getClassLoader()));
 	}
 }

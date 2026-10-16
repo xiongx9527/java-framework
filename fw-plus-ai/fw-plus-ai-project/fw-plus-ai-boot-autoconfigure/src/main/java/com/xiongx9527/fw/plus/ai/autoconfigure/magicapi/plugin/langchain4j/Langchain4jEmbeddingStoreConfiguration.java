@@ -35,7 +35,7 @@ public class Langchain4jEmbeddingStoreConfiguration extends AbstractLangchain4jP
     private static final String JAVASCRIPT_FILENAME = "magic-langchain4j-embedding-store.1.0.0.iife.js";
 
     public Langchain4jEmbeddingStoreConfiguration() {
-        super("langchain4j-embedding-store", "MagicLangchain4jEmbeddingStore", JAVASCRIPT_FILENAME);
+        super("langchain4j-embedding-store", "MagicLangchain4jEmbeddingStore", JAVASCRIPT_FILENAME, false);
     }
 
     @Bean

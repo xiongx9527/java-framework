@@ -29,19 +29,180 @@
             <groupId>com.xiongx9527.fw.plus.boot</groupId>
             <artifactId>fw-plus-magicapi-spring-boot-starter</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-s3</artifactId>
+        </dependency>
 
+        <!-- Magic-API 插件前端产物载体模块。这些模块不含 Java 源码，只把 src/console/dist 打成
+             magic-editor/plugins/*.iife.js 放进 jar；插件注册时上报的 javascriptFilename
+             必须能在 classpath 上找到对应文件，控制台面板才会渲染。
+             与 boot 层 fw-plus-magicapi-spring-boot-starter-sample 显式声明
+             fw-plus-magicapi-plugin-* 的做法一致。 -->
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-mcp-server</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-chat-model</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-streaming-chat-model</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-language-model</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-streaming-language-model</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-embedding-model</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-tokenizer</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-embedding-store</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-langchain4j-scoring-model</artifactId>
+        </dependency>
+        <!-- Dev langchain4j provider jars that the model-factory registry references even when no
+             fw-plus wrapper module exists for them (direct upstream deps) -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-google-ai-gemini</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-hugging-face</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-local-ai</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-zhipu-ai</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-jina</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-cohere</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-qdrant</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-weaviate</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-embeddings</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j-openai</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j-anthropic</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j-ollama</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j-azure-ai-search</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j-azure-open-ai</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j-voyage-ai</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j-github-models</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j-vertex-ai-gemini</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j-elasticsearch</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j-qianfan</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j-milvus</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-slf4j-impl</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j-dashscope</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-simple</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j-reactor</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j-neo4j</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j-nebula</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.nebula-contrib</groupId>
             <artifactId>nebula-jdbc</artifactId>
             <version>3.3.0</version>
         </dependency>
-
         <dependency>
             <groupId>org.nebula-contrib</groupId>
             <artifactId>ngbatis</artifactId>
             <version>2.0.1</version>
         </dependency>
-
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -58,6 +219,15 @@
             <artifactId>poi-ooxml</artifactId>
             <version>4.1.2</version>
             <scope>test</scope>
+        </dependency>
+
+        <!-- 认证内核：fw-plus-ai-boot-autoconfigure 声明的 fw-plus-auth-core 是
+             optional=true 不传递，且 MCP 装配的 @Bean 方法签名直接引用 InstanceAuthRegistry。
+             缺失时 Spring 内省配置类即 NoClassDefFoundError 启动失败（McpAutoConfiguration）。
+             starter 会携带，这里显式声明防回归。 -->
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-auth-core</artifactId>
         </dependency>
 
     </dependencies>

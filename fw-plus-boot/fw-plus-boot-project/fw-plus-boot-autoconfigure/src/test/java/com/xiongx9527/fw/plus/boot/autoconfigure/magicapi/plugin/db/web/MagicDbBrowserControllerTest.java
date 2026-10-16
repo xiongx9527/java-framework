@@ -50,7 +50,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -156,8 +155,9 @@ class MagicDbBrowserControllerTest {
 		Object configuration = configurationClass.getConstructor(ObjectProvider.class).newInstance(mock(ObjectProvider.class));
 		Plugin plugin = (Plugin) configurationClass.getMethod("plugin").invoke(configuration);
 		assertEquals("db", plugin.getName());
-		assertNull(plugin.getGlobalName());
-		assertNull(plugin.getJavascriptFilename());
+		// 注册口径：始终上报完整三元组，不按前端产物是否在 classpath 上降级
+		assertEquals("MagicDB", plugin.getGlobalName());
+		assertEquals("magic-db.1.0.0.iife.js", plugin.getJavascriptFilename());
 		assertFalse(plugin.getAdminEnabled());
 
 		StaticApplicationContext context = contextWithDbAdminEnabled("true");

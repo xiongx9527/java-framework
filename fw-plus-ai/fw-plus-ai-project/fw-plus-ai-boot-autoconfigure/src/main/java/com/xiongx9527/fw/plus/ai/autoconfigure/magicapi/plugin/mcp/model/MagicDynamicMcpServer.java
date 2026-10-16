@@ -1,6 +1,5 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.model;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.McpAuthService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.cluster.McpRedisBroadcaster;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime.McpRuntimeFactory;
@@ -12,6 +11,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.tools.MagicAp
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.tools.MagicApiMcpToolRegistry;
 import lombok.extern.slf4j.Slf4j;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.resource.service.MagicApiMcpCapabilityRegistrar;
+import com.xiongx9527.fw.plus.auth.core.InstanceAuthRegistry;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.ObjectProvider;
@@ -40,7 +40,9 @@ public class MagicDynamicMcpServer implements DisposableBean, SmartInitializingS
 
 	private final McpRuntimeFactory runtimeFactory;
 
-	private final McpAuthService authService;
+	private final InstanceAuthRegistry authRegistry;
+
+	private final McpProperties mcpProperties;
 
 	private final McpRedisBroadcaster broadcaster;
 
@@ -57,13 +59,15 @@ public class MagicDynamicMcpServer implements DisposableBean, SmartInitializingS
 	private final ObjectProvider<MagicApiMcpCapabilityRegistrar> capabilityRegistrarProvider;
 
 	public MagicDynamicMcpServer(MagicApiMcpProperties properties, MagicResourceService magicResourceService,
-			McpRuntimeFactory runtimeFactory, McpAuthService authService, McpRedisBroadcaster broadcaster,
-			MagicApiMcpToolInvoker toolInvoker, RuntimeRouteBinder routeBinder,
+			McpRuntimeFactory runtimeFactory, InstanceAuthRegistry authRegistry, McpProperties mcpProperties,
+			McpRedisBroadcaster broadcaster, MagicApiMcpToolInvoker toolInvoker,
+			RuntimeRouteBinder routeBinder,
 			ObjectProvider<MagicApiMcpCapabilityRegistrar> capabilityRegistrarProvider) {
 		this.properties = Objects.requireNonNull(properties, "properties");
 		this.magicResourceService = Objects.requireNonNull(magicResourceService, "magicResourceService");
 		this.runtimeFactory = Objects.requireNonNull(runtimeFactory, "runtimeFactory");
-		this.authService = authService;
+		this.authRegistry = authRegistry;
+		this.mcpProperties = mcpProperties;
 		this.broadcaster = broadcaster;
 		this.toolInvoker = Objects.requireNonNull(toolInvoker, "toolInvoker");
 		this.routeBinder = routeBinder;
@@ -98,8 +102,8 @@ public class MagicDynamicMcpServer implements DisposableBean, SmartInitializingS
 			destroyClientByKey(key);
 
 			McpProperties effective = toMcpProperties(info);
-			McpServerRuntime runtime = runtimeFactory.createRuntime(effective, effective, authService, broadcaster,
-					(config, featureMgr) -> new MagicApiMcpServerRegistry(toolInvoker));
+			McpServerRuntime runtime = runtimeFactory.createRuntime(effective, effective, authRegistry,
+					broadcaster, (config, featureMgr) -> new MagicApiMcpServerRegistry(toolInvoker));
 
 			MagicApiMcpToolRegistry toolRegistry = new MagicApiMcpToolRegistry(magicResourceService, properties,
 					info.getTools());
@@ -147,14 +151,53 @@ public class MagicDynamicMcpServer implements DisposableBean, SmartInitializingS
 		if (routeBinder != null) {
 			routeBinder.unbind(runtime);
 		}
-		if (runtime.getServer().getTransport() != null) {
-			try {
-				runtime.getServer().getTransport().close();
-			} catch (Exception e) {
-				log.warn("关闭 MCP server {} 的 transport 时发生异常", key, e);
-			}
-		}
+		closeTransportQuietly(key, runtime);
 		log.info("已关闭 MCP server: {}", key);
+	}
+
+	/**
+	 * 数据源连接测试：按资源定义构建一次性 runtime 探测配置可用性。
+	 *
+	 * <p>复用 {@link #createClient} 的装配路径，但不注册 serverMap、不绑定路由、不注册
+	 * 工具与能力；探测后立即关闭 transport 释放资源，不影响现有运行实例。</p>
+	 *
+	 * @param info 待测试的资源定义
+	 * @return {@code "ok"} 或错误描述
+	 */
+	public synchronized String testConnection(MagicMcpServerInfo info) {
+		String key = info.getKey();
+		if (key == null || key.trim().isEmpty()) {
+			return "key不能为空";
+		}
+		if (info.getEndpoint() == null || info.getEndpoint().trim().isEmpty()) {
+			return "endpoint不能为空";
+		}
+		McpServerRuntime runtime = null;
+		try {
+			McpProperties effective = toMcpProperties(info);
+			runtime = runtimeFactory.createRuntime(effective, effective, authRegistry, broadcaster,
+					(config, featureMgr) -> new MagicApiMcpServerRegistry(toolInvoker));
+			return "ok";
+		} catch (Throwable e) {
+			log.error("MCP server:[{}]连接测试失败", key, e);
+			return "连接失败: " + e.getMessage();
+		} finally {
+			closeTransportQuietly(key, runtime);
+		}
+	}
+
+	/**
+	 * 关闭 MCP server 的 transport（存在时），异常仅告警不抛出。
+	 */
+	private void closeTransportQuietly(String key, McpServerRuntime runtime) {
+		if (runtime == null || runtime.getServer() == null || runtime.getServer().getTransport() == null) {
+			return;
+		}
+		try {
+			runtime.getServer().getTransport().close();
+		} catch (Exception e) {
+			log.warn("关闭 MCP server {} 的 transport 时发生异常", key, e);
+		}
 	}
 
 	/**
@@ -182,6 +225,7 @@ public class MagicDynamicMcpServer implements DisposableBean, SmartInitializingS
 		info.setTransport(server.getTransport());
 		info.setEndpoint(server.getEndpoint());
 		info.setTools(server.getTools());
+		info.setAuth(server.getAuth());
 		return info;
 	}
 
@@ -265,14 +309,25 @@ public class MagicDynamicMcpServer implements DisposableBean, SmartInitializingS
 	private McpProperties toMcpProperties(MagicMcpServerInfo info) {
 		McpProperties properties = new McpProperties();
 		properties.setKey(info.getKey().trim());
+		properties.setScopeCheckEnabled(mcpProperties != null && mcpProperties.isScopeCheckEnabled());
 		String transport = info.getTransport() == null || info.getTransport().trim().isEmpty()
 				? "http-sse" : info.getTransport().trim();
 		properties.setTransport(transport);
 		properties.setEndpoint(info.getEndpoint().trim());
+		properties.setAuth(toAuthProperties(info.getAuth()));
 		properties.setServer(new McpProperties.Server());
 		properties.getServer().setName(info.getName() == null || info.getName().trim().isEmpty()
 				? info.getKey().trim() : info.getName().trim());
 		properties.getServer().setVersion("1.0.0");
+		return properties;
+	}
+
+	private McpProperties.Auth toAuthProperties(MagicApiMcpProperties.Auth auth) {
+		if (auth == null) {
+			return null;
+		}
+		McpProperties.Auth properties = new McpProperties.Auth();
+		properties.setProvider(auth.getProvider());
 		return properties;
 	}
 

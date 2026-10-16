@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.config;
 
+import com.xiongx9527.fw.plus.auth.core.config.InstanceAuthProperties;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
@@ -34,6 +35,15 @@ public class WsConfig {
 	 * 默认应用 ID：默认实例与未填写 appId 的命名实例都回落到它。
 	 */
 	private String appId = "default";
+
+	/**
+	 * 默认实例的握手认证配置，绑定 {@code fw.plus.ws.auth.provider}。
+	 *
+	 * <p>与命名实例的 {@link WsInstance#getAuth()} 相互独立：命名实例不从顶层 {@code auth}
+	 * 继承，各自显式配置。未配置 provider（或置空）表示不启用认证，该实例握手一律拒绝
+	 * （fail-closed）。</p>
+	 */
+	private InstanceAuthProperties auth = new InstanceAuthProperties();
 
 	/**
 	 * 默认实例的主端点路径；相对路径（如 {@code /ws/api}）与含基础路径的完整路径均可。
@@ -166,6 +176,14 @@ public class WsConfig {
 		 * 该实例的应用 ID；留空表示回落全局 {@code fw.plus.ws.appId}。
 		 */
 		private String appId = "";
+
+		/**
+		 * 该实例的握手认证配置，绑定 {@code fw.plus.ws.servers[].auth.provider}。
+		 *
+		 * <p>不从顶层 {@code fw.plus.ws.auth} 继承；未配置 provider（或置空）表示该实例
+		 * 不启用认证，握手一律拒绝（fail-closed）。</p>
+		 */
+		private InstanceAuthProperties auth = new InstanceAuthProperties();
 	}
 
 	/**

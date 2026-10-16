@@ -430,6 +430,20 @@ public class SimpleHttpClient {
         }
     }
 
+    /**
+     * 发送请求并返回原始字节数据（文件预览/下载、ZIP 批量下载等二进制响应场景）
+     *
+     * @param route  Dify 路由
+     * @param query  查询参数 Map
+     * @param params 请求体参数对象（GET 请求时忽略）
+     * @return 响应的原始字节数据
+     */
+    public byte[] requestBytes(DifyRoute route, Map<String, Object> query, Object params) {
+        AudioFile file = requestFile(route.getUrl(), route.getMethod(), query, params);
+        byte[] data = file.getData();
+        return data != null ? data : new byte[0];
+    }
+
 
     /**
      * 使用 SSE (Server-Sent Events) 方式发起请求
@@ -502,7 +516,7 @@ public class SimpleHttpClient {
      * @return String
      */
     public String requestMultipart(DifyRoute route, Map<String, Object> query, Map<String, Object> params) {
-        return requestMultipart(route.getUrl(), query, params, null);
+        return requestMultipart(route.getUrl(), route.getMethod(), query, params, null);
     }
 
     /**
@@ -515,7 +529,7 @@ public class SimpleHttpClient {
      * @return String
      */
     public String requestMultipart(DifyRoute route, Map<String, Object> query, Map<String, Object> params, String fileType) {
-        return requestMultipart(route.getUrl(), query, params, fileType);
+        return requestMultipart(route.getUrl(), route.getMethod(), query, params, fileType);
     }
 
     /**
@@ -528,6 +542,20 @@ public class SimpleHttpClient {
      * @return String
      */
     public String requestMultipart(String url, Map<String, Object> query, Map<String, Object> params, String fileType) {
+        return requestMultipart(url, HttpMethod.POST, query, params, fileType);
+    }
+
+    /**
+     * 发送 multipart 请求（可指定 HTTP 方法，如 PATCH）
+     *
+     * @param url      api url
+     * @param method   HTTP 请求方法
+     * @param query    Query params
+     * @param params   Form params
+     * @param fileType 文件类型
+     * @return String
+     */
+    public String requestMultipart(String url, HttpMethod method, Map<String, Object> query, Map<String, Object> params, String fileType) {
         try {
             String fullUrl = buildUrl(url, query);
             
@@ -554,9 +582,21 @@ public class SimpleHttpClient {
                 }
             }
             
+            MultipartBody multipartBody = multipartBuilder.build();
             Request.Builder requestBuilder = new Request.Builder()
-                    .url(fullUrl)
-                    .post(multipartBuilder.build());
+                    .url(fullUrl);
+            
+            if (method == HttpMethod.GET) {
+                requestBuilder.get();
+            } else if (method == HttpMethod.PUT) {
+                requestBuilder.put(multipartBody);
+            } else if (method == HttpMethod.DELETE) {
+                requestBuilder.delete(multipartBody);
+            } else if (method == HttpMethod.PATCH) {
+                requestBuilder.patch(multipartBody);
+            } else {
+                requestBuilder.post(multipartBody);
+            }
             
             if (this.apiKey != null) {
                 requestBuilder.header("Authorization", "Bearer " + this.apiKey);

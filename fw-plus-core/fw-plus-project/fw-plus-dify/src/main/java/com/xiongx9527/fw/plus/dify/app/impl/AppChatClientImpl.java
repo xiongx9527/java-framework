@@ -8,6 +8,7 @@ import com.xiongx9527.fw.plus.dify.app.IAppChatClient;
 import com.xiongx9527.fw.plus.dify.app.params.ParamMessage;
 import com.xiongx9527.fw.plus.dify.app.types.DifyChatResult;
 import com.xiongx9527.fw.plus.dify.routes.AppRoutes;
+import com.xiongx9527.fw.plus.dify.types.DifyRoute;
 import com.xiongx9527.fw.plus.dify.types.HttpMethod;
 import com.xiongx9527.fw.plus.dify.app.types.DifyChatEvent;
 import lombok.extern.slf4j.Slf4j;
@@ -87,7 +88,8 @@ public class AppChatClientImpl extends AppBaseClientImpl implements IAppChatClie
      * 停止 Dify 聊天应用正在生成的响应
      * 
      * <p>该方法通过向 Dify 服务端发送停止请求，中断指定任务 ID 的响应生成过程。
-     * 适用于用户主动取消生成长回复或需要紧急停止计算资源的场景。</p>
+     * 适用于用户主动取消生成长回复或需要紧急停止计算资源的场景。
+     * user 与发起者不一致时服务端静默成功（不报错、也不停止实际生成），SDK 原样透传该语义。</p>
      *
      * @param taskId 任务唯一标识符，用于定位需要停止的生成任务
      *               该 ID 通常在启动生成任务时由服务端返回
@@ -297,6 +299,66 @@ public class AppChatClientImpl extends AppBaseClientImpl implements IAppChatClie
                 }}
         );
 
+        return JSON.parseObject(result);
+    }
+
+    /**
+     * 获取会话变量
+     * <p>对应 GET /conversations/{conversation_id}/variables；
+     * 400 not_chat_app/invalid_param、404 not_found 原样抛出。</p>
+     *
+     * @param conversationId 会话 ID
+     * @param user           用户标识（可选）
+     * @param limit          返回条数（可选，默认 20，1–100）
+     * @param lastId         分页游标：当前页最后一条变量的 id（可选）
+     * @param variableName   按名称筛选变量（可选，1–255 字符）
+     * @return JSONObject 会话变量分页对象（data[]/has_more/limit）
+     */
+    @Override
+    public JSONObject listConversationVariables(String conversationId, String user, Integer limit, String lastId, String variableName) {
+        DifyRoute route = AppRoutes.CONVERSATION_VARIABLES.format(new HashMap<String, Object>() {{
+            put("conversationId", conversationId);
+        }});
+
+        String result = SimpleHttpClient.get(config).requestJson(route, new HashMap<String, Object>() {{
+            put("user", user);
+            put("limit", limit);
+            put("last_id", lastId);
+            put("variable_name", variableName);
+        }}, null);
+
+        if (result == null) {
+            return null;
+        }
+        return JSON.parseObject(result);
+    }
+
+    /**
+     * 更新会话变量
+     * <p>对应 PUT /conversations/{conversation_id}/variables/{variable_id}；
+     * 新值必须匹配变量现有类型，类型不匹配返回 400 bad_request、变量或会话不存在返回 404 not_found。</p>
+     *
+     * @param conversationId 会话 ID
+     * @param variableId     变量 ID
+     * @param value          变量新值（必填）
+     * @param user           用户标识（可选）
+     * @return JSONObject 更新后的变量对象
+     */
+    @Override
+    public JSONObject updateConversationVariable(String conversationId, String variableId, Object value, String user) {
+        DifyRoute route = AppRoutes.CONVERSATION_VARIABLE_SET.format(new HashMap<String, Object>() {{
+            put("conversationId", conversationId);
+            put("variableId", variableId);
+        }});
+
+        String result = SimpleHttpClient.get(config).requestJson(route, null, new HashMap<String, Object>() {{
+            put("value", value);
+            put("user", user);
+        }});
+
+        if (result == null) {
+            return null;
+        }
         return JSON.parseObject(result);
     }
 

@@ -2,7 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.MagicApiPluginAutoConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.config.MagicApiMcpProperties;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.starter.MagicAPIMcpConfiguration;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.starter.MagicAPIMcpServerConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.tools.MagicApiMcpToolInvoker;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.tools.MagicApiMcpToolRegistrar;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.tools.MagicApiMcpToolRegistry;
@@ -22,7 +22,7 @@ class MagicApiMcpPluginAutoConfigurationTest {
             context.register(MagicApiPluginAutoConfiguration.class);
             context.refresh();
 
-            MagicAPIMcpConfiguration configuration = context.getBean(MagicAPIMcpConfiguration.class);
+            MagicAPIMcpServerConfiguration configuration = context.getBean(MagicAPIMcpServerConfiguration.class);
             assertNotNull(configuration);
             assertNotNull(context.getBean(MagicApiMcpProperties.class));
             assertNotNull(context.getBean(MagicApiMcpToolRegistry.class));

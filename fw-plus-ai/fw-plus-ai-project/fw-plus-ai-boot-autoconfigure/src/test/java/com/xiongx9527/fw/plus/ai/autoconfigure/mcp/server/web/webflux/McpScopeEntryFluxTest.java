@@ -7,9 +7,13 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime.McpServerRuntime;
 import com.xiongx9527.fw.plus.ai.mcp.server.spi.ServerSseRegistry;
 import com.xiongx9527.fw.plus.ai.mcp.server.spi.ServerStreamableHttpRegistry;
+import com.xiongx9527.fw.plus.auth.core.AuthService;
+import com.xiongx9527.fw.plus.auth.core.AuthPrincipal;
+import com.xiongx9527.fw.plus.auth.core.AuthRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.mock.web.reactive.function.server.MockServerRequest;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
@@ -45,7 +49,19 @@ class McpScopeEntryFluxTest {
 		ServerResponse response = invoke(handler, "handleMessage",
 				messageRequest("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"prompts/get\"}")).block();
 
-		assertThat(response.statusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+		assertThat(response.statusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+		verify((ServerSseRegistry) runtime.getRegistry(), never()).handle(any(), any());
+	}
+
+	@Test
+	void shouldRejectSseMessageWhenScopesAreEmpty() throws Exception {
+		McpServerRuntime runtime = sseRuntime(principal(), true);
+		McpFluxTransportHandler handler = new McpFluxTransportHandler(runtime, Schedulers.immediate());
+
+		ServerResponse response = invoke(handler, "handleMessage",
+				messageRequest("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"prompts/get\"}")).block();
+
+		assertThat(response.statusCode()).isEqualTo(HttpStatus.FORBIDDEN);
 		verify((ServerSseRegistry) runtime.getRegistry(), never()).handle(any(), any());
 	}
 
@@ -83,6 +99,19 @@ class McpScopeEntryFluxTest {
 	}
 
 	@Test
+	void shouldBypassScopeCheckForExplicitPermitAll() throws Exception {
+		// 显式 permit-all 主体没有 scopes，开启裁剪时也放行进内核（spec S4）
+		McpServerRuntime runtime = sseRuntime(com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.McpPrincipal.PERMIT_ALL, true);
+		McpFluxTransportHandler handler = new McpFluxTransportHandler(runtime, Schedulers.immediate());
+
+		ServerResponse response = invoke(handler, "handleMessage",
+				messageRequest("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"prompts/get\"}")).block();
+
+		assertThat(response.statusCode()).isNotEqualTo(HttpStatus.FORBIDDEN);
+		verify((ServerSseRegistry) runtime.getRegistry()).handle(any(), any());
+	}
+
+	@Test
 	void shouldRejectStreamablePostWhenCapabilityScopeMissing() throws Exception {
 		McpServerRuntime runtime = streamableRuntime(principal("tools"), true);
 		ServerStreamableHttpRegistry registry = (ServerStreamableHttpRegistry) runtime.getRegistry();
@@ -92,7 +121,7 @@ class McpScopeEntryFluxTest {
 		ServerResponse response = invoke(handler, "post",
 				postRequest("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"resources/read\"}")).block();
 
-		assertThat(response.statusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+		assertThat(response.statusCode()).isEqualTo(HttpStatus.FORBIDDEN);
 		verify(registry, never()).post(any(), anyMap());
 	}
 
@@ -123,10 +152,13 @@ class McpScopeEntryFluxTest {
 		when(runtime.getRegistry()).thenReturn((com.xiongx9527.fw.plus.ai.mcp.server.spi.BaseServerRegistry) registry);
 		when(runtime.hasSession("known-uuid")).thenReturn(true);
 		when(runtime.hasSession("known-session")).thenReturn(true);
-		when(runtime.getAuthService()).thenReturn(new McpAuthService() {
+		when(runtime.getAuthService()).thenReturn(new AuthService() {
 			@Override
-			public McpPrincipal authenticate(McpRequest request) {
-				return principal;
+			public com.xiongx9527.fw.plus.auth.core.AuthPrincipal authenticate(com.xiongx9527.fw.plus.auth.core.AuthRequest request) {
+				if (principal == com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.McpPrincipal.PERMIT_ALL) {
+					return com.xiongx9527.fw.plus.auth.core.AuthPrincipal.PERMIT_ALL;
+				}
+				return new com.xiongx9527.fw.plus.auth.core.AuthPrincipal(principal.getSubject(), principal.getScopes());
 			}
 		});
 		return runtime;
@@ -138,29 +170,23 @@ class McpScopeEntryFluxTest {
 		return new McpPrincipal("tester", set);
 	}
 
-	private ServerRequest postRequest(String body) {
-		ServerRequest.Headers headers = headers("known-session");
-		ServerRequest request = mock(ServerRequest.class);
-		when(request.headers()).thenReturn(headers);
-		when(request.bodyToMono(String.class)).thenReturn(Mono.just(body));
-		return request;
-	}
-
+	// MockServerRequest(5.3) 的 bodyToMono 直接返回 body 字段，body 必须是 Mono；
+// Builder#body 本身即返回 MockServerRequest，无需再 build()
 	private ServerRequest messageRequest(String body) {
-		ServerRequest.Headers headers = headers(null);
-		ServerRequest request = mock(ServerRequest.class);
-		when(request.headers()).thenReturn(headers);
-		when(request.pathVariable("uuid")).thenReturn("known-uuid");
-		when(request.bodyToMono(String.class)).thenReturn(Mono.just(body));
-		return request;
+		return MockServerRequest.builder()
+				.method(org.springframework.http.HttpMethod.POST)
+				.uri(java.net.URI.create("/mcp"))
+				.pathVariable("uuid", "known-uuid")
+				.header("Origin", "")
+				.body(Mono.just(body));
 	}
 
-	private ServerRequest.Headers headers(String session) {
-		ServerRequest.Headers headers = mock(ServerRequest.Headers.class);
-		when(headers.firstHeader("Mcp-Session-Id")).thenReturn(session);
-		when(headers.firstHeader("Origin")).thenReturn(null);
-		when(headers.asHttpHeaders()).thenReturn(new HttpHeaders());
-		return headers;
+	private ServerRequest postRequest(String body) {
+		return MockServerRequest.builder()
+				.method(org.springframework.http.HttpMethod.POST)
+				.uri(java.net.URI.create("/mcp"))
+				.header("Mcp-Session-Id", "known-session")
+				.body(Mono.just(body));
 	}
 
 	private Mono<ServerResponse> invoke(McpFluxTransportHandler handler, String methodName, ServerRequest request)

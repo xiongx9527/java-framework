@@ -28,7 +28,9 @@ import java.util.List;
  *   <li><b>SYSTEM</b>：系统提示词，由 {@code ChatAssistantConfig.systemMessageProvider} 生成，
  *       <b>末尾的「可参考的资料」就是 RAG 检索结果</b>（经 {@code @V("ragContext")} 注入）；</li>
  *   <li><b>USER</b>：用户原话（检索内容不在这里）；</li>
- *   <li><b>TOOL_CALL</b>：模型请求执行的工具及参数（{@code AiMessage.toolExecutionRequests}）；</li>
+ *   <li><b>TOOL_CALL</b>：工具及参数（{@code AiMessage.toolExecutionRequests}），
+ *       出现在请求上下文里的必然是<b>本轮进行中</b>的调用——内置持久化策略一律排除工具请求消息，
+ *       它不会来自历史；</li>
  *   <li><b>TOOL_RESPONSE</b>：工具执行结果（{@code ToolExecutionResultMessage}）；</li>
  *   <li><b>RESPONSE</b>：模型回复与 token 用量。</li>
  * </ul>
@@ -73,7 +75,7 @@ public class ChatContextLogger implements ChatModelListener {
 		AiMessage aiMessage = responseContext.response().aiMessage();
 		if (aiMessage.hasToolExecutionRequests()) {
 			for (ToolExecutionRequest request : aiMessage.toolExecutionRequests()) {
-				log.info("TOOL_CALL    模型请求工具 {} 参数 {}", request.name(), request.arguments());
+				log.info("TOOL_CALL    模型请求工具 {} 参数 {}", request.name(), abbreviate(request.arguments()));
 			}
 		} else {
 			log.info("RESPONSE     模型回复: {}", abbreviate(aiMessage.text()));
@@ -109,7 +111,9 @@ public class ChatContextLogger implements ChatModelListener {
 			return;
 		}
 		for (ToolExecutionRequest request : message.toolExecutionRequests()) {
-			log.info("[{}] TOOL_CALL    历史工具请求 {} 参数 {}", index, request.name(), request.arguments());
+			// 不加「历史」前缀：请求里的工具调用必然是本轮进行中的（内置策略一律排除工具请求 AI 消息，
+			// 它不可能来自历史），标成历史会让人误判工具调用泄漏进了下一轮。
+			log.info("[{}] TOOL_CALL    工具请求 {} 参数 {}", index, request.name(), abbreviate(request.arguments()));
 		}
 	}
 

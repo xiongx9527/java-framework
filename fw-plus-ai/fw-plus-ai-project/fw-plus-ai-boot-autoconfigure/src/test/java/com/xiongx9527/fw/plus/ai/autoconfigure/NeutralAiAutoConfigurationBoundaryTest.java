@@ -16,7 +16,6 @@ public class NeutralAiAutoConfigurationBoundaryTest {
 
 	private static final List<String> PUBLIC_AUTOCONFIGURATION_MARKERS = Arrays.asList(
 			"dev.langchain4j",
-			"dev.tinyflow.langchain4j",
 			"com.xiongx9527.fw.plus.ai.langchain4j",
 			"fw-plus.ai.langchain4j",
 			"fw.plus.ai.langchain4j");

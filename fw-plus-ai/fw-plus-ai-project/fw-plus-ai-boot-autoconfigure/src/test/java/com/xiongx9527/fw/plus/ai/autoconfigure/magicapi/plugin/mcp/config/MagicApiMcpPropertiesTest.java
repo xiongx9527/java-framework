@@ -11,6 +11,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -38,10 +39,10 @@ class MagicApiMcpPropertiesTest {
         source.put("magic-api.plugin.mcp.tools.functions.include-groups[0]", "/system/**");
         source.put("magic-api.plugin.mcp.tools.api.require-opt-in", "true");
         source.put("magic-api.plugin.mcp.tools.api.opt-in-option-name", "exposeToMcp");
-        source.put("magic-api.plugin.mcp.auth.resource", "custom-resource");
         source.put("magic-api.plugin.mcp.servers[0].key", "report");
         source.put("magic-api.plugin.mcp.servers[0].endpoint", "/mcp/report");
         source.put("magic-api.plugin.mcp.servers[0].transport", "streamable-http");
+        source.put("magic-api.plugin.mcp.servers[0].auth.provider", "sa-token-oauth2");
         source.put("magic-api.plugin.mcp.servers[0].tools.api.require-opt-in", "true");
 
         MagicApiMcpProperties properties = new Binder(new MapConfigurationPropertySource(source))
@@ -58,6 +59,8 @@ class MagicApiMcpPropertiesTest {
         assertEquals("report", server.getKey());
         assertEquals("/mcp/report", server.getEndpoint());
         assertEquals("streamable-http", server.getTransport());
+        assertNotNull(server.getAuth());
+        assertEquals("sa-token-oauth2", server.getAuth().getProvider());
         assertTrue(server.getTools().getApi().isRequireOptIn());
     }
 

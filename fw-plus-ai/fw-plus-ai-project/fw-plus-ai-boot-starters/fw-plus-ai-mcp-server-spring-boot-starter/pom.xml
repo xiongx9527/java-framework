@@ -49,6 +49,14 @@
             <artifactId>fw-plus-ai-boot-starter</artifactId>
         </dependency>
 
+        <!-- 认证内核：fw-plus-ai-boot-autoconfigure 的 McpAutoConfiguration @Bean 签名
+             硬引用 InstanceAuthRegistry，其 pom 里该依赖是 optional 不传递；
+             starter 必须携带，否则消费方启动内省配置类即 NoClassDefFoundError。 -->
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-auth-core</artifactId>
+        </dependency>
+
         <!-- Configuration Processor (for IDE auto-completion) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

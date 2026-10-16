@@ -48,6 +48,7 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Redis（MCP 集群广播/消费使用；ChatMemoryStore 不再依赖） -->
         <dependency>
             <groupId>org.springframework.data</groupId>
             <artifactId>spring-data-redis</artifactId>
@@ -60,12 +61,37 @@
             <artifactId>fw-plus-ai-boot</artifactId>
         </dependency>
 
+        <!-- 编译期注解处理：@Data/@Slf4j 等注解依赖 Lombok 生成访问器，
+             与 core 层 fw-plus-ai-langchain4j-* 各模块一致，显式声明 provided -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
 		<dependency>
 			<groupId>com.xiongx9527.fw.plus</groupId>
 			<artifactId>fw-plus-dify</artifactId>
 			<scope>compile</scope>
 			<optional>true</optional>
 		</dependency>
+
+        <!-- 认证核心框架（provider 注册、fail-closed、principal、scope 裁剪） -->
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-auth-core</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+        <!-- Sa-Token provider 实现（optional，按 classpath 条件装配） -->
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-auth-satoken</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
 
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
@@ -149,9 +175,35 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Sa-Token 各认证 provider：逐模块 optional，classpath 缺失时对应 provider 不可配置，
+             已配置则 fail-closed 拒绝请求（见 McpAuthServiceRegistry） -->
+        <dependency>
+            <groupId>cn.dev33</groupId>
+            <artifactId>sa-token-core</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
         <dependency>
             <groupId>cn.dev33</groupId>
             <artifactId>sa-token-oauth2</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>cn.dev33</groupId>
+            <artifactId>sa-token-jwt</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>cn.dev33</groupId>
+            <artifactId>sa-token-apikey</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>cn.dev33</groupId>
+            <artifactId>sa-token-sso</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
@@ -182,19 +234,6 @@
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
-        <!-- 文档解析（RAG 入库链路用，当前仅预置依赖；入库封装待知识库管理一起做） -->
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-easy-rag</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-document-parser-apache-tika</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-jina</artifactId>
@@ -222,7 +261,7 @@
 
         <!-- 模型资源插件：模型供应商（optional；qianfan/github-models/voyage-ai/azure-open-ai/
              vertex-ai-gemini 已由 fw 包装模块传递，此处补齐 google-gemini/hugging-face/local-ai/
-             zhipu（社区版）/onnx 内置 embedding 与 neo4j store） -->
+             zhipu（社区版）与 neo4j store） -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-google-ai-gemini</artifactId>
@@ -250,18 +289,6 @@
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-embeddings</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-embeddings-bge-small-en-v15-q</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-embeddings-all-minilm-l6-v2-q</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>

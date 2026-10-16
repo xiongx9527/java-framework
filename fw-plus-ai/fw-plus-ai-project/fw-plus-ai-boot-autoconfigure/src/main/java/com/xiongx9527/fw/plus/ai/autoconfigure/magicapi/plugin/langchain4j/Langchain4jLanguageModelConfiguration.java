@@ -24,7 +24,7 @@ public class Langchain4jLanguageModelConfiguration extends AbstractLangchain4jPl
     private static final String JAVASCRIPT_FILENAME = "magic-langchain4j-language-model.1.0.0.iife.js";
 
     public Langchain4jLanguageModelConfiguration() {
-        super("langchain4j-language-model", "MagicLangchain4jLanguageModel", JAVASCRIPT_FILENAME);
+        super("langchain4j-language-model", "MagicLangchain4jLanguageModel", JAVASCRIPT_FILENAME, false);
     }
 
     @Bean

@@ -8,10 +8,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 提示词定义。名称复用父类 {@link MagicEntity#name}，勿声明同名字段遮蔽（否则 simple() 节点
+ * name 恒为 null，控制台资源树渲染会中断）。
+ */
 @Data
 public class MagicMcpPromptInfo extends MagicEntity {
-
-	private String name;
 
 	private String description;
 

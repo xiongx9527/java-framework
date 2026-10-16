@@ -54,6 +54,8 @@ class Langchain4jDatasourcePluginIntegrationTest {
                 when(service.listFiles(anyString())).thenReturn(Collections.emptyList());
                 return service;
             })
+            // scoring-model 的装配开关 matchIfMissing=false，不显式开启则该插件配置缺席
+            .withPropertyValues("fw.plus.magicapi.langchain4j.scoring-model.enabled=true")
             .withUserConfiguration(Langchain4jDatasourceConfiguration.class);
 
     @Test
@@ -128,16 +130,17 @@ class Langchain4jDatasourcePluginIntegrationTest {
     }
 
     @Test
-    void shouldFailPluginRegistrationButKeepServerSideAssemblyWhenFrontendMissing() {
+    void shouldAlwaysRegisterPluginWithFrontendIdentity() {
         runner.run(context -> {
             assertThat(context).hasNotFailed();
-            // 每类资源一个插件配置：产物缺失时各自只按基础标识注册，服务端装配不受影响
+            // 每类资源一个插件配置：统一以 (name, globalName, javascriptFilename) 注册，
+            // 上报内容不随前端产物当前是否落在 classpath 上而变化
             for (AbstractLangchain4jPluginConfiguration configuration
                     : context.getBeansOfType(AbstractLangchain4jPluginConfiguration.class).values()) {
-                boolean frontendPresent = configuration.getClass().getClassLoader()
-                        .getResource(configuration.frontendResource()) != null;
+                assertThat(configuration.plugin().getGlobalName())
+                        .isEqualTo(configuration.globalName());
                 assertThat(configuration.plugin().getJavascriptFilename())
-                        .isEqualTo(frontendPresent ? configuration.javascriptFilename() : null);
+                        .isEqualTo(configuration.javascriptFilename());
             }
             assertThat(context).hasSingleBean(MagicDynamicLangchain4jChatModelDataSource.class);
         });
@@ -156,16 +159,12 @@ class Langchain4jDatasourcePluginIntegrationTest {
                     .containsExactlyInAnyOrder(
                             "langchain4j-chat-model",
                             "langchain4j-embedding-model",
+                            "langchain4j-scoring-model",
                             "langchain4j-embedding-store",
                             "langchain4j-language-model",
                             "langchain4j-streaming-chat-model",
                             "langchain4j-streaming-language-model",
-                            "langchain4j-tokenizer",
-                            "langchain4j-tool-provider",
-                            "langchain4j-system-message",
-                            "langchain4j-chat-memory-store",
-                            "langchain4j-content-retriever",
-                            "langchain4j-content-injector");
+                            "langchain4j-tokenizer");
         });
     }
 

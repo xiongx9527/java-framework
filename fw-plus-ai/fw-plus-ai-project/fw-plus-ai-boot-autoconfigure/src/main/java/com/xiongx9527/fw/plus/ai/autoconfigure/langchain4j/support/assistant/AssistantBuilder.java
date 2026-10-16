@@ -1,8 +1,26 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.aggregate.AggregatingToolProvider;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextAwareChatMemory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextInjector;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextMaintenance;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextProvider;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextRequest;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextStrategy;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentClassifier;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentRag;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentSupplier;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentTools;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.AiPersistenceStrategy;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.EphemeralChatMemory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.EphemeralChatMemoryProperties;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.LengthBoundedAiPersistenceStrategy;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatstore.ChatMemoryIds;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.PersistToolResultsAiPersistenceStrategy;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.session.SessionIdResolver;
 
+import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.agent.tool.ToolSpecifications;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
@@ -19,17 +37,23 @@ import dev.langchain4j.rag.content.aggregator.ReRankingContentAggregator;
 import dev.langchain4j.rag.content.injector.ContentInjector;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.service.AiServices;
+import dev.langchain4j.service.tool.ToolExecutor;
 import dev.langchain4j.service.tool.ToolProvider;
+import dev.langchain4j.service.tool.ToolProviderResult;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 /**
- * 助手构建器：把 {@code AiServices<Assistant>} 的装配过程做成脚本可直接链式调用的形态，
+ * 助手构建器：把 {@code AiServices} 的装配过程做成脚本可直接链式调用的形态，
  * 一一对应 {@code AiServices} 的能力（模型 / 流式模型 / 记忆 / 系统提示 / 工具 / 检索增强）。
+ * 产出是双层结构：内层 {@code TextAssistant}（AiServices 原生管线）+ 外层
+ * {@link MultimodalAssistantBridge}（多模态桥接），对外仍表现为 {@link Assistant} 接口。
  *
  * <p>所有依赖都由调用方作为参数传入（不做 Spring 注入）：实例从各类型脚本模块取，
  * 如 {@code langchain4jChatModel['key']}、{@code langchain4jChatMemoryStore['key']}、
@@ -40,8 +64,10 @@ import java.util.function.Function;
  * 至少配一个；其余能力不配即不参与装配。
  * 记忆二选一：配置 {@link #tokenizer(Tokenizer)} 用 {@code TokenWindowChatMemory}（按 token 截断），
  * 否则用 {@code MessageWindowChatMemory}（按条数截断）——都不配时用进程内窗口记忆（默认 20 条）。
- * 无论哪种，内置记忆都包一层 {@link EphemeralChatMemory}：历史只沉淀系统提示与用户原话，
- * RAG 检索段与工具往返不进历史。
+ * 无论哪种，内置记忆都包一层 {@link EphemeralChatMemory}：默认按 {@code PERSIST_NON_TOOL_FINAL_ANSWER}
+ * 策略把「上一轮未调用工具」的最终回答沉淀进历史、带到下一轮（可用 {@link #aiPersistenceStrategy(AiPersistenceStrategy)}
+ * 或 {@link #ephemeralChatMemory(EphemeralChatMemoryProperties)} 切换/自定义策略与插入位置）；
+ * RAG 检索段与工具往返不进历史，只在本轮请求里带出。无有效字符的 AI 回复一律不沉淀。
  */
 public class AssistantBuilder {
 
@@ -90,11 +116,62 @@ public class AssistantBuilder {
 	/** TokenWindowChatMemory 的 token 上限（仅在配置了 tokenizer 时生效，默认 1000） */
 	private Integer maxTokens;
 
+	/** AI 持久化策略对象（优先级最高：对象 > Key > 默认） */
+	private AiPersistenceStrategy aiPersistenceStrategy;
+
+	/** AI 持久化策略 Key（name 或 class，全限定名） */
+	private String aiPersistenceStrategyKey;
+
+	/** 是否严格校验 AI 持久化策略 Key */
+	private boolean strictAiPersistenceStrategy = false;
+
+	/** Ephemeral：是否限制 AI 消息长度 */
+	private boolean ephemeralLimitAiLength = false;
+
+	/** Ephemeral：单条 AI 最大字符数（-1 不限制） */
+	private int ephemeralMaxAiCharsPerMessage = -1;
+
+	/** Ephemeral：AI 总字符数限制（-1 不限制） */
+	private int ephemeralMaxAiTotalChars = -1;
+
+	/** Ephemeral：AI 最大条数（<=0 表示不限制） */
+	private int ephemeralMaxAiMessages = Integer.MAX_VALUE;
+
+	/** Ephemeral：超长是否截断（false：超长直接丢弃） */
+	private boolean ephemeralTruncateAiIfExceeds = false;
+
+	/** Ephemeral：是否持久化 ToolExecutionResultMessage */
+	private boolean ephemeralPersistToolResults = false;
+
+	/** Ephemeral：ToolExecutionResult 最大字符数 */
+	private int ephemeralMaxToolResultChars = 512;
+
+	/** Ephemeral：ToolExecutionResult 最大条数 */
+	private int ephemeralMaxToolResults = 0;
+
+	/** Ephemeral：临时内容分隔符 */
+	private java.util.List<String> ephemeralSeparators;
+
+	/** Ephemeral：历史 User 是否剥离 RAG 临时段 */
+	private boolean ephemeralStripRagFromHistory = true;
+
+	/** Ephemeral：当前轮 User 是否保留临时段 */
+	private boolean ephemeralIncludeCurrentUserWithEphemeral = true;
+
+	/** Ephemeral：当前轮是否发送 ToolExecutionResult */
+	private boolean ephemeralSendToolResultsInCurrentTurn = true;
+
+	/** Ephemeral：当前轮是否发送带工具请求的 AiMessage（中间步） */
+	private boolean ephemeralSendToolRequestsInCurrentTurn = true;
+
 	private ChatMemoryStore memoryStore;
 
 	private final List<Object> tools = new ArrayList<>();
 
 	private final List<ToolProvider> toolProviders = new ArrayList<>();
+
+	/** 工具参数错误处理器：缺参/绑定失败回给 LLM 的策略（业务来定，缺省用内置默认） */
+	private ToolArgumentsErrorHandler toolArgumentsErrorHandler = ToolArgumentsErrorHandler.DEFAULT;
 
 	private RetrievalAugmentor retrievalAugmentor;
 
@@ -105,6 +182,21 @@ public class AssistantBuilder {
 	private ScoringModel scoringModel;
 
 	private Double rerankMinScore;
+
+	/** 意图分类器：经 {@link #intent(IntentClassifier)} 挂载；同时注入产出的 SimpleAssistant */
+	private IntentClassifier<?> intentClassifier;
+
+	/** 上下文组合策略（默认 {@code memory-and-enriched}）；控制是否注入附加来源（摘要等） */
+	private ContextStrategy contextStrategy = ContextStrategy.MEMORY_AND_ENRICHED;
+
+	/** 有序上下文来源集合（如 {@code SummaryContextProvider}）；空则不注入 */
+	private final List<ContextProvider> contextProviders = new ArrayList<ContextProvider>();
+
+	/** 上下文维护钩子（读时兜底，如 {@code SummaryMaintenance}） */
+	private final List<ContextMaintenance> contextMaintenances = new ArrayList<ContextMaintenance>();
+
+	/** 会话标识解析器（默认在 {@link SimpleAssistant} 内为 daily）；配置 {@code session.session-id-resolver} 时覆盖 */
+	private SessionIdResolver sessionResolver;
 
 	/** 对话模型（必填）：{@code langchain4jChatModel['key']} 或任意 {@link ChatLanguageModel} 实例 */
 	public AssistantBuilder chatModel(ChatLanguageModel model) {
@@ -184,6 +276,46 @@ public class AssistantBuilder {
 		return this;
 	}
 
+	/** 上下文组合策略：{@code memory} / {@code enriched} / {@code memory-and-enriched}（默认后者） */
+	public AssistantBuilder contextStrategy(ContextStrategy strategy) {
+		if (strategy != null) {
+			this.contextStrategy = strategy;
+		}
+		return this;
+	}
+
+	/** 注册一个有序上下文来源（如 {@code new SummaryContextProvider(summaryStore)}），可传多个 */
+	public AssistantBuilder contextProvider(ContextProvider... providers) {
+		if (providers != null) {
+			for (ContextProvider provider : providers) {
+				if (provider != null) {
+					this.contextProviders.add(provider);
+				}
+			}
+		}
+		return this;
+	}
+
+	/** 注册上下文维护钩子（读时兜底，如 {@code new SummaryMaintenance(engine, windowSize)}），可传多个 */
+	public AssistantBuilder contextMaintenance(ContextMaintenance... maintenances) {
+		if (maintenances != null) {
+			for (ContextMaintenance maintenance : maintenances) {
+				if (maintenance != null) {
+					this.contextMaintenances.add(maintenance);
+				}
+			}
+		}
+		return this;
+	}
+
+	/** 会话标识解析器：配置 {@code session.session-id-resolver}（daily/explicit）时覆盖默认 daily */
+	public AssistantBuilder sessionResolver(SessionIdResolver resolver) {
+		if (resolver != null) {
+			this.sessionResolver = resolver;
+		}
+		return this;
+	}
+
 	/** 工具：带 {@code @Tool} 方法的对象，可传多个。同类型工具按“后注册覆盖先注册”去重，避免重复调用注册出多份 */
 	public AssistantBuilder tools(Object... toolObjects) {
 		if (toolObjects != null) {
@@ -211,6 +343,20 @@ public class AssistantBuilder {
 				}
 			}
 		}
+		return this;
+	}
+
+	/**
+	 * 工具参数错误处理：必填参数缺失/参数绑定失败时，如何回文本给 LLM——
+	 * 缺参提示反问用户补齐、格式错误提示修正重试等策略由业务来定；
+	 * 不配置时用内置默认 {@link ToolArgumentsErrorHandler#DEFAULT}。
+	 *
+	 * <p>langchain4j 0.35 没有原生 {@code toolArgumentsErrorHandler} 扩展点，
+	 * 通过 {@link GuardedToolExecutor} 包装 {@code tools(...)} 与 {@code toolProvider(...)}
+	 * 两条注册路径实现等价能力；升级 langchain4j 1.x 后可改为原生扩展点透传。</p>
+	 */
+	public AssistantBuilder toolArgumentsErrorHandler(ToolArgumentsErrorHandler handler) {
+		this.toolArgumentsErrorHandler = handler != null ? handler : ToolArgumentsErrorHandler.DEFAULT;
 		return this;
 	}
 
@@ -248,16 +394,206 @@ public class AssistantBuilder {
 	}
 
 	/**
+	 * 意图识别一站式入口：挂上分类器，并在返回的 {@link IntentRouting} 上按需配置意图化检索
+	 * （{@link IntentRag}）与意图化工具（{@link IntentTools}）。
+	 *
+	 * <p>{@link IntentRouting#done()} / {@link IntentRouting#build()} 会把配好的意图检索器设为
+	 * {@code contentRetriever}、意图工具提供者设为 {@code toolProvider}（与直接调用这两个方法同义，
+	 * <b>后调用者覆盖先调用者</b>）；只挂分类器、不配路由时，不影响原有检索/工具装配，仅额外提供
+	 * {@link SimpleAssistant#classifyIntent(String)}。分类器同时注入产出的 {@link SimpleAssistant}。</p>
+	 *
+	 * <pre>{@code
+	 * AssistantBuilder builder = new AssistantBuilder().chatModel(model);
+	 * AssistantBuilder.IntentRouting<MyIntent> intent = builder.intent(classifier);
+	 * intent.rag().route(MyIntent.LOGISTICS, logisticsRetriever).fallback(defaultRetriever);
+	 * intent.tools().source(aggregatingToolProvider).allow(MyIntent.LOGISTICS, "track_order");
+	 * SimpleAssistant assistant = intent.build();
+	 * }</pre>
+	 */
+	public <I extends Enum<I>> IntentRouting<I> intent(IntentClassifier<I> classifier) {
+		if (classifier == null) {
+			throw new IllegalArgumentException("classifier 不能为 null");
+		}
+		this.intentClassifier = classifier;
+		return new IntentRouting<I>(this, classifier);
+	}
+
+	/**
 	 * 按当前配置装配 {@link AiServices}，返回易用封装 {@link SimpleAssistant}
 	 * （{@code chat(message)} 两参即可、{@code streamToSse(...)} 直接推流）；
 	 * 需要底层 {@link Assistant} 类型时用 {@link #toAssistant()}。
 	 */
+
+	/**
+	 * 设置 AI 持久化策略（对象实例，优先级最高：对象 > Key > 默认）。
+	 */
+	public AssistantBuilder aiPersistenceStrategy(AiPersistenceStrategy strategy) {
+		this.aiPersistenceStrategy = strategy;
+		this.aiPersistenceStrategyKey = null;
+		return this;
+	}
+
+	/**
+	 * 设置 AI 持久化策略（名称或全限定类名，优先级次于策略对象）。
+	 * <p>支持内置策略名、自定义注册名、全限定类名。</p>
+	 */
+	public AssistantBuilder aiPersistenceStrategy(String keyOrClass) {
+		if (keyOrClass == null || keyOrClass.trim().isEmpty()) {
+			this.aiPersistenceStrategyKey = null;
+			return this;
+		}
+		this.aiPersistenceStrategyKey = keyOrClass.trim();
+		this.aiPersistenceStrategy = null;
+		return this;
+	}
+
+	/**
+	 * 注册自定义 AI 持久化策略。
+	 */
+	public AssistantBuilder registerAiPersistenceStrategy(String name, AiPersistenceStrategy strategy) {
+		AiPersistenceStrategy.Registry.register(name, strategy);
+		return this;
+	}
+
+	/**
+	 * 注册自定义 AI 持久化策略并立即使用。
+	 */
+	public AssistantBuilder registerAndUseAiPersistenceStrategy(String name, AiPersistenceStrategy strategy) {
+		AiPersistenceStrategy.Registry.register(name, strategy);
+		this.aiPersistenceStrategyKey = name.trim();
+		this.aiPersistenceStrategy = null;
+		return this;
+	}
+
+	/**
+	 * 使用已注册的 AI 持久化策略（按名称或类名）。
+	 */
+	public AssistantBuilder useAiPersistenceStrategy(String nameOrClass) {
+		return aiPersistenceStrategy(nameOrClass);
+	}
+
+	/**
+	 * 是否严格校验 AI 持久化策略 Key。
+	 */
+	public AssistantBuilder strictAiPersistenceStrategy(boolean strict) {
+		this.strictAiPersistenceStrategy = strict;
+		return this;
+	}
+
+	public AssistantBuilder ephemeralLimitAiLength(boolean limit) {
+		this.ephemeralLimitAiLength = limit;
+		return this;
+	}
+
+	public AssistantBuilder ephemeralMaxAiCharsPerMessage(int max) {
+		this.ephemeralMaxAiCharsPerMessage = max;
+		return this;
+	}
+
+	public AssistantBuilder ephemeralMaxAiTotalChars(int max) {
+		this.ephemeralMaxAiTotalChars = max;
+		return this;
+	}
+
+	public AssistantBuilder ephemeralMaxAiMessages(int max) {
+		this.ephemeralMaxAiMessages = max;
+		return this;
+	}
+
+	public AssistantBuilder ephemeralTruncateAiIfExceeds(boolean truncate) {
+		this.ephemeralTruncateAiIfExceeds = truncate;
+		return this;
+	}
+
+	public AssistantBuilder ephemeralPersistToolResults(boolean persist) {
+		this.ephemeralPersistToolResults = persist;
+		return this;
+	}
+
+	public AssistantBuilder ephemeralMaxToolResultChars(int max) {
+		this.ephemeralMaxToolResultChars = max;
+		return this;
+	}
+
+	public AssistantBuilder ephemeralMaxToolResults(int max) {
+		this.ephemeralMaxToolResults = max;
+		return this;
+	}
+
+	public AssistantBuilder ephemeralSeparators(String... separators) {
+		if (separators != null && separators.length > 0) {
+			this.ephemeralSeparators = java.util.Arrays.asList(separators);
+		}
+		return this;
+	}
+
+	public AssistantBuilder ephemeralSeparators(java.util.List<String> separators) {
+		if (separators != null && !separators.isEmpty()) {
+			this.ephemeralSeparators = new java.util.ArrayList<>(separators);
+		}
+		return this;
+	}
+
+	public AssistantBuilder ephemeralStripRagFromHistory(boolean strip) {
+		this.ephemeralStripRagFromHistory = strip;
+		return this;
+	}
+
+	public AssistantBuilder ephemeralIncludeCurrentUserWithEphemeral(boolean include) {
+		this.ephemeralIncludeCurrentUserWithEphemeral = include;
+		return this;
+	}
+
+	public AssistantBuilder ephemeralSendToolResultsInCurrentTurn(boolean send) {
+		this.ephemeralSendToolResultsInCurrentTurn = send;
+		return this;
+	}
+
+	public AssistantBuilder ephemeralSendToolRequestsInCurrentTurn(boolean send) {
+		this.ephemeralSendToolRequestsInCurrentTurn = send;
+		return this;
+	}
+
+	/**
+	 * 用 {@link EphemeralChatMemoryProperties} 一次性配置 Ephemeral 记忆。
+	 * <p>策略解析走 {@link EphemeralChatMemoryProperties#resolveAiPersistenceStrategy()}，
+	 * 已包含「长度限制」与「工具结果持久化」装饰器；同时注册其中的自定义策略。</p>
+	 */
+	public AssistantBuilder ephemeralChatMemory(EphemeralChatMemoryProperties properties) {
+		if (properties == null || !properties.isEnabled()) {
+			return this;
+		}
+		// 直接解析成策略对象（优先级最高），避免与 key 双通道歧义
+		this.aiPersistenceStrategy = properties.resolveAiPersistenceStrategy();
+		this.aiPersistenceStrategyKey = null;
+		this.ephemeralSeparators = new java.util.ArrayList<>(properties.getEphemeralSeparators());
+		this.ephemeralStripRagFromHistory = properties.isStripRagFromHistory();
+		this.ephemeralIncludeCurrentUserWithEphemeral = properties.isIncludeCurrentUserWithEphemeral();
+		this.ephemeralSendToolResultsInCurrentTurn = properties.isSendToolResultsInCurrentTurn();
+		this.ephemeralSendToolRequestsInCurrentTurn = properties.isSendToolRequestsInCurrentTurn();
+		return this;
+	}
+
 	public SimpleAssistant build() {
 		// RetrievalAugmentor 从 builder 装配结果传入：常规模式随 AiServices 一起走检索增强，
 		// 只检索模式（retrievalOnly）则产出仅支持 retrieve(...) 的 SimpleAssistant；
+		// streamingModel 透传给 SimpleAssistant 的直连流式能力（streamWithFilter 用），
 		// languageModel / streamingLanguageModel 透传给 SimpleAssistant 的直连补全能力
-		return new SimpleAssistant(assemble(), chatModel, languageModel, streamingLanguageModel,
-				resolveRetrievalAugmentor());
+		SimpleAssistant assistant = new SimpleAssistant(assemble(), chatModel, streamingModel, languageModel,
+				streamingLanguageModel, resolveRetrievalAugmentor());
+		// 意图分类器注入：供 SimpleAssistant.classifyIntent 使用（路由由 intent(...) 装配到 contentRetriever/toolProvider）
+		if (intentClassifier != null) {
+			assistant.intentClassifier(intentClassifier);
+		}
+		// 检索器支持显式元数据过滤时，接线供 retrieve/chatWithFilter/streamWithFilter 过滤重载使用
+		if (contentRetriever instanceof SimpleAssistant.FilterableRetriever) {
+			assistant.filterableRetriever((SimpleAssistant.FilterableRetriever) contentRetriever);
+		}
+		// 会话标识解析器：配置 session.session-id-resolver 时覆盖默认 daily
+		if (sessionResolver != null) {
+			assistant.sessionResolver(sessionResolver);
+		}
+		return assistant;
 	}
 
 	/** 需要底层 {@link Assistant} 类型（如继续挂 AiServices 能力）时取用 */
@@ -279,8 +615,13 @@ public class AssistantBuilder {
 			}
 			return null;
 		}
-		AiServices<Assistant> builder = AiServices.builder(Assistant.class)
-				.chatMemoryProvider(resolveChatMemoryProvider());
+		// 双层结构：内层 TextAssistant（原 Assistant 签名）走 AiServices 原生完整管线
+		// （{{context}} 模板、工具循环 + GuardedToolExecutor、RAG、会话记忆），
+		// 外层 MultimodalAssistantBridge 实现 Assistant 新签名——纯文本轮转发内层，
+		// 多模态轮自拼 UserMessage 直调模型（记忆写文本占位、不挂工具）
+		ChatMemoryProvider memoryProvider = resolveChatMemoryProvider();
+		AiServices<TextAssistant> builder = AiServices.builder(TextAssistant.class)
+				.chatMemoryProvider(memoryProvider);
 
 		if (chatModel != null) {
 			builder.chatLanguageModel(chatModel);
@@ -292,18 +633,47 @@ public class AssistantBuilder {
 			builder.systemMessageProvider(systemMessageProvider);
 		}
 		if (!tools.isEmpty()) {
-			builder.tools(tools);
+			builder.tools(guardObjectTools());
 		}
 		if (toolProviders.size() == 1) {
-			builder.toolProvider(toolProviders.get(0));
+			builder.toolProvider(guardToolProvider(toolProviders.get(0)));
 		} else if (toolProviders.size() > 1) {
-			builder.toolProvider(new AggregatingToolProvider(toolProviders));
+			builder.toolProvider(guardToolProvider(new AggregatingToolProvider(toolProviders)));
 		}
 		RetrievalAugmentor augmentor = resolveRetrievalAugmentor();
 		if (augmentor != null) {
 			builder.retrievalAugmentor(augmentor);
 		}
-		return builder.build();
+		return new MultimodalAssistantBridge(builder.build(), chatModel, streamingModel,
+				memoryProvider, systemMessageProvider, augmentor);
+	}
+
+	/** 对象工具：生成 spec 并逐个包 {@link GuardedToolExecutor}（缺参检测 + 绑定失败回文本给 LLM） */
+	private Map<ToolSpecification, ToolExecutor> guardObjectTools() {
+		Map<ToolSpecification, ToolExecutor> guarded = new LinkedHashMap<ToolSpecification, ToolExecutor>();
+		for (Object tool : tools) {
+			if (tool instanceof Class) {
+				throw new IllegalArgumentException(String.format("Tool '%s' must be an object, not a class", tool));
+			}
+			for (ToolSpecification specification : ToolSpecifications.toolSpecificationsFrom(tool)) {
+				guarded.put(specification, new GuardedToolExecutor(specification, tool, toolArgumentsErrorHandler));
+			}
+		}
+		return guarded;
+	}
+
+	/** provider 工具：对 {@link ToolProvider} 返回结果里的每个执行器补包装，与对象工具的错误处理对齐 */
+	private ToolProvider guardToolProvider(ToolProvider provider) {
+		return request -> {
+			ToolProviderResult result = provider.provideTools(request);
+			if (result == null || result.tools() == null || result.tools().isEmpty()) {
+				return result;
+			}
+			ToolProviderResult.Builder guarded = ToolProviderResult.builder();
+			result.tools().forEach((specification, executor) -> guarded.add(specification,
+					new GuardedToolExecutor(specification, executor, toolArgumentsErrorHandler)));
+			return guarded.build();
+		};
 	}
 
 	/** 记忆：显式 provider → 传入的 store → 进程内 store；每个 memoryId 一份窗口记忆 */
@@ -312,8 +682,10 @@ public class AssistantBuilder {
 			return chatMemoryProvider;
 		}
 		final ChatMemoryStore store = memoryStore == null ? new InMemoryChatMemoryStore() : memoryStore;
-		// 内置记忆包一层 EphemeralChatMemory：历史只沉淀系统提示与用户原话，
-		// RAG 检索段与工具往返不进历史（与样例 ChatAssistantConfig 的行为一致）
+		final AiPersistenceStrategy resolvedStrategy = resolveEphemeralStrategy();
+		final java.util.List<String> separators = ephemeralSeparators != null
+				? ephemeralSeparators
+				: java.util.Collections.singletonList(EphemeralChatMemory.DEFAULT_RAG_SEPARATOR);
 		return memoryId -> {
 			ChatMemory delegate;
 			if (tokenizer != null) {
@@ -330,8 +702,79 @@ public class AssistantBuilder {
 						.chatMemoryStore(store)
 						.build();
 			}
-			return new EphemeralChatMemory(delegate, store);
+			ChatMemory ephemeral = EphemeralChatMemory.builder(delegate, store)
+					.aiPersistenceStrategy(resolvedStrategy)
+					.ephemeralSeparators(separators)
+					.stripRagFromHistory(ephemeralStripRagFromHistory)
+					.includeCurrentUserWithEphemeral(ephemeralIncludeCurrentUserWithEphemeral)
+					.sendToolResultsInCurrentTurn(ephemeralSendToolResultsInCurrentTurn)
+					.sendToolRequestsInCurrentTurn(ephemeralSendToolRequestsInCurrentTurn)
+					.build();
+			return wrapContextAware(memoryId, ephemeral);
 		};
+	}
+
+	/**
+	 * 用 {@link ContextAwareChatMemory} 包裹记忆并注入统一上下文来源；策略为 {@code memory}
+	 * 或未注册来源时原样返回（不注入、零开销）。会话键即当前 effective memoryId（5 段），
+	 * userId 由 memoryId 段[3] 解析（跨会话维度）。
+	 */
+	private ChatMemory wrapContextAware(Object memoryId, ChatMemory delegate) {
+		if (!contextStrategy.injectsEnriched() || contextProviders.isEmpty()) {
+			return delegate;
+		}
+		final String sessionKey = memoryId == null ? null : memoryId.toString();
+		final String userId = sessionKey == null ? null
+				: ChatMemoryIds.parseUserId(sessionKey, ChatMemoryIds.DEFAULT_USER_ID);
+		ContextInjector injector = new ContextInjector(contextProviders, contextStrategy);
+		return new ContextAwareChatMemory(delegate, injector,
+				latest -> new ContextRequest(sessionKey, sessionKey, userId, latest), contextMaintenances);
+	}
+
+	/**
+	 * 解析 AI 持久化策略，优先级：策略对象 &gt; 策略 Key（name/class）&gt; 默认
+	 * {@link AiPersistenceStrategy#PERSIST_NON_TOOL_FINAL_ANSWER}。
+	 * <p>随后依次叠加「长度限制」与「工具结果持久化」两个装饰器（按开关）。</p>
+	 */
+	private AiPersistenceStrategy resolveEphemeralStrategy() {
+		AiPersistenceStrategy strategy;
+		if (aiPersistenceStrategy != null) {
+			// 优先级 1：显式策略对象
+			strategy = aiPersistenceStrategy;
+		} else if (aiPersistenceStrategyKey != null && !aiPersistenceStrategyKey.trim().isEmpty()) {
+			// 优先级 2：策略 Key（注册名或全限定类名）
+			AiPersistenceStrategy resolved = AiPersistenceStrategy.Registry.tryResolve(aiPersistenceStrategyKey);
+			if (resolved == null) {
+				if (strictAiPersistenceStrategy) {
+					throw new IllegalArgumentException("未知的 AI 持久化策略：'" + aiPersistenceStrategyKey
+							+ "'（未在 AiPersistenceStrategy.Registry 注册，也无法作为 AiPersistenceStrategy 类实例化）");
+				}
+				resolved = AiPersistenceStrategy.PERSIST_NON_TOOL_FINAL_ANSWER;
+			}
+			strategy = resolved;
+		} else {
+			// 优先级 3：默认
+			strategy = AiPersistenceStrategy.PERSIST_NON_TOOL_FINAL_ANSWER;
+		}
+
+		if (ephemeralLimitAiLength) {
+			strategy = LengthBoundedAiPersistenceStrategy.builder(strategy)
+					.maxCharsPerMessage(ephemeralMaxAiCharsPerMessage)
+					.maxTotalChars(ephemeralMaxAiTotalChars)
+					.maxMessages(ephemeralMaxAiMessages <= 0 ? Integer.MAX_VALUE : ephemeralMaxAiMessages)
+					.truncateIfExceeds(ephemeralTruncateAiIfExceeds)
+					.build();
+		}
+
+		if (ephemeralPersistToolResults) {
+			strategy = PersistToolResultsAiPersistenceStrategy.builder(strategy)
+					.persistToolResults(true)
+					.maxToolResultChars(ephemeralMaxToolResultChars)
+					.maxToolResults(ephemeralMaxToolResults)
+					.build();
+		}
+
+		return strategy;
 	}
 
 	/** 检索增强：显式 augmentor → 传入的检索器/注入器组装；都没给则不启用检索 */
@@ -358,5 +801,63 @@ public class AssistantBuilder {
 			builder.contentAggregator(aggregator.build());
 		}
 		return builder.build();
+	}
+
+	/**
+	 * {@link #intent(IntentClassifier)} 返回的意图配置视图：复用既有的 {@link IntentRag.Builder}
+	 * 与 {@link IntentTools.Builder} 收集意图路由，最后接线回 {@link AssistantBuilder}。
+	 * 两个配置入口共享同一条意图来源（同一个分类器实例），避免各建一套。
+	 *
+	 * @param <I> 使用方自定义的意图枚举类型
+	 */
+	public static final class IntentRouting<I extends Enum<I>> {
+
+		private final AssistantBuilder builder;
+
+		private final IntentRag.Builder<I> ragBuilder;
+
+		private final IntentTools.Builder<I> toolsBuilder;
+
+		private boolean ragConfigured;
+
+		private boolean toolsConfigured;
+
+		private IntentRouting(AssistantBuilder builder, IntentClassifier<I> classifier) {
+			this.builder = builder;
+			IntentSupplier<I> supplier = IntentSupplier.of(classifier);
+			this.ragBuilder = IntentRag.bySupplier(supplier);
+			this.toolsBuilder = IntentTools.bySupplier(supplier);
+		}
+
+		/** 意图化检索配置（{@link IntentRag} 的 route / routeNone / fallback） */
+		public IntentRag.Builder<I> rag() {
+			ragConfigured = true;
+			return ragBuilder;
+		}
+
+		/** 意图化工具配置（{@link IntentTools} 的 source / allow / allowNone / alwaysInclude / fallback） */
+		public IntentTools.Builder<I> tools() {
+			toolsConfigured = true;
+			return toolsBuilder;
+		}
+
+		/**
+		 * 把已配置的意图路由接线到 {@link AssistantBuilder} 并返回它，便于继续链式配置。
+		 * 未调用 {@link #rag()} / {@link #tools()} 的分支不接线。
+		 */
+		public AssistantBuilder done() {
+			if (ragConfigured) {
+				builder.contentRetriever(ragBuilder.build());
+			}
+			if (toolsConfigured) {
+				builder.toolProvider(toolsBuilder.build());
+			}
+			return builder;
+		}
+
+		/** 接线后直接装配助手，等价于 {@code done().build()} */
+		public SimpleAssistant build() {
+			return done().build();
+		}
 	}
 }

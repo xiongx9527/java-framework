@@ -24,7 +24,7 @@ public class Langchain4jStreamingLanguageModelConfiguration extends AbstractLang
     private static final String JAVASCRIPT_FILENAME = "magic-langchain4j-streaming-language-model.1.0.0.iife.js";
 
     public Langchain4jStreamingLanguageModelConfiguration() {
-        super("langchain4j-streaming-language-model", "MagicLangchain4jStreamingLanguageModel", JAVASCRIPT_FILENAME);
+        super("langchain4j-streaming-language-model", "MagicLangchain4jStreamingLanguageModel", JAVASCRIPT_FILENAME, false);
     }
 
     @Bean

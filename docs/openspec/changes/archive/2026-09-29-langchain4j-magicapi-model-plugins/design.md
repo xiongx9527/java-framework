@@ -140,7 +140,7 @@ com.xiongx9527.fw.plus.ai.autoconfigure.magicapi
 
 ### D9. 依赖与版本
 
-- AI 层 BOM 统一管理 langchain4j 全生态供应商版本；`fw-plus-ai-boot-autoconfigure` 以 `optional` 引入全部供应商、Tokenizer 与向量库 jar（含 `bge-small` / `all-minilm` 内置向量模型）。
+- AI 层 BOM 统一管理 langchain4j 全生态供应商版本；`fw-plus-ai-boot-autoconfigure` 以 `optional` 引入全部供应商、Tokenizer 与向量库 jar。
 - 个别社区版构件若以更高 JDK 编译（如某个 1.0.0-beta 版为 Java 17），改用与 0.35.0 同代的可用实现，不因此提升本项目 Java 基线。
 - core 层不新增/删除任何依赖。
 

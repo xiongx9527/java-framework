@@ -24,7 +24,7 @@ public class Langchain4jEmbeddingModelConfiguration extends AbstractLangchain4jP
     private static final String JAVASCRIPT_FILENAME = "magic-langchain4j-embedding-model.1.0.0.iife.js";
 
     public Langchain4jEmbeddingModelConfiguration() {
-        super("langchain4j-embedding-model", "MagicLangchain4jEmbeddingModel", JAVASCRIPT_FILENAME);
+        super("langchain4j-embedding-model", "MagicLangchain4jEmbeddingModel", JAVASCRIPT_FILENAME, false);
     }
 
     @Bean

@@ -1,14 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.webflux;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.contentinjector.module.Langchain4jContentInjectorModule;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.contentinjector.web.Langchain4jContentInjectorController;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.Langchain4jModelFactoryRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jEmbeddingModelDataSource;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.ContentRetrieverContext;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.ContentRetrieverProviderRegistry;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.retriever.web.Langchain4jContentRetrieverController;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.systemmessage.module.Langchain4jSystemMessageProviderModule;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.systemmessage.web.Langchain4jSystemMessageController;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.web.Langchain4jDatasourceController;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.config.MagicApiMcpProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.web.MagicMcpDiagnosticController;
@@ -54,24 +47,6 @@ public class MagicAPIWebFluxPluginControllerRegistrar implements SmartInitializi
 			MagicDynamicLangchain4jEmbeddingModelDataSource embeddingModels = applicationContext
 					.getBeanProvider(MagicDynamicLangchain4jEmbeddingModelDataSource.class).getIfAvailable();
 			mapping.registerController(new Langchain4jDatasourceController(configuration, factories, embeddingModels));
-		}
-		ContentRetrieverProviderRegistry providers = applicationContext
-				.getBeanProvider(ContentRetrieverProviderRegistry.class).getIfAvailable();
-		ContentRetrieverContext retrieverContext = applicationContext.getBeanProvider(ContentRetrieverContext.class)
-				.getIfAvailable();
-		if (providers != null && retrieverContext != null) {
-			mapping.registerController(new Langchain4jContentRetrieverController(configuration, providers,
-					retrieverContext));
-		}
-		Langchain4jContentInjectorModule injectorModule = applicationContext
-				.getBeanProvider(Langchain4jContentInjectorModule.class).getIfAvailable();
-		if (injectorModule != null) {
-			mapping.registerController(new Langchain4jContentInjectorController(configuration, injectorModule));
-		}
-		Langchain4jSystemMessageProviderModule systemMessageModule = applicationContext
-				.getBeanProvider(Langchain4jSystemMessageProviderModule.class).getIfAvailable();
-		if (systemMessageModule != null) {
-			mapping.registerController(new Langchain4jSystemMessageController(configuration));
 		}
 	}
 

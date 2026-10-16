@@ -7,12 +7,14 @@ import java.util.Map;
 /**
  * 一次 MCP 请求的栈无关描述，供认证 SPI 消费。
  * <p>
- * 认证为后续独立 change，本类仅承载后续认证（读取 Bearer token / Cookie / scope）所需的全部上下文。
+ * 认证服务处理一次请求所需的协议、会话、正文与 header 上下文。
  * </p>
  */
 public class McpRequest {
 
     private final String sessionId;
+
+    private final String runtimeKey;
 
     private final String transport;
 
@@ -23,6 +25,12 @@ public class McpRequest {
     private final Map<String, String> headers;
 
     public McpRequest(String sessionId, String transport, String endpoint, String body, Map<String, String> headers) {
+        this(null, sessionId, transport, endpoint, body, headers);
+    }
+
+    public McpRequest(String runtimeKey, String sessionId, String transport, String endpoint, String body,
+            Map<String, String> headers) {
+        this.runtimeKey = runtimeKey;
         this.sessionId = sessionId;
         this.transport = transport;
         this.endpoint = endpoint;
@@ -34,6 +42,10 @@ public class McpRequest {
 
     public String getSessionId() {
         return sessionId;
+    }
+
+    public String getRuntimeKey() {
+        return runtimeKey;
     }
 
     public String getTransport() {

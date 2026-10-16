@@ -7,6 +7,9 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime.McpServerRuntime;
 import com.xiongx9527.fw.plus.ai.mcp.server.spi.ServerSseRegistry;
 import com.xiongx9527.fw.plus.ai.mcp.server.spi.ServerStreamableHttpRegistry;
+import com.xiongx9527.fw.plus.auth.core.AuthService;
+import com.xiongx9527.fw.plus.auth.core.AuthPrincipal;
+import com.xiongx9527.fw.plus.auth.core.AuthRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -44,12 +47,25 @@ class McpScopeEntryMvcTest {
 	}
 
 	@Test
-	void shouldEnterKernelOnSseMessageWhenCapabilityScopePresent() throws IOException {
-		McpServerRuntime runtime = sseRuntime(principal("tools", "prompts"), true);
+	void shouldRejectSseMessageWhenScopesAreEmpty() throws IOException {
+		McpServerRuntime runtime = sseRuntime(principal(), true);
 		McpSseController controller = new McpSseController(runtime);
 		MockHttpServletResponse response = new MockHttpServletResponse();
 
 		controller.handleMessage("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"prompts/get\"}", "known-uuid",
+				new MockHttpServletRequest(), response);
+
+		assertThat(response.getStatus()).isEqualTo(403);
+		verify((ServerSseRegistry) runtime.getRegistry(), never()).handle(any(), any());
+	}
+
+	@Test
+	void shouldEnterKernelWhenScopesCoverCapability() throws IOException {
+		McpServerRuntime runtime = sseRuntime(principal("tools"), true);
+		McpSseController controller = new McpSseController(runtime);
+		MockHttpServletResponse response = new MockHttpServletResponse();
+
+		controller.handleMessage("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}", "known-uuid",
 				new MockHttpServletRequest(), response);
 
 		verify((ServerSseRegistry) runtime.getRegistry()).handle(any(), any());
@@ -68,23 +84,21 @@ class McpScopeEntryMvcTest {
 	}
 
 	@Test
-	void shouldRejectStreamablePostWhenCapabilityScopeMissing() throws IOException {
-		McpServerRuntime runtime = streamableRuntime(principal("tools"), true);
-		ServerStreamableHttpRegistry registry = (ServerStreamableHttpRegistry) runtime.getRegistry();
-		when(registry.post(any(), anyMap())).thenReturn(com.ajaxjs.mcp.server.model.HttpResult.json(200, null));
-		McpStreamableHttpController controller = new McpStreamableHttpController(runtime);
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		request.addHeader("Mcp-Session-Id", "known-session");
+	void shouldBypassScopeCheckForExplicitPermitAll() throws IOException {
+		McpServerRuntime runtime = sseRuntime(com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.McpPrincipal.PERMIT_ALL, true);
+		McpSseController controller = new McpSseController(runtime);
+		MockHttpServletResponse response = new MockHttpServletResponse();
 
-		controller.post("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"resources/read\"}", request,
-				new MockHttpServletResponse());
+		controller.handleMessage("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"prompts/get\"}", "known-uuid",
+				new MockHttpServletRequest(), response);
 
-		verify(registry, never()).post(any(), anyMap());
+		assertThat(response.getStatus()).isNotEqualTo(403);
+		verify((ServerSseRegistry) runtime.getRegistry()).handle(any(), any());
 	}
 
 	private McpServerRuntime sseRuntime(McpPrincipal principal, boolean scopeCheckEnabled) {
 		ServerSseRegistry registry = mock(ServerSseRegistry.class);
-		when(registry.isOriginAllowed(any())).thenReturn(true);
+		when(registry.isOriginAllowed(null)).thenReturn(true);
 		when(registry.hasSession("known-uuid")).thenReturn(true);
 		return runtime("http-sse", registry, principal, scopeCheckEnabled);
 	}
@@ -108,10 +122,13 @@ class McpScopeEntryMvcTest {
 		when(runtime.getRegistry()).thenReturn((com.xiongx9527.fw.plus.ai.mcp.server.spi.BaseServerRegistry) registry);
 		when(runtime.hasSession("known-uuid")).thenReturn(true);
 		when(runtime.hasSession("known-session")).thenReturn(true);
-		when(runtime.getAuthService()).thenReturn(new McpAuthService() {
+		when(runtime.getAuthService()).thenReturn(new AuthService() {
 			@Override
-			public McpPrincipal authenticate(McpRequest request) {
-				return principal;
+			public com.xiongx9527.fw.plus.auth.core.AuthPrincipal authenticate(com.xiongx9527.fw.plus.auth.core.AuthRequest request) {
+				if (principal == com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.McpPrincipal.PERMIT_ALL) {
+					return com.xiongx9527.fw.plus.auth.core.AuthPrincipal.PERMIT_ALL;
+				}
+				return new com.xiongx9527.fw.plus.auth.core.AuthPrincipal(principal.getSubject(), principal.getScopes());
 			}
 		});
 		return runtime;

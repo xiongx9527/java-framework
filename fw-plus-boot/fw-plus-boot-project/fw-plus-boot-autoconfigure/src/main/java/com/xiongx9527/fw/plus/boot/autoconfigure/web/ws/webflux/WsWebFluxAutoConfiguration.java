@@ -1,5 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.webflux;
 
+import com.xiongx9527.fw.plus.auth.core.InstanceAuthRegistry;
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.auth.WsAuthSupport;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.common.WsEndpointPathResolver;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.common.WsInstanceValidator;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.config.WsConfig;
@@ -43,13 +45,22 @@ public class WsWebFluxAutoConfiguration {
 	/**
 	 * 响应式 WebSocket 处理器。宿主已自行提供时不再创建。
 	 *
-	 * @param wsConfig WebSocket 通用配置
+	 * <p>注入实例认证注册表，并在启动期校验全部实例 provider 是否受支持（未知 provider 抛
+	 * {@link IllegalArgumentException}）。</p>
+	 *
+	 * @param wsConfig        WebSocket 通用配置
+	 * @param authRegistries  实例认证注册表候选（未提供时回落默认注册表）
 	 * @return 响应式处理器
 	 */
 	@Bean
 	@ConditionalOnMissingBean(ReactiveWsHandler.class)
-	public ReactiveWsHandler reactiveWsHandler(WsConfig wsConfig) {
-		return new ReactiveWsHandler(wsConfig);
+	public ReactiveWsHandler reactiveWsHandler(WsConfig wsConfig,
+											   ObjectProvider<InstanceAuthRegistry> authRegistries) {
+		InstanceAuthRegistry registry = authRegistries.getIfAvailable(InstanceAuthRegistry::new);
+		WsAuthSupport.validateProviders(wsConfig, registry);
+		ReactiveWsHandler handler = new ReactiveWsHandler(wsConfig);
+		handler.setAuthRegistry(registry);
+		return handler;
 	}
 
 	/**
@@ -102,8 +113,10 @@ public class WsWebFluxAutoConfiguration {
 	 * @return 校验器实例
 	 */
 	@Bean
-	public WsInstanceValidator wsReactiveInstanceValidator(WsConfig wsConfig) {
+	public WsInstanceValidator wsReactiveInstanceValidator(WsConfig wsConfig,
+														   ObjectProvider<InstanceAuthRegistry> authRegistries) {
 		WsInstanceValidator.validate(wsConfig);
+		WsAuthSupport.validateProviders(wsConfig, authRegistries.getIfAvailable(InstanceAuthRegistry::new));
 		return new WsInstanceValidator();
 	}
 }

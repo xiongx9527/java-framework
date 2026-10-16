@@ -30,7 +30,7 @@ public class KnowledgeExternalContractTest {
 
     public void testShouldSerializeMissingMetadataAsObject() {
         String json = JSON.toJSONString(KnowledgeResult.Record.builder()
-                .content("Tinyflow knowledge")
+                .content("Sample knowledge")
                 .build());
 
         assertTrue(json.contains("\"metadata\":{}"));
@@ -48,7 +48,7 @@ public class KnowledgeExternalContractTest {
         if (!"dify-external-request.json".equals(name)) {
             throw new IllegalArgumentException("Unknown fixture: " + name);
         }
-        return "{\"knowledge_id\":\"knowledge-1\",\"query\":\"What is Tinyflow?\","
+        return "{\"knowledge_id\":\"knowledge-1\",\"query\":\"What is Dify?\","
                 + "\"retrieval_setting\":{\"top_k\":5,\"score_threshold\":0.5},"
                 + "\"metadata_condition\":{\"logical_operator\":\"and\",\"conditions\":[{"
                 + "\"name\":\"source_type\",\"comparison_operator\":\"is\",\"value\":\"manual\"}]}}";

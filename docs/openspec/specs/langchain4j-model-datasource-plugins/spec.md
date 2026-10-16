@@ -201,6 +201,10 @@
 - **WHEN** 在控制台新建 `langchain4j-embedding-store`
 - **THEN** 存在一个可选择已配置 `langchain4j-embedding-model` 的 `embeddingModelKey` 输入项
 
-#### Scenario: 前端产物缺失时降级
-- **WHEN** 插件前端产物不在约定资源路径
-- **THEN** 插件仅按基础标识注册，服务端装配仍正常工作
+#### Scenario: 插件标识三元组恒定上报
+- **WHEN** 读取任意一个类型插件的 `Plugin` 声明
+- **THEN** 无论前端产物是否落在 classpath 上，都同时上报插件标识、全局名 `globalName` 与前端产物名 `javascriptFilename`；后端不按产物缺失做降级注册
+
+#### Scenario: 产物模块缺失导致控制台加载失败
+- **WHEN** 使用方未把承载前端产物的 Maven 模块声明为依赖
+- **THEN** 后端仍正常上报三元组且服务端装配不受影响，但控制台请求该前端产物时得到 404，对应配置面板无法渲染
