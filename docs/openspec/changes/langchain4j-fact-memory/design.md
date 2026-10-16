@@ -1,8 +1,15 @@
+---
+comet_change: langchain4j-fact-memory
+role: technical-design
+canonical_spec: openspec
+---
+
 # Design
 
 > 本文件只记录本次改动的高层技术决策与数据流。**唯一一份正式技术设计**见
-> `docs/superpowers/specs/2026-10-15-langchain4j-session-memory-design.md`（§7 事实抽取、§8 事实召回、§9 配置、§12 未决项），
-> 本文不复制其内容。动机与范围见 `proposal.md`，行为契约见 `specs/`。
+> `docs/superpowers/specs/2026-10-16-langchain4j-fact-memory-design.md`（实现方案、组件与类设计、mem0 契约、配置默认值、测试策略），
+> 本文不复制其内容。动机与范围见 `proposal.md`，行为契约见 `specs/`；批次高层设计见
+> `docs/superpowers/specs/2026-10-15-langchain4j-session-memory-design.md` §7/§8/§9。
 
 ## Context
 
@@ -61,7 +68,7 @@ _理由_：`mem0` 依赖服务端 LLM，`rule` 保证无 LLM 环境下仍可用�
 
 - [事实抽取依赖服务端 LLM] → 提供 `rule` 策略作为无 LLM 环境兜底，可配置切换。
 - [事实注入推高 token] → 限制召回条数与单条长度，配合第 1 项的 token 预算。
-- [异步写入带来时序不确定] → `per-turn` 同步、`batched` / `session-end` 异步，失败仅记日志。
+- [异步写入带来时序不确定] → 默认全异步（`extract-async=true`，2026-10-16 用户确认）；时序不确定以文档声明兜底，失败仅记日志；需要即时可见可显式改同步。
 - [与消息通道抢同一 mem0 实例] → 明确使用独立实例/集合，避免互相污染。
 
 ## Migration Plan
@@ -72,8 +79,8 @@ _理由_：`mem0` 依赖服务端 LLM，`rule` 保证无 LLM 环境下仍可用�
 
 ## Open Questions
 
-以下为可安全后置的未知项，不改变本次规格、方案与任务拆解：
+原三项未决项已于 2026-10-16（Comet Classic Step 1c 用户确认）决议，详见正式设计 §2 决策记录 D8–D12：
 
-- 事实召回查询串的构造方式（仅本轮输入 / 拼接最近若干轮）。
-- 召回 `top-k` 与事实段 token 预算的默认值。
-- 抽取同步或异步的默认取舍（按写入模式固定，具体默认值可调）。
+- 事实召回查询串 = **本轮用户输入**（不拼接历史）。
+- `top-k` = **5**；事实段 token 预算 = **`max-facts-tokens: 500`**。
+- 抽取默认**全异步**（`extract-async: true`；可显式置 `false` 改为请求线程内联）。

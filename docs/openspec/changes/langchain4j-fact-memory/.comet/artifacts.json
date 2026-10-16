@@ -2,5 +2,7 @@
   "openspec_proposal": "docs/openspec/changes/langchain4j-fact-memory/proposal.md",
   "openspec_design": "docs/openspec/changes/langchain4j-fact-memory/design.md",
   "openspec_tasks": "docs/openspec/changes/langchain4j-fact-memory/tasks.md",
-  "openspec_delta_spec": "docs/openspec/changes/langchain4j-fact-memory/specs/langchain4j-fact-memory/spec.md"
+  "openspec_delta_spec": "docs/openspec/changes/langchain4j-fact-memory/specs/langchain4j-fact-memory/spec.md",
+  "handoff_context": "docs/openspec/changes/langchain4j-fact-memory/.comet/handoff/design-context.json",
+  "handoff_markdown": "docs/openspec/changes/langchain4j-fact-memory/.comet/handoff/design-context.md"
 }

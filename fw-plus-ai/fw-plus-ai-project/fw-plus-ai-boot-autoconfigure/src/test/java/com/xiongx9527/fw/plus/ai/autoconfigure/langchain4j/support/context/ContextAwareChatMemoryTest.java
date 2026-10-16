@@ -158,4 +158,52 @@ class ContextAwareChatMemoryTest {
 		assertThat(counter.get()).as("清空后读时兜底重新生效").isEqualTo(2);
 		assertThat(memory.messages()).isEmpty();
 	}
+
+	// -------------------------------------------------- 3 参钩子（当轮消息，纯增量）
+
+	@Test
+	void writePathCarriesTurnAiMessageToThreeArgMaintenance() {
+		java.util.List<ChatMessage> received = new java.util.ArrayList<ChatMessage>();
+		ContextMaintenance recorder = new ContextMaintenance() {
+			@Override
+			public void maintain(ContextRequest request, List<ChatMessage> messages) {
+				received.add(UserMessage.from("不应走 2 参转发"));
+			}
+
+			@Override
+			public void maintain(ContextRequest request, List<ChatMessage> messages, ChatMessage turnMessage) {
+				received.add(turnMessage);
+			}
+		};
+
+		ContextAwareChatMemory memory = memory(emptyInjector(), recorder);
+		memory.add(UserMessage.from("你好"));
+		memory.add(AiMessage.from("回复"));
+
+		assertThat(received).hasSize(1);
+		assertThat(received.get(0)).isInstanceOf(AiMessage.class);
+		assertThat(((AiMessage) received.get(0)).text()).isEqualTo("回复");
+	}
+
+	@Test
+	void readPathFallbackPassesNullTurnMessage() {
+		java.util.List<ChatMessage> received = new java.util.ArrayList<ChatMessage>();
+		ContextMaintenance recorder = new ContextMaintenance() {
+			@Override
+			public void maintain(ContextRequest request, List<ChatMessage> messages) {
+				received.add(UserMessage.from("不应走 2 参转发"));
+			}
+
+			@Override
+			public void maintain(ContextRequest request, List<ChatMessage> messages, ChatMessage turnMessage) {
+				received.add(turnMessage);
+			}
+		};
+
+		ContextAwareChatMemory memory = memory(emptyInjector(), recorder);
+		memory.messages();
+
+		assertThat(received).hasSize(1);
+		assertThat(received.get(0)).as("读时兜底无当轮消息").isNull();
+	}
 }

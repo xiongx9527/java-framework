@@ -18,4 +18,15 @@ public interface ContextMaintenance {
 	 */
 	void maintain(ContextRequest request, List<ChatMessage> currentMessages);
 
+	/**
+	 * 携带当轮消息的维护入口（**纯增量**，default 保证既有实现零改动）：
+	 * 写路径在 {@code add} 之后调用，{@code turnMessage} 为本次写入的消息；
+	 * 读时兜底等无当轮消息场景传 {@code null}。
+	 *
+	 * <p>默认实现委托 2 参方法；需要当轮消息的实现（如事实通道）覆写本方法。</p>
+	 */
+	default void maintain(ContextRequest request, List<ChatMessage> currentMessages, ChatMessage turnMessage) {
+		maintain(request, currentMessages);
+	}
+
 }	
