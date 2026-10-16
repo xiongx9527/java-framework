@@ -2,6 +2,8 @@
 comet_change: langchain4j-fact-memory
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-10-16-langchain4j-fact-memory
+status: final
 ---
 
 # LangChain4j 事实记忆（跨会话事实通道）设计

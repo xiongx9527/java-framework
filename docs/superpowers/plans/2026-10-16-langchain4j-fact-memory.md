@@ -2,6 +2,7 @@
 change: langchain4j-fact-memory
 design-doc: docs/superpowers/specs/2026-10-16-langchain4j-fact-memory-design.md
 base-ref: 0d140ec1348ed25020c2722851ed30b5eecb3086
+archived-with: 2026-10-16-langchain4j-fact-memory
 ---
 
 # 实施计划：LangChain4j 跨会话事实记忆
