@@ -1,6 +1,8 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic;
 
 import dev.langchain4j.agentic.scope.AgenticScope;
+import dev.langchain4j.agentic.scope.AgenticScopePersister;
+import dev.langchain4j.agentic.scope.AgenticScopeStore;
 import dev.langchain4j.agentic.supervisor.SupervisorAgent;
 import dev.langchain4j.agentic.supervisor.SupervisorAgentService;
 import dev.langchain4j.agentic.supervisor.SupervisorContextStrategy;
@@ -19,6 +21,8 @@ import java.util.function.Function;
 public final class AgenticSupervisorBuilder {
 
     private final SupervisorAgentService<SupervisorAgent> delegate;
+
+    private AgenticScopeStore scopeStore;
 
     AgenticSupervisorBuilder(SupervisorAgentService<SupervisorAgent> delegate) {
         this.delegate = delegate;
@@ -112,7 +116,21 @@ public final class AgenticSupervisorBuilder {
         return this;
     }
 
+    /**
+     * agentic 原生存储：把编排共享状态（{@code AgenticScope}）持久化到给定
+     * {@link AgenticScopeStore}（构建时安装为全局 {@code AgenticScopePersister}，进程级生效）。
+     *
+     * <p>Spring 环境缺省已由 scope-store 自动配置统一安装，无需在此显式调用。</p>
+     */
+    public AgenticSupervisorBuilder scopeStore(AgenticScopeStore scopeStore) {
+        this.scopeStore = scopeStore;
+        return this;
+    }
+
     public AgenticSupervisor build() {
+        if (scopeStore != null) {
+            AgenticScopePersister.setStore(scopeStore);
+        }
         return AgenticSupervisor.of(delegate.build());
     }
 }

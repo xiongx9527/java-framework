@@ -1,5 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.store.InMemoryAgenticScopeStore;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.store.MongoAgenticScopeStore;
 import dev.langchain4j.agentic.UntypedAgent;
 import org.junit.jupiter.api.Test;
 
@@ -37,7 +39,9 @@ class AgenticIsolationTest {
             AgenticHumanInTheLoop.class,
             AgenticToolProvider.class,
             AgenticToolProviders.class,
-            AgenticPipelineRegistry.class);
+            AgenticPipelineRegistry.class,
+            InMemoryAgenticScopeStore.class,
+            MongoAgenticScopeStore.class);
 
     private static final List<String> FORBIDDEN_PREFIXES = List.of(
             "dev.langchain4j.agentic.internal.",

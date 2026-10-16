@@ -15,6 +15,7 @@ import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.agentic.agent.AgentBuilder;
 import dev.langchain4j.agentic.agent.UntypedAgentBuilder;
 import dev.langchain4j.agentic.observability.AgentListener;
+import dev.langchain4j.agentic.scope.AgenticScope;
 import dev.langchain4j.agentic.scope.AgenticScopePersister;
 import dev.langchain4j.agentic.scope.AgenticScopeStore;
 import dev.langchain4j.memory.ChatMemory;
@@ -134,7 +135,8 @@ public final class AgenticBuilder<T> {
 
     private boolean ephemeralSendToolRequestsInCurrentTurn = true;
 
-    private AgenticBuilder(AgentBuilder<T, ?> delegate) {
+    /** 包内可见：同包门面构建器（{@code AgenticTypedAgentBuilder} / {@code AgenticUntypedAgentBuilder}）内部委托复用。 */
+    AgenticBuilder(AgentBuilder<T, ?> delegate) {
         this.delegate = delegate;
     }
 
@@ -295,6 +297,29 @@ public final class AgenticBuilder<T> {
      */
     public AgenticBuilder<T> scopeStore(AgenticScopeStore scopeStore) {
         this.scopeStore = scopeStore;
+        return this;
+    }
+
+    /**
+     * 原生上下文注入：agent 作为「agentic 系统」一员运行时，从共享 {@link AgenticScope}
+     * 读取上下文并包装进本 agent 的 prompt（形如 {@code Considering this context "..."}）。
+     *
+     * <p>独立执行的单 agent 没有共享 scope，不生效；与 {@link #summarizedContext(String...)}
+     * 同时配置时本方法优先。（Spring 环境缺省已由 scope-store 自动配置接管存储安装。）</p>
+     */
+    public AgenticBuilder<T> context(Function<AgenticScope, String> contextProvider) {
+        delegate.context(contextProvider);
+        return this;
+    }
+
+    /**
+     * 摘要上下文：把指定名称 agents 的输出对话交给本 agent 的模型摘要后注入 prompt，
+     * 适合上下文较长、只想要要点时。
+     *
+     * <p>仅在本 agent 作为「agentic 系统」一员运行时生效；需配置本 agent 的 ChatModel。</p>
+     */
+    public AgenticBuilder<T> summarizedContext(String... contextProvidingAgents) {
+        delegate.summarizedContext(contextProvidingAgents);
         return this;
     }
 

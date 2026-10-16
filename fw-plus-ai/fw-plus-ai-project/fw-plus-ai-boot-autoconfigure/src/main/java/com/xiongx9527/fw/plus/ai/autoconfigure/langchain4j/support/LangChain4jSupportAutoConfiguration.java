@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.envelope.Busi
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.envelope.BusinessRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.envelope.EnvelopeRuntime;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.envelope.Langchain4jAssistantProperties;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.store.AgenticScopeStoreAutoConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.LangChain4jIntentAutoConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.logging.ChatContextLogger;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatstore.ChatMemoryStoreProperties;
@@ -58,6 +59,10 @@ import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
  *
  * <p>意图识别自动配置 {@link LangChain4jIntentAutoConfiguration} 亦在此 {@code @Import}
  * 收口，其自身条件与本源一致，无需在 {@code AutoConfiguration.imports} 中单独登记。</p>
+ *
+ * <p>agentic scope 存储自动配置 {@link AgenticScopeStoreAutoConfiguration} 同样在此 {@code @Import} 收口
+ * （{@code fw.plus.ai.langchain4j.agentic.scope-store} 前缀）：缺省装配进程内实现并安装为全局
+ * {@code AgenticScopePersister}，{@code type=mongo} 切换 MongoDB 持久化，{@code type=none} 关闭。</p>
  */
 @ConditionalOnClass(name = "dev.langchain4j.Experimental")
 @ConditionalOnProperty(prefix = "fw.plus.ai.langchain4j", name = "enabled", havingValue = "true", matchIfMissing = true)
@@ -67,7 +72,8 @@ import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
 			LangChain4jSupportAutoConfiguration.DifyRagPropertiesConfiguration.class,
 			LangChain4jSupportAutoConfiguration.AssistantEnvelopeConfiguration.class,
 			LangChain4jSupportAutoConfiguration.SummaryMemoryConfiguration.class,
-			LangChain4jIntentAutoConfiguration.class})
+			LangChain4jIntentAutoConfiguration.class,
+			AgenticScopeStoreAutoConfiguration.class})
 public class LangChain4jSupportAutoConfiguration {
 
 	@Bean

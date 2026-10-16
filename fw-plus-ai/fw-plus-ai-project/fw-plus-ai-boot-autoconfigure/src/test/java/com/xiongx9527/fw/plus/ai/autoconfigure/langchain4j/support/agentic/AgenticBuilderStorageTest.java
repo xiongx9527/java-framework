@@ -4,12 +4,15 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.Intent
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentContext;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentSource;
+import dev.langchain4j.agentic.Agent;
 import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.agentic.scope.AgenticScopeKey;
 import dev.langchain4j.agentic.scope.AgenticScopePersister;
 import dev.langchain4j.agentic.scope.AgenticScopeStore;
 import dev.langchain4j.agentic.scope.DefaultAgenticScope;
 import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.service.UserMessage;
+import dev.langchain4j.service.V;
 import dev.langchain4j.service.tool.ToolProvider;
 import dev.langchain4j.service.tool.ToolProviderResult;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
@@ -167,6 +170,57 @@ class AgenticBuilderStorageTest {
     }
 
     // ------------------------------------------------------------------
+    // 门面主体（AgenticWorkflows.agent / agentBuilder）与 AgenticBuilder 的存储入口对齐
+    // ------------------------------------------------------------------
+
+    /** 门面 typed 存储用例：接口即 agent 定义（@Agent / @UserMessage / @V）。 */
+    public interface FacadeStorageStep {
+        @Agent(name = "F", description = "门面存储用例")
+        @UserMessage("F: {{request}}")
+        String run(@V("request") String request);
+    }
+
+    @Test
+    void facadeTypedBuilderShouldInstallScopeStoreOnBuild() {
+        RecordingScopeStore scopeStore = new RecordingScopeStore();
+
+        FacadeStorageStep step = AgenticWorkflows.agent(FacadeStorageStep.class)
+                .chatModel(new ScriptedChatModel().agent("F-OUT"))
+                .outputKey("answer")
+                .scopeStore(scopeStore)
+                .build();
+
+        AgenticWorkflows.sequence()
+                .subAgents(step)
+                .outputKey("answer")
+                .build()
+                .invoke(Map.of("request", "hi"));
+
+        assertThat(scopeStore.saves.get())
+                .as("门面 typed 主体的 scopeStore 应在 build() 时安装为全局持久化实现")
+                .isGreaterThan(0);
+    }
+
+    @Test
+    void facadeUntypedBuilderShouldWireMemoryStore() {
+        RecordingChatMemoryStore memoryStore = new RecordingChatMemoryStore();
+
+        UntypedAgent agent = AgenticWorkflows.agentBuilder()
+                .chatModel(new ScriptedChatModel().agent("U-OUT"))
+                .userMessage("回答：{{q}}")
+                .inputKey(String.class, "q")
+                .memory(5)
+                .memoryStore(memoryStore)
+                .build();
+
+        agent.invoke(Map.of("q", "hi"));
+
+        assertThat(memoryStore.updates.get())
+                .as("门面 untyped 主体的 memory / memoryStore 应接线到 chatMemory")
+                .isGreaterThan(0);
+    }
+
+    // ------------------------------------------------------------------
     // 意图识别
     // ------------------------------------------------------------------
 
@@ -226,5 +280,7 @@ class AgenticBuilderStorageTest {
         assertThat(builder.memoryStore(new RecordingChatMemoryStore())).isSameAs(builder);
         assertThat(builder.strictAiPersistenceStrategy(true)).isSameAs(builder);
         assertThat(builder.scopeStore(new RecordingScopeStore())).isSameAs(builder);
+        assertThat(builder.context(scope -> "ctx")).isSameAs(builder);
+        assertThat(builder.summarizedContext("A")).isSameAs(builder);
     }
 }

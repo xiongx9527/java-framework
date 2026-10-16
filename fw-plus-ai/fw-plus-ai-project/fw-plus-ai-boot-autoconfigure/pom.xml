@@ -465,6 +465,13 @@
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
+        <!-- MongoDB 驱动：agentic scope-store 的 mongo 后端（optional，使用方按需引入） -->
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongodb-driver-sync</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-chroma</artifactId>

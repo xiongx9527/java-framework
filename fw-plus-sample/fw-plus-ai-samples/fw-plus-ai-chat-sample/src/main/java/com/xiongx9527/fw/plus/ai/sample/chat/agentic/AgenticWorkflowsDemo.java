@@ -5,9 +5,12 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.Agent
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.AgenticSupervisor;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.AgenticToolProviders;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.AgenticWorkflows;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.store.InMemoryAgenticScopeStore;
 import dev.langchain4j.agentic.Agent;
 import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.agentic.planner.Planner;
+import dev.langchain4j.agentic.scope.AgenticScopePersister;
+import dev.langchain4j.agentic.scope.AgenticScopeSerializer;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
@@ -67,49 +70,23 @@ public final class AgenticWorkflowsDemo {
 	// ------------------------------------------------------------------
 
 	/**
-	 * scope store（状态作用域持久化）：实现 {@code AgenticScopeStore} 后经
-	 * {@code AgenticScopePersister} 全局接入（进程内存版；生产可换 Redis / DB 实现），
-	 * 并在反序列化白名单放行业务类型。
+	 * scope store（状态作用域持久化）：框架内置进程内实现 {@code InMemoryAgenticScopeStore}
+	 * 经 {@code AgenticScopePersister} 全局接入；生产环境（跨进程 / 跨重启）换框架内置的
+	 * {@code MongoAgenticScopeStore}（对齐 AgentScope2 Java 的 MongoDB 状态存储）——
+	 * Spring Boot 下直接配置 {@code fw.plus.ai.langchain4j.agentic.scope-store.type=mongo}
+	 * 即由自动装配完成「装配 + 全局安装 + 序列化白名单注册」，无需手写 {@code setStore}。
 	 *
 	 * <p>使用场景：需要把某次编排的运行状态（AgenticScope）跨请求 / 跨进程保留时，
 	 * 例如多轮对话续跑、长流程断点恢复、多实例共享会话状态，或落库审计。</p>
 	 */
 	public static void scopeStoreDemo() {
-		AgenticPipelineRegistry registry = new AgenticPipelineRegistry();
+		// 框架内置进程内 store；不调用 setStore 时 scope 仅在单次调用内存在（EPHEMERAL，调用结束即清理）
+		InMemoryAgenticScopeStore store = new InMemoryAgenticScopeStore();
+		AgenticScopePersister.setStore(store);
 
-		// AgenticScopeStore 最小实现：key = (agentId, memoryId)
-		dev.langchain4j.agentic.scope.AgenticScopeStore store = new dev.langchain4j.agentic.scope.AgenticScopeStore() {
-			private final Map<dev.langchain4j.agentic.scope.AgenticScopeKey, dev.langchain4j.agentic.scope.DefaultAgenticScope> map = new java.util.concurrent.ConcurrentHashMap<>();
-
-			@Override
-			public boolean save(dev.langchain4j.agentic.scope.AgenticScopeKey key,
-					dev.langchain4j.agentic.scope.DefaultAgenticScope scope) {
-				map.put(key, scope);
-				return true;
-			}
-
-			@Override
-			public java.util.Optional<dev.langchain4j.agentic.scope.DefaultAgenticScope> load(
-					dev.langchain4j.agentic.scope.AgenticScopeKey key) {
-				return java.util.Optional.ofNullable(map.get(key));
-			}
-
-			@Override
-			public boolean delete(dev.langchain4j.agentic.scope.AgenticScopeKey key) {
-				return map.remove(key) != null;
-			}
-
-			@Override
-			public Set<dev.langchain4j.agentic.scope.AgenticScopeKey> getAllKeys() {
-				return map.keySet();
-			}
-		};
-
-		// 全局接入；不调用 setStore 时 scope 仅存在于内存
-		dev.langchain4j.agentic.scope.AgenticScopePersister.INSTANCE.setStore(store);
-
-		// 序列化白名单：放行业务 DTO 的包前缀或具体类型
-		dev.langchain4j.agentic.scope.AgenticScopeSerializer.allowDeserializationPackagePrefix(
+		// 序列化白名单：持久化后端反序列化时放行业务 DTO 的包前缀或具体类型；
+		// Spring Boot 下亦可经 fw.plus.ai.langchain4j.agentic.scope-store.serialization.* 配置化注册
+		AgenticScopeSerializer.allowDeserializationPackagePrefix(
 				"com.xiongx9527.fw.plus.ai.sample.chat.agentic");
 	}
 
