@@ -29,6 +29,11 @@
         <!--  mockito版本号（对齐 spring-boot-dependencies 3.5.8；用于显式压过
               debezium-bom 内部钉死的 mockito-core 3.0.0，避免测试 classpath 版本分裂） -->
         <mockito.version>5.17.0</mockito.version>
+        <!--  mongodb-driver-sync版本号（对齐 spring-boot-dependencies 3.5.8 的
+              mongodb-driver-bom；用于显式压过 debezium-bom 内部钉死的 4.3.3 —— 4.3.3 与
+              bson / mongodb-driver-core 的 5.5.2 错配，其引用的
+              com.mongodb.connection.StreamFactory 在 5.x 已移除，运行期会 NoClassDefFoundError） -->
+        <mongodb.version>5.5.2</mongodb.version>
 		<!--  influxdb-sdk-java版本号 -->
         <influxdb.version>6.7.0</influxdb.version>
         <!--  resilience4j版本号 -->
@@ -250,6 +255,18 @@
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
                 <version>${mockito.version}</version>
+            </dependency>
+
+            <!-- mongodb-driver-sync：必须置于 debezium-bom 之前（同 mockito 先例）。
+                 debezium-bom 1.9.x 将其钉在 4.3.3，而 bson / mongodb-driver-core 由
+                 spring-boot-dependencies 的 mongodb-driver-bom 管理为 5.5.2，造成
+                 driver-sync/core 版本错配（4.3.3 引用的 com.mongodb.connection.StreamFactory
+                 在 5.x 已移除，MongoClients.create 即 NoClassDefFoundError）。
+                 此处显式统一到 spring-boot-dependencies 3.5.8 的 5.5.2。 -->
+            <dependency>
+                <groupId>org.mongodb</groupId>
+                <artifactId>mongodb-driver-sync</artifactId>
+                <version>${mongodb.version}</version>
             </dependency>
 
             <!--debezium-->
