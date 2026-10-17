@@ -3,6 +3,12 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.AgenticPipelineRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.AgenticToolProviders;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.aggregate.AggregatingToolProvider;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextAwareChatMemory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextMaintenance;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextProvider;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextRequest;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextStrategy;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.EnrichedContextTransformer;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentClassifier;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentRag;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentSupplier;
@@ -12,8 +18,11 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.aggregate.Wei
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.EphemeralChatMemory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.EphemeralChatMemoryProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.LengthBoundedAiPersistenceStrategy;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatstore.ChatMemoryIds;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.PersistToolResultsAiPersistenceStrategy;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.session.SessionIdResolver;
 
+import dev.langchain4j.invocation.InvocationContext;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
@@ -21,6 +30,8 @@ import dev.langchain4j.memory.chat.TokenWindowChatMemory;
 import dev.langchain4j.model.TokenCountEstimator;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.model.language.StreamingLanguageModel;
 import dev.langchain4j.rag.DefaultRetrievalAugmentor;
@@ -45,7 +56,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 /**
  * 助手构建器：把 {@code AiServices} 的装配过程做成脚本可直接链式调用的形态，
@@ -109,6 +122,15 @@ public class AssistantBuilder {
 	private StreamingLanguageModel streamingLanguageModel;
 
 	private Function<Object, String> systemMessageProvider;
+
+	/** 系统提示变换（原生 systemMessageTransformer 槽位）：系统提示求值之后、发送之前变换；返回 null 移除系统提示 */
+	private BiFunction<String, InvocationContext, String> systemMessageTransformer;
+
+	/** 请求变换（原生 chatRequestTransformer 槽位）：框架内部步骤之后执行，对最终 ChatRequest 有最终话语权 */
+	private BiFunction<ChatRequest, Object, ChatRequest> chatRequestTransformer;
+
+	/** 助手级请求参数：非空字段覆盖每轮请求的同名字段，其余字段原样保留 */
+	private ChatRequestParameters chatRequestParameters;
 
 	private ChatMemoryProvider chatMemoryProvider;
 
@@ -202,6 +224,18 @@ private Integer rerankMaxResults;
 	/** 意图分类器：经 {@link #intent(IntentClassifier)} 挂载；同时注入产出的 SimpleAssistant */
 	private IntentClassifier<?> intentClassifier;
 
+	/** 上下文组合策略（默认 {@code memory-and-enriched}）；控制是否注入附加来源（摘要等） */
+	private ContextStrategy contextStrategy = ContextStrategy.MEMORY_AND_ENRICHED;
+
+	/** 有序上下文来源集合（如 {@code SummaryContextProvider}）；空则不注入 */
+	private final List<ContextProvider> contextProviders = new ArrayList<ContextProvider>();
+
+	/** 上下文维护钩子（读时兜底，如 {@code SummaryMaintenance}） */
+	private final List<ContextMaintenance> contextMaintenances = new ArrayList<ContextMaintenance>();
+
+	/** 会话标识解析器（默认在 {@link SimpleAssistant} 内为 daily）；配置 {@code session.session-id-resolver} 时覆盖 */
+	private SessionIdResolver sessionResolver;
+
 	/** 对话模型（必填）：{@code langchain4jChatModel['key']} 或任意 {@link ChatModel} 实例 */
 	public AssistantBuilder chatModel(ChatModel model) {
 		this.chatModel = model;
@@ -271,6 +305,53 @@ private Integer rerankMaxResults;
 		return this;
 	}
 
+	/**
+	 * 系统提示变换：在系统提示求值（{@link #systemMessage(String)} / {@link #systemMessageProvider(Function)}，
+	 * 含技能目录拼接）之后对最终文本做一次变换，由 fork 原生 {@code AiServices.systemMessageTransformer(...)}
+	 * 槽位承接；返回 {@code null} 表示移除系统提示。
+	 */
+	public AssistantBuilder systemMessageTransformer(UnaryOperator<String> transformer) {
+		this.systemMessageTransformer = transformer == null ? null : (message, invocation) -> transformer.apply(message);
+		return this;
+	}
+
+	/**
+	 * 系统提示变换（带 {@link InvocationContext}）：可按本轮调用上下文（memoryId 等）条件变换，其余同
+	 * {@link #systemMessageTransformer(UnaryOperator)}。
+	 */
+	public AssistantBuilder systemMessageTransformer(BiFunction<String, InvocationContext, String> transformer) {
+		this.systemMessageTransformer = transformer;
+		return this;
+	}
+
+	/**
+	 * 请求变换：对最终 {@link ChatRequest}（消息 + 参数）的透传扩展点，由 fork 原生
+	 * {@code AiServices.chatRequestTransformer(...)} 槽位承接。
+	 *
+	 * <p>执行顺序：框架内部步骤（统一上下文注入、{@link #chatRequestParameters(ChatRequestParameters)}
+	 * 合并）在前，本变换在最后——拿到的是即将发给模型的完整请求，可自由增删改。</p>
+	 */
+	public AssistantBuilder chatRequestTransformer(UnaryOperator<ChatRequest> transformer) {
+		this.chatRequestTransformer = transformer == null ? null : (request, memoryId) -> transformer.apply(request);
+		return this;
+	}
+
+	/** 请求变换（带 memoryId）：同 {@link #chatRequestTransformer(UnaryOperator)}，可按会话维度区分 */
+	public AssistantBuilder chatRequestTransformer(BiFunction<ChatRequest, Object, ChatRequest> transformer) {
+		this.chatRequestTransformer = transformer;
+		return this;
+	}
+
+	/**
+	 * 助手级请求参数（temperature / topP / maxOutputTokens / responseFormat 等）：
+	 * 非空字段覆盖每轮请求的同名字段——本轮未设置的字段（工具规格、本轮响应格式等）原样保留，
+	 * 对模型级默认参数（模型的 {@code defaultRequestParameters}）同样优先。
+	 */
+	public AssistantBuilder chatRequestParameters(ChatRequestParameters parameters) {
+		this.chatRequestParameters = parameters;
+		return this;
+	}
+
 	/** 进程内记忆：每个 {@code memoryId} 一份窗口记忆（默认包 EphemeralChatMemory），窗口大小 {@code maxMessages}（默认 20） */
 	public AssistantBuilder memory(Integer maxMessages) {
 		this.memoryMaxMessages = maxMessages == null || maxMessages < 1 ? DEFAULT_MEMORY_MAX_MESSAGES : maxMessages;
@@ -303,6 +384,46 @@ private Integer rerankMaxResults;
 	/** 记忆：直接用 {@link ChatMemoryProvider}（想保留工具往返等完整历史时用这条） */
 	public AssistantBuilder chatMemoryProvider(ChatMemoryProvider provider) {
 		this.chatMemoryProvider = provider;
+		return this;
+	}
+
+	/** 上下文组合策略：{@code memory} / {@code enriched} / {@code memory-and-enriched}（默认后者） */
+	public AssistantBuilder contextStrategy(ContextStrategy strategy) {
+		if (strategy != null) {
+			this.contextStrategy = strategy;
+		}
+		return this;
+	}
+
+	/** 注册一个有序上下文来源（如 {@code new SummaryContextProvider(summaryStore)}），可传多个 */
+	public AssistantBuilder contextProvider(ContextProvider... providers) {
+		if (providers != null) {
+			for (ContextProvider provider : providers) {
+				if (provider != null) {
+					this.contextProviders.add(provider);
+				}
+			}
+		}
+		return this;
+	}
+
+	/** 注册上下文维护钩子（读时兜底，如 {@code new SummaryMaintenance(engine, windowSize)}），可传多个 */
+	public AssistantBuilder contextMaintenance(ContextMaintenance... maintenances) {
+		if (maintenances != null) {
+			for (ContextMaintenance maintenance : maintenances) {
+				if (maintenance != null) {
+					this.contextMaintenances.add(maintenance);
+				}
+			}
+		}
+		return this;
+	}
+
+	/** 会话标识解析器：配置 {@code session.session-id-resolver}（daily/explicit）时覆盖默认 daily */
+	public AssistantBuilder sessionResolver(SessionIdResolver resolver) {
+		if (resolver != null) {
+			this.sessionResolver = resolver;
+		}
 		return this;
 	}
 
@@ -707,6 +828,10 @@ private Integer rerankMaxResults;
 		if (contentRetriever instanceof SimpleAssistant.FilterableRetriever filterable) {
 			assistant.filterableRetriever(filterable);
 		}
+		// 会话标识解析器：配置 session.session-id-resolver 时覆盖默认 daily
+		if (sessionResolver != null) {
+			assistant.sessionResolver(sessionResolver);
+		}
 		return assistant;
 	}
 
@@ -764,6 +889,9 @@ private Integer rerankMaxResults;
 		if (effectiveSystemMessage != null) {
 			builder.systemMessageProvider(effectiveSystemMessage);
 		}
+		if (systemMessageTransformer != null) {
+			builder.systemMessageTransformer(systemMessageTransformer);
+		}
 		if (!tools.isEmpty()) {
 			builder.tools(tools);
 		}
@@ -785,6 +913,13 @@ private Integer rerankMaxResults;
 		RetrievalAugmentor augmentor = resolveRetrievalAugmentor();
 		if (augmentor != null) {
 			builder.retrievalAugmentor(augmentor);
+		}
+		// 上下文注入：记忆读侧在 1.x 时序下看不到本轮用户消息，故注入点前移到请求装配之后、
+		// 模型调用之前（chatRequestTransformer），把统一上下文渲染为前置系统消息。
+		// 有效变换链按序：内部上下文注入 → 助手级请求参数合并 → 用户自定义变换（最后执行，有最终话语权）
+		BiFunction<ChatRequest, Object, ChatRequest> requestTransformer = resolveChatRequestTransformer();
+		if (requestTransformer != null) {
+			builder.chatRequestTransformer(requestTransformer);
 		}
 		return new MultimodalAssistantBridge(builder.build(), chatModel, streamingModel,
 				memoryProvider, systemMessageProvider, augmentor);
@@ -816,7 +951,7 @@ private Integer rerankMaxResults;
 						.chatMemoryStore(store)
 						.build();
 			}
-			return EphemeralChatMemory.builder(delegate, store)
+			ChatMemory ephemeral = EphemeralChatMemory.builder(delegate, store)
 					.aiPersistenceStrategy(resolvedStrategy)
 					.ephemeralSeparators(separators)
 					.stripRagFromHistory(ephemeralStripRagFromHistory)
@@ -824,7 +959,74 @@ private Integer rerankMaxResults;
 					.sendToolResultsInCurrentTurn(ephemeralSendToolResultsInCurrentTurn)
 					.sendToolRequestsInCurrentTurn(ephemeralSendToolRequestsInCurrentTurn)
 					.build();
+			return wrapContextAware(memoryId, ephemeral);
 		};
+	}
+
+	/**
+	 * 用 {@link ContextAwareChatMemory} 包裹记忆做上下文维护（写时滚动 + 读时兜底）；
+	 * 策略为 {@code memory} 或未注册来源时原样返回（不维护、零开销）。会话键即当前
+	 * effective memoryId（5 段），userId 由 memoryId 段[3] 解析（跨会话维度）。
+	 *
+	 * <p>注意：上下文「注入」不在记忆读侧承担——langchain4j 1.x 一轮内先读记忆、后写本轮
+	 * 用户消息，读取时看不到本轮输入；注入由 {@link #enrichedContextTransformer()} 挂在
+	 * AiServices 的 {@code chatRequestTransformer} 上完成。</p>
+	 */
+	private ChatMemory wrapContextAware(Object memoryId, ChatMemory delegate) {
+		if (!contextStrategy.injectsEnriched() || contextProviders.isEmpty()) {
+			return delegate;
+		}
+		final String sessionKey = memoryId == null ? null : memoryId.toString();
+		final String userId = sessionKey == null ? null
+				: ChatMemoryIds.parseUserId(sessionKey, ChatMemoryIds.DEFAULT_USER_ID);
+		return new ContextAwareChatMemory(delegate,
+				latest -> new ContextRequest(sessionKey, sessionKey, userId, latest), contextMaintenances);
+	}
+
+	/**
+	 * 组装有效请求变换链，按序执行：内部上下文注入 → 助手级请求参数合并 →
+	 * 用户自定义变换（{@link #chatRequestTransformer(BiFunction)}，最后执行、有最终话语权）。
+	 * 三者都未配置时返回 {@code null}（不注册变换器，保持零开销）。
+	 */
+	private BiFunction<ChatRequest, Object, ChatRequest> resolveChatRequestTransformer() {
+		List<BiFunction<ChatRequest, Object, ChatRequest>> chain =
+				new ArrayList<BiFunction<ChatRequest, Object, ChatRequest>>();
+		if (contextStrategy.injectsEnriched() && !contextProviders.isEmpty()) {
+			chain.add(enrichedContextTransformer());
+		}
+		if (chatRequestParameters != null) {
+			chain.add((request, memoryId) -> request.toBuilder()
+					.parameters(request.parameters().overrideWith(chatRequestParameters))
+					.build());
+		}
+		if (chatRequestTransformer != null) {
+			chain.add(chatRequestTransformer);
+		}
+		if (chain.isEmpty()) {
+			return null;
+		}
+		if (chain.size() == 1) {
+			return chain.get(0);
+		}
+		return (request, memoryId) -> {
+			ChatRequest current = request;
+			for (BiFunction<ChatRequest, Object, ChatRequest> step : chain) {
+				current = step.apply(current, memoryId);
+			}
+			return current;
+		};
+	}
+
+	/**
+	 * 上下文注入器：挂在 AiServices 的 {@code chatRequestTransformer} 上（请求装配后、模型调用前），
+	 * 实现与 agentic 侧共享（见 {@link EnrichedContextTransformer}）：注入渲染后的统一上下文、
+	 * 无内容时不改变请求；RAG 检索段按 {@link EphemeralChatMemory} 同一分隔符口径剥离。
+	 */
+	private BiFunction<ChatRequest, Object, ChatRequest> enrichedContextTransformer() {
+		final List<String> separators = ephemeralSeparators != null
+				? new ArrayList<String>(ephemeralSeparators)
+				: Collections.singletonList(EphemeralChatMemory.DEFAULT_RAG_SEPARATOR);
+		return new EnrichedContextTransformer(contextProviders, contextStrategy, separators);
 	}
 
 	/**

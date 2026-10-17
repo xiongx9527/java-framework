@@ -2,6 +2,8 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic;
 
 import dev.langchain4j.agentic.planner.Planner;
 import dev.langchain4j.agentic.planner.PlannerBasedService;
+import dev.langchain4j.agentic.scope.AgenticScopePersister;
+import dev.langchain4j.agentic.scope.AgenticScopeStore;
 
 import java.util.Collection;
 import java.util.function.Consumer;
@@ -21,6 +23,7 @@ public final class AgenticPlannerBasedBuilder<T> {
 
     private final PlannerBasedService<T> delegate;
     private Supplier<Planner> plannerSupplier;
+    private AgenticScopeStore scopeStore;
 
     AgenticPlannerBasedBuilder(PlannerBasedService<T> delegate) {
         this.delegate = delegate;
@@ -84,7 +87,21 @@ public final class AgenticPlannerBasedBuilder<T> {
         return this;
     }
 
+    /**
+     * agentic 原生存储：把编排共享状态（{@code AgenticScope}）持久化到给定
+     * {@link AgenticScopeStore}（构建时安装为全局 {@code AgenticScopePersister}，进程级生效）。
+     *
+     * <p>Spring 环境缺省已由 scope-store 自动配置统一安装，无需在此显式调用。</p>
+     */
+    public AgenticPlannerBasedBuilder<T> scopeStore(AgenticScopeStore scopeStore) {
+        this.scopeStore = scopeStore;
+        return this;
+    }
+
     public T build() {
+        if (scopeStore != null) {
+            AgenticScopePersister.setStore(scopeStore);
+        }
         if (plannerSupplier != null) {
             delegate.planner(plannerSupplier);
         }

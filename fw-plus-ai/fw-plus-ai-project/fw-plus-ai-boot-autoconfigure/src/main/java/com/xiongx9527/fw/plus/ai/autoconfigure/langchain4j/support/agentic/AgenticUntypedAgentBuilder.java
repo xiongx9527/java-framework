@@ -1,25 +1,40 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextMaintenance;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextProvider;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextStrategy;
+
 import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.agentic.agent.UntypedAgentBuilder;
+import dev.langchain4j.agentic.scope.AgenticScope;
+import dev.langchain4j.agentic.scope.AgenticScopeStore;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
+import dev.langchain4j.model.TokenCountEstimator;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.rag.RetrievalAugmentor;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.service.tool.ToolProvider;
+import dev.langchain4j.store.memory.chat.ChatMemoryStore;
+
+import java.util.function.Function;
 
 /**
  * 单 agent（untyped）构建器（隔离层）：产物为 {@link UntypedAgent} 句柄，
  * 可独立执行，也可作为 subAgent 挂入任意编排。
+ *
+ * <p>内部委托 {@link AgenticBuilder}，存储 / 上下文入口与其保持一致
+ * （{@code memory} / {@code memoryStore} / {@code scopeStore} / {@code context} / {@code summarizedContext} /
+ * {@code contextProvider} / {@code contextMaintenance}）；
+ * {@code ephemeral*} 与 {@code aiPersistence*} 等进阶记忆策略见 {@link AgenticBuilder}。</p>
  */
 public final class AgenticUntypedAgentBuilder {
 
-    private final UntypedAgentBuilder delegate;
+    private final AgenticBuilder<UntypedAgent> delegate;
 
     AgenticUntypedAgentBuilder(UntypedAgentBuilder delegate) {
-        this.delegate = delegate;
+        this.delegate = new AgenticBuilder<>(delegate);
     }
 
     public AgenticUntypedAgentBuilder chatModel(ChatModel chatModel) {
@@ -64,7 +79,7 @@ public final class AgenticUntypedAgentBuilder {
     }
 
     public AgenticUntypedAgentBuilder toolProviders(ToolProvider... toolProviders) {
-        delegate.toolProviders(toolProviders);
+        delegate.toolProvider(toolProviders);
         return this;
     }
 
@@ -122,6 +137,66 @@ public final class AgenticUntypedAgentBuilder {
 
     public AgenticUntypedAgentBuilder listener(dev.langchain4j.agentic.observability.AgentListener listener) {
         delegate.listener(listener);
+        return this;
+    }
+
+    /** 进程内记忆：每个 {@code memoryId} 一份窗口记忆（默认包 {@code EphemeralChatMemory}），窗口大小 {@code maxMessages}（默认 20）。 */
+    public AgenticUntypedAgentBuilder memory(Integer maxMessages) {
+        delegate.memory(maxMessages);
+        return this;
+    }
+
+    /** 记忆存储：会话记忆（按 memoryId）落给定 {@link ChatMemoryStore}，可持久化。 */
+    public AgenticUntypedAgentBuilder memoryStore(ChatMemoryStore memoryStore) {
+        delegate.memoryStore(memoryStore);
+        return this;
+    }
+
+    /** 按 token 截断记忆：配置后记忆改用 TokenWindowChatMemory（忽略 {@link #memory(Integer)}）。 */
+    public AgenticUntypedAgentBuilder tokenizer(TokenCountEstimator tokenizer) {
+        delegate.tokenizer(tokenizer);
+        return this;
+    }
+
+    /** TokenWindowChatMemory 的 token 上限（仅在配置了 tokenizer 时生效，默认 1000）。 */
+    public AgenticUntypedAgentBuilder maxTokens(Integer maxTokens) {
+        delegate.maxTokens(maxTokens);
+        return this;
+    }
+
+    /** agentic 原生存储：把编排共享状态（AgenticScope）持久化到给定 {@link AgenticScopeStore}（构建时安装，进程级生效）。 */
+    public AgenticUntypedAgentBuilder scopeStore(AgenticScopeStore scopeStore) {
+        delegate.scopeStore(scopeStore);
+        return this;
+    }
+
+    /** 原生上下文注入：作为「agentic 系统」一员运行时，从共享 scope 读取上下文并包装进本 agent 的 prompt。 */
+    public AgenticUntypedAgentBuilder context(Function<AgenticScope, String> contextProvider) {
+        delegate.context(contextProvider);
+        return this;
+    }
+
+    /** 摘要上下文：把指定名称 agents 的输出对话摘要后注入本 agent 的 prompt（仅系统内运行时生效）。 */
+    public AgenticUntypedAgentBuilder summarizedContext(String... contextProvidingAgents) {
+        delegate.summarizedContext(contextProvidingAgents);
+        return this;
+    }
+
+    /** 会话上下文组合策略：{@code memory} / {@code enriched} / {@code memory-and-enriched}（默认后者），与助手侧同义。 */
+    public AgenticUntypedAgentBuilder contextStrategy(ContextStrategy strategy) {
+        delegate.contextStrategy(strategy);
+        return this;
+    }
+
+    /** 注册会话上下文来源（摘要 / 事实等，与助手侧同一套），可传多个；独立执行与挂入编排都生效。 */
+    public AgenticUntypedAgentBuilder contextProvider(ContextProvider... providers) {
+        delegate.contextProvider(providers);
+        return this;
+    }
+
+    /** 注册上下文维护钩子（写时滚动 + 读时兜底，如 {@code new SummaryMaintenance(engine, windowSize)}），可传多个。 */
+    public AgenticUntypedAgentBuilder contextMaintenance(ContextMaintenance... maintenances) {
+        delegate.contextMaintenance(maintenances);
         return this;
     }
 

@@ -25,10 +25,21 @@
 		<!--  lock4j版本号 -->
         <lock4j.version>2.2.7</lock4j.version>
         <!--  debezium版本号 -->
-        <debezium.version>1.9.8.Final</debezium.version>
-        <!--  mockito版本号（对齐 spring-boot-dependencies 4.1.1；用于显式压过
-              debezium-bom 内部钉死的 mockito-core 3.0.0，避免测试 classpath 版本分裂） -->
+        <debezium.version>3.7.0.Final</debezium.version>
+        <!--  mockito版本号（对齐 spring-boot-dependencies 4.1.1 的 5.23.0；用于显式压过
+              debezium-bom 钉死的 mockito 版本，避免 mockito-core 与
+              mockito-junit-jupiter 在测试 classpath 出现版本分裂） -->
         <mockito.version>5.23.0</mockito.version>
+        <!--  mongodb-driver-sync版本号（对齐 spring-boot-dependencies 4.1.1 的
+              mongodb-driver-bom；用于显式压过 debezium-bom 钉死的版本，避免 driver-sync 与
+              bson / mongodb-driver-core 错配 —— 历史上 4.3.3 引用的
+              com.mongodb.connection.StreamFactory 在 5.x 已移除，运行期会 NoClassDefFoundError） -->
+        <mongodb.version>5.8.1</mongodb.version>
+        <!--  langchain4j版本号（对齐 core 层 fw-plus-dependencies 的 langchain4j.version，
+              升级时两处需一起改；用于显式压过 debezium-bom 抢先声明的 langchain4j-bom
+              1.0.1 线，避免依赖 core 层 1.22 版本管理、按 1.22 API 编译的 AI 层
+              dev.langchain4j 全家被压到 1.0.1 导致构建失败） -->
+        <langchain4j.version>1.22.0</langchain4j.version>
 		<!--  influxdb-sdk-java版本号 -->
         <influxdb.version>6.7.0</influxdb.version>
         <!--  resilience4j版本号 -->
@@ -240,15 +251,45 @@
                 <version>${atomikos.version}</version>
             </dependency>
 
-            <!-- mockito：必须置于 debezium-bom 之前。debezium-bom 1.9.x 内部将
-                 mockito-core 钉在 3.0.0（无 verifyNoInteractions），且其 import 先于
+            <!-- mockito：必须置于 debezium-bom 之前。debezium-bom 钉死的 mockito 版本
+                 与 spring-boot-dependencies 4.1.1 不一致，且其 import 先于
                  spring-boot-dependencies 声明，Maven 先声明优先会导致测试 classpath
-                 出现 mockito-core 3.0.0 + mockito-junit-jupiter 5.23.0 的版本分裂。
+                 出现 mockito-core / mockito-junit-jupiter 的版本分裂。
                  此处显式统一到 spring-boot-dependencies 4.1.1 的 5.23.0。 -->
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
                 <version>${mockito.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-junit-jupiter</artifactId>
+                <version>${mockito.version}</version>
+            </dependency>
+
+            <!-- mongodb-driver-sync：必须置于 debezium-bom 之前（同 mockito 先例）。
+                 bson / mongodb-driver-core 由 spring-boot-dependencies 的
+                 mongodb-driver-bom 管理为 5.8.1，driver-sync 若由 debezium-bom 钉死版本
+                 将造成 driver-sync/core 版本错配（4.3.3 引用的
+                 com.mongodb.connection.StreamFactory 在 5.x 已移除，MongoClients.create
+                 即 NoClassDefFoundError）。此处显式统一到 5.8.1。 -->
+            <dependency>
+                <groupId>org.mongodb</groupId>
+                <artifactId>mongodb-driver-sync</artifactId>
+                <version>${mongodb.version}</version>
+            </dependency>
+
+            <!-- langchain4j：必须置于 debezium-bom 之前（同 mockito / mongodb-driver-sync 先例）。
+                 debezium-bom 内置 import langchain4j-bom（1.0.1 线），先声明优先会把
+                 dev.langchain4j 全家压到 1.0.1；AI 层 langchain4j 版本由 core 层
+                 fw-plus-dependencies 单点管理（1.22.0），被压到 1.0.1 后按 1.22 API
+                 编译失败。版本与 core 层 langchain4j.version 同步维护。 -->
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-bom</artifactId>
+                <version>${langchain4j.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
 
             <!--debezium-->

@@ -57,11 +57,51 @@ class SimpleAssistantDimensionsTest {
 	@Test
 	void chatSingleArgUsesComposedMemoryId() {
 		simple.dimensions("crm", "bot", "u1");
-		when(assistant.chat("0:crm:bot:u1", "", contents("你好"))).thenReturn("回复");
+		String effective = simple.effectiveMemoryId();
+		assertThat(effective).isEqualTo("0:crm:bot:u1:" + simple.sessionId());
+		when(assistant.chat(effective, "", contents("你好"))).thenReturn("回复");
 
 		assertThat(simple.chat("你好")).isEqualTo("回复");
 
-		verify(assistant).chat("0:crm:bot:u1", "", contents("你好"));
+		verify(assistant).chat(effective, "", contents("你好"));
+	}
+
+	@Test
+	void chatSingleArgUsesSessionizedKeyNotBareMemoryId() {
+		simple.dimensions("crm", "bot", "u1");
+		// 对话路径必须用 5 段会话键（而非 4 段 memoryId()），否则摘要锚点会跨会话串用
+		assertThat(simple.effectiveMemoryId()).isNotEqualTo(simple.memoryId());
+		assertThat(simple.effectiveMemoryId()).matches("0:crm:bot:u1:d\\d{8}");
+	}
+
+	@Test
+	void sessionSwitchIsolatesConversationKey() {
+		simple.dimensions("crm", "bot", "u1");
+		simple.session("s-1");
+		assertThat(simple.effectiveMemoryId()).isEqualTo("0:crm:bot:u1:s-1");
+		when(assistant.chat("0:crm:bot:u1:s-1", "", contents("你好"))).thenReturn("第一会话");
+
+		simple.session("s-2");
+		assertThat(simple.effectiveMemoryId()).isEqualTo("0:crm:bot:u1:s-2");
+		when(assistant.chat("0:crm:bot:u1:s-2", "", contents("你好"))).thenReturn("第二会话");
+
+		// 同一维度下切换会话：记忆键确实不同（会话级隔离）
+		simple.session("s-1");
+		assertThat(simple.chat("你好")).isEqualTo("第一会话");
+		simple.session("s-2");
+		assertThat(simple.chat("你好")).isEqualTo("第二会话");
+		verify(assistant).chat("0:crm:bot:u1:s-1", "", contents("你好"));
+		verify(assistant).chat("0:crm:bot:u1:s-2", "", contents("你好"));
+	}
+
+	@Test
+	void tokenStreamSingleArgUsesSessionizedKey() {
+		simple.dimensions("crm", "bot", "u1");
+		simple.session("s-7");
+		when(assistant.stream("0:crm:bot:u1:s-7", "", contents("你好")))
+				.thenReturn(mock(dev.langchain4j.service.TokenStream.class));
+		simple.stream("你好");
+		verify(assistant).stream("0:crm:bot:u1:s-7", "", contents("你好"));
 	}
 
 	@Test
@@ -89,6 +129,43 @@ class SimpleAssistantDimensionsTest {
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining("appId");
 		assertThatThrownBy(() -> simple.dimensions("crm", "bot", "u:1"))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("分隔符");
+	}
+
+	// -------------------------------------------------- 会话维度（5 段）
+
+	@Test
+	void memoryIdStaysFourSegmentsWithSession() {
+		simple.dimensions("t1", "crm", "bot", "u1").session("s1");
+		// 四段契约保持不变（既有断言），会话维度另经 effectiveMemoryId 暴露
+		assertThat(simple.memoryId()).isEqualTo("t1:crm:bot:u1");
+	}
+
+	@Test
+	void effectiveMemoryIdIsFiveSegmentsWithExplicitSession() {
+		simple.dimensions("t1", "crm", "bot", "u1").session("s1");
+		assertThat(simple.effectiveMemoryId()).isEqualTo("t1:crm:bot:u1:s1");
+	}
+
+	@Test
+	void explicitSessionWinsOverResolver() {
+		simple.dimensions("t1", "crm", "bot", "u1").session("conversation-42");
+		assertThat(simple.sessionId()).isEqualTo("conversation-42");
+		assertThat(simple.effectiveMemoryId()).isEqualTo("t1:crm:bot:u1:conversation-42");
+	}
+
+	@Test
+	void missingSessionFallsBackToDailyResolver() {
+		simple.dimensions("t1", "crm", "bot", "u1");
+		// 未显式提供会话时按天兜底，最终键恒为 5 段
+		assertThat(simple.sessionId()).matches("d\\d{8}");
+		assertThat(simple.effectiveMemoryId()).matches("t1:crm:bot:u1:d\\d{8}");
+	}
+
+	@Test
+	void sessionRejectsSeparator() {
+		assertThatThrownBy(() -> simple.session("s:1"))
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining("分隔符");
 	}

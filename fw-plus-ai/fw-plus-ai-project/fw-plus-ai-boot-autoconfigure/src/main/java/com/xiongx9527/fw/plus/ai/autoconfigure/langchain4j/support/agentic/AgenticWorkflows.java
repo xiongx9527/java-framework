@@ -146,12 +146,12 @@ public final class AgenticWorkflows {
 
     /** 单 agent（typed）：传入带 {@code @Agent} 注解的接口，产物为该接口的可执行代理。 */
     public static <T> AgenticTypedAgentBuilder<T> agent(Class<T> agentServiceClass) {
-        return new AgenticTypedAgentBuilder<>(AgenticServices.agentBuilder(agentServiceClass));
+        return new AgenticTypedAgentBuilder<>(new ContextInjectingAgentBuilder<>(agentServiceClass));
     }
 
     /** 单 agent（untyped）：产物为 {@link UntypedAgent} 句柄。 */
     public static AgenticUntypedAgentBuilder agent() {
-        return new AgenticUntypedAgentBuilder(AgenticServices.agentBuilder());
+        return new AgenticUntypedAgentBuilder(new ContextInjectingUntypedAgentBuilder());
     }
 
     /** 单 agent（typed）构建器入口（与 {@link #agent(Class)} 等价，供脚本统一命名）。 */

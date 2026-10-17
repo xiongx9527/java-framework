@@ -66,7 +66,7 @@ POST /debezium/datasource/connector-options
   "kafkaServers": "127.0.0.1:9092",
   "kafkaTopic": "demo_cdc",
   "serverIdType": "random",
-  "other": "{\"snapshot.mode\":\"schema_only\"}"
+  "other": "{\"snapshot.mode\":\"no_data\"}"
 }
 ```
 
@@ -149,7 +149,7 @@ debezium_{springProfile}_{key}
 }
 ```
 
-当前默认 `snapshot.mode` 为 `schema_only`，表示捕获表结构后从 offset 或当前 binlog 位置开始增量读取。可以通过 `other.snapshot.mode` 覆盖为 Debezium 支持的其他值，例如 `initial`、`never`、`when_needed`、`schema_only_recovery`。
+当前默认 `snapshot.mode` 为 `no_data`（Debezium 3.x 取值，旧名 `schema_only`），表示捕获表结构后从 offset 或当前 binlog 位置开始增量读取。可以通过 `other.snapshot.mode` 覆盖为 Debezium 支持的其他值，例如 `initial`、`when_needed`、`recovery`；旧值 `schema_only` / `schema_only_recovery` 会被自动归一化为 `no_data` / `recovery`。
 
 ## 配置中心覆盖
 
@@ -175,7 +175,7 @@ magic:
         kafkaTopic: demo_cdc
         includeTables: user,order
         serverIdType: fixed
-        other: '{"snapshot.mode":"schema_only"}'
+        other: '{"snapshot.mode":"no_data"}'
 ```
 
 配置中心值会覆盖 datasource JSON 中的同名字段。

@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support;
 
 import com.alibaba.fastjson2.JSON;
+import com.xiongx9527.fw.plus.common.util.SpringUtils;
 
 import java.time.Duration;
 import java.util.*;
@@ -8,8 +9,13 @@ import java.util.*;
 /**
  * options 差异参数的强类型读取：封装风格对齐 MagicAPIConfigUtils（集中读取 + 默认值 + 缺失报错带完整路径）。
  * options 中不同 provider 的键集合不同；各工厂按 builder 需要的键取值。
+ *
+ * <p>JVM 参数兜底：options 中缺失的键，按 {@code magic.api.langchain4j.<type>.<key>.<name>} 从
+ * JVM 参数（-D）读取，与 MagicAPIConfigUtils 的 SpringUtils.getAppConfig 模式一致。</p>
  */
 public class Langchain4jOptionsReader {
+
+    private static final String JVM_CONFIG_PREFIX = "magic.api.langchain4j.";
 
     private final String type;
     private final String key;
@@ -22,7 +28,7 @@ public class Langchain4jOptionsReader {
     }
 
     public boolean has(String name) {
-        return options.get(name) != null;
+        return rawValue(name) != null;
     }
 
     public Set<String> names() {
@@ -32,18 +38,18 @@ public class Langchain4jOptionsReader {
     public String required(String name) {
         String value = string(name, null);
         if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException(path(name) + " 不能为空（请在 datasource options 中配置）");
+            throw new IllegalArgumentException(path(name) + " 不能为空（请在 datasource options 或 JVM 参数 " + jvmKey(name) + " 中配置）");
         }
         return value;
     }
 
     public String string(String name, String defaultValue) {
-        Object value = options.get(name);
+        Object value = rawValue(name);
         return value == null ? defaultValue : String.valueOf(value);
     }
 
     public int integer(String name, Integer defaultValue) {
-        Object value = options.get(name);
+        Object value = rawValue(name);
         if (value == null) {
             return defaultValue == null ? 0 : defaultValue;
         }
@@ -55,7 +61,7 @@ public class Langchain4jOptionsReader {
     }
 
     public long longValue(String name, Long defaultValue) {
-        Object value = options.get(name);
+        Object value = rawValue(name);
         return value == null ? (defaultValue == null ? 0L : defaultValue) : toLong(name, value);
     }
 
@@ -64,7 +70,7 @@ public class Langchain4jOptionsReader {
      * 表示不设置该参数、由 langchain4j 使用自身默认值）。
      */
     public Double dbl(String name, Double defaultValue) {
-        Object value = options.get(name);
+        Object value = rawValue(name);
         if (value == null) {
             return defaultValue;
         }
@@ -79,7 +85,7 @@ public class Langchain4jOptionsReader {
     }
 
     public Float floatValue(String name, Float defaultValue) {
-        Object value = options.get(name);
+        Object value = rawValue(name);
         if (value == null) {
             return defaultValue;
         }
@@ -94,7 +100,7 @@ public class Langchain4jOptionsReader {
     }
 
     public Boolean bool(String name, Boolean defaultValue) {
-        Object value = options.get(name);
+        Object value = rawValue(name);
         if (value == null) {
             return defaultValue;
         }
@@ -110,7 +116,7 @@ public class Langchain4jOptionsReader {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     public <E extends Enum<E>> E enumValue(String name, Class<E> type, E defaultValue) {
-        Object value = options.get(name);
+        Object value = rawValue(name);
         if (value == null) {
             return defaultValue;
         }
@@ -124,7 +130,7 @@ public class Langchain4jOptionsReader {
     }
 
     public Duration duration(String name, Duration defaultValue) {
-        Object value = options.get(name);
+        Object value = rawValue(name);
         if (value == null) {
             return defaultValue;
         }
@@ -154,7 +160,7 @@ public class Langchain4jOptionsReader {
     }
 
     public List<String> stringList(String name, List<String> defaultValue) {
-        Object value = options.get(name);
+        Object value = rawValue(name);
         if (value == null) {
             return defaultValue == null ? Collections.<String>emptyList() : defaultValue;
         }
@@ -180,7 +186,7 @@ public class Langchain4jOptionsReader {
      */
     @SuppressWarnings("unchecked")
     public Map<String, String> stringMap(String name, Map<String, String> defaultValue) {
-        Object value = options.get(name);
+        Object value = rawValue(name);
         if (value == null) {
             return defaultValue == null ? Collections.<String, String>emptyMap() : defaultValue;
         }
@@ -238,6 +244,25 @@ public class Langchain4jOptionsReader {
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException(path(name) + " 不是合法整数: " + value);
         }
+    }
+
+    /**
+     * 读取原始值：优先 options，缺失时从 JVM 参数（-D）兜底。
+     * JVM 参数 key 格式：{@code magic.api.langchain4j.<type>.<key>.<name>}。
+     */
+    private Object rawValue(String name) {
+        Object value = options.get(name);
+        if (value == null) {
+            String jvmValue = SpringUtils.getAppConfig(jvmKey(name), null);
+            if (jvmValue != null && !jvmValue.trim().isEmpty()) {
+                value = jvmValue;
+            }
+        }
+        return value;
+    }
+
+    private String jvmKey(String name) {
+        return JVM_CONFIG_PREFIX + type + "." + key + "." + name;
     }
 
     private String path(String name) {

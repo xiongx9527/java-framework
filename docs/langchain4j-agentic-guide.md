@@ -113,23 +113,70 @@ public interface AgenticScopeStore {
 
 `AgenticScopeKey` 是 record `(agentId, memoryId)`：同一 agent 的同一会话对应唯一 key。
 
-用 `AgenticScopePersister.INSTANCE.setStore(...)` 全局接入自定义实现（如 Redis / DB；
-`AgenticScopeSerializer` 提供 JSON 序列化：`toJson / fromJson`，反序列化需
-`allowDeserializationPackagePrefix / allowDeserializationType` 白名单）：
+框架内置两种现成实现，经 `AgenticScopePersister.setStore(...)` 全局接入；Spring Boot
+环境下由自动配置完成「装配 + 安装」，无需手写代码：
+
+| 实现 | 说明 |
+|---|---|
+| `InMemoryAgenticScopeStore` | 进程内持有 scope 引用、零序列化开销；**缺省后端**，进程重启即丢失 |
+| `MongoAgenticScopeStore` | JSON 落 MongoDB，跨进程 / 跨重启恢复；对齐 AgentScope2 Java 的 MongoDB 状态存储（结构化复合 `_id`、可选 TTL、`AutoCloseable`） |
+
+**Spring Boot 配置**（前缀 `fw.plus.ai.langchain4j.agentic.scope-store`，`type` 即开关）：
+
+```yaml
+fw:
+  plus:
+    ai:
+      langchain4j:
+        agentic:
+          scope-store:
+            type: mongo                        # in-memory（缺省）| mongo | none
+            mongo:
+              connection-string: mongodb://localhost:27017
+              database: fw_plus               # 缺省
+              collection: fw_plus_agentic_scope  # 缺省
+              ttl: 30d                         # 可选：文档 TTL，到期自动清理；缺省永久保留
+            serialization:
+              allow-package-prefixes:          # 反序列化白名单（持久化后端必需）
+                - com.example.domain.
+              # allow-types:                   # 也可按具体类型放行
+              #   - com.example.domain.Order
+```
+
+装配与安装语义：
+
+- `in-memory`（缺省）：装配 `InMemoryAgenticScopeStore` 并安装为全局 persister；
+- `mongo`：装配 `MongoAgenticScopeStore`（需业务侧自行引入 `org.mongodb:mongodb-driver-sync`，
+  框架以 optional 声明、不传递）；
+- `none`：不装配、不安装，保持上游「无存储」行为（scope 只活在 registry 内存中）；
+- 自定义 `AgenticScopeStore` Bean 优先于内置装配，且仍会被安装；
+- 白名单在启动时注册为进程级永久生效（`AgenticScopeSerializer` 提供 JSON 序列化
+  `toJson / fromJson`，反序列化需 `allowDeserializationPackagePrefix / allowDeserializationType`）。
+
+**编程式用法**（非 Spring 场景，或需要在进程内联注入时）：
 
 ```java
-import dev.langchain4j.agentic.scope.*;
+import dev.langchain4j.agentic.scope.AgenticScopePersister;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.store.*;
 
-// 示例：内存 store（生产可用 Redis 实现，见 fw-plus-redis 增强）
-AgenticScopeStore store = new AgenticScopeStore() {
-    private final Map<AgenticScopeKey, DefaultAgenticScope> map = new ConcurrentHashMap<>();
-    public boolean save(AgenticScopeKey k, DefaultAgenticScope s) { map.put(k, s); return true; }
-    public Optional<DefaultAgenticScope> load(AgenticScopeKey k) { return Optional.ofNullable(map.get(k)); }
-    public boolean delete(AgenticScopeKey k) { return map.remove(k) != null; }
-    public Set<AgenticScopeKey> getAllKeys() { return map.keySet(); }
-};
-AgenticScopePersister.INSTANCE.setStore(store);
+// 进程内
+AgenticScopePersister.setStore(new InMemoryAgenticScopeStore());
+
+// Mongo（外部持有 client 用 .mongoClient(...) 传入，close() 只关自建 client）
+MongoAgenticScopeStore mongoStore = MongoAgenticScopeStore.builder()
+        .connectionString("mongodb://localhost:27017")
+        .database("fw_plus")
+        .collection("fw_plus_agentic_scope")
+        .ttl(Duration.ofDays(30))            // 可选
+        .allowPackagePrefix("com.example.")  // 反序列化白名单
+        .build();
+AgenticScopePersister.setStore(mongoStore);
 ```
+
+各单 agent 构建器另提供 `scopeStore(...)`（在 `build()` 时安装为全局 persister，
+便于单测内联注入）。**行为说明**：不带 `@MemoryId` 的调用创建 EPHEMERAL scope，
+调用结束即从 store 清理（save 后 delete）；带 `@MemoryId` 的调用跑在 PERSISTENT scope 上，
+调用结束 flush 保留，可跨请求 / 跨进程回读。
 
 ### 2.3 结果与挂起（ResultWithAgenticScope / 人工审批）
 
@@ -195,6 +242,37 @@ typing 细节：
 - typed agent `build()` 返回用户接口；untyped、各编排 `build()` 返回 `UntypedAgent`
   （`dev.langchain4j.agentic.UntypedAgent`，唯一允许暴露给业务的原生类型）；
 - typed agent 可直接 `subAgents(echo)` 挂入编排（框架自动拆包）。
+
+### 3.3 上下文注入与摘要（context / summarizedContext）
+
+> **使用场景**：agent 作为编排一员运行时，希望参考共享作用域里的状态，或自动吸收
+> 其他 agent 的输出要点，而不是只依赖自己的输入与消息模板。
+
+```java
+// 方式一：直接从共享 scope 读取并注入 prompt（推荐：简短、可控）
+UntypedAgent reporter = AgenticWorkflows.agent()
+        .chatModel(model)
+        .userMessage("基于上下文写结论：{{question}}")
+        .outputKey("answer")
+        .context(scope -> "已收集的数据：" + scope.readState("data"))
+        .build();
+
+// 方式二：把指定 agents 的输出交给模型摘要后注入（上下文长、只要要点时）
+UntypedAgent writer = AgenticWorkflows.agent()
+        .chatModel(model)
+        .userMessage("撰写报告：{{question}}")
+        .outputKey("report")
+        .summarizedContext("extractor", "analyzer")   // 传 agent 名（@Agent(name = ...)）
+        .build();
+```
+
+要点：
+- 仅在 agent 作为「agentic 系统」一员运行时生效（独立执行没有共享 scope，不产生注入）；
+- `context(...)` 注入形如 `Considering this context "..."`；与 `summarizedContext(...)`
+  同时配置时 **context 优先**；
+- `summarizedContext(...)` 需要本 agent 的 ChatModel（摘要由模型完成）；无可用上下文时
+  不发摘要请求；被摘要的是指定 agents 的输出（按 `@Agent(name = ...)` 匹配）；
+- 两者均在 typed / untyped 单 agent 构建器（`AgenticBuilder`）上提供。
 
 ## 4. 四种基础编排
 
@@ -325,11 +403,28 @@ ResultWithAgenticScope<String> r = supervisor.invokeWithAgenticScope("用户请�
 ```
 
 可配置项：`chatMemoryProvider` / `requestGenerator(Function<AgenticScope,String>)` /
-`contextGenerationStrategy(SupervisorContextStrategy)`（默认 CHAT_MEMORY）/
-`responseStrategy(SupervisorResponseStrategy)`（默认 LAST）/
+`contextGenerationStrategy(SupervisorContextStrategy)`（默认 `CHAT_MEMORY`）/
+`responseStrategy(SupervisorResponseStrategy)`（默认 `LAST`）/
 `supervisorContext(String)` / `output(Function<AgenticScope,Object>)` /
 `beforeCall(Consumer<AgenticScope>)` / `compensateOnError(boolean)` /
-`errorHandler` / `listener`。
+`errorHandler` / `listener` / `scopeStore(AgenticScopeStore)`。
+
+上下文策略 `contextGenerationStrategy` 三选一：
+
+| 取值 | 含义 |
+|---|---|
+| `CHAT_MEMORY`（默认） | 只用监督者自己的 ChatMemory |
+| `SUMMARIZATION` | 把监督者与子 agent 的交互摘要后作为上下文 |
+| `CHAT_MEMORY_AND_SUMMARIZATION` | 两者并用 |
+
+```java
+AgenticSupervisor supervisor = AgenticWorkflows.supervisor()
+        .chatModel(model)
+        .subAgents(stepA, stepB)
+        .contextGenerationStrategy(SupervisorContextStrategy.SUMMARIZATION)
+        .outputKey("answer")
+        .build();
+```
 
 ### 6.2 planner LLM 自主规划
 
@@ -638,8 +733,9 @@ return rows;
    agent-card，因此真实调用前请确保对端可达。
 3. **映射 agent 需带 outputKey**：`parallelMapper` 逐项写回按 `outputKey_索引`，
    不带 `outputKey` 的 agent 无法参与并行映射。
-4. **未经白的反序列化**：`AgenticScopeSerializer.fromJson` 默认拒绝未放行的类型，
-   需先 `allowDeserializationPackagePrefix(...)` 或 `allowDeserializationType(...)`。
+4. **未经白的反序列化**：`AgenticScopeSerializer.fromJson` 默认拒绝未放行的类型，需先
+   `allowDeserializationPackagePrefix(...)` / `allowDeserializationType(...)`，或经
+   `fw.plus.ai.langchain4j.agentic.scope-store.serialization.*` 配置化注册（自动配置路径）。
 5. **subAgents 混排**：typed agent / untyped agent / `AgenticSupervisor` /
    `AgenticHumanInTheLoop` 可任意混排，框架自动拆包（`AgenticAgents`）。
 6. **隔离守卫**：业务 keep 使用上文类型即可；若被迫 import
@@ -647,6 +743,9 @@ return rows;
 7. **验收基线**：`AgenticPatternsTest` / `AgenticIsolationTest` /
    `AgenticA2AServerTest` / `AgenticToolProviderTest` 共 21 条用例覆盖本文全部模式，
    是门面行为的事实来源。
+8. **scope store 缺省已装配**：Spring Boot 环境下缺省装配 `InMemoryAgenticScopeStore` 并
+   安装为全局 persister；跨进程 / 跨重启恢复换
+   `fw.plus.ai.langchain4j.agentic.scope-store.type=mongo`，要完全关闭设 `type=none`。
 
 ## 附录 A：门面工厂速查（AgenticWorkflows）
 
@@ -658,6 +757,9 @@ return rows;
 | `conditional()` | `AgenticConditionalBuilder` | 条件分支 |
 | `parallel()` | `AgenticParallelBuilder` | 并行 fan-out |
 | `parallelMapper()` | `AgenticParallelMapperBuilder` | 列表并行映射 |
+| `sequence(Class)` / `loop(Class)` / `conditional(Class)` / `parallel(Class)` | `Agentic*Builder<T>` | 上述四种编排的 typed 变体（接口即系统） |
+| `sequenceStreaming(Class)` | `AgenticSequenceBuilder<T>` | 流式顺序编排 |
+| `plannerBuilder()` / `plannerBuilder(Class)` | `AgenticPlannerBasedBuilder` / `AgenticPlannerBasedBuilder<T>` | 通用 planner 编排 |
 | `supervisor()` | `AgenticSupervisorBuilder` | 监督者（产物 `AgenticSupervisor`） |
 | `planner()` | `AgenticPlannerBuilder` | LLM 自主规划 |
 | `humanInTheLoop()` | `AgenticHumanInTheLoopBuilder` | 人工介入节点 |

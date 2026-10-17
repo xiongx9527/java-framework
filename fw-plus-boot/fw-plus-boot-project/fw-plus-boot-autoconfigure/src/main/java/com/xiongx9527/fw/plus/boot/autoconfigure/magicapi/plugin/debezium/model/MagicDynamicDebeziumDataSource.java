@@ -45,7 +45,7 @@ public abstract class MagicDynamicDebeziumDataSource implements DisposableBean, 
     // 恢复重试
     private static final int MAX_RECOVERY_RETRIES = 3;
     // 快照模式
-    private static final String DEFAULT_SNAPSHOT_MODE = "schema_only";
+    private static final String DEFAULT_SNAPSHOT_MODE = "no_data"; // Debezium 3.x 中 schema_only 已更名为 no_data
     private static final int SNAPSHOT_DELAY_MS = 10000;
     private static final int SNAPSHOT_LOCK_TIMEOUT_MS = 10000;
     private static final int SNAPSHOT_FETCH_SIZE = 10000;
@@ -78,12 +78,7 @@ public abstract class MagicDynamicDebeziumDataSource implements DisposableBean, 
     private static final int CONNECT_TIMEOUT_MS = 30000;
     private static final int DB_HISTORY_JDBC_CONNECT_TIMEOUT_MS = 30000;
     private static final int DB_HISTORY_JDBC_VALIDATION_INTERVAL_MS = 30000;
-    // 错误重试
-    private static final int ERRORS_RETRY_TIMEOUT_MS = 60000;
-    private static final int ERRORS_RETRY_DELAY_MS = 1000;
     // MongoDB
-    private static final int MONGO_BACKOFF_INITIAL_DELAY_MS = 1000;
-    private static final int MONGO_BACKOFF_MAX_DELAY_MS = 120000;
     private static final int MONGO_SOCKET_TIMEOUT_MS = 30000;
     private static final int MONGO_POLL_INTERVAL_MS = 5000;
     private static final long SERVER_ID_CONFLICT_RETRY_DELAY_MS = 5000;
@@ -306,9 +301,9 @@ public abstract class MagicDynamicDebeziumDataSource implements DisposableBean, 
      * 1. server_id 冲突 — 多实例连同一 MySQL 且 server_id 碰撞时触发
      *    → 等待旧连接释放后重建引擎，最多重试 MAX_RECOVERY_RETRIES 次
      *
-     * 2. 未知表 schema — stream 中动态加入新表时触发。snapshot.new.tables=PARALLEL
-     *    仅在 connector 重启时生效，stream 中加表仍需本分支兜底
-     *    → 删 dbhistory topic + schema_only_recovery 重新捕获所有表结构，保留 offset 不丢数据
+     * 2. 未知表 schema — stream 中动态加入新表时触发（3.x 已移除 snapshot.new.tables，
+     *    新增表仍需本分支兜底）
+     *    → 删 dbhistory topic + recovery 重新捕获所有表结构，保留 offset 不丢数据
      *
      * 3. GTID binlog 已清除 — MySQL 错误码 1236，服务停太久（超过 binlog 保留期，
      *    RDS 默认 7 天）导致 binlog 被自动清理时触发
@@ -318,10 +313,10 @@ public abstract class MagicDynamicDebeziumDataSource implements DisposableBean, 
      *    → 删 offset + 重建引擎，从当前 binlog 位置重新开始
      *
      * 5. db history topic 丢失 — Kafka 中 dbhistory topic 被误删或 retention 到期
-     *    → 删 offset + schema_only_recovery 恢复模式重建引擎
+     *    → 删 offset + recovery 恢复模式重建引擎
      *
-     * 6. schema_only_recovery 降级 — recovery 模式缺少必要 offset 信息时自动降级
-     *    → 降级为 schema_only 重试
+     * 6. recovery 降级 — recovery 模式缺少必要 offset 信息时自动降级
+     *    → 降级为 no_data 重试
      *
      * @param key            数据源唯一标识
      * @param dataSourceInfo 数据源配置信息
@@ -371,12 +366,12 @@ public abstract class MagicDynamicDebeziumDataSource implements DisposableBean, 
                     log.error("server_id 冲突自动恢复已达最大重试次数({})，引擎将停止: {}", MAX_RECOVERY_RETRIES, key);
                     break;
                 } else if (isUnknownTableError(actualError) && retries < MAX_RECOVERY_RETRIES) {
-                    // 触发条件：snapshot.new.tables=PARALLEL 内部处理失败，或低版本 Debezium 无此配置
-                    // 此时引擎已崩溃，需删 dbhistory 强制重抓所有表结构，再用 schema_only_recovery 从原 offset 恢复
+                    // 触发条件：stream 中动态加入新表导致 schema 缺失（3.x 已移除 snapshot.new.tables 自动补全）
+                    // 此时引擎已崩溃，需删 dbhistory 强制重抓所有表结构，再用 recovery 从原 offset 恢复
                     retries++;
-                    log.warn("检测到未知表 schema 错误，正在第{}次自动恢复（删除 dbhistory + schema_only_recovery 恢复，保留 offset 不丢数据）: {}", retries, key);
+                    log.warn("检测到未知表 schema 错误，正在第{}次自动恢复（删除 dbhistory + recovery 恢复，保留 offset 不丢数据）: {}", retries, key);
                     try {
-                        recoverEngineState(key, dataSourceInfo, false, true, "schema_only_recovery");  // 保留 offset，删 history 触发恢复，从原 offset 继续不丢数据
+                        recoverEngineState(key, dataSourceInfo, false, true, "recovery");  // 保留 offset，删 history 触发恢复，从原 offset 继续不丢数据
                         engine = engines.get(key);
                         log.info("Debezium 引擎已恢复并重新启动: {}", key);
                         retries = 0;
@@ -419,11 +414,11 @@ public abstract class MagicDynamicDebeziumDataSource implements DisposableBean, 
                     break;
                 } else if (isDbHistoryTopicMissingError(actualError) && retries < MAX_RECOVERY_RETRIES) {
                     retries++;
-                    log.warn("检测到 db history topic 丢失，正在第{}次自动恢复（schema_only_recovery 模式）: {}", retries, key);
+                    log.warn("检测到 db history topic 丢失，正在第{}次自动恢复（recovery 模式）: {}", retries, key);
                     try {
-                        recoverEngineState(key, dataSourceInfo, true, "schema_only_recovery");
+                        recoverEngineState(key, dataSourceInfo, true, "recovery");
                         engine = engines.get(key);
-                        log.info("Debezium 引擎已使用 schema_only_recovery 模式恢复并重新启动: {}", key);
+                        log.info("Debezium 引擎已使用 recovery 模式恢复并重新启动: {}", key);
                         retries = 0;
                     } catch (Exception recoveryEx) {
                         log.error("db history topic 丢失自动恢复失败，停止重试: {}", key, recoveryEx);
@@ -434,18 +429,18 @@ public abstract class MagicDynamicDebeziumDataSource implements DisposableBean, 
                     break;
                 } else if (isSchemaRecoveryFallbackError(actualError) && retries < MAX_RECOVERY_RETRIES) {
                     retries++;
-                    log.warn("schema_only_recovery 缺少 offset 信息，降级为 schema_only 重试: {} (第{}次)", key, retries);
+                    log.warn("recovery 缺少 offset 信息，降级为 no_data 重试: {} (第{}次)", key, retries);
                     try {
-                        recoverEngineState(key, dataSourceInfo, true, "schema_only");
+                        recoverEngineState(key, dataSourceInfo, true, "no_data");
                         engine = engines.get(key);
-                        log.info("Debezium 引擎已降级为 schema_only 恢复并重新启动: {}", key);
+                        log.info("Debezium 引擎已降级为 no_data 恢复并重新启动: {}", key);
                         retries = 0;
                     } catch (Exception recoveryEx) {
-                        log.error("schema_only 降级恢复失败，停止重试: {}", key, recoveryEx);
+                        log.error("no_data 降级恢复失败，停止重试: {}", key, recoveryEx);
                         break;
                     }
                 } else if (isSchemaRecoveryFallbackError(actualError)) {
-                    log.error("schema_only 降级恢复已达最大重试次数({})，引擎将停止: {}", MAX_RECOVERY_RETRIES, key);
+                    log.error("no_data 降级恢复已达最大重试次数({})，引擎将停止: {}", MAX_RECOVERY_RETRIES, key);
                     break;
                 } else {
                     break;
@@ -523,7 +518,7 @@ public abstract class MagicDynamicDebeziumDataSource implements DisposableBean, 
 
 
     private boolean isDbHistoryTopicMissingError(Throwable e) {
-        return hasBothInMessage(e, "db history topic is missing", "SCHEMA_ONLY_RECOVERY");
+        return hasBothInMessage(e, "db history topic is missing", "recovery");
     }
 
     private boolean isBinlogNotAvailableError(Throwable e) {
@@ -542,7 +537,7 @@ public abstract class MagicDynamicDebeziumDataSource implements DisposableBean, 
     /**
      * 恢复引擎状态：关闭旧引擎、可选清理 offset topic、重建引擎。
      *
-     * @param cleanOffset true=删除 offset topic（binlog 失效时），false=保留 offset（schema_only 可补结构）
+     * @param cleanOffset true=删除 offset topic（binlog 失效时），false=保留 offset（no_data 可补结构）
      */
     private void recoverEngineState(String key, DebeziumDataSourceInfo dataSourceInfo, boolean cleanOffset) {
         recoverEngineState(key, dataSourceInfo, cleanOffset, null);
@@ -680,23 +675,22 @@ public abstract class MagicDynamicDebeziumDataSource implements DisposableBean, 
         if (retentionDays != null) {
             dataRetentionMs = Long.parseLong(retentionDays.toString()) * 24 * 60 * 60 * 1000L;
         }
-        // 为内部主题设置最大保留时间，防止无限增长，默认7天
+        // 为内部主题（offset/config/status）设置最大保留时间，防止无限增长，默认7天
+        // （dbhistory topic 在 3.x 由 KafkaSchemaHistory 自建，固定 delete + 最大保留，不再由此处控制）
         long internalRetentionMs = DEFAULT_TOPIC_RETENTION_MS;
         Object internalRetentionDays = otherProps.get("database.history.kafka.topic.config.retention.days");
         if (internalRetentionDays != null) {
             internalRetentionMs = Long.parseLong(internalRetentionDays.toString()) * 24 * 60 * 60 * 1000L;
         }
         String key = getDebeziumPrefix() + "_" + dataSourceInfo.getKey();
-        props.setProperty("database.history", "io.debezium.relational.history.KafkaDatabaseHistory");
+        props.setProperty("schema.history.internal", "io.debezium.storage.kafka.history.KafkaSchemaHistory");
         String kafkaServers = dc(dataSourceInfo, "kafkaServers", dataSourceInfo.getKafkaServers());
-        props.setProperty("database.history.kafka.bootstrap.servers", kafkaServers);
-        props.setProperty("database.history.kafka.topic", key + "_dbhistory");
-        props.setProperty("database.history.kafka.topic.config.retention.ms", String.valueOf(internalRetentionMs));
-        props.setProperty("database.history.kafka.topic.config.cleanup.policy", "delete");
+        props.setProperty("schema.history.internal.kafka.bootstrap.servers", kafkaServers);
+        props.setProperty("schema.history.internal.kafka.topic", key + "_dbhistory");
         props.setProperty("bootstrap.servers", kafkaServers);
         props.setProperty("offset.auto.reset", "latest");
         props.setProperty("offset.flush.interval.ms", String.valueOf(OFFSET_FLUSH_INTERVAL_MS));
-        props.setProperty("database.history.kafka.recovery.attempts", String.valueOf(DB_HISTORY_KAFKA_RECOVERY_ATTEMPTS));
+        props.setProperty("schema.history.internal.kafka.recovery.attempts", String.valueOf(DB_HISTORY_KAFKA_RECOVERY_ATTEMPTS));
 
         // Kafka Connect必须的存储配置
         props.setProperty("offset.storage", "org.apache.kafka.connect.storage.KafkaOffsetBackingStore");
@@ -758,52 +752,50 @@ public abstract class MagicDynamicDebeziumDataSource implements DisposableBean, 
      */
     private void buildDbConfig(Properties props) {
         // 添加数据库历史恢复轮询间隔配置，解决恢复失败问题
-        props.setProperty("database.history.kafka.recovery.poll.interval.ms", String.valueOf(DB_HISTORY_RECOVERY_POLL_INTERVAL_MS));
+        props.setProperty("schema.history.internal.kafka.recovery.poll.interval.ms", String.valueOf(DB_HISTORY_RECOVERY_POLL_INTERVAL_MS));
 
         // 通用数据库连接稳定性配置
-        props.setProperty("database.connectionTimeZone", "UTC");
+        props.setProperty("driver.connectionTimeZone", "UTC");
         props.setProperty("connect.keep.alive", "true");
         props.setProperty("connect.keep.alive.interval.ms", String.valueOf(CONNECT_KEEP_ALIVE_INTERVAL_MS));
         props.setProperty("connect.timeout.ms", String.valueOf(CONNECT_TIMEOUT_MS));
-        props.setProperty("database.history.jdbc.connect.timeout", String.valueOf(DB_HISTORY_JDBC_CONNECT_TIMEOUT_MS));
+        props.setProperty("schema.history.internal.jdbc.connect.timeout", String.valueOf(DB_HISTORY_JDBC_CONNECT_TIMEOUT_MS));
 
         // 通用连接验证查询，确保连接有效性
-        props.setProperty("database.history.jdbc.validation.interval", String.valueOf(DB_HISTORY_JDBC_VALIDATION_INTERVAL_MS));
+        props.setProperty("schema.history.internal.jdbc.validation.interval", String.valueOf(DB_HISTORY_JDBC_VALIDATION_INTERVAL_MS));
 
         // 根据不同数据库类型设置相应的验证查询
         String connectorClass = props.getProperty("connector.class", "");
 
         // 关键配置：只存储被监控表的DDL，新增表时由 isUnknownTableError 自动恢复处理
-        props.setProperty("database.history.store.only.captured.tables.ddl", "true");
-        props.setProperty("database.history.skip.unparseable.ddl", "true");
+        props.setProperty("schema.history.internal.store.only.captured.tables.ddl", "true");
+        props.setProperty("schema.history.internal.skip.unparseable.ddl", "true");
 
         if (connectorClass.contains("mysql")) {
-            props.setProperty("database.history.jdbc.validation.query", "SELECT 1");
+            props.setProperty("schema.history.internal.jdbc.validation.query", "SELECT 1");
             props.setProperty("binlog.buffer.size", "0");
-            props.setProperty("database.allowPublicKeyRetrieval", "true");
-            props.setProperty("database.useSSL", "false");
-            props.setProperty("database.connectionProperties",
+            props.setProperty("driver.allowPublicKeyRetrieval", "true");
+            props.setProperty("driver.useSSL", "false");
+            props.setProperty("driver.connectionProperties",
                     "useSSL=false;allowPublicKeyRetrieval=true;characterEncoding=UTF-8" +
                     ";sessionVariables=character_set_client=utf8mb4" +
                     ",character_set_connection=utf8mb4" +
                     ",character_set_results=utf8mb4" +
                     ",collation_connection=utf8mb4_unicode_ci");
         } else if (connectorClass.contains("postgresql")) {
-            props.setProperty("database.history.jdbc.validation.query", "SELECT 1");
-            props.setProperty("database.connectionProperties", "charSet=UTF-8");
+            props.setProperty("schema.history.internal.jdbc.validation.query", "SELECT 1");
+            props.setProperty("driver.connectionProperties", "charSet=UTF-8");
         } else if (connectorClass.contains("sqlserver")) {
-            props.setProperty("database.history.jdbc.validation.query", "SELECT 1");
-            props.setProperty("database.connectionProperties",
+            props.setProperty("schema.history.internal.jdbc.validation.query", "SELECT 1");
+            props.setProperty("driver.connectionProperties",
                     "characterEncoding=UTF-8;sendStringParametersAsUnicode=false");
         } else if (connectorClass.contains("oracle")) {
-            props.setProperty("database.history.jdbc.validation.query", "SELECT 1 FROM DUAL");
-            props.setProperty("database.connectionProperties",
+            props.setProperty("schema.history.internal.jdbc.validation.query", "SELECT 1 FROM DUAL");
+            props.setProperty("driver.connectionProperties",
                     "oracle.jdbc.defaultNChar=true;defaultNChar=true;" +
                     "oracle.jdbc.convertNullFieldNameToNull=true;NLS_LANG=SIMPLIFIED CHINESE_CHINA.AL32UTF8");
         } else if (connectorClass.contains("mongodb")) {
-            // MongoDB特定配置
-            props.setProperty("connect.backoff.initial.delay.ms", String.valueOf(MONGO_BACKOFF_INITIAL_DELAY_MS));
-            props.setProperty("connect.backoff.max.delay.ms", String.valueOf(MONGO_BACKOFF_MAX_DELAY_MS));
+            // MongoDB特定配置（connect.backoff.* 已被 Debezium 3.x 移除）
             props.setProperty("socket.timeout.ms", String.valueOf(MONGO_SOCKET_TIMEOUT_MS));
             props.setProperty("mongodb.poll.interval.ms", String.valueOf(MONGO_POLL_INTERVAL_MS));
         }
@@ -811,10 +803,8 @@ public abstract class MagicDynamicDebeziumDataSource implements DisposableBean, 
         // 通用配置
         props.setProperty("poll.interval.ms", String.valueOf(POLL_INTERVAL_MS));
 
-        // 添加重试机制配置
-        props.setProperty("errors.retry.timeout", String.valueOf(ERRORS_RETRY_TIMEOUT_MS));
-        props.setProperty("errors.retry.delay", String.valueOf(ERRORS_RETRY_DELAY_MS));
-        props.setProperty("errors.max.retries", "0"); // 遇错即停，由外部 runEngineWithRetry 统一恢复
+        // 添加重试机制配置：0=不重试，由外部 runEngineWithRetry 统一恢复
+        props.setProperty("errors.max.retries", "0");
     }
 
 
@@ -862,7 +852,8 @@ public abstract class MagicDynamicDebeziumDataSource implements DisposableBean, 
             serverId = Math.abs(((long) serverIdKey.hashCode() * SERVER_ID_HASH_FACTOR + System.currentTimeMillis())) % SERVER_ID_RANGE + SERVER_ID_MIN;
         }
         props.setProperty("database.server.id", String.valueOf(serverId));
-        props.setProperty("database.server.name", dataSourceInfo.getKey());
+        // Debezium 3.x：database.server.name 已被 topic.prefix 取代（用于数据 topic 命名）
+        props.setProperty("topic.prefix", dataSourceInfo.getKey());
         props.setProperty("include.schema.changes", "true");
         String includeTables = dc(dataSourceInfo, "includeTables", dataSourceInfo.getIncludeTables());
         String excludeTables = dc(dataSourceInfo, "excludeTables", dataSourceInfo.getExcludeTables());
@@ -871,21 +862,18 @@ public abstract class MagicDynamicDebeziumDataSource implements DisposableBean, 
             props.setProperty("table.include.list", buildTableList(database, tables));
             // 关键：添加表级过滤增强配置
             props.setProperty("table.ignore.builtin", "true");
-            // 新增表自动补 schema：connector 重启时检测到 includeTables 中有新表，在后台并行 snapshot
-            // 新表（不影响旧表 streaming）。注意：需要 connector 重启才能触发，stream 中动态加表不会走此逻辑，
-            // 仍由下方未知表恢复分支兜底。此配置从 Debezium 1.6 开始支持，1.9.8 已验证可用。
-            props.setProperty("snapshot.new.tables", "PARALLEL");
+            // 3.x 已移除 snapshot.new.tables：新增表的 schema 由未知表恢复分支兜底
+            // （见 runEngineWithRetry 场景 2：删 dbhistory 后以 recovery 重新捕获表结构）
         } else if(StringUtils.isNotBlank(excludeTables)) {
             String[] tables = excludeTables.split(",");
             props.setProperty("table.exclude.list", buildTableList(database, tables));
         }
-        // 快照模式，默认 schema_only — 捕获表结构，从 offset/当前 binlog 位置开始 streaming：
-        //   schema_only          — 捕获表结构 + 从 offset/当前 binlog 位置开始 streaming（默认）
-        //   schema_only_recovery — 恢复模式：无视缺失的 dbhistory，重新捕获表结构后从 offset 恢复
-        //   never                — 不捕获表结构，直接 streaming（不产生重复数据）
-        //   initial              — 首次启动时做全量快照，之后从 offset 增量读取
-        //   when_needed          — 有有效 offset 时从 offset 恢复，offset 失效时自动触发全量快照
-        props.setProperty("snapshot.mode", DEFAULT_SNAPSHOT_MODE); // 可通过 datasource JSON 的 properties.snapshot.mode 覆盖
+        // 快照模式，默认 no_data — 捕获表结构，从 offset/当前 binlog 位置开始 streaming：
+        //   no_data     — 捕获表结构 + 从 offset/当前 binlog 位置开始 streaming（默认；3.x 前名为 schema_only）
+        //   recovery    — 恢复模式：无视缺失的 dbhistory，重新捕获表结构后从 offset 恢复（3.x 前名为 schema_only_recovery）
+        //   initial     — 首次启动时做全量快照，之后从 offset 增量读取
+        //   when_needed — 有有效 offset 时从 offset 恢复，offset 失效时自动触发全量快照
+        props.setProperty("snapshot.mode", DEFAULT_SNAPSHOT_MODE); // 可通过 datasource JSON 的 properties.snapshot.mode 覆盖（旧值 schema_only / schema_only_recovery 会自动归一化）
         props.setProperty("snapshot.delay.ms", String.valueOf(SNAPSHOT_DELAY_MS));
         props.setProperty("snapshot.lock.timeout.ms", String.valueOf(SNAPSHOT_LOCK_TIMEOUT_MS));
         props.setProperty("snapshot.locking.mode", SNAPSHOT_LOCKING_MODE);
@@ -908,17 +896,32 @@ public abstract class MagicDynamicDebeziumDataSource implements DisposableBean, 
         if (MapUtils.isNotEmpty(otherProps)) {
             otherProps.forEach((k, v) -> {
                 if (v instanceof String) {
-                    props.setProperty(k.toString(), (String) v);
+                    String value = (String) v;
+                    // 兼容 3.x 之前的快照模式取值
+                    if ("snapshot.mode".equals(k)) {
+                        value = normalizeSnapshotMode(value);
+                    }
+                    props.setProperty(k.toString(), value);
                 }
             });
         }
-        // 恢复场景：临时覆盖快照模式（如 dbhistory topic 丢失时使用 schema_only_recovery）
+        // 恢复场景：临时覆盖快照模式（如 dbhistory topic 丢失时使用 recovery）
         if (snapshotModeOverride != null) {
             props.setProperty("snapshot.mode", snapshotModeOverride);
         }
         return props;
     }
 
+    /** 将 3.x 之前的快照模式取值归一化到 3.x 取值（schema_only → no_data、schema_only_recovery → recovery） */
+    private static String normalizeSnapshotMode(String mode) {
+        if ("schema_only".equals(mode)) {
+            return "no_data";
+        }
+        if ("schema_only_recovery".equals(mode)) {
+            return "recovery";
+        }
+        return mode;
+    }
 
     /**
      * 创建格式化的表名列表
@@ -1163,7 +1166,7 @@ public abstract class MagicDynamicDebeziumDataSource implements DisposableBean, 
         /**
          * 判断 CDC 事件是否为 DDL 事件（schema change），而非 DML 数据变更。
          * DDL 事件的特征：value JSON 中包含非空的 "ddl" 字段，且通常包含 "tableChanges"。
-         * 这类事件来自 schema_only snapshot 或 ALTER TABLE 等操作，不应发送到业务 Kafka topic。
+         * 这类事件来自 schema-only（no_data 模式）快照或 ALTER TABLE 等操作，不应发送到业务 Kafka topic。
          */
         private boolean isDdlEvent(String value) {
             if (StringUtils.isBlank(value)) {

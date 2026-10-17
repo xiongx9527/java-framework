@@ -1,16 +1,28 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant.SimpleAssistant;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.envelope.BusinessContract;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.envelope.BusinessRegistry;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.envelope.EnvelopeRuntime;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.envelope.Langchain4jAssistantProperties;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.store.AgenticScopeStoreAutoConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.LangChain4jIntentAutoConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.logging.ChatContextLogger;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatstore.ChatMemoryStoreProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatstore.ChatMemoryTenantResolver;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatstore.Mem0ChatMemoryStore;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.facts.FactStore;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.facts.Mem0FactStore;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.summary.InMemorySummaryStore;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.summary.SummaryStore;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.rag.DifyContentRetriever;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.rag.DifyRagProperties;
 import com.xiongx9527.fw.plus.dify.dataset.IDatasetClient;
 import com.xiongx9527.fw.plus.dify.utils.DatasetBuilder;
 
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -19,6 +31,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
@@ -41,16 +54,29 @@ import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
  * optional 依赖而按类存在性条件注册——消费方没有 dify 类时跳过，
  * 避免配置类方法签名 introspection 时 {@code NoClassDefFoundError} 拉垮整个上下文。</p>
  *
+ * <p>信封编排（{@link EnvelopeRuntime}）的装配同样经 {@code @Import} 收口
+ * （{@code AssistantEnvelopeConfiguration}，条件为
+ * {@code fw.plus.ai.langchain4j.assistant.envelope.enabled=true}），
+ * 不改本类的注册文件与既有 {@code @Bean} 签名。</p>
+ *
  * <p>意图识别自动配置 {@link LangChain4jIntentAutoConfiguration} 亦在此 {@code @Import}
  * 收口，其自身条件与本源一致，无需在 {@code AutoConfiguration.imports} 中单独登记。</p>
+ *
+ * <p>agentic scope 存储自动配置 {@link AgenticScopeStoreAutoConfiguration} 同样在此 {@code @Import} 收口
+ * （{@code fw.plus.ai.langchain4j.agentic.scope-store} 前缀）：缺省装配进程内实现并安装为全局
+ * {@code AgenticScopePersister}，{@code type=mongo} 切换 MongoDB 持久化，{@code type=none} 关闭。</p>
  */
 @ConditionalOnClass(name = "dev.langchain4j.Experimental")
 @ConditionalOnProperty(prefix = "fw.plus.ai.langchain4j", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(ChatMemoryStoreProperties.class)
-@Import({LangChain4jSupportAutoConfiguration.Mem0ChatMemoryStoreConfiguration.class,
-		LangChain4jSupportAutoConfiguration.InMemoryChatMemoryStoreConfiguration.class,
-		LangChain4jSupportAutoConfiguration.DifyRagPropertiesConfiguration.class,
-		LangChain4jIntentAutoConfiguration.class})
+	@Import({LangChain4jSupportAutoConfiguration.Mem0ChatMemoryStoreConfiguration.class,
+			LangChain4jSupportAutoConfiguration.InMemoryChatMemoryStoreConfiguration.class,
+			LangChain4jSupportAutoConfiguration.DifyRagPropertiesConfiguration.class,
+			LangChain4jSupportAutoConfiguration.AssistantEnvelopeConfiguration.class,
+			LangChain4jSupportAutoConfiguration.SummaryMemoryConfiguration.class,
+			LangChain4jSupportAutoConfiguration.FactMemoryConfiguration.class,
+			LangChain4jIntentAutoConfiguration.class,
+			AgenticScopeStoreAutoConfiguration.class})
 public class LangChain4jSupportAutoConfiguration {
 
 	@Bean
@@ -159,5 +185,143 @@ public class LangChain4jSupportAutoConfiguration {
 	@ConditionalOnClass(name = "com.xiongx9527.fw.plus.dify.dataset.types.RetrievalModel")
 	@EnableConfigurationProperties(DifyRagProperties.class)
 	static class DifyRagPropertiesConfiguration {
+	}
+
+	/**
+	 * 信封编排装配：{@code fw.plus.ai.langchain4j.assistant.envelope.enabled=true} 时注册
+	 * {@link EnvelopeRuntime} 与安装器；配置属性类在此按需注册（沿用本类既有嵌套注册模式，
+	 * 不改外层 {@code @EnableConfigurationProperties}，也不动注册文件）。
+	 *
+	 * <p>开关关闭时不注册 runtime Bean，安装器随之无事可做——既有无 mapper 流式入口的行为一字不变。</p>
+	 */
+	@Configuration(proxyBeanMethods = false)
+	@EnableConfigurationProperties(Langchain4jAssistantProperties.class)
+	static class AssistantEnvelopeConfiguration {
+
+		/**
+		 * 信封编排件：模型与记忆存储<b>都从容器取、不新建</b>。
+		 *
+		 * <p>结构化轮次直连 {@link ChatModel}；会话历史必须与既有对话通道共用同一个
+		 * {@link ChatMemoryStore}（否则两条通道各写各的历史）。任一缺失即启动快速失败——
+		 * 开关开着却拿不到模型/存储属于配置没配对，静默降级只会更难查。</p>
+		 *
+		 * <p>业务契约从容器收集（{@link BusinessContract} Bean，可为 0 个：此时所有轮次落兜底 chat）。
+		 * 容器里存在多个 {@code ChatModel} / {@code ChatMemoryStore} Bean 时按 Spring 语义报错
+		 * （无法确定用哪一个），需要时请用 {@code @Primary} 指定一个。</p>
+		 */
+		@Bean
+		@ConditionalOnProperty(prefix = Langchain4jAssistantProperties.PREFIX, name = "envelope.enabled",
+				havingValue = "true")
+		@ConditionalOnMissingBean(EnvelopeRuntime.class)
+		public EnvelopeRuntime envelopeRuntime(Langchain4jAssistantProperties properties,
+				ObjectProvider<ChatModel> chatModels, ObjectProvider<ChatMemoryStore> chatMemoryStores,
+				ObjectProvider<BusinessContract> contracts) {
+			ChatModel chatModel = chatModels.getIfAvailable();
+			if (chatModel == null) {
+				throw new IllegalStateException(String.format(
+						"%s.envelope.enabled=true，但容器中没有 ChatModel Bean："
+								+ "结构化轮次与业务分类需要直连模型，请先装配对话模型或关闭该开关",
+						Langchain4jAssistantProperties.PREFIX));
+			}
+			ChatMemoryStore chatMemoryStore = chatMemoryStores.getIfAvailable();
+			if (chatMemoryStore == null) {
+				throw new IllegalStateException(String.format(
+						"%s.envelope.enabled=true，但容器中没有 ChatMemoryStore Bean："
+								+ "信封编排的会话历史必须与既有对话通道共用同一份存储",
+						Langchain4jAssistantProperties.PREFIX));
+			}
+			BusinessRegistry registry = new BusinessRegistry();
+			for (BusinessContract contract : contracts) {
+				registry.register(contract);
+			}
+			return new EnvelopeRuntime(chatModel, chatMemoryStore, registry, properties);
+		}
+
+		/**
+		 * 安装器：启动收尾时把 {@link EnvelopeRuntime} 装进容器里每个 {@link SimpleAssistant}。
+		 *
+		 * <p>两侧都在才安装，缺失任一侧静默跳过（样例或自定义装配可能只有其中一侧，不该因此启动失败）。
+		 * 只覆盖启动时已实例化的 {@code SimpleAssistant}；懒加载 Bean 不在此列（需要时自行调用 setter）。</p>
+		 */
+		@Bean
+		public EnvelopeRuntimeInstaller envelopeRuntimeInstaller(ObjectProvider<SimpleAssistant> assistants,
+				ObjectProvider<EnvelopeRuntime> runtime) {
+			return new EnvelopeRuntimeInstaller(assistants, runtime);
+		}
+	}
+
+	/**
+	 * 会话摘要存储装配：默认注册进程内 {@link SummaryStore}（{@link InMemorySummaryStore}），
+	 * 使用方自定义 {@code SummaryStore} Bean 即自动覆盖（Jdbc 实现可另加依赖后注入）。
+	 *
+	 * <p>摘要来源/维护钩子不在此装配：它们需要按 magic-api 运行时构造的对话模型与 tokenizer
+	 * 现场组装，收口在 {@code Langchain4jModuleConfiguration#simpleAssistant} 的
+	 * {@code SummaryMemoryAssembler.apply(...)}。</p>
+	 */
+	@Configuration(proxyBeanMethods = false)
+	static class SummaryMemoryConfiguration {
+
+		/** 默认进程内摘要存储：仅当使用方未提供 {@link SummaryStore} 时兜底 */
+		@Bean
+		@ConditionalOnProperty(prefix = Langchain4jAssistantProperties.PREFIX, name = "session.summary.enabled",
+				havingValue = "true", matchIfMissing = true)
+		@ConditionalOnMissingBean(SummaryStore.class)
+		public SummaryStore inMemorySummaryStore() {
+			return new InMemorySummaryStore();
+		}
+	}
+
+	/**
+	 * 跨会话事实存储装配：默认注册独立 mem0 实例的 {@link FactStore}（{@link Mem0FactStore}），
+	 * 使用方自定义 {@code FactStore} Bean 即自动覆盖。
+	 *
+	 * <p>事实来源/维护钩子不在此装配：它们需要按 magic-api 运行时构造的模型现场组装，
+	 * 收口在 {@code Langchain4jModuleConfiguration#simpleAssistant} 的
+	 * {@code FactMemoryAssembler.apply(...)}（先于摘要装配）。</p>
+	 */
+	@Configuration(proxyBeanMethods = false)
+	static class FactMemoryConfiguration {
+
+		/** 默认独立 mem0 事实存储：enabled=true 且使用方未提供 {@link FactStore} 时兜底；base-url 缺失即启动失败 */
+		@Bean
+		@ConditionalOnProperty(prefix = Langchain4jAssistantProperties.PREFIX, name = "session.facts.enabled",
+				havingValue = "true")
+		@ConditionalOnMissingBean(FactStore.class)
+		public FactStore mem0FactStore(Langchain4jAssistantProperties properties) {
+			Langchain4jAssistantProperties.Session session = properties.getSession();
+			Langchain4jAssistantProperties.Session.Facts facts = session == null ? null : session.getFacts();
+			if (facts == null || facts.getBaseUrl() == null || facts.getBaseUrl().trim().isEmpty()) {
+				throw new IllegalStateException(String.format(
+						"%s.session.facts.enabled=true，但 session.facts.base-url 未配置（且无自定义 FactStore Bean）："
+								+ "请填写独立 mem0 服务地址",
+						Langchain4jAssistantProperties.PREFIX));
+			}
+			return new Mem0FactStore(facts.getBaseUrl().trim(), facts.getApiKey(),
+					facts.getConnectTimeout(), facts.getReadTimeout());
+		}
+	}
+
+	/** 把信封处理器装进容器里既有的 {@link SimpleAssistant}（见 {@link AssistantEnvelopeConfiguration}） */
+	static final class EnvelopeRuntimeInstaller implements SmartInitializingSingleton {
+
+		private final ObjectProvider<SimpleAssistant> assistants;
+
+		private final ObjectProvider<EnvelopeRuntime> runtime;
+
+		EnvelopeRuntimeInstaller(ObjectProvider<SimpleAssistant> assistants, ObjectProvider<EnvelopeRuntime> runtime) {
+			this.assistants = assistants;
+			this.runtime = runtime;
+		}
+
+		@Override
+		public void afterSingletonsInstantiated() {
+			EnvelopeRuntime envelopeRuntime = runtime.getIfAvailable();
+			if (envelopeRuntime == null) {
+				return;
+			}
+			for (SimpleAssistant assistant : assistants) {
+				assistant.envelopeRuntime(envelopeRuntime);
+			}
+		}
 	}
 }

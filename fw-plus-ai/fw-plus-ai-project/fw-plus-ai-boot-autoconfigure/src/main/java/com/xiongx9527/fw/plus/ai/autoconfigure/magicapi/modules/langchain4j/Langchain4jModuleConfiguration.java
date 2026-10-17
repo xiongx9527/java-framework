@@ -2,6 +2,14 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.modules.langchain4j;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant.AssistantBuilder;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant.SimpleAssistant;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.envelope.Langchain4jAssistantProperties;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.facts.FactMemoryAssembler;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.facts.FactStore;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.summary.ChatLanguageModelSummaryModel;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.summary.SummaryMemoryAssembler;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.summary.SummaryModel;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.summary.SummaryStore;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.session.SessionIdResolver;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicChatModel;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLanguageModel;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicScoringModel;
@@ -16,6 +24,9 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.skill
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jStreamingChatModelModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jStreamingLanguageModelModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jTokenizerModule;
+import dev.langchain4j.model.TokenCountEstimator;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.scoring.ScoringModel;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -64,11 +75,18 @@ public class Langchain4jModuleConfiguration {
 			ObjectProvider<Langchain4jTokenizerModule> tokenizerModules,
 			ObjectProvider<Langchain4jScoringModelModule> scoringModelModules,
 			ObjectProvider<Langchain4jSkillModule> skillModules,
-			Langchain4jSimpleAssistantProperties properties) {
+			Langchain4jSimpleAssistantProperties properties,
+			ObjectProvider<Langchain4jAssistantProperties> assistantProperties,
+			ObjectProvider<SummaryStore> summaryStores,
+			ObjectProvider<SummaryModel> summaryModels,
+			ObjectProvider<FactStore> factStores,
+			ObjectProvider<SessionIdResolver> sessionResolvers) {
 		AssistantBuilder assistantBuilder = new AssistantBuilder();
 		String chatModelKey = typeKey("chatModel", properties);
+		ChatModel chatModel = null;
 		if (chatModelKey != null && chatModelModules.getIfAvailable() != null) {
-			assistantBuilder.chatModel(new MagicDynamicChatModel(chatModelModules.getIfAvailable(), chatModelKey));
+			chatModel = new MagicDynamicChatModel(chatModelModules.getIfAvailable(), chatModelKey);
+			assistantBuilder.chatModel(chatModel);
 		}
 		String streamingModelKey = typeKey("streamingModel", properties);
 		if (streamingModelKey != null && streamingChatModelModules.getIfAvailable() != null) {
@@ -86,8 +104,10 @@ public class Langchain4jModuleConfiguration {
 					streamingLanguageModelModules.getIfAvailable(), streamingLanguageModelKey));
 		}
 		String tokenizerKey = typeKey("tokenizer", properties);
+		TokenCountEstimator tokenizer = null;
 		if (tokenizerKey != null && tokenizerModules.getIfAvailable() != null) {
-			assistantBuilder.tokenizer(new MagicDynamicTokenizer(tokenizerModules.getIfAvailable(), tokenizerKey));
+			tokenizer = new MagicDynamicTokenizer(tokenizerModules.getIfAvailable(), tokenizerKey);
+			assistantBuilder.tokenizer(tokenizer);
 		}
 		String scoringModelKey = typeKey("scoringModel", properties);
 		if (scoringModelKey != null && scoringModelModules.getIfAvailable() != null) {
@@ -129,7 +149,121 @@ public class Langchain4jModuleConfiguration {
 		}
 		// Ephemeral 记忆：AI 持久化策略（含位置/长度/工具结果开关）等
 		assistantBuilder.ephemeralChatMemory(properties.getEphemeral());
+		// 会话/摘要配置：把 fw.plus.ai.langchain4j.assistant.session.* 落到 builder
+		// （session.enabled=false 或属性类缺席时不动，保持既有非会话行为）
+		applySessionMemory(assistantBuilder, assistantProperties, summaryStores, summaryModels, factStores,
+				sessionResolvers, chatModelModules, scoringModelModules, tokenizer);
 		return assistantBuilder.build();
+	}
+
+	/**
+	 * 装配会话/摘要/事实：把 {@code fw.plus.ai.langchain4j.assistant.session.*} 配置落到 builder。
+	 * 属性类 / 相关 Bean 缺席时静默跳过（不改变既有行为）；事实来源先于摘要来源注册，
+	 * 保证上下文注入顺序为 事实 → 摘要。
+	 */
+	private void applySessionMemory(AssistantBuilder assistantBuilder,
+			ObjectProvider<Langchain4jAssistantProperties> assistantProperties,
+			ObjectProvider<SummaryStore> summaryStores, ObjectProvider<SummaryModel> summaryModels,
+			ObjectProvider<FactStore> factStores, ObjectProvider<SessionIdResolver> sessionResolvers,
+			ObjectProvider<Langchain4jChatModelModule> chatModelModules,
+			ObjectProvider<Langchain4jScoringModelModule> scoringModelModules, TokenCountEstimator tokenizer) {
+		Langchain4jAssistantProperties properties = assistantProperties.getIfAvailable();
+		if (properties == null) {
+			return;
+		}
+		// 先事实、后摘要：提供者注册顺序即上下文渲染顺序
+		FactMemoryAssembler.apply(assistantBuilder, properties, factStores.getIfAvailable(),
+				resolveConfiguredFactExtractModel(properties, chatModelModules),
+				resolveConfiguredFactRerankModel(properties, scoringModelModules));
+		SummaryModel summaryModel = summaryModels.getIfAvailable();
+		if (summaryModel == null) {
+			summaryModel = resolveConfiguredSummaryModel(properties, chatModelModules);
+		}
+		SummaryMemoryAssembler.apply(assistantBuilder, properties, summaryStores.getIfAvailable(), summaryModel,
+				sessionResolvers.getIfAvailable(), tokenizer);
+	}
+
+	/** 解析 {@code session.facts.extract-model}：模型 key（动态解析）或 ChatModel FQCN 反射构造。 */
+	private ChatModel resolveConfiguredFactExtractModel(Langchain4jAssistantProperties properties,
+			ObjectProvider<Langchain4jChatModelModule> chatModelModules) {
+		String name = factModelName(properties, true);
+		if (name == null) {
+			return null;
+		}
+		// 优先按 langchain4j 模型 key 动态解析（与对话/摘要模型同一套 key 机制）
+		if (chatModelModules.getIfAvailable() != null) {
+			return new MagicDynamicChatModel(chatModelModules.getIfAvailable(), name);
+		}
+		try {
+			Class<?> clazz = Class.forName(name);
+			if (ChatModel.class.isAssignableFrom(clazz)) {
+				return (ChatModel) clazz.getDeclaredConstructor().newInstance();
+			}
+		} catch (Exception ignored) {
+			// 反射失败：等同未配置（llm 跳过本轮 / hybrid 退化为 rule）
+		}
+		return null;
+	}
+
+	/** 解析 {@code session.facts.rerank-model}：模型 key（动态解析）或 ScoringModel FQCN 反射构造。 */
+	private ScoringModel resolveConfiguredFactRerankModel(Langchain4jAssistantProperties properties,
+			ObjectProvider<Langchain4jScoringModelModule> scoringModelModules) {
+		String name = factModelName(properties, false);
+		if (name == null) {
+			return null;
+		}
+		if (scoringModelModules.getIfAvailable() != null) {
+			return new MagicDynamicScoringModel(scoringModelModules.getIfAvailable(), name);
+		}
+		try {
+			Class<?> clazz = Class.forName(name);
+			if (ScoringModel.class.isAssignableFrom(clazz)) {
+				return (ScoringModel) clazz.getDeclaredConstructor().newInstance();
+			}
+		} catch (Exception ignored) {
+			// 反射失败：等同未配置（rerank 退回本地关键词重叠重排）
+		}
+		return null;
+	}
+
+	/** 取 facts 模型配置项（trim；空视为未配置）。 */
+	private String factModelName(Langchain4jAssistantProperties properties, boolean extract) {
+		Langchain4jAssistantProperties.Session session = properties.getSession();
+		Langchain4jAssistantProperties.Session.Facts facts = session == null ? null : session.getFacts();
+		if (facts == null) {
+			return null;
+		}
+		String name = extract ? facts.getExtractModel() : facts.getRerankModel();
+		return name == null || name.trim().isEmpty() ? null : name.trim();
+	}
+
+	/** 解析 {@code session.summary.summarize-model}：模型 key（经 langchain4j 模块动态解析）或 FQCN 反射构造。 */
+	private SummaryModel resolveConfiguredSummaryModel(Langchain4jAssistantProperties properties,
+			ObjectProvider<Langchain4jChatModelModule> chatModelModules) {
+		Langchain4jAssistantProperties.Session session = properties.getSession();
+		if (session == null || session.getSummary() == null) {
+			return null;
+		}
+		String name = session.getSummary().getSummarizeModel();
+		if (name == null || name.trim().isEmpty()) {
+			return null;
+		}
+		String key = name.trim();
+		// 优先按 langchain4j 模型 key 动态解析（与对话模型同一套 key 机制）
+		if (chatModelModules.getIfAvailable() != null) {
+			ChatModel model = new MagicDynamicChatModel(chatModelModules.getIfAvailable(), key);
+			return new ChatLanguageModelSummaryModel(model);
+		}
+		// 退回 FQCN 反射（自定义 SummaryModel 实现）
+		try {
+			Class<?> clazz = Class.forName(key);
+			if (SummaryModel.class.isAssignableFrom(clazz)) {
+				return (SummaryModel) clazz.getDeclaredConstructor().newInstance();
+			}
+		} catch (Exception ignored) {
+			// 反射失败：回退主模型（返回 null 由装配器走 fallback）
+		}
+		return null;
 	}
 
 	@Bean

@@ -32,6 +32,7 @@ public class SpringBoot3DependencyBaselineTest {
         assertCoreLangChain4jManagement();
         assertImportedBom(aiBom(), "com.xiongx9527.fw.plus", "fw-plus-dependencies", "${project.version}");
         assertNoDirectLangChain4jManagement(aiBom());
+        assertBootLangChain4jPrePin();
     }
 
     private void assertProperty(File pom, String name, String expected) throws Exception {
@@ -88,9 +89,47 @@ public class SpringBoot3DependencyBaselineTest {
         }
     }
 
+    /**
+     * boot BOM 的 langchain4j 预钉必须与 core BOM 的版本保持同步、且声明在 debezium-bom 之前：
+     * debezium-bom 内置 import 的 langchain4j-bom（1.0.1 线）会沿 fw-plus-boot-dependencies
+     * 传导到 AI 层，抢在 core BOM 之前把 dev.langchain4j 全家压到 1.0.1。
+     */
+    private void assertBootLangChain4jPrePin() throws Exception {
+        assertEquals(propertyValue(coreBom(), "langchain4j.version"),
+                propertyValue(bootBom(), "langchain4j.version"),
+                "Boot BOM langchain4j pre-pin must stay in sync with Core BOM");
+
+        NodeList dependencies = document(bootBom()).getElementsByTagName("dependency");
+        int langchain4jIndex = -1;
+        int debeziumIndex = -1;
+        for (int index = 0; index < dependencies.getLength(); index++) {
+            Element dependency = (Element) dependencies.item(index);
+            if ("langchain4j-bom".equals(text(dependency, "artifactId"))) {
+                langchain4jIndex = index;
+                assertEquals("${langchain4j.version}", text(dependency, "version"));
+                assertEquals("pom", text(dependency, "type"));
+                assertEquals("import", text(dependency, "scope"));
+            }
+            if ("debezium-bom".equals(text(dependency, "artifactId"))) {
+                debeziumIndex = index;
+            }
+        }
+        assertTrue(langchain4jIndex >= 0, "Boot BOM should pre-pin langchain4j-bom");
+        assertTrue(debeziumIndex >= 0, "Boot BOM should import debezium-bom");
+        assertTrue(langchain4jIndex < debeziumIndex,
+                "langchain4j-bom must be declared before debezium-bom in Boot BOM");
+    }
+
     private String text(Element parent, String name) {
         Element child = directChild(parent, name);
         return child == null ? null : child.getTextContent().trim();
+    }
+
+    private String propertyValue(File pom, String name) throws Exception {
+        Element properties = (Element) document(pom).getElementsByTagName("properties").item(0);
+        Element property = directChild(properties, name);
+        assertTrue(property != null, name + " should be declared in " + pom);
+        return property.getTextContent().trim();
     }
 
     private Element directChild(Element parent, String name) {
@@ -114,6 +153,10 @@ public class SpringBoot3DependencyBaselineTest {
 
     private File aiBom() {
         return new File(repositoryRoot(), "fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-dependencies/pom.xml");
+    }
+
+    private File bootBom() {
+        return new File(repositoryRoot(), "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-dependencies/pom.xml");
     }
 
     private File repositoryRoot() {

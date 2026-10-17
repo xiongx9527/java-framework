@@ -25,10 +25,10 @@ import java.util.Map;
  * <p>路径<strong>不带</strong> {@code /api/v1/} 前缀与尾斜杠（带尾斜杠实测 404）；
  * 认证用 {@code X-API-Key} 头（实测 Bearer/双头均 401）。</p>
  *
- * <p>鉴权：配置了 {@code api-key} 时携带 {@code Authorization: Bearer} 头，留空则不发送。
+ * <p>鉴权：配置了 {@code api-key} 时携带 {@code X-API-Key} 头，留空则不发送。
  * 非 2xx 响应统一抛 {@link IllegalStateException}（携带状态码与响应体片段）。</p>
  */
-class Mem0RestClient {
+public class Mem0RestClient {
 
 	private static final int MAX_ERROR_BODY = 512;
 
@@ -40,7 +40,7 @@ class Mem0RestClient {
 
 	private final int readTimeoutMillis;
 
-	Mem0RestClient(String baseUrl, String apiKey, Duration connectTimeout, Duration readTimeout) {
+	public Mem0RestClient(String baseUrl, String apiKey, Duration connectTimeout, Duration readTimeout) {
 		if (baseUrl == null || baseUrl.trim().isEmpty()) {
 			throw new IllegalArgumentException("Mem0ChatMemoryStore: base-url 不能为空");
 		}
@@ -58,22 +58,22 @@ class Mem0RestClient {
 	}
 
 	/** GET 请求，{@code query} 为已编码的查询串（可为 {@code null}），返回响应体文本。 */
-	String get(String path, String query) {
+	public String get(String path, String query) {
 		return execute("GET", path, query, null);
 	}
 
 	/** POST 请求，{@code body} 为 JSON 请求体，返回响应体文本。 */
-	String post(String path, String body) {
+	public String post(String path, String body) {
 		return execute("POST", path, null, body);
 	}
 
 	/** PUT 请求，{@code body} 为 JSON 请求体，返回响应体文本。 */
-	String put(String path, String body) {
+	public String put(String path, String body) {
 		return execute("PUT", path, null, body);
 	}
 
 	/** DELETE 请求，返回响应体文本。 */
-	String delete(String path) {
+	public String delete(String path) {
 		return execute("DELETE", path, null, null);
 	}
 
@@ -123,7 +123,7 @@ class Mem0RestClient {
 	}
 
 	/** 拼接查询串（值按 UTF-8 URL 编码）。 */
-	static String query(Map<String, String> params) {
+	public static String query(Map<String, String> params) {
 		StringBuilder builder = new StringBuilder();
 		for (Map.Entry<String, String> entry : params.entrySet()) {
 			if (entry.getValue() == null) {
