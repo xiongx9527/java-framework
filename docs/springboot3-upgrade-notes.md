@@ -759,7 +759,7 @@ javap -cp $M:$C dev.langchain4j.service.AiServices | grep -i toolExecutionErrorH
 | Pulsar Client | 2.11.2 | 是否传递 javax.servlet |
 | RocketMQ | 5.1.3 | 同上 |
 | Mica MQTT | 2.3.9 | broker 端 servlet 依赖 |
-| Debezium | 3.7.0.Final | 已升级（3.7 起仅支持 jakarta / JDK 17）；配置键已迁移至 `schema.history.internal.*` / `topic.prefix` 等，旧快照模式取值由插件侧自动归一化 |
+| Debezium | 3.7.0.Final | 已升级（3.7 起仅支持 jakarta / JDK 17）；配置键已迁移至 `schema.history.internal.*` / `topic.prefix` 等，旧快照模式取值由插件侧自动归一化；debezium-bom 内置 import 的 langchain4j-bom（1.0.1 线）会经 boot BOM 抢占 AI 层版本，已在 boot BOM 于 debezium-bom 之前预钉 langchain4j-bom（与 core 层同步，基线测试守卫） |
 | Nebula / Neo4j JDBC | 自维护 | `javax.sql.rowset` 属保留包，无需迁移，但需实测 |
 | EasyTrans | 1.2.6 | 与 MP 3.5.x 的兼容性 |
 | Hutool | 5.8.34 | 若使用 `cn.hutool.extra.servlet` 需换 `JakartaServletUtil`（当前仓库未命中） |
