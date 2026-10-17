@@ -130,7 +130,7 @@ class MagicSwaggerControllerTest {
 		new WebApplicationContextRunner()
 				.withConfiguration(AutoConfigurations.of(MagicSwaggerConfiguration.class))
 				.withBean(MagicResourceService.class, () -> org.mockito.Mockito.mock(MagicResourceService.class))
-				.withBean(javax.servlet.ServletContext.class, () -> org.mockito.Mockito.mock(javax.servlet.ServletContext.class))
+				.withBean(jakarta.servlet.ServletContext.class, () -> org.mockito.Mockito.mock(jakarta.servlet.ServletContext.class))
 				.withBean(MagicAPIProperties.class, MagicAPIProperties::new)
 				.withUserConfiguration(SpringDocStubConfiguration.class)
 				.run(context -> assertThat(context)
