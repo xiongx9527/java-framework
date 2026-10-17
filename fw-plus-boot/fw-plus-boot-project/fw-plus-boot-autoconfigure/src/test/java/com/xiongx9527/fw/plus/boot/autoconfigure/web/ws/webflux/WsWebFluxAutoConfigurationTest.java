@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ReactiveWebApplicationContextRunner;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
+import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.handler.SimpleUrlHandlerMapping;
@@ -30,7 +31,7 @@ class WsWebFluxAutoConfigurationTest {
 	void reactiveApplicationShouldRegisterReactiveHandlerOnConfiguredPath() {
 		new ReactiveWebApplicationContextRunner()
 				.withPropertyValues("fw.plus.ws.enabled=true")
-				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
+				.withConfiguration(AutoConfigurations.of(RefreshAutoConfiguration.class, WsAutoConfiguration.class))
 				.withPropertyValues("fw.plus.ws.enabled=true")
 				.withPropertyValues(
 						"fw.plus.ws.path=/ws/reactive")
@@ -46,7 +47,7 @@ class WsWebFluxAutoConfigurationTest {
 	void reactiveEndpointShouldRespectBasePathProvider() {
 		new ReactiveWebApplicationContextRunner()
 				.withPropertyValues("fw.plus.ws.enabled=true")
-				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
+				.withConfiguration(AutoConfigurations.of(RefreshAutoConfiguration.class, WsAutoConfiguration.class))
 				.withPropertyValues("fw.plus.ws.enabled=true")
 				.withUserConfiguration(BasePathConfiguration.class)
 				.withPropertyValues(
@@ -62,7 +63,7 @@ class WsWebFluxAutoConfigurationTest {
 	void reactiveApplicationShouldExpandEveryPathAgainstEveryBasePath() {
 		new ReactiveWebApplicationContextRunner()
 				.withPropertyValues("fw.plus.ws.enabled=true")
-				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
+				.withConfiguration(AutoConfigurations.of(RefreshAutoConfiguration.class, WsAutoConfiguration.class))
 				.withPropertyValues("fw.plus.ws.enabled=true")
 				.withUserConfiguration(MultiBasePathConfiguration.class)
 				.withPropertyValues(
@@ -83,7 +84,7 @@ class WsWebFluxAutoConfigurationTest {
 	void reactiveBlankPrimaryPathShouldFollowBasePathOnly() {
 		new ReactiveWebApplicationContextRunner()
 				.withPropertyValues("fw.plus.ws.enabled=true")
-				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
+				.withConfiguration(AutoConfigurations.of(RefreshAutoConfiguration.class, WsAutoConfiguration.class))
 				.withPropertyValues("fw.plus.ws.enabled=true")
 				.withUserConfiguration(BasePathConfiguration.class)
 				.withPropertyValues(
@@ -99,7 +100,7 @@ class WsWebFluxAutoConfigurationTest {
 	void hostSuppliedMappingShouldCoexistWithFoundationMapping() {
 		new ReactiveWebApplicationContextRunner()
 				.withPropertyValues("fw.plus.ws.enabled=true")
-				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
+				.withConfiguration(AutoConfigurations.of(RefreshAutoConfiguration.class, WsAutoConfiguration.class))
 				.withPropertyValues("fw.plus.ws.enabled=true")
 				.withUserConfiguration(BasePathConfiguration.class, HostMappingConfiguration.class)
 				.withPropertyValues(
@@ -120,7 +121,7 @@ class WsWebFluxAutoConfigurationTest {
 	void reactiveEndpointShouldBeAbsentWhenFeatureDisabled() {
 		new ReactiveWebApplicationContextRunner()
 				.withPropertyValues("fw.plus.ws.enabled=true")
-				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
+				.withConfiguration(AutoConfigurations.of(RefreshAutoConfiguration.class, WsAutoConfiguration.class))
 				.withPropertyValues("fw.plus.ws.enabled=true")
 				.withPropertyValues(
 						"fw.plus.ws.enabled=false")
@@ -130,7 +131,7 @@ class WsWebFluxAutoConfigurationTest {
 	@Test
 	void servletApplicationShouldNotRegisterReactiveHandler() {
 		new WebApplicationContextRunner()
-				.withConfiguration(AutoConfigurations.of(WsAutoConfiguration.class))
+				.withConfiguration(AutoConfigurations.of(RefreshAutoConfiguration.class, WsAutoConfiguration.class))
 				.withPropertyValues("fw.plus.ws.enabled=true")
 				.run(context -> assertThat(context).doesNotHaveBean(ReactiveWsHandler.class));
 	}

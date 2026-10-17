@@ -41,7 +41,7 @@ class MagicSwaggerControllerTest {
 		System.arraycopy(extraProperties, 0, allProperties, baseProperties.length, extraProperties.length);
 		return new ReactiveWebApplicationContextRunner()
 				.withConfiguration(AutoConfigurations.of(
-						org.springframework.boot.autoconfigure.web.reactive.WebFluxAutoConfiguration.class,
+						org.springframework.boot.webflux.autoconfigure.WebFluxAutoConfiguration.class,
 						com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.webflux.MagicAPIWebFluxAutoConfiguration.class,
 						MagicSwaggerConfiguration.class))
 				.withUserConfiguration(SpringDocStubConfiguration.class)

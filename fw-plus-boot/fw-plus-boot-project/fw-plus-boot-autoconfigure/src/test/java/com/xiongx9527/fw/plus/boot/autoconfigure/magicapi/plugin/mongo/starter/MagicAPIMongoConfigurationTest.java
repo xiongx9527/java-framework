@@ -9,7 +9,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mongo.service.M
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.LazyInitializationBeanFactoryPostProcessor;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
-import org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration;
+import org.springframework.boot.data.mongodb.autoconfigure.DataMongoAutoConfiguration;
 import org.springframework.boot.mongodb.autoconfigure.MongoAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
@@ -27,7 +27,7 @@ class MagicAPIMongoConfigurationTest {
 	private final WebApplicationContextRunner defaultMongoContextRunner = new WebApplicationContextRunner()
 			.withConfiguration(AutoConfigurations.of(MagicAPIBaseAutoConfiguration.class,
 					MongoAutoConfiguration.class,
-					MongoDataAutoConfiguration.class))
+					DataMongoAutoConfiguration.class))
 			.withInitializer(context -> context.addBeanFactoryPostProcessor(
 					new LazyInitializationBeanFactoryPostProcessor()))
 			.withBean(MongoClient.class, () -> mock(MongoClient.class));

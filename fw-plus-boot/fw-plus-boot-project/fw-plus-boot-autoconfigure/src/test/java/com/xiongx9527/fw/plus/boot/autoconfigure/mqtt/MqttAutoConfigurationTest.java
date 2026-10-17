@@ -93,7 +93,7 @@ class MqttAutoConfigurationTest {
 
 		@Bean
 		MqttServer mqttServer() {
-			return MqttServer.create().port(0).build();
+			return MqttServer.create().enableMqtt(0).build();
 		}
 
 		@Bean

@@ -4,9 +4,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
-import org.springframework.boot.autoconfigure.web.servlet.DispatcherServletAutoConfiguration;
-import org.springframework.boot.autoconfigure.web.servlet.ServletWebServerFactoryAutoConfiguration;
-import org.springframework.boot.autoconfigure.websocket.servlet.WebSocketServletAutoConfiguration;
+import org.springframework.boot.tomcat.autoconfigure.servlet.TomcatServletWebServerAutoConfiguration;
+import org.springframework.boot.webmvc.autoconfigure.DispatcherServletAutoConfiguration;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -48,7 +47,8 @@ import static org.assertj.core.api.Assertions.assertThat;
                 "fw.plus.ws.servers[0].appId=" + WsEndpointHttpUpgradeTest.INSTANCE_APP_ID,
                 "fw.plus.ws.auth.provider=permit-all",
                 "fw.plus.ws.servers[0].auth.provider=permit-all",
-                "fw.plus.ws.websocket.trustedDomain=*"
+                "fw.plus.ws.websocket.trustedDomain=*",
+                "spring.cloud.nacos.config.import-check.enabled=false"
         })
 class WsEndpointHttpUpgradeTest {
 
@@ -93,10 +93,11 @@ class WsEndpointHttpUpgradeTest {
      * jimu、mqtt、seata 等）。若此处用 {@code @EnableAutoConfiguration}，这些自动配置会被一并加载：
      * 其中 magic-api 的 vue3 插件在 {@code magic-api.web} 缺省时会把过滤器 url-pattern 拼成
      * {@code null/vue3/component/*}，令 Tomcat 启动失败 —— 这与被测能力（WS 握手）无关。
-     * 故改为显式导入：只应用 WS 自动配置，外加内嵌 Servlet 容器起来所必需的三条 Spring Boot 标准自动配置
+     * 故改为显式导入：只应用 WS 自动配置，外加内嵌 Servlet 容器起来所必需的 Spring Boot 标准自动配置
      * （{@code DispatcherServletAutoConfiguration} 让 Upgrade 请求经过 HandlerMapping、
-     * {@code ServletWebServerFactoryAutoConfiguration} 提供内嵌 Tomcat、
-     * {@code WebSocketServletAutoConfiguration} 装上 JSR-356 的 {@code WsSci}，
+     * {@code TomcatServletWebServerAutoConfiguration} 提供内嵌 Tomcat 并安装 JSR-356 的
+     * {@code WsSci}——Boot 4 起旧 {@code ServletWebServerFactoryAutoConfiguration} 与
+     * {@code WebSocketServletAutoConfiguration} 已并入容器专属自动配置，
      * 缺任一条则握手分别表现为 404 或 500）。于是本用例证明的是「仅启用 WS 自动配置即可提供 WS 能力」，
      * 既不经由本模块其它能力，也不受本模块自动配置集合日后增减的影响。</p>
      *
@@ -106,8 +107,7 @@ class WsEndpointHttpUpgradeTest {
     @ImportAutoConfiguration({
             RefreshAutoConfiguration.class,
             WsAutoConfiguration.class,
-            WebSocketServletAutoConfiguration.class,
-            ServletWebServerFactoryAutoConfiguration.class,
+            TomcatServletWebServerAutoConfiguration.class,
             DispatcherServletAutoConfiguration.class
     })
     @EnableWebSocket
@@ -160,7 +160,7 @@ class WsEndpointHttpUpgradeTest {
         List<String> received = new ArrayList<>();
 
         StandardWebSocketClient client = new StandardWebSocketClient();
-        WebSocketSession session = client.doHandshake(new TextWebSocketHandler() {
+        WebSocketSession session = client.execute(new TextWebSocketHandler() {
             @Override
             protected void handleTextMessage(WebSocketSession session, TextMessage message) {
                 synchronized (received) {
@@ -188,7 +188,7 @@ class WsEndpointHttpUpgradeTest {
     @Test
     void realHttpUpgradeWithoutClientIdShouldBeRejected() throws Exception {
         StandardWebSocketClient client = new StandardWebSocketClient();
-        WebSocketSession session = client.doHandshake(new TextWebSocketHandler() {
+        WebSocketSession session = client.execute(new TextWebSocketHandler() {
         }, "ws://localhost:" + port + ENDPOINT_PATH).get(10, TimeUnit.SECONDS);
 
         try {
@@ -221,7 +221,7 @@ class WsEndpointHttpUpgradeTest {
         List<String> received = new ArrayList<>();
 
         StandardWebSocketClient client = new StandardWebSocketClient();
-        WebSocketSession session = client.doHandshake(new TextWebSocketHandler() {
+        WebSocketSession session = client.execute(new TextWebSocketHandler() {
             @Override
             protected void handleTextMessage(WebSocketSession session, TextMessage message) {
                 synchronized (received) {

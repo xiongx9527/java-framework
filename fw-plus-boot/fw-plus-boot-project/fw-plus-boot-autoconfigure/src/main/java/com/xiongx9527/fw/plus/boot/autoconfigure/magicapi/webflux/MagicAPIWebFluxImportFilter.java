@@ -17,7 +17,7 @@ public class MagicAPIWebFluxImportFilter implements AutoConfigurationImportFilte
             "org.ssssssss.magicapi.spring.boot.starter.MagicAPIAutoConfiguration";
 
     private static final String REACTIVE_WEB_ENVIRONMENT =
-            "org.springframework.boot.web.reactive.context.ConfigurableReactiveWebEnvironment";
+            "org.springframework.boot.web.context.reactive.ConfigurableReactiveWebEnvironment";
 
     private Environment environment;
 

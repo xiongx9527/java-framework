@@ -32,6 +32,19 @@
             </exclusions>
         </dependency>
 
+        <!--S3 平台选项探测用例要求真实 Minio/Aliyun OSS SDK 存在于测试类路径，
+            版本由 core BOM 统一管理（aliyun-sdk-oss 3.18.5 / minio 8.6.0）-->
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.aliyun.oss</groupId>
+            <artifactId>aliyun-sdk-oss</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>com.github.ulisesbocchio</groupId>
             <artifactId>jasypt-spring-boot-starter</artifactId>
@@ -560,11 +573,18 @@
         -->
 
         <!-- knife4j：Boot 4 线切社区 fork knife4j-next（com.baizhukui）5.7.8；
-             上游 webflux 变体无 Boot 4 构件（fork 亦无），已移除，
-             webflux 支线文档 UI 的装配处置见 docs/springboot4-upgrade-notes.md -->
+             上游 webflux 变体无 Boot 4 构件（fork 亦无），改用 springdoc webflux-ui
+             （3.0.3，与 fork 内部声明的 springdoc-openapi-boot4 3.0.3 对齐）承载
+             webflux 支线的 SwaggerConfig/SwaggerUI，版本由 core BOM 统一管理 -->
         <dependency>
             <groupId>com.baizhukui</groupId>
             <artifactId>knife4j-openapi3-boot4-spring-boot-starter</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>

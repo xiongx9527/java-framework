@@ -151,22 +151,11 @@
                             </filesets>
                         </configuration>
                     </execution>
-                    <!-- mvn clean 时同步删除源码内的前端构建产物 src/console/dist，避免 dist 残留在工作区 -->
-                    <execution>
-                        <id>clean-console-dist</id>
-                        <phase>clean</phase>
-                        <goals>
-                            <goal>clean</goal>
-                        </goals>
-                        <configuration>
-                            <excludeDefaultDirectories>true</excludeDefaultDirectories>
-                            <filesets>
-                                <fileset>
-                                    <directory>src/console/dist</directory>
-                                </fileset>
-                            </filesets>
-                        </configuration>
-                    </execution>
+                    <!-- mvn clean 时同步删除 target/classes 里的过期资源，由
+                         copy-console-dist-on-compile（process-resources）从 git 跟踪的
+                         src/console/dist 重新补齐；dist 本身已纳入版本控制（bbb770222
+                         preserve plugin resources），是 prepare-package 前端构建的
+                         兜底产物，不在 clean 时删除。 -->
                 </executions>
             </plugin>
         </plugins>

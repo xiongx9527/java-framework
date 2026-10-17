@@ -7,7 +7,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.cluster.Redi
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.config.MqttBrokerConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.service.IMqttBrokerService;
 import org.dromara.mica.mqtt.core.server.MqttServer;
-import org.dromara.mica.mqtt.core.server.dispatcher.IMqttMessageDispatcher;
+import org.dromara.mica.mqtt.core.server.pipeline.MqttPublishPipelineHandler;
 import org.dromara.mica.mqtt.core.server.event.IMqttConnectStatusListener;
 import org.dromara.mica.mqtt.core.server.serializer.IMessageSerializer;
 import org.dromara.mica.mqtt.core.server.serializer.JsonMessageSerializer;
@@ -31,7 +31,7 @@ class MqttBrokerConfigurationTest {
 				.withConfiguration(AutoConfigurations.of(MqttBrokerConfiguration.class))
 				.withUserConfiguration(UserDispatcherConfiguration.class)
 				.run(context -> {
-					assertThat(context).hasSingleBean(IMqttMessageDispatcher.class);
+					assertThat(context).hasSingleBean(MqttPublishPipelineHandler.class);
 					assertThat(context).doesNotHaveBean(RedisMqttMessageDispatcher.class);
 				});
 	}
@@ -49,7 +49,7 @@ class MqttBrokerConfigurationTest {
 	@Test
 	void exchangeReceiverFailsClearlyWhenNoRedisConnectionFactoryCanBeResolved() {
 		RedisMqttMessageExchangeReceiver receiver = new RedisMqttMessageExchangeReceiver(
-				new JsonMessageSerializer(), MqttServer.create().port(0).build(), "mqtt:exchange");
+				new JsonMessageSerializer(), MqttServer.create().enableMqtt(0).build(), "mqtt:exchange");
 
 		assertThatThrownBy(receiver::afterSingletonsInstantiated)
 				.isInstanceOf(IllegalStateException.class)
@@ -59,7 +59,7 @@ class MqttBrokerConfigurationTest {
 	@Test
 	void downReceiverFailsClearlyWhenNoRedisConnectionFactoryCanBeResolved() {
 		RedisMqttMessageDownReceiver receiver = new RedisMqttMessageDownReceiver(
-				new JsonMessageSerializer(), MqttServer.create().port(0).build(), "mqtt:down");
+				new JsonMessageSerializer(), MqttServer.create().enableMqtt(0).build(), "mqtt:down");
 
 		assertThatThrownBy(receiver::afterSingletonsInstantiated)
 				.isInstanceOf(IllegalStateException.class)
@@ -75,8 +75,8 @@ class MqttBrokerConfigurationTest {
 		}
 
 		@Bean
-		IMqttMessageDispatcher customDispatcher() {
-			return mock(IMqttMessageDispatcher.class);
+		MqttPublishPipelineHandler customDispatcher() {
+			return mock(MqttPublishPipelineHandler.class);
 		}
 
 		@Bean
@@ -101,7 +101,7 @@ class MqttBrokerConfigurationTest {
 
 		@Bean
 		MqttServer mqttServer() {
-			return MqttServer.create().port(0).build();
+			return MqttServer.create().enableMqtt(0).build();
 		}
 
 		@Bean

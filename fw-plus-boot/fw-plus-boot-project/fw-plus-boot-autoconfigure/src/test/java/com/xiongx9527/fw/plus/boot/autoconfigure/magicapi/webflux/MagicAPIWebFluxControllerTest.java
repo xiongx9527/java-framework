@@ -11,7 +11,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.druid.starter.M
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurationImportFilter;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
-import org.springframework.boot.web.reactive.context.StandardReactiveWebEnvironment;
+import org.springframework.boot.web.context.reactive.StandardReactiveWebEnvironment;
 import org.springframework.boot.test.context.runner.ReactiveWebApplicationContextRunner;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -91,7 +91,7 @@ class MagicAPIWebFluxControllerTest {
     void startsReactiveAutoConfigurationFromFullChainWithoutManualMagicConfiguration() {
         new ReactiveWebApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
-                        org.springframework.boot.autoconfigure.web.reactive.WebFluxAutoConfiguration.class,
+                        org.springframework.boot.webflux.autoconfigure.WebFluxAutoConfiguration.class,
                         MagicAPIWebFluxAutoConfiguration.class))
                 .withPropertyValues("magic-api.resource.location=target/magic-api-webflux-test")
                 .run(context -> assertThat(context)
@@ -106,7 +106,7 @@ class MagicAPIWebFluxControllerTest {
     void registersUpstreamWorkbenchAndResourceRoutesInReactiveHandlerMapping() {
         new ReactiveWebApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
-                        org.springframework.boot.autoconfigure.web.reactive.WebFluxAutoConfiguration.class,
+                        org.springframework.boot.webflux.autoconfigure.WebFluxAutoConfiguration.class,
                         MagicAPIWebFluxAutoConfiguration.class))
                 .withPropertyValues("magic-api.resource.location=target/magic-api-webflux-routes-test")
                 .run(context -> {
@@ -124,7 +124,7 @@ class MagicAPIWebFluxControllerTest {
     void registersMagicExceptionHandlerAdviceInReactiveContext() {
         new ReactiveWebApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
-                        org.springframework.boot.autoconfigure.web.reactive.WebFluxAutoConfiguration.class,
+                        org.springframework.boot.webflux.autoconfigure.WebFluxAutoConfiguration.class,
                         MagicAPIWebFluxAutoConfiguration.class))
                 .withPropertyValues("magic-api.resource.location=target/magic-api-webflux-exception-advice-test")
                 .run(context -> assertThat(context)
@@ -156,7 +156,7 @@ class MagicAPIWebFluxControllerTest {
     void registersPluginControllerRoutesInReactiveHandlerMapping() {
         new ReactiveWebApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
-                        org.springframework.boot.autoconfigure.web.reactive.WebFluxAutoConfiguration.class,
+                        org.springframework.boot.webflux.autoconfigure.WebFluxAutoConfiguration.class,
                         MagicAPIWebFluxAutoConfiguration.class,
                         MagicAPIDebeziumConfiguration.class))
                 .withPropertyValues("magic-api.resource.location=target/magic-api-webflux-plugin-routes-test")

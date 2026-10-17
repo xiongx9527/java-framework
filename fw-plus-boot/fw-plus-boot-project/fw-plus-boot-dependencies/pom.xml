@@ -196,6 +196,16 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <!--dynamic-tp-dependencies 内把 nacos-config starter 锁在 Boot2 线（2021.0.5.0），
+                其 Spring Cloud Alibaba 构件与 Boot 4 / Spring Framework 7 不兼容
+                （EnvironmentPostProcessor 接口不可达），本 BOM 自身管理优先于继承的
+                core BOM（SCA import），故在此显式钉回 2025.1.0.0 线（与 core BOM
+                spring-cloud-alibaba-dependencies.version=2025.1.0.0 对齐）-->
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+                <version>2025.1.0.0</version>
+            </dependency>
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-bom</artifactId>

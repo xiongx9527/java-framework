@@ -57,7 +57,7 @@
 | Druid | 1.2.28 | **1.2.28** | 版本不变，坐标切 `druid-spring-boot-4-starter` |
 | dynamic-datasource | 4.3.1 | **4.6.0** | 切 `dynamic-datasource-spring-boot4-starter` |
 | easy-trans | 3.0.6 | **4.0.2** | 4.0.x=Boot4 线；groupId 切 `org.dromara`，包名 `com.fhs.*` → `org.dromara.*` |
-| knife4j / springdoc | 4.5.0 / 2.8.17 | **fork `com.baizhukui` 5.7.8 / 3.0.3** | 上游无 Boot4 支持，切社区 fork（仅改 groupId；无 webflux boot4 构件，条目 -2） |
+| knife4j / springdoc | 4.5.0 / 2.8.17 | **fork `com.baizhukui` 5.7.8 / 3.0.3** | 上游无 Boot4 支持，切社区 fork（仅改 groupId；无 webflux boot4 构件 → WebFlux 场景由 springdoc webflux-ui 3.0.3 承载，见 2.2） |
 | mica-mqtt | 2.3.9 | **2.5.9+** | Boot 4 / Jackson 3 支持线（Boot 层 2.1 落地） |
 | Tomcat | Boot 管理 10.1 线 | **11.0.27**（显式钉版） | Boot 4.1.1 管理值 11.0.24 受 CVE-2026-76183 影响（≤11.0.25），11.0.27 为 2026-10-06 发布修复版 |
 | Magic-API / EasyPoi | 2.2.2 / fork | **不变** | 仓内自维护/内嵌 fork，版本号不动 |
@@ -200,11 +200,42 @@ Maven 语义下**父链继承的 dependencyManagement 先于 import 展开且优
 修复后 Core 全量证据：`clean install`（含测试）BUILD SUCCESS，全 reactor **240 tests / 0 failures / 0 errors / 3 skipped**（1:04 min）；
 wrapper 固定 Maven 3.6.3 与 Boot 4.1.1 库层构建链实测兼容（sample 层 `spring-boot-maven-plugin` 打包待 5.x 冒烟复核，见附录 B）。
 
-### 2.2 Boot 层（⏳ 待 2.x 完成）
+### 2.2 Boot 层（✅ 已完成，2026-10-17）
 
-预留：starter / 模块坐标切换（MP boot3→boot4、knife4j jakarta/webflux→boot4、druid boot-3→boot-4、
-sa-token boot4、dynamic-datasource boot4）、Jackson 3 适配、JSpecify 空性注解、JUnit 6 测试 API、
-配置属性重命名与 `spring.factories` 残留清理、mica-mqtt 2.5.9+、SBA 4.1.x 等。
+范围：starter / 模块坐标切换（MP boot3→boot4、knife4j jakarta→boot4 线、druid boot-3→boot-4、
+sa-token boot4、dynamic-datasource boot4、nacos config 2025.1.0.0 钉版）、Jackson 3 适配、
+JUnit 6 测试 API、mica-mqtt 2.5.9+、SBA 4.1.x、Spring 7 装配适配（`RequestMappingInfo` 尾斜杠 API 移除、
+`WsHandlerMapping`/WebFlux 装配、_refresh scope 依赖补齐）等。
+
+关键处置记录：
+
+- **knife4j webflux**：knife4j-next fork（`com.baizhukui`）无 Boot4/webflux 变体构件（条目 -2 见 1.1），
+  WebFlux 场景改由 **springdoc `springdoc-openapi-starter-webflux-ui 3.0.3`**（Core BOM 管理段）承载；
+  autoconfigure 补 optional 依赖，`MagicAPIWebFluxImportFilter` 常量适配 Spring 7。
+- **nacos config 钉版**：旧锁 2021.0.5.0 的元凶是 bov BOM import 的 `dynamic-tp-dependencies`（boot 层 1.2.2）；
+  boot BOM 同 pom 自身 management 优先于 parent 继承，故在 boot `fw-plus-boot-dependencies` 的
+  dynamic-tp import **之后**显式钉 `spring-cloud-starter-alibaba-nacos-config = 2025.1.0.0`。
+- **vendored Mapping（Core 侧）**：Spring 7 移除 `setTrailingSlashMatch`，仓内自维护的 magic-api 2.2.2 按既有
+  同 FQN 遮蔽惯例补 `org.ssssssss.magicapi.utils.Mapping`（fw-plus-magicapi classpath 序先于 magic-api），
+  删尾斜杠守卫、恒走 patternParser 分支。
+- **前端资源链路（clean 断链修复）**：magicapi 插件父 pom 的 `clean-console-dist`（clean 阶段删
+  `src/console/dist`，出自 cd6ff8818「npm 动态生成 dist」的旧设计）与 dist 纳入 git 跟踪（bbb770222
+  preserve plugin resources，支撑 `mvn clean test` 经 `copy-console-dist-on-compile` 补齐 target/classes）
+  互相矛盾——全量 `clean test` 时 dist 先被删，所有 `xxxFrontendClasspathTest` 必挂（jdbc-starter 首先爆出，
+  admin/swagger 因 reactor 在 jdbc 处 fail-fast 被 SKIPPED 而未暴露）。处置：**移除 `clean-console-dist`**，
+  保留 `clean-stale-console-assets`（initialize 清 target/classes/magic-editor）+ process-resources 拷贝配对。
+- **admin 前端测试归位**：`MagicApiAdminFrontendClasspathTest` 原在 `fw-plus-admin-server-spring-boot-starter`，
+  但 0b608fc29 已将其对 plugin-admin 的依赖移除（plugin-admin 反向依赖 admin-server-starter，补回会成
+  reactor 循环）——该测试自 0b608fc29 起即前提失效。按 swagger 同型样板（测试放回插件模块自身）迁移：
+  删 starter 内孤儿测试，在 `fw-plus-magicapi-plugin-admin` 内补等效测试（其 pom 补 test-scope
+  `spring-boot-starter-test`，与 plugin-swagger 一致）。
+- **测试基建**：autoconfigure 补 minio/aliyun-sdk-oss test 依赖（S3 平台选项用例）、
+  `WsEndpointHttpUpgradeTest` 加 `spring.cloud.nacos.config.import-check.enabled=false`（新版 SCA
+  ImportException 关闭）、`WsWebFluxAutoConfigurationTest` 补 RefreshAutoConfiguration runner。
+
+Boot 全量证据：`cd fw-plus-boot && ./mvnw clean test -Dmaven.test.skip=false` → **BUILD SUCCESS**，
+50/50 模块 SUCCESS：autoconfigure **651 tests / 0 failures / 0 errors / 0 skipped** + 各 starter 冒烟
+（jdbc/druid-admin 插件资源、magicapi DbTx、admin 插件资源、eureka 等）合计 660 tests / 0 failures。
 
 ### 2.3 Cloud 层（⏳ 待 3.x 完成）
 
@@ -234,7 +265,9 @@ MF 样例补 `spring-boot-starter-jdbc`、mate 样例迁移验证等）。
 | Sample 聚合器（0.4.0） | `./mvnw -f fw-plus-sample/pom.xml validate` | ⏳ 预期性暂红：命中 `fw-plus-boot-*:0.4.0-SNAPSHOT` 未安装，随 2.x/3.x/4.x 重建消解 |
 | Core 父链残差核对 | `help:effective-pom` 全量 dump 复查 | ✅ `3.5.8` 残留 0 处，关键构件统一 4.1.1 |
 | Core 关键解析核对 | `dependency:tree`（servlet-api / guava / bcprov / byte-buddy / commons-lang3） | ✅ 6.1.0 / 33.7.2-jre / 1.86 / 1.18.11 / 3.20.0 |
-| Boot / Cloud / AI / Sample | 见各层章节 | ⏳ |
+| Boot 构建 | `cd fw-plus-boot && ./mvnw clean install -DskipTests` | ✅ BUILD SUCCESS（BOM 钉版/依赖调整后） |
+| Boot 测试 | `cd fw-plus-boot && ./mvnw clean test -Dmaven.test.skip=false` | ✅ BUILD SUCCESS：50/50 模块，autoconfigure 651 + starter 冒烟合计 660 tests / 0 failures（2026-10-17） |
+| Boot / Cloud / AI / Sample | 见各层章节 | Boot ✅；Cloud / AI / Sample ⏳ |
 | 根聚合收口 | `./mvnw clean install -DskipTests`（根目录） | ⏳ |
 
 ---
