@@ -25,13 +25,14 @@
 		<!--  lock4j版本号 -->
         <lock4j.version>2.2.7</lock4j.version>
         <!--  debezium版本号 -->
-        <debezium.version>1.9.8.Final</debezium.version>
+        <debezium.version>3.7.0.Final</debezium.version>
         <!--  mockito版本号（对齐 spring-boot-dependencies 3.5.8；用于显式压过
-              debezium-bom 内部钉死的 mockito-core 3.0.0，避免测试 classpath 版本分裂） -->
+              debezium-bom 钉死的 mockito 版本，避免 mockito-core 与
+              mockito-junit-jupiter 在测试 classpath 出现版本分裂） -->
         <mockito.version>5.17.0</mockito.version>
         <!--  mongodb-driver-sync版本号（对齐 spring-boot-dependencies 3.5.8 的
-              mongodb-driver-bom；用于显式压过 debezium-bom 内部钉死的 4.3.3 —— 4.3.3 与
-              bson / mongodb-driver-core 的 5.5.2 错配，其引用的
+              mongodb-driver-bom；用于显式压过 debezium-bom 钉死的版本，避免 driver-sync 与
+              bson / mongodb-driver-core 错配 —— 历史上 4.3.3 引用的
               com.mongodb.connection.StreamFactory 在 5.x 已移除，运行期会 NoClassDefFoundError） -->
         <mongodb.version>5.5.2</mongodb.version>
 		<!--  influxdb-sdk-java版本号 -->
@@ -246,23 +247,28 @@
                 <version>${atomikos.version}</version>
             </dependency>
 
-            <!-- mockito：必须置于 debezium-bom 之前。debezium-bom 1.9.x 内部将
-                 mockito-core 钉在 3.0.0（无 verifyNoInteractions），且其 import 先于
+            <!-- mockito：必须置于 debezium-bom 之前。debezium-bom 钉死的 mockito 版本
+                 与 spring-boot-dependencies 3.5.8 不一致，且其 import 先于
                  spring-boot-dependencies 声明，Maven 先声明优先会导致测试 classpath
-                 出现 mockito-core 3.0.0 + mockito-junit-jupiter 5.17.0 的版本分裂。
+                 出现 mockito-core / mockito-junit-jupiter 的版本分裂。
                  此处显式统一到 spring-boot-dependencies 3.5.8 的 5.17.0。 -->
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
                 <version>${mockito.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-junit-jupiter</artifactId>
+                <version>${mockito.version}</version>
+            </dependency>
 
             <!-- mongodb-driver-sync：必须置于 debezium-bom 之前（同 mockito 先例）。
-                 debezium-bom 1.9.x 将其钉在 4.3.3，而 bson / mongodb-driver-core 由
-                 spring-boot-dependencies 的 mongodb-driver-bom 管理为 5.5.2，造成
-                 driver-sync/core 版本错配（4.3.3 引用的 com.mongodb.connection.StreamFactory
-                 在 5.x 已移除，MongoClients.create 即 NoClassDefFoundError）。
-                 此处显式统一到 spring-boot-dependencies 3.5.8 的 5.5.2。 -->
+                 bson / mongodb-driver-core 由 spring-boot-dependencies 的
+                 mongodb-driver-bom 管理为 5.5.2，driver-sync 若由 debezium-bom 钉死版本
+                 将造成 driver-sync/core 版本错配（4.3.3 引用的
+                 com.mongodb.connection.StreamFactory 在 5.x 已移除，MongoClients.create
+                 即 NoClassDefFoundError）。此处显式统一到 5.5.2。 -->
             <dependency>
                 <groupId>org.mongodb</groupId>
                 <artifactId>mongodb-driver-sync</artifactId>

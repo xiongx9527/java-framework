@@ -759,7 +759,7 @@ javap -cp $M:$C dev.langchain4j.service.AiServices | grep -i toolExecutionErrorH
 | Pulsar Client | 2.11.2 | 是否传递 javax.servlet |
 | RocketMQ | 5.1.3 | 同上 |
 | Mica MQTT | 2.3.9 | broker 端 servlet 依赖 |
-| Debezium | 1.9.8.Final | 与 SB3 无直接关系，但需确认 `javax.*` 传递依赖 |
+| Debezium | 3.7.0.Final | 已升级（3.7 起仅支持 jakarta / JDK 17）；配置键已迁移至 `schema.history.internal.*` / `topic.prefix` 等，旧快照模式取值由插件侧自动归一化 |
 | Nebula / Neo4j JDBC | 自维护 | `javax.sql.rowset` 属保留包，无需迁移，但需实测 |
 | EasyTrans | 1.2.6 | 与 MP 3.5.x 的兼容性 |
 | Hutool | 5.8.34 | 若使用 `cn.hutool.extra.servlet` 需换 `JakartaServletUtil`（当前仓库未命中） |
