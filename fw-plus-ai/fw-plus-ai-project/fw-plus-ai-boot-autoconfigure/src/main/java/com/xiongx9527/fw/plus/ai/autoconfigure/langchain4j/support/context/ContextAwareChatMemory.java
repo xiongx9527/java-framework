@@ -68,7 +68,7 @@ public class ContextAwareChatMemory implements ChatMemory {
 			List<ChatMessage> fullHistory = new ArrayList<ChatMessage>(beforeWrite.size() + 1);
 			fullHistory.addAll(beforeWrite);
 			fullHistory.add(message);
-			maintain(fullHistory);
+			maintain(fullHistory, message);
 			this.maintainedSinceLastWrite = true;
 		}
 	}
@@ -78,20 +78,24 @@ public class ContextAwareChatMemory implements ChatMemory {
 		List<ChatMessage> base = delegate.messages();
 		// 读时兜底：本轮尚未写过（如进程新加载历史）时补一次维护
 		if (!maintainedSinceLastWrite) {
-			maintain(base);
+			maintain(base, null);
 			this.maintainedSinceLastWrite = true;
 		}
 		return base;
 	}
 
-	private void maintain(List<ChatMessage> currentMessages) {
+	/**
+	 * 调度一次维护：调用 3 参入口（{@code turnMessage} 为当轮写入的消息；读时兜底为 {@code null}），
+	 * 2 参实现经接口 default 方法收到 {@code currentMessages}。
+	 */
+	private void maintain(List<ChatMessage> currentMessages, ChatMessage turnMessage) {
 		if (maintenances.isEmpty()) {
 			return;
 		}
 		ContextRequest request = requestFactory.create(latestUserMessage);
 		for (ContextMaintenance maintenance : maintenances) {
 			try {
-				maintenance.maintain(request, currentMessages);
+				maintenance.maintain(request, currentMessages, turnMessage);
 			} catch (Exception e) {
 				// 维护失败不中断本轮，来源照旧（可能为空）
 				log.warn("上下文维护 {} 失败，本轮跳过：{}",
