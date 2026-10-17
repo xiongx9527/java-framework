@@ -12,12 +12,12 @@
     <artifactId>fw-plus-boot-dependencies</artifactId>
     <properties>
         <main.basedir>${basedir}/../..</main.basedir>
-        <!-- jasypt版本号 -->
+        <!-- jasypt版本号（冻结：无 Boot 4 兼容线；4.0.4 在 Boot 4 下 NoSuchMethodError，官方 Boot4 支持缺失） -->
         <jasypt.version>3.0.5</jasypt.version>
-        <!-- seata版本号 -->
-        <seata.version>2.0.0</seata.version>
-        <!--  jackson版本号 -->
-        <jackson.version>2.20.1</jackson.version>
+        <!-- seata版本号（Apache 坐标：io.seata 自 2.1.0 起迁移至 org.apache.seata） -->
+        <seata.version>2.6.0</seata.version>
+        <!-- Jackson 2.x 不再自行钉版：由 Spring Boot 4.1.1 的 jackson-2-bom（2.21.5）统一管理；
+             Jackson 3（tools.jackson）由 Boot 生态自理。 -->
         <!--  RocketMQ版本号 -->
         <rocketmq.version>5.3.2</rocketmq.version>
         <!--pulsar版本号-->
@@ -26,9 +26,9 @@
         <lock4j.version>2.2.7</lock4j.version>
         <!--  debezium版本号 -->
         <debezium.version>1.9.8.Final</debezium.version>
-        <!--  mockito版本号（对齐 spring-boot-dependencies 3.5.8；用于显式压过
+        <!--  mockito版本号（对齐 spring-boot-dependencies 4.1.1；用于显式压过
               debezium-bom 内部钉死的 mockito-core 3.0.0，避免测试 classpath 版本分裂） -->
-        <mockito.version>5.17.0</mockito.version>
+        <mockito.version>5.23.0</mockito.version>
 		<!--  influxdb-sdk-java版本号 -->
         <influxdb.version>6.7.0</influxdb.version>
         <!--  resilience4j版本号 -->
@@ -41,16 +41,16 @@
         <elasticsearch-sdk-java.version>8.19.8</elasticsearch-sdk-java.version>
 		<!--  grpc版本号 -->
         <grpc.version>1.65.1</grpc.version>
-        <!--  netty版本号 -->
-        <netty.version>4.1.128.Final</netty.version>
+        <!--  netty版本号（对齐 Spring Boot 4.1.1 的 4.2 线） -->
+        <netty.version>4.2.17.Final</netty.version>
         <!-- wildfly版本号 -->
         <wildfly.version>1.7.0.Final</wildfly.version>
         <!--  jwt版本号 -->
         <jjwt.version>0.13.0</jjwt.version>
-        <!--  dynamic-tp版本号 -->
+        <!--  dynamic-tp版本号（中央仓无更高线：官方声明仅支持 Boot 2.x/3.x，冻结 1.2.2，装配以实测为准） -->
         <dynamic-tp.version>1.2.2</dynamic-tp.version>
-        <!--  kotlin版本号 -->
-        <kotlin.version>2.2.21</kotlin.version>
+        <!--  kotlin版本号（对齐 Spring Boot 4.1.1） -->
+        <kotlin.version>2.3.21</kotlin.version>
         <!--  sms4j版本号 -->
         <sms4j.version>3.3.5</sms4j.version>
         <!--  ognl版本号 -->
@@ -63,16 +63,16 @@
         <jakarta.ws.rs.version>3.1.0</jakarta.ws.rs.version>
         <!--  jspecify版本号 -->
         <jspecify.version>1.0.1</jspecify.version>
-        <!--  netty-websocket版本号 -->
-        <netty-websocket.version>0.12.0</netty-websocket.version>
-        <!--  mica版本号 -->
-        <mica.version>2.7.18.9</mica.version>
-        <!--  mica-mqtt版本号 -->
-        <mica-mqtt.version>2.3.9</mica-mqtt.version>
-        <!--  plumelog版本号 -->
+        <!--  netty-websocket版本号（1.0.0 面向 Boot 4.1.1 / Netty 4.2 构建） -->
+        <netty-websocket.version>1.0.0</netty-websocket.version>
+        <!--  mica版本号（mica-redis 4.1.1 为 Boot 4.1 线，mica-core 随之） -->
+        <mica.version>4.1.1</mica.version>
+        <!--  mica-mqtt版本号（坐标迁移至 org.dromara.mica-mqtt；2.5.9 起支持 Boot 4/Jackson 3） -->
+        <mica-mqtt.version>2.6.13</mica-mqtt.version>
+        <!--  plumelog版本号（中央仓无更高线：3.5.3 之后无发布，维持并实测消费点） -->
         <plumelog.version>3.5.3</plumelog.version>
-        <!--  spring-boot-admin版本号 -->
-        <spring-boot-admin.version>3.5.6</spring-boot-admin.version>
+        <!--  spring-boot-admin版本号（4.1.4 对齐 Boot 4.1.x） -->
+        <spring-boot-admin.version>4.1.4</spring-boot-admin.version>
         <!--  atomikos版本号 -->
         <atomikos.version>6.0.1</atomikos.version>
         <!-- spring-cloud-stream版本号 -->
@@ -108,25 +108,18 @@
                 <artifactId>jasypt-spring-boot-starter</artifactId>
                 <version>${jasypt.version}</version>
             </dependency>
-            <!-- jackson -->
+            <!-- jackson：已改为依赖 Spring Boot 4.1.1 的 jackson-2-bom 管理 2.x（见属性区注释） -->
+            <!-- seata（Apache 坐标） -->
             <dependency>
-                <groupId>com.fasterxml.jackson</groupId>
-                <artifactId>jackson-bom</artifactId>
-                <version>${jackson.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <!-- seata -->
-            <dependency>
-                <groupId>io.seata</groupId>
+                <groupId>org.apache.seata</groupId>
                 <artifactId>seata-bom</artifactId>
                 <version>${seata.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
             <dependency>
-                <groupId>io.seata</groupId>
-                <artifactId>seata-server</artifactId>
+                <groupId>org.apache.seata</groupId>
+                <artifactId>seata-all</artifactId>
                 <version>${seata.version}</version>
             </dependency>
             <!-- influxdb -->
@@ -169,6 +162,12 @@
             <dependency>
                 <groupId>co.elastic.clients</groupId>
                 <artifactId>elasticsearch-java</artifactId>
+                <version>${elasticsearch-sdk-java.version}</version>
+            </dependency>
+            <!-- elasticsearch-rest-client：Boot 4 已从依赖管理移除，改由本 BOM 钉版（与 elasticsearch-java 同版本线） -->
+            <dependency>
+                <groupId>org.elasticsearch.client</groupId>
+                <artifactId>elasticsearch-rest-client</artifactId>
                 <version>${elasticsearch-sdk-java.version}</version>
             </dependency>
 
@@ -237,15 +236,15 @@
 
 <dependency>
                 <groupId>com.atomikos</groupId>
-                <artifactId>transactions-spring-boot3-starter</artifactId>
+                <artifactId>transactions-spring-boot4-starter</artifactId>
                 <version>${atomikos.version}</version>
             </dependency>
 
             <!-- mockito：必须置于 debezium-bom 之前。debezium-bom 1.9.x 内部将
                  mockito-core 钉在 3.0.0（无 verifyNoInteractions），且其 import 先于
                  spring-boot-dependencies 声明，Maven 先声明优先会导致测试 classpath
-                 出现 mockito-core 3.0.0 + mockito-junit-jupiter 5.17.0 的版本分裂。
-                 此处显式统一到 spring-boot-dependencies 3.5.8 的 5.17.0。 -->
+                 出现 mockito-core 3.0.0 + mockito-junit-jupiter 5.23.0 的版本分裂。
+                 此处显式统一到 spring-boot-dependencies 4.1.1 的 5.23.0。 -->
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
@@ -525,13 +524,13 @@
             </dependency>
 
             <dependency>
-                <groupId>net.dreamlu</groupId>
+                <groupId>org.dromara.mica-mqtt</groupId>
                 <artifactId>mica-mqtt-server-spring-boot-starter</artifactId>
                 <version>${mica-mqtt.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>net.dreamlu</groupId>
+                <groupId>org.dromara.mica-mqtt</groupId>
                 <artifactId>mica-mqtt-client-spring-boot-starter</artifactId>
                 <version>${mica-mqtt.version}</version>
             </dependency>

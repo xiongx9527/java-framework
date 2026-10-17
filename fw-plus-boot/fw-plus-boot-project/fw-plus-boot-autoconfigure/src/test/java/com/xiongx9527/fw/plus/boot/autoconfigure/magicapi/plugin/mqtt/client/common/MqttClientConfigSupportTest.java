@@ -1,6 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.common;
 
-import net.dreamlu.iot.mqtt.codec.MqttQoS;
+import org.dromara.mica.mqtt.codec.MqttQoS;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;

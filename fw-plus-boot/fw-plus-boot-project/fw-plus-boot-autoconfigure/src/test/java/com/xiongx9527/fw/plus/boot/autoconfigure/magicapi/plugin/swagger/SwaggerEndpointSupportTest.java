@@ -7,10 +7,10 @@ import org.ssssssss.magicapi.core.config.MagicAPIProperties;
 import org.ssssssss.magicapi.core.config.MagicConfiguration;
 import org.ssssssss.magicapi.core.model.ApiInfo;
 import org.ssssssss.magicapi.core.service.MagicResourceService;
-import org.springdoc.core.AbstractSwaggerUiConfigProperties;
-import org.springdoc.core.SpringDocConfigProperties;
-import org.springdoc.core.SwaggerUiConfigParameters;
-import org.springdoc.core.SwaggerUiConfigProperties;
+import org.springdoc.core.properties.AbstractSwaggerUiConfigProperties;
+import org.springdoc.core.properties.SpringDocConfigProperties;
+import org.springdoc.core.properties.SwaggerUiConfigParameters;
+import org.springdoc.core.properties.SwaggerUiConfigProperties;
 
 import jakarta.servlet.ServletContext;
 import java.util.ArrayList;

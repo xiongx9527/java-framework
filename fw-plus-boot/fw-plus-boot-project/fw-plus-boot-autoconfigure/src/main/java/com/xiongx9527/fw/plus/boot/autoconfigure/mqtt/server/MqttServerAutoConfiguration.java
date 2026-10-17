@@ -1,7 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.MqttServerBrokerConfiguration;
-import net.dreamlu.iot.mqtt.spring.server.config.MqttServerProperties;
+import org.dromara.mica.mqtt.spring.server.config.MqttServerProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Import;
         havingValue = "true",
         matchIfMissing = false
 )
-@ConditionalOnClass(name = {"net.dreamlu.iot.mqtt.spring.server.MqttServerTemplate"})
+@ConditionalOnClass(name = {"org.dromara.mica.mqtt.spring.server.MqttServerTemplate"})
 @Import({MqttServerConfiguration.class, MqttServerBrokerConfiguration.class})
 public class MqttServerAutoConfiguration {
 }

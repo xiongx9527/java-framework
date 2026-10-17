@@ -27,7 +27,7 @@ import org.springframework.context.annotation.Import;
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnClass(name = "org.mybatis.spring.SqlSessionFactoryBean")
 @AutoConfigureAfter(name = {
-		"org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration",
+		"org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration",
 		"com.baomidou.dynamic.datasource.spring.boot.autoconfigure.DynamicDataSourceAutoConfiguration",
 		"org.mybatis.spring.boot.autoconfigure.MybatisAutoConfiguration",
 		"com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration",

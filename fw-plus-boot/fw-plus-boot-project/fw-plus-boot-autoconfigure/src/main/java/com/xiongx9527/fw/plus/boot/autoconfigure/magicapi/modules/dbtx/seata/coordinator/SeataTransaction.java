@@ -1,6 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.seata.coordinator;
 
-import io.seata.core.model.GlobalStatus;
+import org.apache.seata.core.model.GlobalStatus;
 
 public interface SeataTransaction {
 

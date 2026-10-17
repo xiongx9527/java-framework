@@ -186,12 +186,12 @@ local 会分别提交各数据源的 Spring 本地事务。如果某个参与者
 
 ```xml
 <dependency>
-    <groupId>io.seata</groupId>
+    <groupId>org.apache.seata</groupId>
     <artifactId>seata-spring-boot-starter</artifactId>
 </dependency>
 ```
 
-Seata 版本由 fw-plus 项目 BOM 管理，当前框架基线为 Seata `2.0.0`。
+Seata 版本由 fw-plus 项目 BOM 管理，当前框架基线为 Seata `2.6.0`（Apache 坐标 org.apache.seata）。
 
 ### 5.2 配置 Seata Server
 

@@ -1,11 +1,11 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.jdbc.dynamic.datasource;
 
-import com.alibaba.druid.spring.boot3.autoconfigure.DruidDataSourceAutoConfigure;
-import com.alibaba.druid.spring.boot3.autoconfigure.properties.DruidStatProperties;
-import com.alibaba.druid.spring.boot3.autoconfigure.stat.DruidFilterConfiguration;
-import com.alibaba.druid.spring.boot3.autoconfigure.stat.DruidSpringAopConfiguration;
-import com.alibaba.druid.spring.boot3.autoconfigure.stat.DruidStatViewServletConfiguration;
-import com.alibaba.druid.spring.boot3.autoconfigure.stat.DruidWebStatFilterConfiguration;
+import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
+import com.alibaba.druid.spring.boot4.autoconfigure.properties.DruidStatProperties;
+import com.alibaba.druid.spring.boot4.autoconfigure.stat.DruidFilterConfiguration;
+import com.alibaba.druid.spring.boot4.autoconfigure.stat.DruidSpringAopConfiguration;
+import com.alibaba.druid.spring.boot4.autoconfigure.stat.DruidStatViewServletConfiguration;
+import com.alibaba.druid.spring.boot4.autoconfigure.stat.DruidWebStatFilterConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;

@@ -2,8 +2,8 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.server.mo
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.server.model.BaseMagicDynamicMqttDataSource;
 import lombok.extern.slf4j.Slf4j;
-import net.dreamlu.iot.mqtt.core.server.MqttServer;
-import net.dreamlu.iot.mqtt.spring.server.MqttServerTemplate;
+import org.dromara.mica.mqtt.core.server.MqttServer;
+import org.dromara.mica.mqtt.spring.server.MqttServerTemplate;
 import org.apache.commons.lang3.StringUtils;
 import org.ssssssss.magicapi.core.annotation.MagicModule;
 import org.ssssssss.magicapi.core.model.Options;

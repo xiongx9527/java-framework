@@ -31,7 +31,7 @@ public class WsAuthHandshakeInterceptor implements WsHandshakeInterceptor {
 	public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response,
 			WebSocketHandler wsHandler, Map<String, Object> attributes) {
 		Map<String, String> headers = new LinkedHashMap<>();
-		for (Map.Entry<String, List<String>> entry : request.getHeaders().entrySet()) {
+		for (Map.Entry<String, List<String>> entry : request.getHeaders().headerSet()) {
 			if (entry.getValue() != null && !entry.getValue().isEmpty()) {
 				headers.put(entry.getKey(), entry.getValue().get(0));
 			}

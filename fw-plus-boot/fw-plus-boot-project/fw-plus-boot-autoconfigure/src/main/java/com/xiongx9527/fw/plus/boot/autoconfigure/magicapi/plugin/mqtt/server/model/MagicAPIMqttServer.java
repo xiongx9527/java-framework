@@ -3,7 +3,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.server.mo
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.cluster.RedisMqttMessageDownReceiver;
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.cluster.RedisMqttMessageExchangeReceiver;
 import lombok.extern.slf4j.Slf4j;
-import net.dreamlu.iot.mqtt.core.server.MqttServer;
+import org.dromara.mica.mqtt.core.server.MqttServer;
 
 import java.util.Objects;
 

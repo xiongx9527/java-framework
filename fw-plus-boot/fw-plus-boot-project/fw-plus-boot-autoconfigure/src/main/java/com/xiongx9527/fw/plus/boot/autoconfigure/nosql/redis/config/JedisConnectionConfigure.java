@@ -1,7 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.nosql.redis.config;
 
-import org.springframework.boot.autoconfigure.data.redis.JedisClientConfigurationBuilderCustomizer;
-import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
+import org.springframework.boot.data.redis.autoconfigure.JedisClientConfigurationBuilderCustomizer;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisProperties;
 import org.springframework.boot.context.properties.PropertyMapper;
 import org.springframework.data.redis.connection.RedisClusterConfiguration;
 import org.springframework.data.redis.connection.RedisSentinelConfiguration;
@@ -45,7 +45,7 @@ class JedisConnectionConfigure extends RedisConnectionConfiguration {
      * @param builderCustomizers Jedis客户端配置构建器自定义器列表，用于自定义Jedis客户端配置
      * @param database 数据库索引号，指定要连接的Redis数据库
      */
-    JedisConnectionConfigure(RedisProperties properties,
+    JedisConnectionConfigure(DataRedisProperties properties,
                              RedisSentinelConfiguration sentinelConfiguration,
                              RedisClusterConfiguration clusterConfiguration,
                              List<JedisClientConfigurationBuilderCustomizer> builderCustomizers,
@@ -103,7 +103,7 @@ class JedisConnectionConfigure extends RedisConnectionConfiguration {
         JedisClientConfigurationBuilder builder = applyProperties(JedisClientConfiguration.builder());
 
         // 获取并应用连接池配置
-        RedisProperties.Pool pool = getProperties().getJedis().getPool();
+        DataRedisProperties.Pool pool = getProperties().getJedis().getPool();
         if (pool != null) {
             applyPooling(pool, builder);
         }
@@ -128,8 +128,8 @@ class JedisConnectionConfigure extends RedisConnectionConfiguration {
      * @return 配置完成的Jedis客户端配置构建器
      */
     private JedisClientConfigurationBuilder applyProperties(JedisClientConfigurationBuilder builder) {
-        // 创建属性映射器，只在值非空时应用映射
-        PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull();
+        // 创建属性映射器，只在值非空时应用映射（Spring Boot 4 起默认跳过 null 值）
+        PropertyMapper map = PropertyMapper.get();
 
         // 根据配置属性设置SSL、读取超时、连接超时和客户端名称
         map.from(getProperties().getSsl().isEnabled()).whenTrue().toCall(builder::useSsl);
@@ -146,7 +146,7 @@ class JedisConnectionConfigure extends RedisConnectionConfiguration {
      * @param pool Redis连接池配置属性对象，包含最大连接数、最小空闲连接数等配置信息
      * @param builder Jedis客户端配置构建器，用于设置连接池相关的配置参数
      */
-    private static void applyPooling(RedisProperties.Pool pool,
+    private static void applyPooling(DataRedisProperties.Pool pool,
                                      JedisClientConfigurationBuilder builder) {
         // 配置Jedis连接池
         builder.usePooling().poolConfig(jedisPoolConfig(pool));
@@ -156,7 +156,7 @@ class JedisConnectionConfigure extends RedisConnectionConfiguration {
     /**
      * jedis连接池配置
      */
-    private static JedisPoolConfig jedisPoolConfig(RedisProperties.Pool pool) {
+    private static JedisPoolConfig jedisPoolConfig(DataRedisProperties.Pool pool) {
         JedisPoolConfig config = new JedisPoolConfig();
         config.setMaxTotal(pool.getMaxActive());
         config.setMaxIdle(pool.getMaxIdle());

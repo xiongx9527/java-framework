@@ -5,11 +5,11 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.webflux.WebFluxRequest
 import io.swagger.v3.oas.models.OpenAPI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springdoc.core.AbstractSwaggerUiConfigProperties;
-import org.springdoc.core.GroupedOpenApi;
-import org.springdoc.core.SpringDocConfigProperties;
-import org.springdoc.core.SwaggerUiConfigParameters;
-import org.springdoc.core.SwaggerUiConfigProperties;
+import org.springdoc.core.properties.AbstractSwaggerUiConfigProperties;
+import org.springdoc.core.models.GroupedOpenApi;
+import org.springdoc.core.properties.SpringDocConfigProperties;
+import org.springdoc.core.properties.SwaggerUiConfigParameters;
+import org.springdoc.core.properties.SwaggerUiConfigProperties;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

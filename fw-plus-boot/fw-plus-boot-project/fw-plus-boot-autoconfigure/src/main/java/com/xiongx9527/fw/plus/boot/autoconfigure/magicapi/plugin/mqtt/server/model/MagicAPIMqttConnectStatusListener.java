@@ -1,8 +1,8 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.server.model;
 
 import lombok.extern.slf4j.Slf4j;
-import net.dreamlu.iot.mqtt.core.server.event.IMqttConnectStatusListener;
-import org.tio.core.ChannelContext;
+import org.dromara.mica.mqtt.core.server.event.IMqttConnectStatusListener;
+import net.dreamlu.mica.net.core.ChannelContext;
 
 @Slf4j
 public class MagicAPIMqttConnectStatusListener implements IMqttConnectStatusListener {

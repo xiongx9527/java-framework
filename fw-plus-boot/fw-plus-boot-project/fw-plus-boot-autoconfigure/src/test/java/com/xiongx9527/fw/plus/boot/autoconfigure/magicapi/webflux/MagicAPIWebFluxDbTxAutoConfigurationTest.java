@@ -98,7 +98,7 @@ class MagicAPIWebFluxDbTxAutoConfigurationTest {
 						.hasSingleBean(SeataDbTxCoordinator.class)
 						.hasSingleBean(SeataDataSourceAdapter.class));
 
-		contextRunner.withClassLoader(new FilteredClassLoader("io.seata"))
+		contextRunner.withClassLoader(new FilteredClassLoader("org.apache.seata"))
 				.withPropertyValues("magic-api.dbtx.seata-enabled=true")
 				.run(context -> assertThat(context)
 						.hasSingleBean(LocalDbTxCoordinator.class)

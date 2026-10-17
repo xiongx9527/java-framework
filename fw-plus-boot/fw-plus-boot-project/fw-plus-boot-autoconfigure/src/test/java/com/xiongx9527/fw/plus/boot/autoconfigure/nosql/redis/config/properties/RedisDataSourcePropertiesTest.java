@@ -1,7 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.nosql.redis.config.properties;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisProperties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -11,7 +11,7 @@ class RedisDataSourcePropertiesTest {
 	@Test
 	void addRedisPropertiesShouldRecoverWhenDatasourceMapWasSetToNull() {
 		RedisDataSourceProperties properties = new RedisDataSourceProperties();
-		RedisProperties redisProperties = new RedisProperties();
+		DataRedisProperties redisProperties = new DataRedisProperties();
 		properties.setDatasource(null);
 
 		properties.addRedisProperties("orders", redisProperties);

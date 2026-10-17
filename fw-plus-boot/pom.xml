@@ -18,7 +18,7 @@
 	<name>Fw-Plus-Boot Build</name>
 	<properties>
 		<revision>0.4.0-SNAPSHOT</revision>
-		<jdk.version>17</jdk.version>
+		<jdk.version>21</jdk.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.encoding>UTF-8</maven.compiler.encoding>
 		<maven-compiler-plugin.version>3.10.1</maven-compiler-plugin.version>

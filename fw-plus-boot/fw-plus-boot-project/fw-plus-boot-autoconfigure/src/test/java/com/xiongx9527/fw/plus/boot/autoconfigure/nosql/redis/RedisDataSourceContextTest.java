@@ -2,7 +2,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.nosql.redis;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.nosql.redis.config.properties.RedisDataSourceProperties;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisProperties;
 import org.springframework.context.ApplicationContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -48,7 +48,7 @@ class RedisDataSourceContextTest {
 
 	@Test
 	void getRedisPropertiesShouldReturnConfiguredDatasource() {
-		RedisProperties redisProperties = new RedisProperties();
+		DataRedisProperties redisProperties = new DataRedisProperties();
 		RedisDataSourceProperties properties = new RedisDataSourceProperties();
 		properties.addRedisProperties("orders", redisProperties);
 		ApplicationContext applicationContext = mock(ApplicationContext.class);
@@ -61,7 +61,7 @@ class RedisDataSourceContextTest {
 	}
 
 	private static class TestRedisDataSourceContext extends RedisDataSourceContext {
-		RedisProperties redisProperties() {
+		DataRedisProperties redisProperties() {
 			return getRedisProperties();
 		}
 	}

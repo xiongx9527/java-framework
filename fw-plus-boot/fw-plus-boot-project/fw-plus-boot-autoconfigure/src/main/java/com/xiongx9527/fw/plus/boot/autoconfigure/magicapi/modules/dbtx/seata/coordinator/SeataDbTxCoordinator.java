@@ -8,7 +8,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.exception
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.model.DbTxContext;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.model.DbTxContextHolder;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.model.DbTxDefinition;
-import io.seata.core.model.GlobalStatus;
+import org.apache.seata.core.model.GlobalStatus;
 import org.ssssssss.magicapi.datasource.model.MagicDynamicDataSource;
 
 import javax.sql.DataSource;

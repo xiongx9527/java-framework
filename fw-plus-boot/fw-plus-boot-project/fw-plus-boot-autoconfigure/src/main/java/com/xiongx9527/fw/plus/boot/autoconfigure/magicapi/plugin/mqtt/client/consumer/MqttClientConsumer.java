@@ -8,15 +8,15 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.mod
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.model.MqttClientSubscribeScriptInfo;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
-import net.dreamlu.iot.mqtt.codec.MqttPublishMessage;
-import net.dreamlu.iot.mqtt.codec.MqttQoS;
-import net.dreamlu.iot.mqtt.core.client.IMqttClientMessageListener;
-import net.dreamlu.iot.mqtt.core.client.MqttClient;
-import net.dreamlu.iot.mqtt.core.client.MqttClientCreator;
-import net.dreamlu.iot.mqtt.spring.client.MqttClientTemplate;
+import org.dromara.mica.mqtt.codec.message.MqttPublishMessage;
+import org.dromara.mica.mqtt.codec.MqttQoS;
+import org.dromara.mica.mqtt.core.client.IMqttClientMessageListener;
+import org.dromara.mica.mqtt.core.client.MqttClient;
+import org.dromara.mica.mqtt.core.client.MqttClientCreator;
+import org.dromara.mica.mqtt.spring.client.MqttClientTemplate;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.tio.core.ChannelContext;
+import net.dreamlu.mica.net.core.ChannelContext;
 
 import java.util.List;
 import java.util.Map;

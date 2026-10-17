@@ -8,7 +8,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.nosql.redis.register.RedisDataS
 import com.xiongx9527.fw.plus.nosql.redis.constant.DynamicRedisConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
-import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisProperties;
 import org.springframework.data.redis.core.RedisTemplate;
 
 import java.util.Objects;
@@ -41,7 +41,7 @@ public class RedisMultiDataSourceRegisterExtension {
      * @param redisProperties 该数据源对应的配置文件
      * @author wenpanfeng 2022/9/23 18:21
      */
-    public static void registerRedisDataSource(String datasourceName, RedisProperties redisProperties) {
+    public static void registerRedisDataSource(String datasourceName, DataRedisProperties redisProperties) {
         registerRedisDataSource(datasourceName, redisProperties, false);
     }
 
@@ -54,7 +54,7 @@ public class RedisMultiDataSourceRegisterExtension {
      * @param redisProperties 该数据源对应的配置文件
      * @author wenpanfeng 2022/9/23 18:21
      */
-    public static void registerRedisDataSource(String datasourceName, RedisProperties redisProperties, boolean allowOverwrite) {
+    public static void registerRedisDataSource(String datasourceName, DataRedisProperties redisProperties, boolean allowOverwrite) {
         // 首先先向redis多数据源配置里添加配置
         addRedisDatasourceRedisProperties(datasourceName, redisProperties, allowOverwrite);
         // 新增 redisTemplate 并注入到容器，并且将 redisTemplate 注册到 {@link RedisDataSourceRegister}
@@ -124,10 +124,10 @@ public class RedisMultiDataSourceRegisterExtension {
      * @author wenpan 2022/9/24 6:00 下午
      */
     public static void addRedisDatasourceRedisProperties(String datasourceName,
-                                                         RedisProperties redisProperties,
+                                                         DataRedisProperties redisProperties,
                                                          boolean allowOverwrite) {
         RedisDataSourceProperties properties = ApplicationContextHelper.getContext().getBean(RedisDataSourceProperties.class);
-        RedisProperties exists = properties.getRedisProperties(datasourceName);
+        DataRedisProperties exists = properties.getRedisProperties(datasourceName);
         // 存在名称为datasourceName的Redis配置 且 不允许覆盖
         if (Objects.nonNull(exists) && !allowOverwrite) {
             log.warn("addRedisDatasourceRedisProperties failed, because RedisDataSourceProperties " +

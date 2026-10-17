@@ -2,9 +2,9 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.service.impl;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.model.ServerNode;
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.service.IMqttService;
-import net.dreamlu.iot.mqtt.core.server.MqttServer;
-import net.dreamlu.iot.mqtt.spring.server.event.MqttClientOfflineEvent;
-import net.dreamlu.iot.mqtt.spring.server.event.MqttClientOnlineEvent;
+import org.dromara.mica.mqtt.core.server.MqttServer;
+import org.dromara.mica.mqtt.spring.server.event.MqttClientOfflineEvent;
+import org.dromara.mica.mqtt.spring.server.event.MqttClientOnlineEvent;
 import net.dreamlu.mica.core.utils.CharPool;
 import net.dreamlu.mica.core.utils.INetUtil;
 import org.springframework.context.event.EventListener;
@@ -32,13 +32,24 @@ public class MqttServiceImpl implements IMqttService {
     private final String hostName;
 
     /**
-     * RedisMqttServerManage构造函数
+     * 构造函数
      *
      * @param mqttServer MQTT服务器实例，用于获取服务器创建者信息
      */
     public MqttServiceImpl(MqttServer mqttServer) {
+        this(mqttServer, null);
+    }
+
+    /**
+     * 构造函数
+     *
+     * @param mqttServer MQTT服务器实例，用于获取服务器创建者信息
+     * @param port MQTT 服务监听端口。mica-mqtt 2.6.x 起端口由协议监听器承载，
+     *             无法从 creator 直接获取，因此由外部传入
+     */
+    public MqttServiceImpl(MqttServer mqttServer, Integer port) {
         this.nodeName = mqttServer.getServerCreator().getNodeName();
-        this.hostName = INetUtil.getHostIp() + CharPool.COLON + mqttServer.getServerCreator().getPort();
+        this.hostName = INetUtil.getHostIp() + CharPool.COLON + (port == null ? "" : port);
     }
 
     /**

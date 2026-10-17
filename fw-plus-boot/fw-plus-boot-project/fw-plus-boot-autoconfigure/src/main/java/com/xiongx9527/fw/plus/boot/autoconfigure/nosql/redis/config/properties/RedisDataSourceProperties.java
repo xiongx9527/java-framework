@@ -2,7 +2,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.nosql.redis.config.properties;
 
 import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
@@ -42,7 +42,7 @@ public class RedisDataSourceProperties {
     /**
      * 数据源配置集合（key: 数据源名称， value: 数据源对应的Redis配置）
      */
-    private Map<String, RedisProperties> datasource = new ConcurrentHashMap<>();
+    private Map<String, DataRedisProperties> datasource = new ConcurrentHashMap<>();
 
     /**
      * 新增数据源配置
@@ -50,7 +50,7 @@ public class RedisDataSourceProperties {
      * @param datasourceName  Redis数据源名称
      * @param redisProperties Redis配置
      */
-    public void addRedisProperties(String datasourceName, RedisProperties redisProperties) {
+    public void addRedisProperties(String datasourceName, DataRedisProperties redisProperties) {
         if (StringUtils.isBlank(datasourceName)) {
             throw new IllegalArgumentException("datasource name can not be null, please check.");
         }
@@ -65,10 +65,10 @@ public class RedisDataSourceProperties {
      * 根据数据源名称获取Redis数据源配置
      *
      * @param datasourceName 数据源名称
-     * @return org.springframework.boot.autoconfigure.data.redis.RedisProperties
+     * @return org.springframework.boot.data.redis.autoconfigure.DataRedisProperties
      * @author wenpan 2022/9/24 5:54 下午
      */
-    public RedisProperties getRedisProperties(String datasourceName) {
+    public DataRedisProperties getRedisProperties(String datasourceName) {
 		if (StringUtils.isBlank(datasourceName) || datasource == null) {
 			return null;
 		}

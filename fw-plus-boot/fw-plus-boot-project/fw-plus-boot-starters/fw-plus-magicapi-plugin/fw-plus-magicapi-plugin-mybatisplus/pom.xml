@@ -33,7 +33,7 @@
              插件不把 spring-jdbc/数据源链强制传递给宿主 -->
         <dependency>
             <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-boot-starter</artifactId>
+            <artifactId>mybatis-plus-spring-boot4-starter</artifactId>
             <optional>true</optional>
         </dependency>
         <dependency>

@@ -22,13 +22,14 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.listener.Mqt
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.listener.RedisMqttConnectStatusListener;
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.service.IMqttBrokerService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.service.impl.MqttBrokerServiceImpl;
-import net.dreamlu.iot.mqtt.core.server.MqttServer;
-import net.dreamlu.iot.mqtt.core.server.dispatcher.IMqttMessageDispatcher;
-import net.dreamlu.iot.mqtt.core.server.event.IMqttConnectStatusListener;
-import net.dreamlu.iot.mqtt.core.server.event.IMqttMessageListener;
-import net.dreamlu.iot.mqtt.core.server.serializer.IMessageSerializer;
-import net.dreamlu.iot.mqtt.core.server.serializer.JsonMessageSerializer;
-import net.dreamlu.iot.mqtt.core.server.store.IMqttMessageStore;
+import org.dromara.mica.mqtt.core.server.MqttServer;
+import org.dromara.mica.mqtt.core.server.event.IMqttConnectStatusListener;
+import org.dromara.mica.mqtt.core.server.event.IMqttMessageListener;
+import org.dromara.mica.mqtt.core.server.pipeline.MqttPublishPipelineHandler;
+import org.dromara.mica.mqtt.core.server.serializer.IMessageSerializer;
+import org.dromara.mica.mqtt.core.server.serializer.JsonMessageSerializer;
+import org.dromara.mica.mqtt.core.server.store.IMqttMessageStore;
+import org.dromara.mica.mqtt.spring.server.config.MqttServerProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -102,25 +103,33 @@ public class MqttBrokerConfiguration {
 	}
 
 	/**
-	 * 创建MQTT消息分发器Bean
+	 * 创建MQTT消息分发器Bean。
+	 *
+	 * <p>mica-mqtt 2.6.x 起集群转发接入发布管线：本 Bean 作为 {@link MqttPublishPipelineHandler}
+	 * 由 MqttServerConfiguration 注册到 MqttServerCreator，在本地投递之后把上行消息转发到 Redis。</p>
+	 *
 	 * @param messageSerializer 消息序列化器
-	 * @return IMqttMessageDispatcher MQTT消息分发器实例
+	 * @return MqttPublishPipelineHandler MQTT发布管线处理器实例
 	 */
 	@Bean
 	@ConditionalOnMissingBean
-	public IMqttMessageDispatcher mqttMessageDispatcher(IMessageSerializer messageSerializer) {
+	public MqttPublishPipelineHandler mqttMessageDispatcher(IMessageSerializer messageSerializer) {
 		return new RedisMqttMessageDispatcher(messageSerializer, RedisKeys.REDIS_CHANNEL_EXCHANGE.getKey());
 	}
 
 	/**
 	 * 创建Redis MQTT服务器管理Bean
 	 * @param mqttServer MQTT服务器实例
+	 * @param properties MQTT服务器配置属性（2.6.x 起端口由协议监听器承载，从配置读取）
 	 * @return RedisMqttServerManage Redis MQTT服务器管理实例
 	 */
 	@Bean
 	@ConditionalOnMissingBean
-	public RedisMqttServerManage mqttServerManage(MqttServer mqttServer) {
-		return new RedisMqttServerManage(mqttServer);
+	public RedisMqttServerManage mqttServerManage(MqttServer mqttServer, MqttServerProperties properties) {
+		MqttServerProperties.Listener mqttListener = properties.getMqttListener();
+		Integer port = (mqttListener == null || mqttListener.getServerNode() == null)
+				? null : mqttListener.getServerNode().getPort();
+		return new RedisMqttServerManage(mqttServer, port);
 	}
 
 	/**

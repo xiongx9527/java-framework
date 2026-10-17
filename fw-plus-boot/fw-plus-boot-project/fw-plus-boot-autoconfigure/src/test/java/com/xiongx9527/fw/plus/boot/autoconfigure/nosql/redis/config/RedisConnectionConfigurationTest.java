@@ -2,7 +2,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.nosql.redis.config;
 
 import com.xiongx9527.fw.plus.nosql.redis.exception.RedisUrlSyntaxException;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisProperties;
 import org.springframework.data.redis.connection.RedisClusterConfiguration;
 import org.springframework.data.redis.connection.RedisSentinelConfiguration;
 
@@ -20,7 +20,7 @@ class RedisConnectionConfigurationTest {
 
 	@Test
 	void constructorShouldRejectNegativeDatabase() {
-		assertThatThrownBy(() -> new TestRedisConnectionConfiguration(new RedisProperties(), null, null, -1))
+		assertThatThrownBy(() -> new TestRedisConnectionConfiguration(new DataRedisProperties(), null, null, -1))
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining("database");
 	}
@@ -51,7 +51,7 @@ class RedisConnectionConfigurationTest {
 
 	private static class TestRedisConnectionConfiguration extends RedisConnectionConfiguration {
 
-		TestRedisConnectionConfiguration(RedisProperties properties,
+		TestRedisConnectionConfiguration(DataRedisProperties properties,
 		                                 RedisSentinelConfiguration sentinelConfiguration,
 		                                 RedisClusterConfiguration clusterConfiguration,
 		                                 int database) {

@@ -6,12 +6,11 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigU
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.common.MqttClientConfigSupport;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.model.MqttClientDataSourceInfo;
 import lombok.extern.slf4j.Slf4j;
-import net.dreamlu.iot.mqtt.codec.MqttQoS;
-import net.dreamlu.iot.mqtt.core.client.MqttClient;
-import net.dreamlu.iot.mqtt.core.client.MqttClientCreator;
-import net.dreamlu.iot.mqtt.spring.client.MqttClientTemplate;
+import org.dromara.mica.mqtt.codec.MqttQoS;
+import org.dromara.mica.mqtt.core.client.MqttClient;
+import org.dromara.mica.mqtt.core.client.MqttClientCreator;
+import org.dromara.mica.mqtt.spring.client.MqttClientTemplate;
 import org.apache.commons.lang3.StringUtils;
-import org.tio.utils.buffer.ByteBufferAllocator;
 
 import java.beans.Transient;
 import java.util.Map;
@@ -66,8 +65,7 @@ public class MqttClientProducer {
                 .port(MqttClientConfigSupport.parsePort(port))
                 .clientId(clientId)
                 .username(username)
-                .password(password)
-                .bufferAllocator(ByteBufferAllocator.HEAP);
+                .password(password);
 
         String configuredProperties = MagicAPIConfigUtils.getMqttClientConfig(dataSourceInfo.getKey(), "properties", null);
         Map<String, Object> properties = MagicAPIConfigUtils.mergeProperties(dataSourceInfo.getProperties(), configuredProperties);

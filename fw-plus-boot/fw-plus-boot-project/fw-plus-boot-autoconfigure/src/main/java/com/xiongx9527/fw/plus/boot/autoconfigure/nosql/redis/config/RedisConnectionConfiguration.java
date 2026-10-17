@@ -1,7 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.nosql.redis.config;
 
 import com.xiongx9527.fw.plus.nosql.redis.exception.RedisUrlSyntaxException;
-import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisProperties;
 import org.springframework.data.redis.connection.*;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
@@ -26,7 +26,7 @@ public abstract class RedisConnectionConfiguration {
     /**
      * redis配置properties
      */
-    private final RedisProperties properties;
+    private final DataRedisProperties properties;
 
     /**
      * redis 哨兵配置
@@ -39,7 +39,7 @@ public abstract class RedisConnectionConfiguration {
     private final RedisClusterConfiguration clusterConfiguration;
 
     /**
-     * redis所使用的库，为什么不直接从RedisProperties取？因为我们要为指定的db动态的创建RedisTemplate
+     * redis所使用的库，为什么不直接从DataRedisProperties取？因为我们要为指定的db动态的创建RedisTemplate
      */
     private final int database;
 
@@ -51,7 +51,7 @@ public abstract class RedisConnectionConfiguration {
      * @param clusterConfiguration Redis集群配置对象，用于集群模式下的连接配置
      * @param database 数据库索引号，指定要连接的Redis数据库实例
      */
-	protected RedisConnectionConfiguration(RedisProperties properties,
+	protected RedisConnectionConfiguration(DataRedisProperties properties,
 	                                       RedisSentinelConfiguration sentinelConfiguration,
 	                                       RedisClusterConfiguration clusterConfiguration,
 	                                       int database) {
@@ -98,7 +98,7 @@ public abstract class RedisConnectionConfiguration {
         if (sentinelConfiguration != null) {
             return sentinelConfiguration;
         }
-        RedisProperties.Sentinel sentinelProperties = properties.getSentinel();
+        DataRedisProperties.Sentinel sentinelProperties = properties.getSentinel();
         if (sentinelProperties != null) {
             RedisSentinelConfiguration config = new RedisSentinelConfiguration();
             config.master(sentinelProperties.getMaster());
@@ -132,7 +132,7 @@ public abstract class RedisConnectionConfiguration {
         if (properties.getCluster() == null) {
             return null;
         }
-        RedisProperties.Cluster clusterProperties = properties.getCluster();
+        DataRedisProperties.Cluster clusterProperties = properties.getCluster();
         RedisClusterConfiguration config = new RedisClusterConfiguration(clusterProperties.getNodes());
         if (clusterProperties.getMaxRedirects() != null) {
             // 最大跳转次数
@@ -151,7 +151,7 @@ public abstract class RedisConnectionConfiguration {
      *
      * @return Redis配置属性对象
      */
-    protected final RedisProperties getProperties() {
+    protected final DataRedisProperties getProperties() {
         return properties;
     }
 
@@ -162,7 +162,7 @@ public abstract class RedisConnectionConfiguration {
      * @param sentinel Redis哨兵配置信息
      * @return Redis节点列表
      */
-    private static List<RedisNode> createSentinels(RedisProperties.Sentinel sentinel) {
+    private static List<RedisNode> createSentinels(DataRedisProperties.Sentinel sentinel) {
         List<RedisNode> nodes = new ArrayList<>();
         // 解析哨兵节点配置并创建RedisNode对象
         for (String node : sentinel.getNodes()) {

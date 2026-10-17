@@ -16,7 +16,7 @@ import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
@@ -38,7 +38,7 @@ import java.util.List;
 @Slf4j
 @ConditionalOnClass({DynamicDataSourceProperties.class})
 @AutoConfigureBefore(value = DataSourceAutoConfiguration.class, name = {
-        "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration",
+        "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration",
         "com.alibaba.druid.spring.boot.autoconfigure.DruidDataSourceAutoConfigure",
         "com.baomidou.dynamic.datasource.spring.boot.autoconfigure.DynamicDataSourceAutoConfiguration"})
 //com.baomidou.dynamic.datasource.spring.boot.autoconfigure

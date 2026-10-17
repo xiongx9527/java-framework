@@ -4,9 +4,9 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.nosql.redis.config.DynamicRedis
 import com.xiongx9527.fw.plus.boot.autoconfigure.nosql.redis.config.properties.RedisDataSourceProperties;
 import lombok.Data;
 import org.springframework.beans.BeansException;
-import org.springframework.boot.autoconfigure.data.redis.JedisClientConfigurationBuilderCustomizer;
-import org.springframework.boot.autoconfigure.data.redis.LettuceClientConfigurationBuilderCustomizer;
-import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
+import org.springframework.boot.data.redis.autoconfigure.JedisClientConfigurationBuilderCustomizer;
+import org.springframework.boot.data.redis.autoconfigure.LettuceClientConfigurationBuilderCustomizer;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.data.redis.connection.RedisClusterConfiguration;
@@ -46,7 +46,7 @@ public abstract class RedisDataSourceContext implements ApplicationContextAware 
     /**
      * 通过数据源名称获取该数据源对应的Redis配置
      */
-    protected RedisProperties getRedisProperties() {
+    protected DataRedisProperties getRedisProperties() {
 		if (!StringUtils.hasText(dataSourceName)) {
 			throw new IllegalArgumentException("dataSourceName must not be blank.");
 		}
@@ -55,7 +55,7 @@ public abstract class RedisDataSourceContext implements ApplicationContextAware 
 		}
         RedisDataSourceProperties dataSourceProperties = applicationContext.getBean(RedisDataSourceProperties.class);
         // 通过数据源名称获取application配置文件中配置的该数据源的redis-properties
-		RedisProperties redisProperties = dataSourceProperties.getRedisProperties(dataSourceName);
+		DataRedisProperties redisProperties = dataSourceProperties.getRedisProperties(dataSourceName);
 		if (redisProperties == null) {
 			throw new IllegalArgumentException("redis datasource [" + dataSourceName + "] does not exist.");
 		}
@@ -67,7 +67,7 @@ public abstract class RedisDataSourceContext implements ApplicationContextAware 
      */
     protected DynamicRedisTemplateFactory<String, String> getDynamicRedisTemplateFactory() {
         // 获取数据源对应的Redis配置信息
-        RedisProperties redisProperties = getRedisProperties();
+        DataRedisProperties redisProperties = getRedisProperties();
         List<JedisClientConfigurationBuilderCustomizer> jedisBuilderCustomizers = getJedisBuilderCustomizers();
         List<LettuceClientConfigurationBuilderCustomizer> lettuceBuilderCustomizers = getLettuceBuilderCustomizers();
         RedisSentinelConfiguration sentinelConfiguration = getSentinelConfiguration();

@@ -10,7 +10,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.ser
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.service.MqttClientSubscribeInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.service.MqttClientSubscribeMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.web.MagicMqttClientController;
-import net.dreamlu.iot.mqtt.spring.client.MqttClientTemplate;
+import org.dromara.mica.mqtt.spring.client.MqttClientTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -24,7 +24,7 @@ import org.ssssssss.magicapi.core.model.Plugin;
 import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 
 @ConditionalOnProperty(prefix = "magic-api.plugin.mqttclient", name = "enabled", havingValue = "true", matchIfMissing = true)
-@ConditionalOnClass(name = {"net.dreamlu.iot.mqtt.spring.client.MqttClientTemplate"})
+@ConditionalOnClass(name = {"org.dromara.mica.mqtt.spring.client.MqttClientTemplate"})
 @Configuration
 @EnableConfigurationProperties(MagicAPIMqttClientConfig.class)
 public class MagicAPIMqttClientConfiguration implements MagicPluginConfiguration {

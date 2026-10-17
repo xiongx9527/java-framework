@@ -1,4 +1,4 @@
-package net.dreamlu.iot.mqtt.spring.server.config;
+package org.dromara.mica.mqtt.spring.server.config;
 
 public class MqttServerConfiguration {
 }

@@ -15,8 +15,8 @@ import org.springframework.util.ClassUtils;
 import org.springframework.util.StreamUtils;
 import org.ssssssss.magicapi.core.config.MagicAPIProperties;
 import org.ssssssss.magicapi.core.service.MagicResourceService;
-import org.springdoc.core.SpringDocConfigProperties;
-import org.springdoc.core.SwaggerUiConfigProperties;
+import org.springdoc.core.properties.SpringDocConfigProperties;
+import org.springdoc.core.properties.SwaggerUiConfigProperties;
 import org.springframework.web.reactive.result.method.RequestMappingInfo;
 import org.springframework.web.reactive.result.method.annotation.RequestMappingHandlerMapping;
 

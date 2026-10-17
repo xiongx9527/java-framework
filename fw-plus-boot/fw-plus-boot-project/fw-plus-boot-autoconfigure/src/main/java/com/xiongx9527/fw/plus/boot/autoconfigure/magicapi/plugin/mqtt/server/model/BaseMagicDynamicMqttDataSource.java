@@ -6,43 +6,18 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.cluster.Redi
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.cluster.RedisMqttMessageExchangeReceiver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
-import net.dreamlu.iot.mqtt.core.server.MqttServer;
-import net.dreamlu.iot.mqtt.core.server.MqttServerAioHandler;
-import net.dreamlu.iot.mqtt.core.server.MqttServerAioListener;
-import net.dreamlu.iot.mqtt.core.server.MqttServerCreator;
-import net.dreamlu.iot.mqtt.core.server.auth.IMqttServerAuthHandler;
-import net.dreamlu.iot.mqtt.core.server.broker.DefaultMqttBrokerDispatcher;
-import net.dreamlu.iot.mqtt.core.server.cluster.MqttClusterMessageListener;
-import net.dreamlu.iot.mqtt.core.server.dispatcher.AbstractMqttMessageDispatcher;
-import net.dreamlu.iot.mqtt.core.server.dispatcher.IMqttMessageDispatcher;
-import net.dreamlu.iot.mqtt.core.server.http.core.MqttWebServer;
-import net.dreamlu.iot.mqtt.core.server.session.IMqttSessionManager;
-import net.dreamlu.iot.mqtt.core.server.session.InMemoryMqttSessionManager;
-import net.dreamlu.iot.mqtt.core.server.store.IMqttMessageStore;
-import net.dreamlu.iot.mqtt.core.server.store.InMemoryMqttMessageStore;
-import net.dreamlu.iot.mqtt.core.server.support.DefaultMqttConnectStatusListener;
-import net.dreamlu.iot.mqtt.core.server.support.DefaultMqttServerProcessor;
-import net.dreamlu.iot.mqtt.core.server.support.DefaultMqttServerUniqueIdServiceImpl;
-import net.dreamlu.iot.mqtt.spring.server.config.MqttServerProperties;
+import net.dreamlu.mica.net.core.ssl.ClientAuth;
+import net.dreamlu.mica.net.core.ssl.SslConfig;
+import net.dreamlu.mica.net.http.common.router.HttpFilter;
 import org.apache.commons.lang3.StringUtils;
+import org.dromara.mica.mqtt.core.server.MqttServer;
+import org.dromara.mica.mqtt.core.server.MqttServerCreator;
+import org.dromara.mica.mqtt.core.server.auth.IMqttServerAuthHandler;
+import org.dromara.mica.mqtt.core.server.pipeline.MqttPublishPipelineHandler;
+import org.dromara.mica.mqtt.core.server.session.IMqttSessionManager;
+import org.dromara.mica.mqtt.core.server.store.IMqttMessageStore;
 import org.springframework.beans.factory.DisposableBean;
-import org.springframework.util.unit.DataSize;
-import org.tio.core.ssl.ClientAuth;
-import org.tio.core.ssl.SslConfig;
-import org.tio.core.task.HeartbeatMode;
-import org.tio.server.TioServer;
-import org.tio.server.TioServerConfig;
-import org.tio.server.intf.TioServerHandler;
-import org.tio.server.intf.TioServerListener;
-import org.tio.utils.buffer.ByteBufferAllocator;
-import org.tio.utils.hutool.StrUtil;
-import org.tio.utils.thread.ThreadUtils;
-import org.tio.utils.timer.DefaultTimerTaskService;
-import org.tio.utils.timer.TimerTaskService;
 
-import java.lang.management.ManagementFactory;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -64,130 +39,6 @@ public abstract class BaseMagicDynamicMqttDataSource implements BaseService, Dis
 
 
     /**
-     * 根据提供的 MQTT 数据源信息构建对应的服务器属性配置对象。
-     *
-     * @param info 包含 MQTT 配置信息的数据源描述对象
-     * @return 初始化完成的 MqttServerProperties 对象
-     */
-    private MqttServerProperties buildMqttServerProperties(MqttDataSourceInfo info) {
-        MqttServerProperties mqttServerProperties = new MqttServerProperties();
-        String name = info.getName();
-        String ip = info.getIp();
-        ip = MagicAPIConfigUtils.getMqttConfig(info.getKey(), "ip", ip);
-        String port = info.getPort();
-        port = MagicAPIConfigUtils.getMqttConfig(info.getKey(), "port", port);
-        String webPort = info.getWebPort();
-        webPort = MagicAPIConfigUtils.getMqttConfig(info.getKey(), "webPort", webPort);
-        // 基础网络配置
-        mqttServerProperties.setName(info.getName());
-        mqttServerProperties.setIp(ip);
-        try {
-            mqttServerProperties.setPort(Integer.parseInt(port));
-        } catch (Exception e) {
-            mqttServerProperties.setPort(1883);
-        }
-
-        mqttServerProperties.setNodeName(info.getKey());
-        // 端口配置
-        mqttServerProperties.setEnabled(true);
-        try {
-            mqttServerProperties.setWebPort(Integer.parseInt(webPort));
-        } catch (Exception e) {
-            mqttServerProperties.setWebPort(8083);
-        }
-        String username = info.getUsername();
-        username = MagicAPIConfigUtils.getMqttConfig(info.getKey(), "username", username);
-        String password = info.getPassword();
-        password = MagicAPIConfigUtils.getMqttConfig(info.getKey(), "password", password);
-        // 如果用户名和密码都不为空，则配置MQTT认证信息
-        if (StringUtils.isNotBlank(username) && StringUtils.isNotBlank(password)) {
-            MqttServerProperties.MqttAuth mqttAuth = new MqttServerProperties.MqttAuth();
-            mqttAuth.setEnable(true);
-            mqttAuth.setUsername(username);
-            mqttAuth.setPassword(password);
-            mqttServerProperties.setAuth(mqttAuth);
-        }
-        String configuredProperties = MagicAPIConfigUtils.getMqttConfig(info.getKey(), "properties", null);
-        Map<String, Object> properties = MagicAPIConfigUtils.mergeProperties(info.getProperties(), configuredProperties);
-        if (!properties.isEmpty()) {
-            try {
-                mqttServerProperties.setHeartbeatTimeout(getConfigValueAsLong(properties, "heartbeatTimeout", getHeartbeatTimeout()));
-                mqttServerProperties.setKeepaliveBackoff(getConfigValueAsFloat(properties, "keepaliveBackoff", getKeepaliveBackoff()));
-                mqttServerProperties.setMaxClientIdLength(getConfigValueAsInt(properties, "maxClientIdLength", getMaxClientIdLength()));
-
-                // 缓冲区配置 - 从 otherConfig 中获取
-                long readBufferSize = getConfigValueAsLong(properties, "readBufferSize", getReadBufferSize());
-                mqttServerProperties.setReadBufferSize(DataSize.ofBytes(readBufferSize));
-                long maxBytesInMessage = getConfigValueAsLong(properties, "maxBytesInMessage", getMaxBytesInMessage());
-                mqttServerProperties.setMaxBytesInMessage(DataSize.ofBytes(maxBytesInMessage));
-
-                String bufferAllocator = (String) properties.getOrDefault("bufferAllocator", "");
-                if (StringUtils.isNotBlank(bufferAllocator)) {
-                    if ("HEAP".equalsIgnoreCase(bufferAllocator)) {
-                        mqttServerProperties.setBufferAllocator(ByteBufferAllocator.HEAP);
-                    } else if ("DIRECT".equalsIgnoreCase(bufferAllocator)) {
-                        mqttServerProperties.setBufferAllocator(ByteBufferAllocator.DIRECT);
-                    }
-                }
-
-                // 协议支持标志 - 从 otherConfig 中获取
-                if (properties.containsKey("websocketEnable")) {
-                    mqttServerProperties.setWebsocketEnable((Boolean) properties.get("websocketEnable"));
-                }
-
-                if (properties.containsKey("httpEnable")) {
-                    mqttServerProperties.setHttpEnable((Boolean) properties.get("httpEnable"));
-                }
-
-                if (properties.containsKey("statEnable")) {
-                    mqttServerProperties.setStatEnable((Boolean) properties.get("statEnable"));
-                }
-
-                if (properties.containsKey("debug")) {
-                    mqttServerProperties.setDebug((Boolean) properties.get("debug"));
-                }
-
-                // 解析 HTTP Basic 认证配置
-                if (properties.containsKey("httpBasicAuth")) {
-                    Map<String, Object> httpBasicAuthMap = (Map<String, Object>) properties.get("httpBasicAuth");
-                    MqttServerProperties.HttpBasicAuth httpBasicAuth = new MqttServerProperties.HttpBasicAuth();
-                    httpBasicAuth.setEnable((Boolean) httpBasicAuthMap.getOrDefault("enable", false));
-                    httpBasicAuth.setUsername((String) httpBasicAuthMap.getOrDefault("username", ""));
-                    httpBasicAuth.setPassword((String) httpBasicAuthMap.getOrDefault("password", ""));
-                    mqttServerProperties.setHttpBasicAuth(httpBasicAuth);
-                }
-
-                // 解析 SSL 配置
-                if (properties.containsKey("ssl")) {
-                    Map<String, Object> sslMap = (Map<String, Object>) properties.get("ssl");
-                    MqttServerProperties.Ssl ssl = new MqttServerProperties.Ssl();
-                    ssl.setEnabled((Boolean) sslMap.getOrDefault("enabled", false));
-                    ssl.setKeystorePath((String) sslMap.getOrDefault("keystorePath", ""));
-                    ssl.setKeystorePass((String) sslMap.getOrDefault("keystorePass", ""));
-                    ssl.setTruststorePath((String) sslMap.getOrDefault("truststorePath", ""));
-                    ssl.setTruststorePass((String) sslMap.getOrDefault("truststorePass", ""));
-                    String clientAuth = (String) sslMap.getOrDefault("clientAuth", "");
-                    if (StringUtils.isNotBlank(clientAuth)) {
-                        if ("NONE".equalsIgnoreCase(clientAuth)) {
-                            ssl.setClientAuth(ClientAuth.NONE);
-                        } else if ("OPTIONAL".equalsIgnoreCase(clientAuth)) {
-                            ssl.setClientAuth(ClientAuth.OPTIONAL);
-                        } else if ("REQUIRE".equalsIgnoreCase(clientAuth)) {
-                            ssl.setClientAuth(ClientAuth.REQUIRE);
-                        }
-                    }
-                    mqttServerProperties.setSsl(ssl);
-                }
-            } catch (Exception e) {
-                log.warn("应用 MQTT properties 失败: {}", e.getMessage(), e);
-            }
-        }
-
-        return mqttServerProperties;
-    }
-
-
-    /**
      * 获取MQTT服务器唯一ID服务实例
      * @param key 用于标识MQTT服务器的键值
      * @return MagicAPIMqttServerUniqueIdService MQTT服务器唯一ID服务实例
@@ -202,13 +53,6 @@ public abstract class BaseMagicDynamicMqttDataSource implements BaseService, Dis
      */
     public abstract MagicAPIMqttConnectStatusListener getMagicAPIMqttConnectStatusListener(String key);
 
-
-    /**
-     * 获取MQTT集群消息监听器实例
-     * @param mqttServer MQTT服务器实例
-     * @return MqttClusterMessageListener MQTT集群消息监听器实例
-     */
-    public abstract MqttClusterMessageListener getMqttClusterMessageListener(MqttServer mqttServer);
 
     /**
      * 获取MQTT消息交换接收器
@@ -237,12 +81,15 @@ public abstract class BaseMagicDynamicMqttDataSource implements BaseService, Dis
     public abstract IMqttServerAuthHandler getIMqttServerAuthHandler(String key);
 
     /**
-     * 获取MQTT消息分发器实例
+     * 获取MQTT发布管线处理器实例。
      *
-     * @param key 用于标识和获取特定MQTT消息分发器的键值
-     * @return 返回与指定键关联的MQTT消息分发器实例
+     * <p>mica-mqtt 2.6.x 起消息分发改为发布管线，集群模式通过该处理器把上行消息
+     * 转发到 Redis 等外部通道（本地投递由内建管线处理器完成）；单机模式返回 null。</p>
+     *
+     * @param key 用于标识和获取特定处理器的键值
+     * @return 返回与指定键关联的MqttPublishPipelineHandler实例
      */
-    public abstract IMqttMessageDispatcher getIMqttMessageDispatcher(String key);
+    public abstract MqttPublishPipelineHandler getMqttPublishPipelineHandler(String key);
 
     /**
      * 获取指定键对应的MQTT会话管理器实例
@@ -262,240 +109,183 @@ public abstract class BaseMagicDynamicMqttDataSource implements BaseService, Dis
 
     /**
      * 构建MQTT服务器实例
-     * @param info
-     * @return
+     *
+     * <p>mica-mqtt 2.6.x 起不再通过反射拼装内部组件，IP/端口由协议监听器承载：
+     * MQTT（或 MQTT SSL）、WebSocket、HTTP API 均为独立的协议监听器。</p>
+     *
+     * @param info MQTT 数据源描述对象
+     * @return 构建完成的MagicAPIMqttServer实例
      */
     public MagicAPIMqttServer buildServer(MqttDataSourceInfo info) {
-        MqttServerProperties properties = buildMqttServerProperties(info);
+        String key = info.getKey();
+        String ip = MagicAPIConfigUtils.getMqttConfig(key, "ip", info.getIp());
+        String port = MagicAPIConfigUtils.getMqttConfig(key, "port", info.getPort());
+        String webPort = MagicAPIConfigUtils.getMqttConfig(key, "webPort", info.getWebPort());
+        int mqttPort = parseInt(port, 1883);
+        int webPortInt = parseInt(webPort, 8083);
+
+        String configuredProperties = MagicAPIConfigUtils.getMqttConfig(key, "properties", null);
+        Map<String, Object> properties = MagicAPIConfigUtils.mergeProperties(info.getProperties(), configuredProperties);
+
+        long heartbeatTimeout = getConfigValueAsLong(properties, "heartbeatTimeout", getHeartbeatTimeout());
+        float keepaliveBackoff = getConfigValueAsFloat(properties, "keepaliveBackoff", getKeepaliveBackoff());
+        int maxClientIdLength = getConfigValueAsInt(properties, "maxClientIdLength", getMaxClientIdLength());
+        long readBufferSize = getConfigValueAsLong(properties, "readBufferSize", getReadBufferSize());
+        long maxBytesInMessage = getConfigValueAsLong(properties, "maxBytesInMessage", getMaxBytesInMessage());
+        boolean websocketEnable = getConfigValueAsBoolean(properties, "websocketEnable", false);
+        boolean httpEnable = getConfigValueAsBoolean(properties, "httpEnable", false);
+        boolean statEnable = getConfigValueAsBoolean(properties, "statEnable", true);
+        boolean debug = getConfigValueAsBoolean(properties, "debug", false);
 
         // 构建基础MQTT服务器配置
         MqttServerCreator serverCreator = MqttServer.create()
-                .name(properties.getName())
-                .ip(properties.getIp())
-                .port(properties.getPort())
-                .heartbeatTimeout(properties.getHeartbeatTimeout())
-                .keepaliveBackoff(properties.getKeepaliveBackoff())
-                .readBufferSize((int) properties.getReadBufferSize().toBytes())
-                .maxBytesInMessage((int) properties.getMaxBytesInMessage().toBytes())
-                .bufferAllocator(properties.getBufferAllocator())
-                .maxClientIdLength(properties.getMaxClientIdLength())
-                .webPort(properties.getWebPort())
-                .websocketEnable(properties.isWebsocketEnable())
-                .httpEnable(properties.isHttpEnable())
-                .nodeName(properties.getNodeName())
-                .statEnable(properties.isStatEnable());
+                .name(info.getName())
+                .heartbeatTimeout(heartbeatTimeout)
+                .keepaliveBackoff(keepaliveBackoff)
+                .readBufferSize((int) readBufferSize)
+                .maxBytesInMessage((int) maxBytesInMessage)
+                .maxClientIdLength(maxClientIdLength)
+                .nodeName(key)
+                .statEnable(statEnable);
 
         // 启用调试模式（如果配置中开启）
-        if (properties.isDebug()) {
+        if (debug) {
             serverCreator.debug();
         }
 
-        // 配置HTTP Basic认证（如果启用）
-        MqttServerProperties.HttpBasicAuth httpBasicAuth = properties.getHttpBasicAuth();
-        if (serverCreator.isHttpEnable() && httpBasicAuth.isEnable()) {
-            serverCreator.httpBasicAuth(httpBasicAuth.getUsername(), httpBasicAuth.getPassword());
+        // MQTT 协议监听器（SSL 启用时使用 MQTT SSL 监听器）
+        SslConfig sslConfig = resolveSslConfig(properties);
+        if (sslConfig != null) {
+            serverCreator.enableMqttSsl(builder -> builder.serverNode(ip, mqttPort).sslConfig(sslConfig).build());
+        } else {
+            serverCreator.enableMqtt(builder -> builder.serverNode(ip, mqttPort).build());
         }
 
-        // 配置SSL（如果启用）
-        MqttServerProperties.Ssl ssl = properties.getSsl();
-        if (ssl.isEnabled()) {
-            SslConfig sslConfig = SslConfig.forServer(
-                    ssl.getKeystorePath(),
-                    ssl.getKeystorePass(),
-                    ssl.getTruststorePath(),
-                    ssl.getTruststorePass(),
-                    ssl.getClientAuth()
-            );
-            serverCreator.sslConfig(sslConfig);
+        // WebSocket 与 HTTP API 在 mica-mqtt 2.6.x 起为相互独立的协议监听器，不能共用端口
+        int wsPort = parseInt(getConfigValueAsString(properties, "wsPort", null), webPortInt);
+        int httpPort = parseInt(getConfigValueAsString(properties, "httpPort", null), webPortInt);
+        if (websocketEnable && httpEnable && wsPort == httpPort) {
+            httpPort = wsPort + 1;
+            log.warn("MQTT 数据源[{}] WebSocket 与 HTTP API 在 mica-mqtt 2.6.x 起需独立端口，HTTP API 端口已自动调整为 {}，可通过 properties.httpPort 显式配置", key, httpPort);
         }
-        serverCreator.messageListener(new MagicAPIMqttMessageListener(info.getKey()));
-        serverCreator.sessionManager(getIMqttSessionManager(info.getKey()));
-        serverCreator.messageStore(getIMqttMessageStore(info.getKey()));
-        serverCreator.messageDispatcher(getIMqttMessageDispatcher(info.getKey()));
-        serverCreator.uniqueIdService(getMagicAPIMqttServerUniqueIdService(info.getKey()));
-        serverCreator.connectStatusListener(getMagicAPIMqttConnectStatusListener(info.getKey()));
-        IMqttServerAuthHandler authHandlerObjectProvider = getIMqttServerAuthHandler(info.getKey());
-        if (authHandlerObjectProvider != null) {
-            serverCreator.authHandler(authHandlerObjectProvider);
+        final int finalWsPort = wsPort;
+        final int finalHttpPort = httpPort;
+
+        // WebSocket 协议监听器
+        if (websocketEnable) {
+            serverCreator.enableMqttWs(builder -> builder.serverNode(ip, finalWsPort).build());
         }
+
+        // HTTP API 协议监听器：Basic 认证 + 自定义认证过滤器
+        if (httpEnable) {
+            Object httpBasicAuthObj = properties.get("httpBasicAuth");
+            final Map<String, Object> httpBasicAuthMap = httpBasicAuthObj instanceof Map ? (Map<String, Object>) httpBasicAuthObj : null;
+            serverCreator.enableMqttHttpApi(builder -> {
+                builder.serverNode(ip, finalHttpPort);
+                if (httpBasicAuthMap != null && getConfigValueAsBoolean(httpBasicAuthMap, "enable", false)) {
+                    builder.basicAuth(
+                            getConfigValueAsString(httpBasicAuthMap, "username", ""),
+                            getConfigValueAsString(httpBasicAuthMap, "password", ""));
+                }
+                HttpFilter httpFilter = getHttpFilter();
+                if (httpFilter != null) {
+                    builder.authFilter(httpFilter);
+                }
+                return builder.build();
+            });
+        }
+
+        // 认证：数据源用户名/密码优先，存在自定义认证处理器时由自定义认证处理器接管
+        String username = MagicAPIConfigUtils.getMqttConfig(key, "username", info.getUsername());
+        String password = MagicAPIConfigUtils.getMqttConfig(key, "password", info.getPassword());
+        if (StringUtils.isNotBlank(username) && StringUtils.isNotBlank(password)) {
+            serverCreator.usernamePassword(username, password);
+        }
+        IMqttServerAuthHandler authHandler = getIMqttServerAuthHandler(key);
+        if (authHandler != null) {
+            serverCreator.authHandler(authHandler);
+        }
+
+        serverCreator.messageListener(new MagicAPIMqttMessageListener(key));
+        serverCreator.sessionManager(getIMqttSessionManager(key));
+        serverCreator.messageStore(getIMqttMessageStore(key));
+        // 集群转发：注册为发布管线处理器（本地投递完成后转发到 Redis）
+        MqttPublishPipelineHandler publishPipelineHandler = getMqttPublishPipelineHandler(key);
+        if (publishPipelineHandler != null) {
+            serverCreator.addPublishPipelineHandler(publishPipelineHandler);
+        }
+        serverCreator.uniqueIdService(getMagicAPIMqttServerUniqueIdService(key));
+        serverCreator.connectStatusListener(getMagicAPIMqttConnectStatusListener(key));
+
         // 构建最终的MQTT服务器实例并返回
-        MqttServer mqttServer = buildMqttServer(serverCreator);
+        MqttServer mqttServer = serverCreator.build();
         MagicAPIMqttServer magicAPIMqttServer = new MagicAPIMqttServer(mqttServer,
-                getMqttMessageExchangeReceiver(mqttServer,info.getKey()),
-                getMqttMessageDownReceiver(mqttServer,info.getKey()));
+                getMqttMessageExchangeReceiver(mqttServer, key),
+                getMqttMessageDownReceiver(mqttServer, key));
         return magicAPIMqttServer;
     }
 
     /**
-     * 构建MqttServer实例
-     * <p>
-     * 通过反射方式创建MqttServer对象实例。当反射创建失败时，会回退使用serverCreator.build()方法创建实例。
+     * 解析SSL配置
      *
-     * @param tioServer     Tio服务器实例，用于网络通信
-     * @param webServer     MQTT Web服务器实例，提供Web相关功能
-     * @param serverCreator MQTT服务器创建器，用于构建服务器实例
-     * @param taskService   定时任务服务，用于处理定时任务
-     * @return 返回创建的MqttServer实例，如果反射创建失败则返回serverCreator.build()创建的实例
+     * @param properties 数据源扩展配置
+     * @return 启用 SSL 时返回服务端 SslConfig，否则返回 null
      */
-    private MqttServer buildMqttServerInstance(TioServer tioServer,MqttWebServer webServer,MqttServerCreator serverCreator,TimerTaskService taskService) {
+    @SuppressWarnings("unchecked")
+    private SslConfig resolveSslConfig(Map<String, Object> properties) {
+        Object sslObj = properties.get("ssl");
+        if (!(sslObj instanceof Map)) {
+            return null;
+        }
+        Map<String, Object> sslMap = (Map<String, Object>) sslObj;
+        if (!getConfigValueAsBoolean(sslMap, "enabled", false)) {
+            return null;
+        }
+        ClientAuth clientAuth = ClientAuth.NONE;
+        String clientAuthValue = getConfigValueAsString(sslMap, "clientAuth", null);
+        if ("OPTIONAL".equalsIgnoreCase(clientAuthValue)) {
+            clientAuth = ClientAuth.OPTIONAL;
+        } else if ("REQUIRE".equalsIgnoreCase(clientAuthValue)) {
+            clientAuth = ClientAuth.REQUIRE;
+        }
+        return SslConfig.forServer(
+                getConfigValueAsString(sslMap, "keystorePath", ""),
+                getConfigValueAsString(sslMap, "keystorePass", ""),
+                getConfigValueAsString(sslMap, "truststorePath", ""),
+                getConfigValueAsString(sslMap, "truststorePass", ""),
+                clientAuth
+        );
+    }
+
+    /**
+     * 获取框架提供的HTTP认证过滤器（可选）
+     *
+     * @return 返回 HttpFilter 实例，未提供时返回 null
+     */
+    private HttpFilter getHttpFilter() {
         try {
-            // 获取 MqttServer 类
-            Class<?> mqttServerClass = Class.forName("net.dreamlu.iot.mqtt.core.server.MqttServer");
-            // 获取构造函数
-            Constructor<?> constructor = mqttServerClass.getDeclaredConstructor(
-                    TioServer.class,
-                    MqttWebServer.class,
-                    MqttServerCreator.class,
-                    TimerTaskService.class
-            );
-            // 设置可访问（如果是包私有或私有构造函数）
-            constructor.setAccessible(true);
-            // 创建实例
-            return (MqttServer)constructor.newInstance(tioServer, webServer, serverCreator, taskService);
-        } catch (ClassNotFoundException e) {
-            // 处理类未找到异常
-            log.error("MqttServer class not found", e);
-        } catch (NoSuchMethodException e) {
-            // 处理构造函数不存在异常
-            log.error("MqttServer constructor not found", e);
-        } catch (InstantiationException e) {
-            // 处理实例化异常
-            log.error("Failed to instantiate MqttServer", e);
-        } catch (IllegalAccessException e) {
-            // 处理访问权限异常
-            log.error("Unable to access MqttServer constructor", e);
-        } catch (InvocationTargetException e) {
-            // 处理构造函数执行异常
-            log.error("Error occurred while creating MqttServer instance", e);
+            return SpringUtils.getBean(HttpFilter.class);
         } catch (Exception e) {
-            // 处理其他未预期的异常
-            log.error("Unexpected error while building MqttServer", e);
+            // 忽略：未提供自定义 http 过滤器
         }
-        return serverCreator.build();
+        return null;
     }
 
-
     /**
-     * 根据传入的 MQTT 服务器创建器（MqttServerCreator）构建一个 MQTT 服务器实例。
-     * <p>
-     * 该方法会完成如下主要工作：
-     * <ul>
-     *   <li>设置默认节点名称、服务组件和执行器</li>
-     *   <li>初始化定时任务服务</li>
-     *   <li>构建处理器和服务监听器</li>
-     *   <li>配置 TioServerConfig 相关参数</li>
-     *   <li>根据配置决定是否启用 HTTP 和 WebSocket 支持</li>
-     *   <li>最终调用重载方法完成 MqttServer 实例的创建</li>
-     * </ul>
+     * 字符串转int，解析失败时返回默认值
      *
-     * @param serverCreator 用于配置和创建 MQTT 服务器的创建器对象，不能为空
-     * @return 构建完成的 MqttServer 实例
-     * @throws IllegalArgumentException 当 serverName 为空时抛出
+     * @param value 待解析的字符串
+     * @param defaultValue 默认值
+     * @return 解析结果或默认值
      */
-    private MqttServer buildMqttServer(MqttServerCreator serverCreator) {
-        // 设置默认节点名称
-        if (StrUtil.isBlank(serverCreator.getNodeName())) {
-            String pidAndPort = ManagementFactory.getRuntimeMXBean().getName() + ':' + serverCreator.getPort();
-            serverCreator.nodeName(pidAndPort);
+    private static int parseInt(String value, int defaultValue) {
+        if (StringUtils.isBlank(value)) {
+            return defaultValue;
         }
-
-        // 设置默认服务组件
-        setDefaultComponentIfAbsent(serverCreator);
-
-        // 创建定时任务服务
-        TimerTaskService taskService = new DefaultTimerTaskService(getTickMs(), getWheelSize());
-        serverCreator.taskService(taskService);
-
-        // 设置默认执行器
-        if (serverCreator.getMqttExecutor() == null) {
-            serverCreator.mqttExecutor(ThreadUtils.getBizExecutor(ThreadUtils.MAX_POOL_SIZE_FOR_TIO));
-        }
-
-        // 构建处理器和服务监听器
-        DefaultMqttServerProcessor serverProcessor = new DefaultMqttServerProcessor(serverCreator, taskService, serverCreator.getMqttExecutor());
-        TioServerHandler handler = new MqttServerAioHandler(serverCreator, serverProcessor);
-        TioServerListener listener = new MqttServerAioListener(serverCreator);
-
-        // 初始化 TioServerConfig
-        String serverName = serverCreator.getName();
-        if (StrUtil.isBlank(serverName)) {
-            throw new IllegalArgumentException("Server name must not be blank.");
-        }
-
-        TioServerConfig tioConfig = new TioServerConfig(serverName, handler, listener);
-        tioConfig.setUseQueueDecode(serverCreator.isUseQueueDecode());
-        tioConfig.setUseQueueSend(serverCreator.isUseQueueSend());
-
-        int readBufferSize = serverCreator.getReadBufferSize();
-        if (readBufferSize > 0) {
-            tioConfig.setReadBufferSize(readBufferSize);
-        }
-
-        tioConfig.statOn = serverCreator.isStatEnable();
-
-        Long heartbeatTimeout = serverCreator.getHeartbeatTimeout();
-        if (heartbeatTimeout != null && heartbeatTimeout > 0) {
-            tioConfig.setHeartbeatTimeout(heartbeatTimeout);
-        }
-
-        tioConfig.setHeartbeatBackoff(serverCreator.getKeepaliveBackoff());
-        tioConfig.setHeartbeatMode(HeartbeatMode.LAST_RESP);
-
-        if (serverCreator.getSslConfig() != null) {
-            tioConfig.setSslConfig(serverCreator.getSslConfig());
-        }
-
-        if (serverCreator.isDebug()) {
-            tioConfig.debug = true;
-        }
-
-        TioServer tioServer = new TioServer(tioConfig);
-
-        boolean httpEnabled = serverCreator.isHttpEnable();
-        boolean wsEnabled = serverCreator.isWebsocketEnable();
-        log.info("Mica mqtt http api enable:{} websocket enable:{}", httpEnabled, wsEnabled);
-
-        MqttWebServer webServer = null;
-        if (httpEnabled || wsEnabled) {
-            webServer = MqttWebServer.config(serverCreator, tioConfig);
-        }
-
-        // ⚠️ 注意此处原方法名为 buildMqttServer(...)，疑似递归调用！
-        // 应当是一个不同的重载方法，比如 buildMqttServerInstance(...)
-        MqttServer mqttServer = buildMqttServerInstance(tioServer, webServer, serverCreator, taskService);
-
-        // 若消息分发器继承自抽象类，则进行额外配置
-        if (serverCreator.getMessageDispatcher() instanceof AbstractMqttMessageDispatcher) {
-            ((AbstractMqttMessageDispatcher) serverCreator.getMessageDispatcher()).config(mqttServer);
-        }
-
-        return mqttServer;
-    }
-
-
-    /**
-     * 为MQTT服务器创建器设置默认组件（如果未设置）
-     * 当创建器中某些组件未配置时，使用默认实现进行填充，确保服务器能够正常运行
-     *
-     * @param creator MQTT服务器创建器实例，用于配置和创建MQTT服务器
-     */
-    // 提取默认组件设置逻辑，增强可读性
-    private void setDefaultComponentIfAbsent(MqttServerCreator creator) {
-        // 为未配置的组件设置默认实现
-        if (creator.getUniqueIdService() == null) {
-            creator.uniqueIdService(new DefaultMqttServerUniqueIdServiceImpl());
-        }
-        if (creator.getMessageDispatcher() == null) {
-            creator.messageDispatcher(new DefaultMqttBrokerDispatcher());
-        }
-        if (creator.getSessionManager() == null) {
-            creator.sessionManager(new InMemoryMqttSessionManager());
-        }
-        if (creator.getMessageStore() == null) {
-            creator.messageStore(new InMemoryMqttMessageStore());
-        }
-        if (creator.getConnectStatusListener() == null) {
-            creator.connectStatusListener(new DefaultMqttConnectStatusListener());
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (Exception e) {
+            return defaultValue;
         }
     }
 

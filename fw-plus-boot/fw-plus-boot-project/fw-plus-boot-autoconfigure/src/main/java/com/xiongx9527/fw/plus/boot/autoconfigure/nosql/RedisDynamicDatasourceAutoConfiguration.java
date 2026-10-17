@@ -13,9 +13,9 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.nosql.redis.runner.RedisMultiSo
 import com.xiongx9527.fw.plus.boot.autoconfigure.nosql.redis.template.DynamicRedisTemplate;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.*;
-import org.springframework.boot.autoconfigure.data.redis.JedisClientConfigurationBuilderCustomizer;
-import org.springframework.boot.autoconfigure.data.redis.LettuceClientConfigurationBuilderCustomizer;
-import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
+import org.springframework.boot.data.redis.autoconfigure.JedisClientConfigurationBuilderCustomizer;
+import org.springframework.boot.data.redis.autoconfigure.LettuceClientConfigurationBuilderCustomizer;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.*;
 import org.springframework.core.env.Environment;
@@ -164,7 +164,7 @@ public class RedisDynamicDatasourceAutoConfiguration {
     @ConditionalOnDynamicRedisHelper
     @Bean(name = {"redisHelper", DefaultRedisHelperName.DEFAULT, DefaultRedisHelperName.DEFAULT_REDIS_HELPER})
     public RedisHelper dynamicRedisHelper(StringRedisTemplate redisTemplate,
-                                          RedisProperties redisProperties,
+                                          DataRedisProperties redisProperties,
                                           ObjectProvider<RedisSentinelConfiguration> sentinelConfiguration,
                                           ObjectProvider<RedisClusterConfiguration> clusterConfiguration,
                                           ObjectProvider<List<JedisClientConfigurationBuilderCustomizer>> jedisBuilderCustomizers,

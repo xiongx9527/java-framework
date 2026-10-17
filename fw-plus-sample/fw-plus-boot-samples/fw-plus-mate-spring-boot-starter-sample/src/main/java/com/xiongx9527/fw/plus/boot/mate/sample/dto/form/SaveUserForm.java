@@ -1,8 +1,8 @@
 package com.xiongx9527.fw.plus.boot.mate.sample.dto.form;
 
-import com.fhs.core.trans.anno.Trans;
-import com.fhs.core.trans.anno.UnTrans;
-import com.fhs.core.trans.constant.TransType;
+import org.dromara.core.trans.anno.Trans;
+import org.dromara.core.trans.anno.UnTrans;
+import com.xiongx9527.fw.plus.easytrans.annotation.TransType;
 import com.xiongx9527.fw.plus.boot.mate.sample.dto.vo.UserInfoVo;
 import com.xiongx9527.fw.plus.common.validator.CommonsValidator;
 import com.xiongx9527.fw.plus.common.validator.CommonsValidatorAnn;

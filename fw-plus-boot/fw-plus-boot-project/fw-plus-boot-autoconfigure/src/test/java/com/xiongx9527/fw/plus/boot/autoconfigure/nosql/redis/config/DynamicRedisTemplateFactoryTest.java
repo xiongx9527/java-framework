@@ -1,7 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.nosql.redis.config;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisProperties;
 
 import java.util.Collections;
 
@@ -19,7 +19,7 @@ class DynamicRedisTemplateFactoryTest {
 
 	@Test
 	void constructorShouldRejectNullCustomizerLists() {
-		RedisProperties properties = new RedisProperties();
+		DataRedisProperties properties = new DataRedisProperties();
 
 		assertThatThrownBy(() -> new DynamicRedisTemplateFactory<String, String>(properties, null, null,
 				null, Collections.emptyList()))

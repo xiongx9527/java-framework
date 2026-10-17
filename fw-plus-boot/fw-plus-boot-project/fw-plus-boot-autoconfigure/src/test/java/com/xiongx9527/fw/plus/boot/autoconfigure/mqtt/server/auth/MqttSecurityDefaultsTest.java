@@ -1,8 +1,8 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.auth;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.properties.FwPlusMqttServerSecurityProperties;
-import net.dreamlu.iot.mqtt.codec.MqttQoS;
-import net.dreamlu.iot.mqtt.spring.server.config.MqttServerProperties;
+import org.dromara.mica.mqtt.codec.MqttQoS;
+import org.dromara.mica.mqtt.spring.server.config.MqttServerProperties;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;

@@ -4,28 +4,29 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.auth.*;
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.properties.FwPlusMqttServerSecurityProperties;
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.service.IMqttService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.service.impl.MqttServiceImpl;
-import net.dreamlu.iot.mqtt.core.server.MqttServer;
-import net.dreamlu.iot.mqtt.core.server.MqttServerCreator;
-import net.dreamlu.iot.mqtt.core.server.auth.IMqttServerAuthHandler;
-import net.dreamlu.iot.mqtt.core.server.auth.IMqttServerPublishPermission;
-import net.dreamlu.iot.mqtt.core.server.auth.IMqttServerSubscribeValidator;
-import net.dreamlu.iot.mqtt.core.server.auth.IMqttServerUniqueIdService;
-import net.dreamlu.iot.mqtt.core.server.dispatcher.IMqttMessageDispatcher;
-import net.dreamlu.iot.mqtt.core.server.event.IMqttConnectStatusListener;
-import net.dreamlu.iot.mqtt.core.server.event.IMqttMessageListener;
-import net.dreamlu.iot.mqtt.core.server.event.IMqttSessionListener;
-import net.dreamlu.iot.mqtt.core.server.http.handler.HttpFilter;
-import net.dreamlu.iot.mqtt.core.server.interceptor.IMqttMessageInterceptor;
-import net.dreamlu.iot.mqtt.core.server.session.IMqttSessionManager;
-import net.dreamlu.iot.mqtt.core.server.session.InMemoryMqttSessionManager;
-import net.dreamlu.iot.mqtt.core.server.store.IMqttMessageStore;
-import net.dreamlu.iot.mqtt.core.server.store.InMemoryMqttMessageStore;
-import net.dreamlu.iot.mqtt.spring.server.MqttServerCustomizer;
-import net.dreamlu.iot.mqtt.spring.server.MqttServerTemplate;
-import net.dreamlu.iot.mqtt.spring.server.config.MqttServerLauncher;
-import net.dreamlu.iot.mqtt.spring.server.config.MqttServerProperties;
-import net.dreamlu.iot.mqtt.spring.server.event.SpringEventMqttConnectStatusListener;
-import net.dreamlu.iot.mqtt.spring.server.event.SpringEventMqttMessageListener;
+import net.dreamlu.mica.net.core.ssl.SSLEngineCustomizer;
+import net.dreamlu.mica.net.core.ssl.SslConfig;
+import net.dreamlu.mica.net.http.common.router.HttpFilter;
+import org.dromara.mica.mqtt.core.server.MqttServer;
+import org.dromara.mica.mqtt.core.server.MqttServerCreator;
+import org.dromara.mica.mqtt.core.server.MqttServerCustomizer;
+import org.dromara.mica.mqtt.core.server.auth.IMqttServerAuthHandler;
+import org.dromara.mica.mqtt.core.server.auth.IMqttServerPublishPermission;
+import org.dromara.mica.mqtt.core.server.auth.IMqttServerSubscribeValidator;
+import org.dromara.mica.mqtt.core.server.auth.IMqttServerUniqueIdService;
+import org.dromara.mica.mqtt.core.server.event.IMqttConnectStatusListener;
+import org.dromara.mica.mqtt.core.server.event.IMqttMessageListener;
+import org.dromara.mica.mqtt.core.server.event.IMqttSessionListener;
+import org.dromara.mica.mqtt.core.server.interceptor.IMqttMessageInterceptor;
+import org.dromara.mica.mqtt.core.server.pipeline.MqttPublishPipelineHandler;
+import org.dromara.mica.mqtt.core.server.session.IMqttSessionManager;
+import org.dromara.mica.mqtt.core.server.session.InMemoryMqttSessionManager;
+import org.dromara.mica.mqtt.core.server.store.IMqttMessageStore;
+import org.dromara.mica.mqtt.core.server.store.InMemoryMqttMessageStore;
+import org.dromara.mica.mqtt.spring.server.MqttServerTemplate;
+import org.dromara.mica.mqtt.spring.server.config.MqttServerLauncher;
+import org.dromara.mica.mqtt.spring.server.config.MqttServerProperties;
+import org.dromara.mica.mqtt.spring.server.event.SpringEventMqttConnectStatusListener;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -33,8 +34,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
-import org.tio.core.ssl.SSLEngineCustomizer;
-import org.tio.core.ssl.SslConfig;
 
 /**
  * mqtt server 配置
@@ -108,7 +107,7 @@ public class MqttServerConfiguration {
 
     /**
      * 创建Spring事件驱动的MQTT连接状态监听器Bean
-     * 当classpath中不存在MicaRedisCache类时，创建并返回SpringEventMqttConnectStatusListener实例
+     * 当容器中不存在该类型Bean时，创建并返回SpringEventMqttConnectStatusListener实例
      * 该监听器用于发布MQTT连接状态变化的Spring事件
      *
      * @param eventPublisher Spring应用事件发布器，用于发布MQTT相关事件
@@ -121,40 +120,29 @@ public class MqttServerConfiguration {
     }
 
     /**
-     * 创建Spring事件驱动的MQTT消息监听器Bean
-     * 当classpath中不存在MicaRedisCache类时，创建并返回SpringEventMqttMessageListener实例
-     * 该监听器用于发布MQTT消息接收的Spring事件
-     *
-     * @param eventPublisher Spring应用事件发布器，用于发布MQTT相关事件
-     * @return IMqttMessageListener MQTT消息监听器实例
-     */
-    @Bean
-    @ConditionalOnMissingBean
-    public IMqttMessageListener springEventMqttMessageListener(ApplicationEventPublisher eventPublisher) {
-        return new SpringEventMqttMessageListener(eventPublisher);
-    }
-
-
-    /**
      * 创建并配置 MQTT 服务器实例的 Bean。
      * <p>
      * 该方法根据传入的配置属性和各种可选组件（如认证处理器、消息监听器等），
      * 构建一个 MQTT 服务器创建器（MqttServerCreator），用于后续启动 MQTT 服务。
-     * 支持的功能包括：基础网络配置、SSL/TLS 加密、HTTP/WebSocket 支持、
-     * 认证机制、会话管理、消息分发与存储、拦截器及自定义扩展等。
+     * 支持的功能包括：协议监听器（MQTT/MQTT-SSL/WebSocket/HTTP API）、
+     * 认证机制、会话管理、发布管线（含 Redis 集群转发）、拦截器及自定义扩展等。
+     * <p>
+     * 注意：mica-mqtt 2.6.x 起 ip/port 由协议监听器承载，
+     * 对应配置项为 mica.mqtt.server.mqtt-listener/mqtt-ssl-listener/ws-listener/http-listener。
      *
      * @param properties                      MQTT 服务器的基础配置属性
      * @param authHandlerObjectProvider       可选的认证处理器提供者
      * @param uniqueIdServiceObjectProvider   可选的唯一 ID 服务提供者
      * @param subscribeValidatorObjectProvider 可选的订阅校验器提供者
      * @param publishPermissionObjectProvider 可选的发布权限校验器提供者
-     * @param messageDispatcherObjectProvider 可选的消息分发器提供者
+     * @param publishPipelineHandlerObjectProvider 可选的发布管线处理器提供者（如 Redis 集群转发）
      * @param messageStoreObjectProvider      可选的消息存储器提供者
      * @param sessionManagerObjectProvider    可选的会话管理器提供者
      * @param sessionListenerObjectProvider   可选的会话监听器提供者
      * @param messageListenerObjectProvider   可选的消息监听器提供者
      * @param connectStatusListenerObjectProvider 可选的连接状态监听器提供者
      * @param messageInterceptorObjectProvider 可选的消息拦截器提供者
+     * @param httpFilterObjectProvider       可选的 HTTP 认证过滤器提供者
      * @param sslCustomizers                  可选的 SSL 引擎自定义器提供者
      * @param customizers                     可选的服务器自定义器提供者
      * @return 配置完成的 MqttServerCreator 实例，可用于创建和启动 MQTT 服务器
@@ -166,28 +154,23 @@ public class MqttServerConfiguration {
                                                ObjectProvider<IMqttServerUniqueIdService> uniqueIdServiceObjectProvider,
                                                ObjectProvider<IMqttServerSubscribeValidator> subscribeValidatorObjectProvider,
                                                ObjectProvider<IMqttServerPublishPermission> publishPermissionObjectProvider,
-                                               ObjectProvider<IMqttMessageDispatcher> messageDispatcherObjectProvider,
+                                               ObjectProvider<MqttPublishPipelineHandler> publishPipelineHandlerObjectProvider,
                                                ObjectProvider<IMqttMessageStore> messageStoreObjectProvider,
                                                ObjectProvider<IMqttSessionManager> sessionManagerObjectProvider,
                                                ObjectProvider<IMqttSessionListener> sessionListenerObjectProvider,
                                                ObjectProvider<IMqttMessageListener> messageListenerObjectProvider,
                                                ObjectProvider<IMqttConnectStatusListener> connectStatusListenerObjectProvider,
                                                ObjectProvider<IMqttMessageInterceptor> messageInterceptorObjectProvider,
+                                               ObjectProvider<HttpFilter> httpFilterObjectProvider,
                                                ObjectProvider<SSLEngineCustomizer> sslCustomizers,
                                                ObjectProvider<MqttServerCustomizer> customizers) {
         MqttServerCreator serverCreator = MqttServer.create()
                 .name(properties.getName())
-                .ip(properties.getIp())
-                .port(properties.getPort())
                 .heartbeatTimeout(properties.getHeartbeatTimeout())
                 .keepaliveBackoff(properties.getKeepaliveBackoff())
                 .readBufferSize((int) properties.getReadBufferSize().toBytes())
                 .maxBytesInMessage((int) properties.getMaxBytesInMessage().toBytes())
-                .bufferAllocator(properties.getBufferAllocator())
                 .maxClientIdLength(properties.getMaxClientIdLength())
-                .webPort(properties.getWebPort())
-                .websocketEnable(properties.isWebsocketEnable())
-                .httpEnable(properties.isHttpEnable())
                 .nodeName(properties.getNodeName())
                 .statEnable(properties.isStatEnable());
 
@@ -196,18 +179,45 @@ public class MqttServerConfiguration {
             serverCreator.debug();
         }
 
-        // 配置 HTTP Basic 认证
-        MqttServerProperties.HttpBasicAuth httpBasicAuth = properties.getHttpBasicAuth();
-        if (serverCreator.isHttpEnable() && httpBasicAuth.isEnable()) {
-            serverCreator.httpBasicAuth(httpBasicAuth.getUsername(), httpBasicAuth.getPassword());
+        // MQTT 协议监听器
+        MqttServerProperties.Listener mqttListener = properties.getMqttListener();
+        if (mqttListener.isEnable()) {
+            serverCreator.enableMqtt(builder -> builder.serverNode(mqttListener.getServerNode()).build());
         }
 
-        // 配置 SSL/TLS 加密支持
-        MqttServerProperties.Ssl ssl = properties.getSsl();
-        if (ssl.isEnabled()) {
-            SslConfig sslConfig = SslConfig.forServer(ssl.getKeystorePath(), ssl.getKeystorePass(), ssl.getTruststorePath(), ssl.getTruststorePass(), ssl.getClientAuth());
-            serverCreator.sslConfig(sslConfig);
-            sslCustomizers.ifAvailable(sslConfig::setSslEngineCustomizer);
+        // MQTT SSL 协议监听器（自定义 SSLEngine 时应用）
+        MqttServerProperties.SslListener mqttSslListener = properties.getMqttSslListener();
+        if (mqttSslListener.isEnable()) {
+            serverCreator.enableMqttSsl(sslBuilder -> {
+                SslConfig sslConfig = createSslConfig(mqttSslListener.getSsl());
+                sslCustomizers.ifAvailable(sslConfig::setSslEngineCustomizer);
+                return sslBuilder.serverNode(mqttSslListener.getServerNode()).sslConfig(sslConfig).build();
+            });
+        }
+
+        // WebSocket 协议监听器
+        MqttServerProperties.Listener wsListener = properties.getWsListener();
+        if (wsListener.isEnable()) {
+            serverCreator.enableMqttWs(builder -> builder.serverNode(wsListener.getServerNode()).build());
+        }
+
+        // HTTP API 协议监听器：自定义过滤器 / Basic 认证 / SSL
+        MqttServerProperties.HttpListener httpListener = properties.getHttpListener();
+        if (httpListener.isEnable()) {
+            serverCreator.enableMqttHttpApi(builder -> {
+                builder.serverNode(httpListener.getServerNode());
+                MqttServerProperties.HttpAuth httpAuth = resolveHttpAuth(httpListener);
+                if (httpAuth.isEnable()) {
+                    httpFilterObjectProvider.ifAvailable(builder::authFilter);
+                } else if (httpListener.getBasicAuth().isEnable()) {
+                    builder.basicAuth(httpListener.getBasicAuth().getUsername(), httpListener.getBasicAuth().getPassword());
+                }
+                MqttServerProperties.HttpSsl httpSsl = httpListener.getSsl();
+                if (httpSsl.isEnable()) {
+                    builder.sslConfig(createSslConfig(httpSsl));
+                }
+                return builder.build();
+            });
         }
 
         // 设置自定义消息监听器
@@ -225,8 +235,8 @@ public class MqttServerConfiguration {
         // 设置发布权限校验器
         publishPermissionObjectProvider.ifAvailable(serverCreator::publishPermission);
 
-        // 设置消息分发器
-        messageDispatcherObjectProvider.ifAvailable(serverCreator::messageDispatcher);
+        // 注册发布管线处理器（如 Redis 集群转发，晚于本地投递执行）
+        publishPipelineHandlerObjectProvider.orderedStream().forEach(serverCreator::addPublishPipelineHandler);
 
         // 设置消息存储器
         messageStoreObjectProvider.ifAvailable(serverCreator::messageStore);
@@ -249,6 +259,32 @@ public class MqttServerConfiguration {
         return serverCreator;
     }
 
+    /**
+     * 创建用于处理HTTP认证的配置对象
+     *
+     * @param httpListener HTTP监听器配置对象，包含认证相关的配置信息
+     * @return 返回解析后的HTTP认证配置对象
+     */
+    private static MqttServerProperties.HttpAuth resolveHttpAuth(MqttServerProperties.HttpListener httpListener) {
+        MqttServerProperties.HttpAuth auth = httpListener.getAuth();
+        return auth == null ? new MqttServerProperties.HttpAuth() : auth;
+    }
+
+    /**
+     * 根据SSL配置创建服务端SSL配置对象
+     *
+     * @param ssl SSL配置对象，包含密钥库、信任库等安全相关配置
+     * @return 返回构建完成的SslConfig实例
+     */
+    private static SslConfig createSslConfig(MqttServerProperties.Ssl ssl) {
+        return SslConfig.forServer(
+                ssl.getKeystorePath(),
+                ssl.getKeystorePass(),
+                ssl.getTruststorePath(),
+                ssl.getTruststorePass(),
+                ssl.getClientAuth()
+        );
+    }
 
     /**
      * 创建MQTT服务器实例的Bean
@@ -321,12 +357,27 @@ public class MqttServerConfiguration {
      * 当classpath中缺少MicaRedisCache类时创建MQTT服务实现
      *
      * @param mqttServer MQTT服务器实例，由Spring容器注入
+     * @param properties MQTT服务器配置属性（2.6.x 起端口由协议监听器承载，从配置读取）
      * @return IMqttService MQTT服务实例
      */
     @Bean
     @ConditionalOnMissingBean
-    public IMqttService mqttService(MqttServer mqttServer) {
-        return new MqttServiceImpl(mqttServer);
+    public IMqttService mqttService(MqttServer mqttServer, MqttServerProperties properties) {
+        return new MqttServiceImpl(mqttServer, resolveMqttPort(properties));
+    }
+
+    /**
+     * 解析MQTT协议监听端口
+     *
+     * @param properties MQTT服务器配置属性
+     * @return 返回MQTT监听端口；未配置时返回null
+     */
+    private static Integer resolveMqttPort(MqttServerProperties properties) {
+        MqttServerProperties.Listener mqttListener = properties.getMqttListener();
+        if (mqttListener == null || mqttListener.getServerNode() == null) {
+            return null;
+        }
+        return mqttListener.getServerNode().getPort();
     }
 
 }

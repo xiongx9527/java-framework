@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import org.ssssssss.magicapi.datasource.model.MagicDynamicDataSource;
 
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnClass(name = "io.seata.tm.api.GlobalTransactionContext")
+@ConditionalOnClass(name = "org.apache.seata.tm.api.GlobalTransactionContext")
 @ConditionalOnProperty(prefix = "magic-api.dbtx", name = "seata-enabled", havingValue = "true")
 public class MagicAPISeataConfiguration {
 

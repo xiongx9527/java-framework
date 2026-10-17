@@ -1,7 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.server.model;
 
-import net.dreamlu.iot.mqtt.core.server.auth.IMqttServerUniqueIdService;
-import org.tio.core.ChannelContext;
+import org.dromara.mica.mqtt.core.server.auth.IMqttServerUniqueIdService;
+import net.dreamlu.mica.net.core.ChannelContext;
 
 public class MagicAPIMqttServerUniqueIdService implements IMqttServerUniqueIdService {
 

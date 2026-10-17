@@ -8,8 +8,11 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.mod
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.service.MqttClientDataSourceInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
-import net.dreamlu.iot.mqtt.codec.*;
-import net.dreamlu.iot.mqtt.spring.client.MqttClientTemplate;
+import org.dromara.mica.mqtt.codec.*;
+import org.dromara.mica.mqtt.codec.message.MqttPublishMessage;
+import org.dromara.mica.mqtt.codec.message.header.MqttFixedHeader;
+import org.dromara.mica.mqtt.codec.message.header.MqttPublishVariableHeader;
+import org.dromara.mica.mqtt.spring.client.MqttClientTemplate;
 import org.apache.commons.collections4.ListUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

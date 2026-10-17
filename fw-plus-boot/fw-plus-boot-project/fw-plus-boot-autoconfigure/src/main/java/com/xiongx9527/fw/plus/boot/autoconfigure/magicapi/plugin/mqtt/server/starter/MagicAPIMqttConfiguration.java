@@ -10,7 +10,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.server.ser
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.server.service.MqttSubscribeMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.server.web.MagicMqttController;
 import lombok.extern.slf4j.Slf4j;
-import net.dreamlu.iot.mqtt.core.server.MqttServer;
+import org.dromara.mica.mqtt.core.server.MqttServer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -28,7 +28,7 @@ import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 @Slf4j
 // 内置 MQTT 服务端会监听端口并承担 Broker 职责；普通外连 Broker 场景请使用 mqttclient 插件。
 @ConditionalOnProperty(prefix = "magic-api.plugin.mqtt", name = "enabled", havingValue = "true", matchIfMissing = false)
-@ConditionalOnClass(name = {"net.dreamlu.iot.mqtt.spring.server.MqttServerTemplate"})
+@ConditionalOnClass(name = {"org.dromara.mica.mqtt.spring.server.MqttServerTemplate"})
 @EnableConfigurationProperties(MagicAPIMqttConfig.class)
 @Configuration
 public class MagicAPIMqttConfiguration implements MagicPluginConfiguration {

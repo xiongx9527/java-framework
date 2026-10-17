@@ -1,7 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.mybatis.mp;
 
 import com.baomidou.mybatisplus.core.injector.ISqlInjector;
-import com.github.yulichang.adapter.base.tookit.VersionUtils;
 import com.github.yulichang.autoconfigure.MybatisPlusJoinProperties;
 import com.github.yulichang.autoconfigure.conditional.JoinSqlInjectorCondition;
 import com.github.yulichang.autoconfigure.consumer.MybatisPlusJoinIfExistsConsumer;
@@ -59,7 +58,6 @@ public class MpJoinAutoConfiguration {
         MybatisPlusJoinProperties mybatisPlusJoinProperties = properties;
         this.properties = Optional.ofNullable(propertiesConsumers.getIfAvailable()).map(c -> c.config(mybatisPlusJoinProperties)).orElse(mybatisPlusJoinProperties);
         ConfigProperties.banner = this.properties.getBanner();
-        ConfigProperties.msCache = this.properties.isMsCache();
         ConfigProperties.tableAlias = this.properties.getTableAlias();
         ConfigProperties.joinPrefix = this.properties.getJoinPrefix();
         ConfigProperties.logicDelType = this.properties.getLogicDelType();
@@ -76,16 +74,16 @@ public class MpJoinAutoConfiguration {
     @Bean
     @ConditionalOnClass({SqlSessionFactory.class, SqlSessionFactoryBean.class})
     public MPJInterceptor mpjInterceptor() {
-        // MyBatis-Plus 3.5.17 does not expose its version through package metadata.
-        VersionUtils.setMybatisPlusVersion("3.5.17");
+        // mybatis-plus-join 1.5.9 起移除了手动版本设置入口（MyBatis-Plus 3.5.17 提供 MybatisPlusVersion，插件自行探测版本）
         return new MPJInterceptor();
     }
 
     @Bean
     @Order(Integer.MIN_VALUE)
     @ConditionalOnClass({SqlSessionFactory.class, SqlSessionFactoryBean.class})
-    public MPJInterceptorConfig mpjInterceptorConfig(List<SqlSessionFactory> sqlSessionFactoryList) {
-        return new MPJInterceptorConfig(sqlSessionFactoryList, this.properties.getBanner());
+    public MPJInterceptorConfig mpjInterceptorConfig(List<SqlSessionFactory> sqlSessionFactoryList, MPJInterceptor mpjInterceptor) {
+        // mybatis-plus-join 1.5.9 构造器签名调整为 (SqlSessionFactory 列表, MPJInterceptor, banner)
+        return new MPJInterceptorConfig(sqlSessionFactoryList, mpjInterceptor, this.properties.getBanner());
     }
 
     @Bean

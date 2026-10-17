@@ -7,14 +7,13 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.cluster.Redi
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.enums.RedisKeys;
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.listener.RedisMessageListener;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
-import net.dreamlu.iot.mqtt.core.server.MqttServer;
-import net.dreamlu.iot.mqtt.core.server.auth.IMqttServerAuthHandler;
-import net.dreamlu.iot.mqtt.core.server.cluster.MqttClusterMessageListener;
-import net.dreamlu.iot.mqtt.core.server.dispatcher.IMqttMessageDispatcher;
-import net.dreamlu.iot.mqtt.core.server.serializer.JsonMessageSerializer;
-import net.dreamlu.iot.mqtt.core.server.session.IMqttSessionManager;
-import net.dreamlu.iot.mqtt.core.server.session.InMemoryMqttSessionManager;
-import net.dreamlu.iot.mqtt.core.server.store.IMqttMessageStore;
+import org.dromara.mica.mqtt.core.server.MqttServer;
+import org.dromara.mica.mqtt.core.server.auth.IMqttServerAuthHandler;
+import org.dromara.mica.mqtt.core.server.pipeline.MqttPublishPipelineHandler;
+import org.dromara.mica.mqtt.core.server.serializer.JsonMessageSerializer;
+import org.dromara.mica.mqtt.core.server.session.IMqttSessionManager;
+import org.dromara.mica.mqtt.core.server.session.InMemoryMqttSessionManager;
+import org.dromara.mica.mqtt.core.server.store.IMqttMessageStore;
 import net.dreamlu.mica.redis.cache.MicaRedisCache;
 import net.dreamlu.mica.redis.stream.DefaultRStreamTemplate;
 import net.dreamlu.mica.redis.stream.RStreamTemplate;
@@ -82,17 +81,6 @@ public class ClusterMagicDynamicMqttDataSource extends BaseMagicDynamicMqttDataS
 
 
     /**
-     * 获取MQTT集群消息监听器实例
-     *
-     * @param mqttServer MQTT服务器实例
-     * @return MQTT集群消息监听器实例
-     */
-    @Override
-    public MqttClusterMessageListener getMqttClusterMessageListener(MqttServer mqttServer) {
-        return new MqttClusterMessageListener(mqttServer);
-    }
-
-    /**
      * 获取MQTT消息交换接收器实例
      *
      * @param mqttServer MQTT服务器实例
@@ -104,7 +92,8 @@ public class ClusterMagicDynamicMqttDataSource extends BaseMagicDynamicMqttDataS
         // 构建Redis通道名称
         String channel = RedisKeys.REDIS_CHANNEL_DOWN.getKey()+":"+key;
         RedisMqttMessageDownReceiver redisMqttMessageDownReceiver = new RedisMqttMessageDownReceiver(jsonMessageSerializer, mqttServer, channel,redisTemplate.getConnectionFactory());
-        redisMqttMessageDownReceiver.addMessageListener(new RedisMessageListener(jsonMessageSerializer, mqttServer,null),new ChannelTopic(channel));
+        // 下行通道不做来源节点过滤
+        redisMqttMessageDownReceiver.addMessageListener(new RedisMessageListener(jsonMessageSerializer, mqttServer),new ChannelTopic(channel));
 
         return redisMqttMessageDownReceiver;
     }
@@ -121,7 +110,8 @@ public class ClusterMagicDynamicMqttDataSource extends BaseMagicDynamicMqttDataS
         // 构建Redis通道名称
         String channel = RedisKeys.REDIS_CHANNEL_EXCHANGE.getKey()+":"+key;
         RedisMqttMessageExchangeReceiver redisMqttMessageExchangeReceiver = new RedisMqttMessageExchangeReceiver(jsonMessageSerializer, mqttServer, channel,redisTemplate.getConnectionFactory());
-        redisMqttMessageExchangeReceiver.addMessageListener(new RedisMessageListener(jsonMessageSerializer, mqttServer,getMqttClusterMessageListener(mqttServer)),new ChannelTopic(channel));
+        // 上行交换通道：来源节点已由发布管线完成本地投递，本站点跳过，避免重复下发
+        redisMqttMessageExchangeReceiver.addMessageListener(new RedisMessageListener(jsonMessageSerializer, mqttServer, mqttServer.getServerCreator().getNodeName()),new ChannelTopic(channel));
         return redisMqttMessageExchangeReceiver;
     }
 
@@ -144,18 +134,21 @@ public class ClusterMagicDynamicMqttDataSource extends BaseMagicDynamicMqttDataS
 
 
     /**
-     * 获取MQTT消息分发器实例
+     * 获取MQTT发布管线处理器实例
+     *
+     * <p>集群模式：在本地投递（内建管线）之后，把上行消息转发到 Redis 交换通道，
+     * 由其它节点消费并投递给各自本地的订阅者。</p>
      *
      * @param key 用于构建Redis通道名称的键值
-     * @return 返回配置好的Redis MQTT消息分发器实例
+     * @return 返回配置好的Redis MQTT发布管线处理器实例
      */
     @Override
-    public IMqttMessageDispatcher getIMqttMessageDispatcher(String key) {
+    public MqttPublishPipelineHandler getMqttPublishPipelineHandler(String key) {
         // 创建Redis流模板实例用于消息队列操作
         RStreamTemplate streamTemplate = new DefaultRStreamTemplate(redisTemplate);
         // 构建Redis通道名称，格式为：通道前缀:键值
         String channel = RedisKeys.REDIS_CHANNEL_EXCHANGE.getKey()+":"+key;
-        // 创建并配置Redis MQTT消息分发器
+        // 创建并配置Redis MQTT消息分发器（发布管线处理器）
         RedisMqttMessageDispatcher redisMqttMessageDispatcher = new RedisMqttMessageDispatcher(streamTemplate, jsonMessageSerializer, channel);
         return redisMqttMessageDispatcher;
     }

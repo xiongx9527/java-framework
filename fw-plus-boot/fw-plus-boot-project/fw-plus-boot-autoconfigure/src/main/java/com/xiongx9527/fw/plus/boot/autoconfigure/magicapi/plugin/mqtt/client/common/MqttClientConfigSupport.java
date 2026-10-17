@@ -3,8 +3,8 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.co
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import lombok.extern.slf4j.Slf4j;
-import net.dreamlu.iot.mqtt.codec.MqttQoS;
-import net.dreamlu.iot.mqtt.core.client.MqttClientCreator;
+import org.dromara.mica.mqtt.codec.MqttQoS;
+import org.dromara.mica.mqtt.core.client.MqttClientCreator;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Map;
@@ -92,7 +92,8 @@ public final class MqttClientConfigSupport {
                 mqttClientCreator.maxBytesInMessage(options.getIntValue("maxBytesInMessage"));
             }
             if (options.containsKey("cleanSession")) {
-                mqttClientCreator.cleanSession(options.getBooleanValue("cleanSession"));
+                // mica-mqtt 2.6.x 客户端创建器将 cleanSession 更名为 cleanStart
+                mqttClientCreator.cleanStart(options.getBooleanValue("cleanSession"));
             }
             if (options.containsKey("ssl")) {
                 log.warn("MQTT Client ssl 已配置，但当前插件尚未根据该字段创建完整 SSL 配置");

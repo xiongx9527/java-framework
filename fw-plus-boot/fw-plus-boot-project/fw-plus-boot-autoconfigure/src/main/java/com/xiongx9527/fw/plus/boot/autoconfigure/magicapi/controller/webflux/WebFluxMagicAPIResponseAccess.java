@@ -60,7 +60,7 @@ public class WebFluxMagicAPIResponseAccess implements MagicHttpServletResponse {
 
 	@Override
 	public Collection<String> getHeaderNames() {
-		return exchange.getResponse().getHeaders().keySet();
+		return exchange.getResponse().getHeaders().headerNames();
 	}
 
 	public byte[] body() {

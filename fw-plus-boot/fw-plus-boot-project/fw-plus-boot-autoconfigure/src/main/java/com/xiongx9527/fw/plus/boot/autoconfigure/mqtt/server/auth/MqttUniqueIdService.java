@@ -1,7 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.auth;
 
-import net.dreamlu.iot.mqtt.core.server.auth.IMqttServerUniqueIdService;
-import org.tio.core.ChannelContext;
+import org.dromara.mica.mqtt.core.server.auth.IMqttServerUniqueIdService;
+import net.dreamlu.mica.net.core.ChannelContext;
 
 /**
  * 示例自定义 clientId，请按照自己的需求和业务进行扩展

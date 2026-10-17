@@ -2,8 +2,8 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.broadcast;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import org.springframework.util.concurrent.ListenableFuture;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.RejectedExecutionException;
 
 /**
@@ -59,9 +59,9 @@ public class WsBroadcastExecutor {
 	 * @param task 投递任务
 	 * @return 异步句柄，队列满时返回 null
 	 */
-	public ListenableFuture<?> submitListenable(Runnable task) {
+	public CompletableFuture<?> submitCompletable(Runnable task) {
 		try {
-			return executor.submitListenable(task);
+			return executor.submitCompletable(task);
 		} catch (RejectedExecutionException e) {
 			log.warn("WebSocket broadcast queue is full, dropping broadcast task");
 			return null;

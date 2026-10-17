@@ -49,7 +49,7 @@ import java.util.List;
 @ConditionalOnClass(name = {"org.springframework.web.socket.WebSocketHandler",
         "com.xiongx9527.fw.plus.auth.core.InstanceAuthRegistry"})
 @EnableConfigurationProperties(WsConfig.class)
-@AutoConfigureAfter(name = {"org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration"})
+@AutoConfigureAfter(name = {"org.springframework.boot.data.redis.autoconfigure.RedisAutoConfiguration"})
 @Import({WsRedisConfiguration.class, WsWebFluxAutoConfiguration.class})
 public class WsAutoConfiguration {
 

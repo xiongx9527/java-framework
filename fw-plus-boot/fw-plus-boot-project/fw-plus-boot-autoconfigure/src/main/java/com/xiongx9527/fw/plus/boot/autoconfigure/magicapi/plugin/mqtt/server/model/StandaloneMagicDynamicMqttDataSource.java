@@ -3,15 +3,13 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.server.mo
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.cluster.RedisMqttMessageDownReceiver;
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.cluster.RedisMqttMessageExchangeReceiver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
-import net.dreamlu.iot.mqtt.core.server.MqttServer;
-import net.dreamlu.iot.mqtt.core.server.auth.IMqttServerAuthHandler;
-import net.dreamlu.iot.mqtt.core.server.broker.DefaultMqttBrokerDispatcher;
-import net.dreamlu.iot.mqtt.core.server.cluster.MqttClusterMessageListener;
-import net.dreamlu.iot.mqtt.core.server.dispatcher.IMqttMessageDispatcher;
-import net.dreamlu.iot.mqtt.core.server.session.IMqttSessionManager;
-import net.dreamlu.iot.mqtt.core.server.session.InMemoryMqttSessionManager;
-import net.dreamlu.iot.mqtt.core.server.store.IMqttMessageStore;
-import net.dreamlu.iot.mqtt.core.server.store.InMemoryMqttMessageStore;
+import org.dromara.mica.mqtt.core.server.MqttServer;
+import org.dromara.mica.mqtt.core.server.auth.IMqttServerAuthHandler;
+import org.dromara.mica.mqtt.core.server.pipeline.MqttPublishPipelineHandler;
+import org.dromara.mica.mqtt.core.server.session.IMqttSessionManager;
+import org.dromara.mica.mqtt.core.server.session.InMemoryMqttSessionManager;
+import org.dromara.mica.mqtt.core.server.store.IMqttMessageStore;
+import org.dromara.mica.mqtt.core.server.store.InMemoryMqttMessageStore;
 
 public class StandaloneMagicDynamicMqttDataSource extends BaseMagicDynamicMqttDataSource {
 
@@ -40,23 +38,11 @@ public class StandaloneMagicDynamicMqttDataSource extends BaseMagicDynamicMqttDa
 
 
     /**
-     * 获取MQTT集群消息监听器
-     *
-     * @param mqttServer MQTT服务器实例
-     * @return MQTT集群消息监听器实例，当前实现返回null
-     */
-    @Override
-    public MqttClusterMessageListener getMqttClusterMessageListener(MqttServer mqttServer) {
-        return null;
-    }
-
-
-    /**
      * 获取MQTT消息交换接收器
      *
      * @param mqttServer MQTT服务器实例
      * @param key 接收器标识键
-     * @return RedisMqttMessageDownReceiver MQTT消息下行接收器实例，当前实现返回null
+     * @return RedisMqttMessageDownReceiver MQTT消息下行接收器实例，单机模式返回null
      */
     @Override
     public RedisMqttMessageDownReceiver getMqttMessageExchangeReceiver(MqttServer mqttServer, String key) {
@@ -68,7 +54,7 @@ public class StandaloneMagicDynamicMqttDataSource extends BaseMagicDynamicMqttDa
      *
      * @param mqttServer MQTT服务器实例
      * @param key 接收器标识键
-     * @return RedisMqttMessageExchangeReceiver MQTT消息交换接收器实例，当前实现返回null
+     * @return RedisMqttMessageExchangeReceiver MQTT消息交换接收器实例，单机模式返回null
      */
     @Override
     public RedisMqttMessageExchangeReceiver getMqttMessageDownReceiver(MqttServer mqttServer, String key) {
@@ -93,15 +79,16 @@ public class StandaloneMagicDynamicMqttDataSource extends BaseMagicDynamicMqttDa
     }
 
     /**
-     * 获取MQTT消息分发器实例
+     * 获取MQTT发布管线处理器实例
      *
-     * @param key 分发器标识键值
-     * @return MQTT消息分发器实例
+     * <p>单机模式不需要跨节点转发，本地投递由 mica-mqtt 内建发布管线完成，返回null。</p>
+     *
+     * @param key 处理器标识键值
+     * @return 始终返回null
      */
     @Override
-    public IMqttMessageDispatcher getIMqttMessageDispatcher(String key) {
-        // 创建并返回一个匿名内部类实现的MQTT消息分发器
-        return new DefaultMqttBrokerDispatcher();
+    public MqttPublishPipelineHandler getMqttPublishPipelineHandler(String key) {
+        return null;
     }
 
 

@@ -36,17 +36,9 @@
             <artifactId>magic-api-plugin-swagger</artifactId>
         </dependency>
 
-        <!--
-        <dependency>
-            <groupId>com.github.xiaoymin</groupId>
-            <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.github.xiaoymin</groupId>
-            <artifactId>knife4j-openapi3-webflux-spring-boot-starter</artifactId>
-        </dependency>
-        -->
+        <!-- knife4j：Boot 4 线由宿主经 fw-plus-boot-starter 引入 fork（com.baizhukui）
+             knife4j-openapi3-boot4-spring-boot-starter 5.7.8；上游 webflux 变体无 Boot 4 构件已移除。
+             （此处不再直接声明，保留说明以避免误加回上游坐标） -->
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

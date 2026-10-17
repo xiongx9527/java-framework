@@ -29,7 +29,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 @Configuration
 @ConditionalOnClass(name = {"org.springframework.data.redis.core.StringRedisTemplate"})
 @ConditionalOnBean(type = {"org.springframework.data.redis.core.StringRedisTemplate"})
-@AutoConfigureAfter(name = {"org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration"})
+@AutoConfigureAfter(name = {"org.springframework.boot.data.redis.autoconfigure.RedisAutoConfiguration"})
 public class WsRedisConfiguration {
 
 	/**

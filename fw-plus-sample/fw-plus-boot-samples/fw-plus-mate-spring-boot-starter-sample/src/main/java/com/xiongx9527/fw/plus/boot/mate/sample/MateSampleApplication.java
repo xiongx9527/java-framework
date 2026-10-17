@@ -1,7 +1,7 @@
 package com.xiongx9527.fw.plus.boot.mate.sample;
 
-import com.fhs.core.trans.vo.VO;
-import com.fhs.trans.service.impl.SimpleTransService;
+import org.dromara.core.trans.vo.VO;
+import org.dromara.trans.service.impl.SimpleTransService;
 //import com.github.kristofa.brave.spring.BraveClientHttpRequestInterceptor;
 //import org.springframework.cloud.sleuth.instrument.web.client.feign.FeignContextBeanPostProcessor;
 import com.xiongx9527.fw.plus.common.databind.ISensitiveStrategy;

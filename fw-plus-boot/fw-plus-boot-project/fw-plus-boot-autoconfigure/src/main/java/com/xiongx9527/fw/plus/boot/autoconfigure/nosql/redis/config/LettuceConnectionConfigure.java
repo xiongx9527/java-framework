@@ -10,10 +10,10 @@ import io.lettuce.core.cluster.ClusterTopologyRefreshOptions.Builder;
 import io.lettuce.core.resource.ClientResources;
 import io.lettuce.core.resource.DefaultClientResources;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
-import org.springframework.boot.autoconfigure.data.redis.LettuceClientConfigurationBuilderCustomizer;
-import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
-import org.springframework.boot.autoconfigure.data.redis.RedisProperties.Lettuce.Cluster.Refresh;
-import org.springframework.boot.autoconfigure.data.redis.RedisProperties.Pool;
+import org.springframework.boot.data.redis.autoconfigure.LettuceClientConfigurationBuilderCustomizer;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisProperties;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisProperties.Lettuce.Cluster.Refresh;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisProperties.Pool;
 import org.springframework.data.redis.connection.RedisClusterConfiguration;
 import org.springframework.data.redis.connection.RedisSentinelConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
@@ -39,7 +39,7 @@ class LettuceConnectionConfigure extends RedisConnectionConfiguration {
     /**
      * redis配置properties
      */
-    private final RedisProperties properties;
+    private final DataRedisProperties properties;
 
     /**
      * Lettuce客户端定制
@@ -63,7 +63,7 @@ class LettuceConnectionConfigure extends RedisConnectionConfiguration {
      * @param builderCustomizers Lettuce客户端配置构建器自定义器列表，用于自定义客户端配置
      * @param database 数据库索引号，指定要连接的Redis数据库
      */
-    LettuceConnectionConfigure(RedisProperties properties,
+    LettuceConnectionConfigure(DataRedisProperties properties,
                                RedisSentinelConfiguration sentinelConfigurationProvider,
                                RedisClusterConfiguration clusterConfigurationProvider,
                                List<LettuceClientConfigurationBuilderCustomizer> builderCustomizers,
@@ -157,7 +157,7 @@ class LettuceConnectionConfigure extends RedisConnectionConfiguration {
         }
         // 配置Lettuce相关属性
         if (getProperties().getLettuce() != null) {
-            RedisProperties.Lettuce lettuce = getProperties().getLettuce();
+            DataRedisProperties.Lettuce lettuce = getProperties().getLettuce();
             if (lettuce.getShutdownTimeout() != null && !lettuce.getShutdownTimeout().isZero()) {
                 builder.shutdownTimeout(getProperties().getLettuce().getShutdownTimeout());
             }
@@ -207,11 +207,6 @@ class LettuceConnectionConfigure extends RedisConnectionConfiguration {
             // 如果设置了刷新周期，则启用定期刷新
             if (refreshProperties.getPeriod() != null) {
                 refreshBuilder.enablePeriodicRefresh(refreshProperties.getPeriod());
-            }
-
-            // 如果启用了自适应刷新，则启用所有自适应刷新触发器
-            if (refreshProperties.isAdaptive()) {
-                refreshBuilder.enableAllAdaptiveRefreshTriggers();
             }
 
             return builder.topologyRefreshOptions(refreshBuilder.build());

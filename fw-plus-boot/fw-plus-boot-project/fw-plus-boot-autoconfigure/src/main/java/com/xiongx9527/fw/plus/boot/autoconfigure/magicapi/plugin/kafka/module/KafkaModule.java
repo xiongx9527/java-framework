@@ -275,7 +275,7 @@ public class KafkaModule implements DynamicAttribute<KafkaModule, KafkaModule>, 
         AdminClient adminClient = getAdminClient();
         try {
             Set<String> topicNames = Collections.singleton(topic);
-            Map<String, TopicDescription> topicsMap = adminClient.describeTopics(topicNames).all().get();
+            Map<String, TopicDescription> topicsMap = adminClient.describeTopics(topicNames).allTopicNames().get();
             TopicDescription topicDescription = topicsMap.get(topic);
             if (topicDescription == null) {
                 throw new RuntimeException("Topic 不存在: " + topic);

@@ -1,9 +1,9 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.nosql.redis.config;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.data.redis.JedisClientConfigurationBuilderCustomizer;
-import org.springframework.boot.autoconfigure.data.redis.LettuceClientConfigurationBuilderCustomizer;
-import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
+import org.springframework.boot.data.redis.autoconfigure.JedisClientConfigurationBuilderCustomizer;
+import org.springframework.boot.data.redis.autoconfigure.LettuceClientConfigurationBuilderCustomizer;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisProperties;
 import org.springframework.data.redis.connection.RedisClusterConfiguration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisSentinelConfiguration;
@@ -30,7 +30,7 @@ public class DynamicRedisTemplateFactory<K, V> {
     /**
      * Redis配置信息
      */
-    private final RedisProperties properties;
+    private final DataRedisProperties properties;
     /**
      * redis 哨兵配置
      */
@@ -65,7 +65,7 @@ public class DynamicRedisTemplateFactory<K, V> {
      * 这些参数由springboot自动配置帮我们自动配置并注入到容器
      * ObjectProvider更加宽松的依赖注入
      */
-    public DynamicRedisTemplateFactory(RedisProperties properties,
+    public DynamicRedisTemplateFactory(DataRedisProperties properties,
                                        RedisSentinelConfiguration sentinelConfiguration,
 	                                       RedisClusterConfiguration clusterConfiguration,
 	                                       List<JedisClientConfigurationBuilderCustomizer> jedisBuilderCustomizers,

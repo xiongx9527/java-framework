@@ -17,8 +17,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.cluster;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.enums.RedisKeys;
-import net.dreamlu.iot.mqtt.core.server.MqttServer;
-import net.dreamlu.iot.mqtt.core.server.MqttServerCreator;
+import org.dromara.mica.mqtt.core.server.MqttServer;
 import net.dreamlu.mica.core.utils.CharPool;
 import net.dreamlu.mica.core.utils.INetUtil;
 import net.dreamlu.mica.redis.cache.MicaRedisCache;
@@ -55,8 +54,18 @@ public class RedisMqttServerManage implements ApplicationContextAware,SmartIniti
 	 * @param mqttServer MQTT服务器实例，用于获取服务器创建者信息
 	 */
 	public RedisMqttServerManage(MqttServer mqttServer) {
-		this.nodeName = mqttServer.getServerCreator().getNodeName();
-		this.hostName = getHostName(mqttServer.getServerCreator());
+		this(null, mqttServer, null);
+	}
+
+	/**
+	 * RedisMqttServerManage构造函数
+	 *
+	 * @param mqttServer MQTT服务器实例，用于获取服务器创建者信息
+	 * @param port MQTT 服务监听端口。mica-mqtt 2.6.x 起端口由协议监听器承载，
+	 *             无法从 creator 直接获取，因此由外部传入
+	 */
+	public RedisMqttServerManage(MqttServer mqttServer, Integer port) {
+		this(null, mqttServer, port);
 	}
 
 	/**
@@ -65,9 +74,19 @@ public class RedisMqttServerManage implements ApplicationContextAware,SmartIniti
 	 * @param mqttServer MQTT服务器实例，提供服务器创建者信息
 	 */
 	public RedisMqttServerManage(MicaRedisCache redisCache, MqttServer mqttServer) {
+		this(redisCache, mqttServer, null);
+	}
+
+	/**
+	 * RedisMqttServerManage构造函数
+	 * @param redisCache Redis缓存实例，用于存储服务器节点信息
+	 * @param mqttServer MQTT服务器实例，提供服务器创建者信息
+	 * @param port MQTT 服务监听端口
+	 */
+	public RedisMqttServerManage(MicaRedisCache redisCache, MqttServer mqttServer, Integer port) {
 		this.redisCache = redisCache;
 		this.nodeName = mqttServer.getServerCreator().getNodeName();
-		this.hostName = getHostName(mqttServer.getServerCreator());
+		this.hostName = getHostName(port);
 	}
 
 	/**
@@ -81,11 +100,11 @@ public class RedisMqttServerManage implements ApplicationContextAware,SmartIniti
 
 	/**
 	 * 获取服务器主机名
-	 * @param mqttServerCreator MQTT服务器创建者实例
+	 * @param port MQTT 服务监听端口，允许为空
 	 * @return 返回主机IP地址和端口拼接的字符串，格式为"IP:端口"
 	 */
-	private String getHostName(MqttServerCreator mqttServerCreator) {
-		return INetUtil.getHostIp() + CharPool.COLON + mqttServerCreator.getPort();
+	private String getHostName(Integer port) {
+		return INetUtil.getHostIp() + CharPool.COLON + (port == null ? "" : port);
 	}
 
 	/**

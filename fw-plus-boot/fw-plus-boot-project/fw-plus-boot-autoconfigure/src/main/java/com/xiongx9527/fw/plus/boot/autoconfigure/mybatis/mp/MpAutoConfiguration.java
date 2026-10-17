@@ -15,7 +15,7 @@ import javax.sql.DataSource;
         "com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration",
         "org.mybatis.spring.SqlSessionFactoryBean"})
 @ConditionalOnSingleCandidate(DataSource.class)
-@AutoConfigureAfter(name = {"org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration",
+@AutoConfigureAfter(name = {"org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration",
         "com.baomidou.dynamic.datasource.spring.boot.autoconfigure.DynamicDataSourceAutoConfiguration"})
 @Import({MpBaseAutoConfiguration.class, MpJoinAutoConfiguration.class,
 		MpEncryptAutoConfiguration.class,

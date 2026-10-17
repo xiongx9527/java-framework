@@ -18,8 +18,8 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.listener;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.enums.RedisKeys;
 import lombok.RequiredArgsConstructor;
-import net.dreamlu.iot.mqtt.core.server.MqttServerCreator;
-import net.dreamlu.iot.mqtt.core.server.event.IMqttConnectStatusListener;
+import org.dromara.mica.mqtt.core.server.MqttServerCreator;
+import org.dromara.mica.mqtt.core.server.event.IMqttConnectStatusListener;
 import net.dreamlu.mica.redis.cache.MicaRedisCache;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeansException;
@@ -27,7 +27,7 @@ import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
-import org.tio.core.ChannelContext;
+import net.dreamlu.mica.net.core.ChannelContext;
 
 /**
  * mqtt 连接监听，此处也可以添加发送到 mq 的逻辑，方便影子服务处理

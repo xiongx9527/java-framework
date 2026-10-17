@@ -3,13 +3,13 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.server.mo
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.server.service.MqttSubscribeInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
-import net.dreamlu.iot.mqtt.codec.MqttPublishMessage;
-import net.dreamlu.iot.mqtt.codec.MqttQoS;
-import net.dreamlu.iot.mqtt.core.server.event.IMqttMessageListener;
+import org.dromara.mica.mqtt.codec.message.MqttPublishMessage;
+import org.dromara.mica.mqtt.codec.MqttQoS;
+import org.dromara.mica.mqtt.core.server.event.IMqttMessageListener;
 import org.apache.commons.collections4.ListUtils;
 import org.ssssssss.magicapi.utils.ScriptManager;
 import org.ssssssss.script.MagicScriptContext;
-import org.tio.core.ChannelContext;
+import net.dreamlu.mica.net.core.ChannelContext;
 
 import java.util.List;
 import java.util.stream.Collectors;

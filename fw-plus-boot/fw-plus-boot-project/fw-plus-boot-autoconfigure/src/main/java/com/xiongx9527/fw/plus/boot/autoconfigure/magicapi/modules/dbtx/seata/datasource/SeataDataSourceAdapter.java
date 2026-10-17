@@ -1,10 +1,10 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.seata.datasource;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.DbTxDataSourceAdapter;
-import io.seata.rm.datasource.DataSourceProxy;
-import io.seata.rm.datasource.SeataDataSourceProxy;
-import io.seata.rm.datasource.util.JdbcUtils;
-import io.seata.sqlparser.util.JdbcConstants;
+import org.apache.seata.rm.datasource.DataSourceProxy;
+import org.apache.seata.rm.datasource.SeataDataSourceProxy;
+import org.apache.seata.rm.datasource.util.JdbcUtils;
+import org.apache.seata.sqlparser.util.JdbcConstants;
 
 import javax.sql.DataSource;
 import java.sql.Connection;

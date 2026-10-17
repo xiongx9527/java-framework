@@ -5,8 +5,8 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.mod
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.service.MqttClientSubscribeInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
-import net.dreamlu.iot.mqtt.codec.MqttPublishMessage;
-import net.dreamlu.iot.mqtt.codec.MqttQoS;
+import org.dromara.mica.mqtt.codec.message.MqttPublishMessage;
+import org.dromara.mica.mqtt.codec.MqttQoS;
 import org.apache.commons.collections4.ListUtils;
 
 import java.util.List;

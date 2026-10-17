@@ -18,8 +18,8 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.cluster;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.listener.RedisMessageListener;
 import lombok.extern.slf4j.Slf4j;
-import net.dreamlu.iot.mqtt.core.server.MqttServer;
-import net.dreamlu.iot.mqtt.core.server.serializer.IMessageSerializer;
+import org.dromara.mica.mqtt.core.server.MqttServer;
+import org.dromara.mica.mqtt.core.server.serializer.IMessageSerializer;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.context.ApplicationContext;
@@ -114,8 +114,8 @@ public class RedisMqttMessageDownReceiver extends RedisMessageListenerContainer 
 			throw new IllegalStateException("No RedisConnectionFactory available for MQTT Redis receiver.");
 		}
 		this.setConnectionFactory(this.redisConnectionFactory);
-		// 添加Redis消息监听器，监听指定频道的消息
-		this.addMessageListener(new RedisMessageListener(messageSerializer, mqttServer,null),new ChannelTopic(channel));
+		// 添加Redis消息监听器，监听指定频道的消息（下行通道不做来源节点过滤）
+		this.addMessageListener(new RedisMessageListener(messageSerializer, mqttServer),new ChannelTopic(channel));
 	}
 
 

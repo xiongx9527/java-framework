@@ -19,16 +19,18 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.cluster;
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.enums.RedisKeys;
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.util.RedisUtil;
 import lombok.RequiredArgsConstructor;
-import net.dreamlu.iot.mqtt.core.server.model.Message;
-import net.dreamlu.iot.mqtt.core.server.serializer.IMessageSerializer;
-import net.dreamlu.iot.mqtt.core.server.store.IMqttMessageStore;
-import net.dreamlu.iot.mqtt.core.util.TopicUtil;
+import net.dreamlu.mica.redis.cache.CacheKey;
 import net.dreamlu.mica.redis.cache.MicaRedisCache;
+import org.dromara.mica.mqtt.core.server.model.Message;
+import org.dromara.mica.mqtt.core.server.serializer.IMessageSerializer;
+import org.dromara.mica.mqtt.core.server.store.IMqttMessageStore;
+import org.dromara.mica.mqtt.core.util.TopicUtil;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -132,12 +134,18 @@ public class RedisMqttMessageStore implements IMqttMessageStore , ApplicationCon
 	 * 添加保留消息
 	 *
 	 * @param topic 主题
+	 * @param timeout 保留消息过期时间（秒），小于等于 0 表示不过期
 	 * @param message 保留消息对象
 	 * @return 操作结果，始终返回true
 	 */
 	@Override
-	public boolean addRetainMessage(String topic, Message message) {
-		this.redisCache.set(RedisKeys.MESSAGE_STORE_RETAIN.getKey(topic), message, messageSerializer::serialize);
+	public boolean addRetainMessage(String topic, int timeout, Message message) {
+		String key = RedisKeys.MESSAGE_STORE_RETAIN.getKey(topic);
+		if (timeout > 0) {
+			this.redisCache.set(new CacheKey(key, Duration.ofSeconds(timeout)), message, messageSerializer::serialize);
+		} else {
+			this.redisCache.set(key, message, messageSerializer::serialize);
+		}
 		return true;
 	}
 

@@ -1,6 +1,6 @@
 package com.xiongx9527.fw.plus.boot.mate.sample.dto.vo;
 
-import com.fhs.core.trans.anno.TransDefaultSett;
+import org.dromara.core.trans.anno.TransDefaultSett;
 import com.xiongx9527.fw.plus.easytrans.common.MateEasyTransDTO;
 import lombok.Data;
 

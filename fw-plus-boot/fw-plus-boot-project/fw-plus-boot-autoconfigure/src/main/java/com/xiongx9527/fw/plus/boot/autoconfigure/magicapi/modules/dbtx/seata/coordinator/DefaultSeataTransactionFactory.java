@@ -1,10 +1,10 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.seata.coordinator;
 
-import io.seata.core.exception.TransactionException;
-import io.seata.core.model.GlobalStatus;
-import io.seata.tm.api.GlobalTransaction;
-import io.seata.tm.api.GlobalTransactionContext;
-import io.seata.tm.api.GlobalTransactionRole;
+import org.apache.seata.core.exception.TransactionException;
+import org.apache.seata.core.model.GlobalStatus;
+import org.apache.seata.tm.api.GlobalTransaction;
+import org.apache.seata.tm.api.GlobalTransactionContext;
+import org.apache.seata.tm.api.GlobalTransactionRole;
 
 public class DefaultSeataTransactionFactory implements SeataTransactionFactory {
 

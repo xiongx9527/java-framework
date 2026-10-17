@@ -17,10 +17,10 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.auth;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.properties.FwPlusMqttServerSecurityProperties;
-import net.dreamlu.iot.mqtt.core.server.auth.IMqttServerAuthHandler;
-import net.dreamlu.iot.mqtt.spring.server.config.MqttServerProperties;
+import org.dromara.mica.mqtt.core.server.auth.IMqttServerAuthHandler;
+import org.dromara.mica.mqtt.spring.server.config.MqttServerProperties;
 import org.apache.commons.lang3.StringUtils;
-import org.tio.core.ChannelContext;
+import net.dreamlu.mica.net.core.ChannelContext;
 
 import java.util.Objects;
 

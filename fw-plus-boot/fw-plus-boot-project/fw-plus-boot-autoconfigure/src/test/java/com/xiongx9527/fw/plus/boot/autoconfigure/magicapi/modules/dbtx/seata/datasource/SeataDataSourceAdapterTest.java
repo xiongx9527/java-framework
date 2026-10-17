@@ -8,9 +8,9 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.exception
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.model.DbTxDefinition;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.seata.coordinator.SeataDbTxCoordinator;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.seata.coordinator.SeataTransaction;
-import io.seata.core.model.GlobalStatus;
-import io.seata.rm.datasource.DataSourceProxy;
-import io.seata.rm.datasource.SeataDataSourceProxy;
+import org.apache.seata.core.model.GlobalStatus;
+import org.apache.seata.rm.datasource.DataSourceProxy;
+import org.apache.seata.rm.datasource.SeataDataSourceProxy;
 import org.junit.jupiter.api.Test;
 import org.ssssssss.magicapi.datasource.model.MagicDynamicDataSource;
 

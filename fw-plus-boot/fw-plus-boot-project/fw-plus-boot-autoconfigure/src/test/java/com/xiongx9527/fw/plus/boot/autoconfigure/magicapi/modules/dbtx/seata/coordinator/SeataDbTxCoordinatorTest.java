@@ -5,7 +5,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasourc
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.exception.DbTxErrorCode;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.exception.DbTxException;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.model.DbTxDefinition;
-import io.seata.core.model.GlobalStatus;
+import org.apache.seata.core.model.GlobalStatus;
 import org.junit.jupiter.api.Test;
 import org.ssssssss.magicapi.datasource.model.MagicDynamicDataSource;
 

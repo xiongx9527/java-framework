@@ -8,9 +8,9 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.con
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.producer.MqttClientProducer;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
-import net.dreamlu.iot.mqtt.core.client.MqttClient;
-import net.dreamlu.iot.mqtt.core.client.MqttClientCreator;
-import net.dreamlu.iot.mqtt.spring.client.MqttClientTemplate;
+import org.dromara.mica.mqtt.core.client.MqttClient;
+import org.dromara.mica.mqtt.core.client.MqttClientCreator;
+import org.dromara.mica.mqtt.spring.client.MqttClientTemplate;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.DisposableBean;
 

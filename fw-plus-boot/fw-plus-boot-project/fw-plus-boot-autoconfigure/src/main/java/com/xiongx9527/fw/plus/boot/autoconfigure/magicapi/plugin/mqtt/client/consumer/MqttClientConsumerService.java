@@ -1,8 +1,8 @@
 
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.consumer;
 
-import net.dreamlu.iot.mqtt.codec.MqttPublishMessage;
-import net.dreamlu.iot.mqtt.codec.MqttQoS;
+import org.dromara.mica.mqtt.codec.message.MqttPublishMessage;
+import org.dromara.mica.mqtt.codec.MqttQoS;
 
 public interface MqttClientConsumerService {
 

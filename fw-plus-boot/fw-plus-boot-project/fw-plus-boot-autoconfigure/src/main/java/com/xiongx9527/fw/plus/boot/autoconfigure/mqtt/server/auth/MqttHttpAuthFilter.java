@@ -16,52 +16,36 @@
 
 package com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.auth;
 
-import net.dreamlu.iot.mqtt.core.server.http.api.code.ResultCode;
-import net.dreamlu.iot.mqtt.core.server.http.api.result.Result;
-import net.dreamlu.iot.mqtt.core.server.http.handler.HttpFilter;
-import net.dreamlu.iot.mqtt.core.server.http.handler.MqttHttpRoutes;
-import org.springframework.beans.factory.InitializingBean;
-import org.tio.http.common.HttpRequest;
-import org.tio.http.common.HttpResponse;
+import net.dreamlu.mica.net.http.common.HttpRequest;
+import net.dreamlu.mica.net.http.common.HttpResponse;
+import net.dreamlu.mica.net.http.common.router.HttpFilter;
+import net.dreamlu.mica.net.http.common.router.HttpFilterChain;
 
 /**
- * 自定义 mqtt http 接口认证，请按照自己的需求和业务进行扩展
+ * 自定义 mqtt http 接口认证，请按照自己的需求和业务进行扩展。
+ *
+ * <p>mica-mqtt 2.6.x 起 http 接口过滤器改为标准责任链形式：认证不通过时直接返回
+ * 失败响应（如 {@code Result.fail(request, ResultCode.E103)}），通过时调用
+ * {@code chain.doFilter(request)} 继续执行过滤器链。</p>
  *
  * @author L.cm
  */
 //@Configuration(proxyBeanMethods = false)
-public class MqttHttpAuthFilter implements HttpFilter, InitializingBean {
+public class MqttHttpAuthFilter implements HttpFilter {
 
 	/**
 	 * 过滤器方法，用于对HTTP请求进行过滤处理
+	 *
 	 * @param request HTTP请求对象
-	 * @return true表示通过过滤，false表示不通过过滤
+	 * @param chain   过滤器链
+	 * @return HTTP响应；认证不通过时直接返回失败响应
 	 * @throws Exception 处理过程中可能抛出的异常
 	 */
 	@Override
-	public boolean filter(HttpRequest request) throws Exception {
-		// 自行实现逻辑
-		return true;
-	}
-
-	/**
-	 * 生成过滤器处理失败时的HTTP响应
-	 * @param request HTTP请求对象
-	 * @return 认证失败的HTTP响应结果
-	 */
-	@Override
-	public HttpResponse response(HttpRequest request) {
-		// 认证不通过时的响应
-		return Result.fail(request, ResultCode.E103);
-	}
-
-	/**
-	 * Bean初始化完成后的回调方法，用于将当前过滤器添加到MQTT HTTP路由中
-	 * @throws Exception 初始化过程中可能抛出的异常
-	 */
-	@Override
-	public void afterPropertiesSet() throws Exception {
-		MqttHttpRoutes.addFilter(this);
+	public HttpResponse doFilter(HttpRequest request, HttpFilterChain chain) throws Exception {
+		// 自行实现逻辑：
+		// 认证不通过时返回: Result.fail(request, ResultCode.E103);
+		return chain.doFilter(request);
 	}
 
 }

@@ -88,7 +88,7 @@
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-aop</artifactId>
+            <artifactId>spring-boot-starter-aspectj</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
@@ -324,14 +324,35 @@
 
         <dependency>
             <groupId>com.alibaba</groupId>
-            <artifactId>druid-spring-boot-3-starter</artifactId>
+            <artifactId>druid-spring-boot-4-starter</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>com.ctrip.framework.apollo</groupId>
+            <artifactId>apollo-client</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>com.alibaba.nacos</groupId>
+            <artifactId>nacos-client</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
 
         <dependency>
             <groupId>com.atomikos</groupId>
-            <artifactId>transactions-spring-boot3-starter</artifactId>
+            <artifactId>transactions-spring-boot4-starter</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
@@ -406,7 +427,7 @@
 
         <dependency>
             <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+            <artifactId>mybatis-plus-spring-boot4-starter</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
@@ -538,15 +559,12 @@
         </dependency>
         -->
 
+        <!-- knife4j：Boot 4 线切社区 fork knife4j-next（com.baizhukui）5.7.8；
+             上游 webflux 变体无 Boot 4 构件（fork 亦无），已移除，
+             webflux 支线文档 UI 的装配处置见 docs/springboot4-upgrade-notes.md -->
         <dependency>
-            <groupId>com.github.xiaoymin</groupId>
-            <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>com.github.xiaoymin</groupId>
-            <artifactId>knife4j-openapi3-webflux-spring-boot-starter</artifactId>
+            <groupId>com.baizhukui</groupId>
+            <artifactId>knife4j-openapi3-boot4-spring-boot-starter</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
@@ -731,14 +749,14 @@
         </dependency>
 
         <dependency>
-            <groupId>net.dreamlu</groupId>
+            <groupId>org.dromara.mica-mqtt</groupId>
             <artifactId>mica-mqtt-server-spring-boot-starter</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
 
         <dependency>
-            <groupId>net.dreamlu</groupId>
+            <groupId>org.dromara.mica-mqtt</groupId>
             <artifactId>mica-mqtt-client-spring-boot-starter</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
@@ -822,13 +840,13 @@
         </dependency>
 
         <dependency>
-            <groupId>io.seata</groupId>
-            <artifactId>seata-server</artifactId>
+            <groupId>org.apache.seata</groupId>
+            <artifactId>seata-all</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
             <exclusions>
                 <!--
-                  seata-server 传递引入 slf4j-reload4j，与 Spring Boot 自带的 logback-classic
+                  seata-all 传递引入 slf4j-reload4j（沿用 io.seata:seata-server 时代的排除），与 Spring Boot 自带的 logback-classic
                   形成第二个 SLF4J 绑定（pulsar 那一路的 log4j-slf4j-impl 已另行排除）。
                   保留唯一绑定 logback，否则本模块的 @SpringBootTest 会在启动期抛
                   "LoggerFactory is not a Logback LoggerContext but Logback is on the classpath"。
@@ -852,7 +870,7 @@
         </dependency>
 
         <dependency>
-            <groupId>io.seata</groupId>
+            <groupId>org.apache.seata</groupId>
             <artifactId>seata-spring-boot-starter</artifactId>
             <scope>compile</scope>
             <optional>true</optional>

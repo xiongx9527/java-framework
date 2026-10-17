@@ -1,15 +1,15 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.mate;
 
-import com.fhs.cache.service.BothCacheService;
-import com.fhs.cache.service.RedisCacheService;
-import com.fhs.common.constant.TransConfig;
-import com.fhs.common.spring.SpringContextUtil;
-import com.fhs.core.trans.convert.Convert;
-import com.fhs.core.trans.util.ConvertUtil;
-import com.fhs.trans.advice.ReleaseTransCacheAdvice;
-import com.fhs.trans.ds.DataSourceSetter;
-import com.fhs.trans.listener.TransMessageListener;
-import com.fhs.trans.service.impl.*;
+import org.dromara.cache.service.BothCacheService;
+import org.dromara.cache.service.RedisCacheService;
+import org.dromara.common.constant.TransConfig;
+import org.dromara.common.spring.SpringContextUtil;
+import org.dromara.core.trans.convert.Convert;
+import org.dromara.core.trans.util.ConvertUtil;
+import org.dromara.trans.advice.ReleaseTransCacheAdvice;
+import org.dromara.trans.ds.DataSourceSetter;
+import org.dromara.trans.listener.TransMessageListener;
+import org.dromara.trans.service.impl.*;
 import com.xiongx9527.fw.plus.easytrans.service.*;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.InitializingBean;

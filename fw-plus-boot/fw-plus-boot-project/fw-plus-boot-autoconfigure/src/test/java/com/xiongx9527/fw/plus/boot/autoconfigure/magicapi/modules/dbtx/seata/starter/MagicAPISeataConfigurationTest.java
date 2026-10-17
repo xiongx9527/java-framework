@@ -59,7 +59,7 @@ class MagicAPISeataConfigurationTest {
 
 	@Test
 	void missingSeataClassesKeepsLocalUsableAndRejectsExplicitSeata() {
-		contextRunner.withClassLoader(new FilteredClassLoader("io.seata"))
+		contextRunner.withClassLoader(new FilteredClassLoader("org.apache.seata"))
 				.withPropertyValues("magic-api.dbtx.seata-enabled=true")
 				.run(context -> {
 					assertThat(context).hasNotFailed();

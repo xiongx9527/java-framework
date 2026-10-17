@@ -2,7 +2,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.mo
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.consumer.MqttClientConsumer;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.consumer.MqttClientConsumerService;
-import net.dreamlu.iot.mqtt.spring.client.MqttClientTemplate;
+import org.dromara.mica.mqtt.spring.client.MqttClientTemplate;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
