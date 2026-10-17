@@ -4,11 +4,11 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.Agent
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.AgenticToolProviders;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.aggregate.AggregatingToolProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextAwareChatMemory;
-import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextInjector;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextMaintenance;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextRequest;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextStrategy;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.EnrichedContextTransformer;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentClassifier;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentRag;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentSupplier;
@@ -22,9 +22,6 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatst
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.PersistToolResultsAiPersistenceStrategy;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.session.SessionIdResolver;
 
-import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.invocation.InvocationContext;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
@@ -1022,64 +1019,14 @@ private Integer rerankMaxResults;
 
 	/**
 	 * 上下文注入器：挂在 AiServices 的 {@code chatRequestTransformer} 上（请求装配后、模型调用前），
-	 * 把 {@link ContextInjector} 渲染的统一上下文作为前置系统消息注入；无内容时不改变请求。
-	 *
-	 * <p>与记忆读侧注入等价的信息（会话键 / userId / 本轮用户输入）在此处均可获得：本轮用户消息
-	 * 已在请求里（取最后一条 {@link UserMessage}），跨会话维度由 memoryId 段[3] 解析，RAG 检索段
-	 * 按 {@link EphemeralChatMemory} 同一分隔符口径剥离，保证来源拿到的是用户原话。</p>
+	 * 实现与 agentic 侧共享（见 {@link EnrichedContextTransformer}）：注入渲染后的统一上下文、
+	 * 无内容时不改变请求；RAG 检索段按 {@link EphemeralChatMemory} 同一分隔符口径剥离。
 	 */
 	private BiFunction<ChatRequest, Object, ChatRequest> enrichedContextTransformer() {
-		final ContextInjector injector = new ContextInjector(contextProviders, contextStrategy);
 		final List<String> separators = ephemeralSeparators != null
 				? new ArrayList<String>(ephemeralSeparators)
 				: Collections.singletonList(EphemeralChatMemory.DEFAULT_RAG_SEPARATOR);
-		return (request, memoryId) -> {
-			String sessionKey = memoryId == null ? null : memoryId.toString();
-			String userId = sessionKey == null ? null
-					: ChatMemoryIds.parseUserId(sessionKey, ChatMemoryIds.DEFAULT_USER_ID);
-			String latest = latestUserText(request.messages(), separators);
-			String context = injector.render(new ContextRequest(sessionKey, sessionKey, userId, latest));
-			if (context == null || context.isEmpty()) {
-				return request;
-			}
-			List<ChatMessage> messages = new ArrayList<ChatMessage>(request.messages().size() + 1);
-			messages.add(SystemMessage.from(context));
-			messages.addAll(request.messages());
-			return request.toBuilder().messages(messages).build();
-		};
-	}
-
-	/** 请求中最后一条用户消息的文本：无单文本（多模态）回落 {@code null}，并按需剥离 RAG 检索段 */
-	private static String latestUserText(List<ChatMessage> messages, List<String> separators) {
-		if (messages == null) {
-			return null;
-		}
-		for (int i = messages.size() - 1; i >= 0; i--) {
-			ChatMessage message = messages.get(i);
-			if (message instanceof UserMessage) {
-				UserMessage userMessage = (UserMessage) message;
-				return stripRetrievalSegment(
-						userMessage.hasSingleText() ? userMessage.singleText() : null, separators);
-			}
-		}
-		return null;
-	}
-
-	/** 剥离 RAG 检索段（与 {@link EphemeralChatMemory} 同一分隔符口径），保留用户原话 */
-	private static String stripRetrievalSegment(String text, List<String> separators) {
-		if (text == null || text.isEmpty() || separators == null) {
-			return text;
-		}
-		for (String separator : separators) {
-			if (separator == null || separator.isEmpty()) {
-				continue;
-			}
-			int anchor = text.indexOf(separator);
-			if (anchor >= 0) {
-				return text.substring(0, anchor);
-			}
-		}
-		return text;
+		return new EnrichedContextTransformer(contextProviders, contextStrategy, separators);
 	}
 
 	/**

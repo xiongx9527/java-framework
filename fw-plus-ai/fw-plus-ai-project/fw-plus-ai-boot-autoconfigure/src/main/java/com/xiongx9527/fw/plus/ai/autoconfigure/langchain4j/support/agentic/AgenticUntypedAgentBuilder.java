@@ -1,5 +1,9 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextMaintenance;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextProvider;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextStrategy;
+
 import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.agentic.agent.UntypedAgentBuilder;
 import dev.langchain4j.agentic.scope.AgenticScope;
@@ -21,7 +25,8 @@ import java.util.function.Function;
  * 可独立执行，也可作为 subAgent 挂入任意编排。
  *
  * <p>内部委托 {@link AgenticBuilder}，存储 / 上下文入口与其保持一致
- * （{@code memory} / {@code memoryStore} / {@code scopeStore} / {@code context} / {@code summarizedContext}）；
+ * （{@code memory} / {@code memoryStore} / {@code scopeStore} / {@code context} / {@code summarizedContext} /
+ * {@code contextProvider} / {@code contextMaintenance}）；
  * {@code ephemeral*} 与 {@code aiPersistence*} 等进阶记忆策略见 {@link AgenticBuilder}。</p>
  */
 public final class AgenticUntypedAgentBuilder {
@@ -174,6 +179,24 @@ public final class AgenticUntypedAgentBuilder {
     /** 摘要上下文：把指定名称 agents 的输出对话摘要后注入本 agent 的 prompt（仅系统内运行时生效）。 */
     public AgenticUntypedAgentBuilder summarizedContext(String... contextProvidingAgents) {
         delegate.summarizedContext(contextProvidingAgents);
+        return this;
+    }
+
+    /** 会话上下文组合策略：{@code memory} / {@code enriched} / {@code memory-and-enriched}（默认后者），与助手侧同义。 */
+    public AgenticUntypedAgentBuilder contextStrategy(ContextStrategy strategy) {
+        delegate.contextStrategy(strategy);
+        return this;
+    }
+
+    /** 注册会话上下文来源（摘要 / 事实等，与助手侧同一套），可传多个；独立执行与挂入编排都生效。 */
+    public AgenticUntypedAgentBuilder contextProvider(ContextProvider... providers) {
+        delegate.contextProvider(providers);
+        return this;
+    }
+
+    /** 注册上下文维护钩子（写时滚动 + 读时兜底，如 {@code new SummaryMaintenance(engine, windowSize)}），可传多个。 */
+    public AgenticUntypedAgentBuilder contextMaintenance(ContextMaintenance... maintenances) {
+        delegate.contextMaintenance(maintenances);
         return this;
     }
 

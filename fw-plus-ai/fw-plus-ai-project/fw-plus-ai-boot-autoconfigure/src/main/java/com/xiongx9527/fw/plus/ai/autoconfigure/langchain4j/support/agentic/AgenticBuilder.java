@@ -1,5 +1,11 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextAwareChatMemory;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextMaintenance;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextProvider;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextRequest;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextStrategy;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.EnrichedContextTransformer;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentClassifier;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentRag;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentSupplier;
@@ -9,6 +15,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.Epheme
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.EphemeralChatMemoryProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.LengthBoundedAiPersistenceStrategy;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.PersistToolResultsAiPersistenceStrategy;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatstore.ChatMemoryIds;
 
 import dev.langchain4j.agentic.AgenticServices;
 import dev.langchain4j.agentic.UntypedAgent;
@@ -25,6 +32,7 @@ import dev.langchain4j.memory.chat.TokenWindowChatMemory;
 import dev.langchain4j.model.TokenCountEstimator;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.rag.RetrievalAugmentor;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.service.tool.ToolProvider;
@@ -35,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -64,7 +73,9 @@ import java.util.function.Function;
  *       {@code memory(Integer)} / {@code memoryStore(ChatMemoryStore)} / {@code tokenizer} /
  *       {@code maxTokens}，以及 AI 持久化策略（{@code aiPersistenceStrategy} / {@code ephemeral*}
  *       / {@code ephemeralChatMemory}），与助手侧同构（内置记忆默认包一层
- *       {@link EphemeralChatMemory}）；</li>
+ *       {@link EphemeralChatMemory}）；会话上下文注入（{@code contextStrategy} /
+ *       {@code contextProvider} / {@code contextMaintenance}，含滚动摘要与跨会话事实，
+ *       与 {@code AssistantBuilder} 共享同一套实现）；</li>
  *   <li><b>意图识别</b>：{@link #intent(IntentClassifier)} 返回 {@link IntentRouting} 视图，
  *       复用 {@link IntentRag.Builder} / {@link IntentTools.Builder} 按意图分流检索与工具；</li>
  *   <li><b>agentic 原生存储</b>：{@link #scopeStore(AgenticScopeStore)} 把编排共享状态
@@ -135,6 +146,16 @@ public final class AgenticBuilder<T> {
 
     private boolean ephemeralSendToolRequestsInCurrentTurn = true;
 
+    // ------------------------------------------------------------------
+    // 会话上下文（与 AssistantBuilder 共享实现）
+    // ------------------------------------------------------------------
+
+    private ContextStrategy contextStrategy = ContextStrategy.MEMORY_AND_ENRICHED;
+
+    private final List<ContextProvider> contextProviders = new ArrayList<ContextProvider>();
+
+    private final List<ContextMaintenance> contextMaintenances = new ArrayList<ContextMaintenance>();
+
     /** 包内可见：同包门面构建器（{@code AgenticTypedAgentBuilder} / {@code AgenticUntypedAgentBuilder}）内部委托复用。 */
     AgenticBuilder(AgentBuilder<T, ?> delegate) {
         this.delegate = delegate;
@@ -142,12 +163,12 @@ public final class AgenticBuilder<T> {
 
     /** 单 agent（typed）：传入带 {@code @Agent} 注解的接口，产物为该接口的可执行代理。 */
     public static <T> AgenticBuilder<T> agent(Class<T> agentServiceClass) {
-        return new AgenticBuilder<>(AgenticServices.agentBuilder(agentServiceClass));
+        return new AgenticBuilder<>(new ContextInjectingAgentBuilder<>(agentServiceClass));
     }
 
     /** 单 agent（untyped）：产物为 {@link UntypedAgent} 句柄。 */
     public static AgenticBuilder<UntypedAgent> agent() {
-        return new AgenticBuilder<>(AgenticServices.agentBuilder());
+        return new AgenticBuilder<>(new ContextInjectingUntypedAgentBuilder());
     }
 
     // ------------------------------------------------------------------
@@ -320,6 +341,51 @@ public final class AgenticBuilder<T> {
      */
     public AgenticBuilder<T> summarizedContext(String... contextProvidingAgents) {
         delegate.summarizedContext(contextProvidingAgents);
+        return this;
+    }
+
+    /** 上下文组合策略：{@code memory} / {@code enriched} / {@code memory-and-enriched}（默认后者） */
+    public AgenticBuilder<T> contextStrategy(ContextStrategy strategy) {
+        if (strategy != null) {
+            this.contextStrategy = strategy;
+        }
+        return this;
+    }
+
+    /**
+     * 注册一个有序会话上下文来源（如 {@code new SummaryContextProvider(summaryStore)} /
+     * {@code new FactContextProvider(factStore)}，与助手侧同一套），可传多个。
+     *
+     * <p>与 {@link #context(Function)}（agentic 原生 scope 上下文）互补：本来源基于会话记忆
+     * （memoryId 维度，含滚动摘要与跨会话事实），<b>独立执行与挂入编排两种形态都生效</b>；
+     * 原生 scope 上下文仅在系统内运行时生效。两者同时配置时组合成链、互不覆盖。</p>
+     */
+    public AgenticBuilder<T> contextProvider(ContextProvider... providers) {
+        if (providers != null) {
+            for (ContextProvider provider : providers) {
+                if (provider != null) {
+                    this.contextProviders.add(provider);
+                }
+            }
+        }
+        return this;
+    }
+
+    /**
+     * 注册上下文维护钩子（写时滚动 + 读时兜底，如 {@code new SummaryMaintenance(engine, windowSize)} /
+     * {@code new FactMaintenance(...)}，与助手侧同一套），可传多个。
+     *
+     * <p>仅在配置了 {@link #contextProvider(ContextProvider...)} 且使用内置记忆装配
+     * （{@code memory*} / {@code ephemeral*} 系列入口）时挂载。</p>
+     */
+    public AgenticBuilder<T> contextMaintenance(ContextMaintenance... maintenances) {
+        if (maintenances != null) {
+            for (ContextMaintenance maintenance : maintenances) {
+                if (maintenance != null) {
+                    this.contextMaintenances.add(maintenance);
+                }
+            }
+        }
         return this;
     }
 
@@ -546,6 +612,9 @@ public final class AgenticBuilder<T> {
         } else if (memoryConfigured) {
             delegate.chatMemoryProvider(resolveChatMemoryProvider());
         }
+        if (delegate instanceof ContextRequestTransformerHost host) {
+            host.contextRequestTransformer(resolveContextRequestTransformer());
+        }
         return delegate.build();
     }
 
@@ -553,9 +622,7 @@ public final class AgenticBuilder<T> {
     private ChatMemoryProvider resolveChatMemoryProvider() {
         final ChatMemoryStore store = memoryStore == null ? new InMemoryChatMemoryStore() : memoryStore;
         final AiPersistenceStrategy resolvedStrategy = resolveEphemeralStrategy();
-        final List<String> separators = ephemeralSeparators != null
-                ? ephemeralSeparators
-                : Collections.singletonList(EphemeralChatMemory.DEFAULT_RAG_SEPARATOR);
+        final List<String> separators = resolveEphemeralSeparators();
         return memoryId -> {
             ChatMemory delegate;
             if (tokenizer != null) {
@@ -572,7 +639,7 @@ public final class AgenticBuilder<T> {
                         .chatMemoryStore(store)
                         .build();
             }
-            return EphemeralChatMemory.builder(delegate, store)
+            ChatMemory ephemeral = EphemeralChatMemory.builder(delegate, store)
                     .aiPersistenceStrategy(resolvedStrategy)
                     .ephemeralSeparators(separators)
                     .stripRagFromHistory(ephemeralStripRagFromHistory)
@@ -580,7 +647,47 @@ public final class AgenticBuilder<T> {
                     .sendToolResultsInCurrentTurn(ephemeralSendToolResultsInCurrentTurn)
                     .sendToolRequestsInCurrentTurn(ephemeralSendToolRequestsInCurrentTurn)
                     .build();
+            return wrapContextAware(memoryId, ephemeral);
         };
+    }
+
+    /** RAG 检索段分隔符：与 {@link EphemeralChatMemory} / 上下文注入器同口径（防御性拷贝）。 */
+    private List<String> resolveEphemeralSeparators() {
+        return ephemeralSeparators != null
+                ? new ArrayList<String>(ephemeralSeparators)
+                : Collections.singletonList(EphemeralChatMemory.DEFAULT_RAG_SEPARATOR);
+    }
+
+    /**
+     * 用 {@link ContextAwareChatMemory} 包裹记忆做上下文维护（写时滚动 + 读时兜底）；
+     * 策略为 {@code memory} 或未注册来源时原样返回（不维护、零开销）。会话键即当前
+     * effective memoryId（5 段），userId 由 memoryId 段[3] 解析（跨会话维度）。
+     *
+     * <p>注意：上下文「注入」不在记忆读侧承担——注入由 {@link #resolveContextRequestTransformer()}
+     * 挂在 AiServices 的 {@code chatRequestTransformer} 上完成（见 {@link EnrichedContextTransformer}）。</p>
+     */
+    private ChatMemory wrapContextAware(Object memoryId, ChatMemory delegate) {
+        if (!contextStrategy.injectsEnriched() || contextProviders.isEmpty()) {
+            return delegate;
+        }
+        final String sessionKey = memoryId == null ? null : memoryId.toString();
+        final String userId = sessionKey == null ? null
+                : ChatMemoryIds.parseUserId(sessionKey, ChatMemoryIds.DEFAULT_USER_ID);
+        return new ContextAwareChatMemory(delegate,
+                latest -> new ContextRequest(sessionKey, sessionKey, userId, latest), contextMaintenances);
+    }
+
+    /**
+     * 会话上下文注入器：装配到 agent 构建子类（{@link ContextRequestTransformerHost}）的
+     * {@code build(scope, context, aiServices)} 钩子上，与上游已装的 scope 上下文 / 摘要变换器
+     * 组合成链（本变换器先执行）。未注册来源或策略为 {@code memory} 时返回 {@code null}
+     * （不注册变换器，保持零开销）。
+     */
+    private BiFunction<ChatRequest, Object, ChatRequest> resolveContextRequestTransformer() {
+        if (!contextStrategy.injectsEnriched() || contextProviders.isEmpty()) {
+            return null;
+        }
+        return new EnrichedContextTransformer(contextProviders, contextStrategy, resolveEphemeralSeparators());
     }
 
     /**
