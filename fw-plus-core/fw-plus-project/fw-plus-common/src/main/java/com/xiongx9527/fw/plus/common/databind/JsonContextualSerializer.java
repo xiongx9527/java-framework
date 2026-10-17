@@ -1,33 +1,15 @@
 package com.xiongx9527.fw.plus.common.databind;
 
-import com.fasterxml.jackson.databind.BeanProperty;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.ser.ContextualSerializer;
+import tools.jackson.databind.BeanProperty;
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.ValueSerializer;
 
 import java.lang.annotation.Annotation;
 
 /**
  * @author xiongxiao
  */
-public interface JsonContextualSerializer extends ContextualSerializer {
-
-    /**
-     * 根据上下文创建一个合适的序列化器
-     *
-     * @param provider SerializerProvider的实现，用于配置和获取序列化器
-     * @param property 当前序列化器相关的Bean属性，可能为null
-     * @return JsonSerializer<?> 根据上下文创建的序列化器，用于序列化特定类型的对象
-     *
-     * 此方法的主要作用是根据具体的序列化上下文（如特定的属性）来配置或获取一个合适的序列化器
-     * 当property参数不为null时，调用getJsonSerializer方法获取一个特定的序列化器；
-     * 否则，调用provider的findNullValueSerializer方法来获取处理null值的序列化器
-     */
-    @Override
-    default JsonSerializer<?> createContextual(SerializerProvider provider, BeanProperty property) throws JsonMappingException {
-        return null != property ? this.getJsonSerializer(provider, property) : provider.findNullValueSerializer((BeanProperty)null);
-    }
+public interface JsonContextualSerializer {
 
     /**
      * 获取指定Bean属性上的注解或其上下文中的注解
@@ -43,7 +25,7 @@ public interface JsonContextualSerializer extends ContextualSerializer {
         // 尝试直接从属性上获取注解
         A a = property.getAnnotation(clazz);
         if (null == a) {
-            // 如果未找到注解，尝试从属性的上下文中获取注解
+            // 如果未找到注解，尝试从属性的上下文中获取该注解
             a = property.getContextAnnotation(clazz);
         }
 
@@ -52,10 +34,11 @@ public interface JsonContextualSerializer extends ContextualSerializer {
     }
 
     /**
-     * @param serializerProvider
-     * @param beanProperty
-     * @return
-     * @throws JsonMappingException
+     * 根据上下文获取（或创建）合适的字段序列化器
+     *
+     * @param serializerProvider SerializationContext的实现，用于配置和获取序列化器
+     * @param beanProperty 当前序列化器相关的Bean属性
+     * @return 根据上下文创建的序列化器，用于序列化特定类型的对象
      */
-    JsonSerializer<?> getJsonSerializer(SerializerProvider serializerProvider, BeanProperty beanProperty) throws JsonMappingException;
+    ValueSerializer<?> getJsonSerializer(SerializationContext serializerProvider, BeanProperty beanProperty);
 }

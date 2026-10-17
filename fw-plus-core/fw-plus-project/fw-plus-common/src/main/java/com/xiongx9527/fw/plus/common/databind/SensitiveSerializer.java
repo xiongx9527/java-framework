@@ -1,15 +1,13 @@
 package com.xiongx9527.fw.plus.common.databind;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonStreamContext;
-import com.fasterxml.jackson.databind.BeanProperty;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
 import com.xiongx9527.fw.plus.common.mate.annotation.FieldSensitive;
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.TokenStreamContext;
+import tools.jackson.databind.BeanProperty;
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.ValueSerializer;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -18,7 +16,7 @@ import java.util.Objects;
  * @author xiongxiao
  */
 @Slf4j
-public class SensitiveSerializer extends JsonSerializer<String> implements JsonContextualSerializer {
+public class SensitiveSerializer extends ValueSerializer<String> implements JsonContextualSerializer {
     /**
      * 敏感策略接口实例，用于处理敏感信息相关策略
      */
@@ -58,18 +56,30 @@ public class SensitiveSerializer extends JsonSerializer<String> implements JsonC
     }
 
     /**
+     * Jackson 3 上下文序列化：根据 Bean 属性上的 {@link FieldSensitive} 注解创建定制序列化器
+     *
+     * @param provider 序列化上下文，用于获取默认序列化器
+     * @param property 当前序列化器相关的Bean属性，可能为null
+     * @return 返回定制序列化器；属性为 null 时返回 null 值序列化器
+     */
+    @Override
+    public ValueSerializer<?> createContextual(SerializationContext provider, BeanProperty property) {
+        return null != property ? this.getJsonSerializer(provider, property)
+                : provider.findNullValueSerializer(null);
+    }
+
+    /**
      * 重写serialize方法以实现自定义的敏感信息处理逻辑
      *
      * @param value 待序列化的字符串值
      * @param gen 用于生成JSON数据的工具类
      * @param serializers 提供序列化器的工具类
-     * @throws IOException 当JSON生成过程中发生I/O错误时抛出
      */
     @Override
-    public void serialize(String value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+    public void serialize(String value, JsonGenerator gen, SerializationContext serializers) {
         // 检查是否已经注入了敏感信息处理策略
         if (null == SENSITIVE_STRATEGY) {
-            // 如果未注入敏感信息处理策略，则抛出运行时异常
+            // 如果未注入敏感信息处理策略，则记录告警
             //throw new RuntimeException("You used the annotation `@FieldSensitive` but did not inject `SensitiveStrategy`");
             log.warn("You used the annotation `@FieldSensitive` but did not inject `SensitiveStrategy`");
         } else {
@@ -84,10 +94,10 @@ public class SensitiveSerializer extends JsonSerializer<String> implements JsonC
                 // 如果字段名不为null且不为"_all_"，则进一步判断当前字段是否需要跳过敏感信息处理
                 if (null != fieldNames) {
                     // 获取当前JSON生成上下文
-                    JsonStreamContext jsc = gen.getOutputContext();
+                    TokenStreamContext jsc = gen.streamWriteContext();
                     // 如果上下文不为null，获取当前字段名，并判断是否需要跳过敏感信息处理
                     if (null != jsc) {
-                        String currentName = jsc.getCurrentName();
+                        String currentName = jsc.currentName();
 	                    String fieldNames1 = (String) fieldNames;
 	                    List<String> fieldList = Arrays.asList(fieldNames1.split(","));
 	                    if (null != currentName && fieldList.contains(currentName)) {
@@ -103,27 +113,26 @@ public class SensitiveSerializer extends JsonSerializer<String> implements JsonC
                 }
             }
 
-            // 将处理后的字段值写入JSON
-            gen.writeObject(fieldValue);
+            // 将处理后的字段值写入JSON（Jackson 3 使用 SerializationContext.writeValue）
+            serializers.writeValue(gen, fieldValue);
         }
     }
 
     /**
-     * 自定义Json序列化器获取方法
-     * 该方法用于根据字段类型和注解动态选择合适的Json序列化器
+     * 自定义序列化器获取方法
+     * 该方法用于根据字段类型和注解动态选择合适的序列化器
      * 主要用于处理敏感信息的字段，使其在序列化时能够按照指定的方式进行处理
      *
-     * @param provider 序列化器提供者，用于获取默认序列化器
+     * @param provider 序列化上下文，用于获取默认序列化器
      * @param property 正在处理的Bean属性，用于获取字段类型和注解信息
-     * @return 返回自定义的Json序列化器实例，如果不需要自定义处理，则返回默认序列化器
-     * @throws JsonMappingException 如果序列化器获取过程中发生错误
+     * @return 返回自定义的序列化器实例，如果不需要自定义处理，则返回默认的序列化器
      */
     @Override
-    public JsonSerializer<?> getJsonSerializer(SerializerProvider provider, BeanProperty property) throws JsonMappingException {
+    public ValueSerializer<?> getJsonSerializer(SerializationContext provider, BeanProperty property) {
         // 检查当前属性的类型是否为String，因为敏感信息通常用String表示
         if (Objects.equals(property.getType().getRawClass(), String.class)) {
             // 尝试获取当前属性上的FieldSensitive注解
-            FieldSensitive sensitiveInfo = (FieldSensitive)this.getAnnotation(property, FieldSensitive.class);
+            FieldSensitive sensitiveInfo = this.getAnnotation(property, FieldSensitive.class);
             // 如果该属性上有FieldSensitive注解，则创建并返回一个SensitiveSerializer
             if (null != sensitiveInfo) {
                 return new SensitiveSerializer(sensitiveInfo.value());
@@ -131,6 +140,6 @@ public class SensitiveSerializer extends JsonSerializer<String> implements JsonC
         }
 
         // 如果属性类型不是String或者没有FieldSensitive注解，则返回默认的序列化器
-        return provider.findValueSerializer(property.getType(), property);
+        return provider.findValueSerializer(property.getType());
     }
 }
