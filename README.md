@@ -1,6 +1,6 @@
 # fw-plus
 
-**统一依赖、自动配置与可组合扩展，为 Spring Boot 3.5.x 项目提供完整的工程能力底座。**
+**统一依赖、自动配置与可组合扩展，为 Spring Boot 4.1.x 项目提供完整的工程能力底座。**
 
 <a href="#项目概览">项目概览</a> ·
 <a href="#快速开始">快速开始</a> ·
@@ -13,7 +13,7 @@
 
 ## 项目概览
 
-**fw-plus** 是一个面向 Java 17 与 Spring Boot 3.5.8 的模块化 Java 开发框架。它将公共基础能力、ORM 增强、Spring Boot 自动配置、Spring Cloud 扩展、Magic-API 插件、AI 适配层、图数据库 JDBC 与样例项目组织为四个可独立构建的库层。
+**fw-plus** 是一个面向 Java 21 与 Spring Boot 4.1.x 的模块化 Java 开发框架。它将公共基础能力、ORM 增强、Spring Boot 自动配置、Spring Cloud 扩展、Magic-API 插件、AI 适配层、图数据库 JDBC 与样例项目组织为四个可独立构建的库层。
 
 项目强调按需组合，而不是要求应用一次性引入所有能力：
 
@@ -35,7 +35,7 @@
 
 ### 环境要求
 
-- JDK 17
+- JDK 21（Core / Boot 层已落地；Cloud / AI 层升级收口中，过渡期 `<jdk.version>` 仍为 17）
 - Git
 - macOS、Linux 或 Windows Shell
 - Apache Maven 3.8+，或直接使用仓库自带的 Maven Wrapper（根目录与四个库层均含 `mvnw` 与 `.mvn/wrapper`）
@@ -77,11 +77,11 @@ Core 是全部上层的基础，负责公共抽象、领域增强和依赖版本
 
 ### Boot
 
-Boot 在 Core 之上提供 Spring Boot 3.5.x 自动配置。`fw-plus-boot-autoconfigure` 汇集核心自动配置，`fw-plus-boot-starters` 提供可按需引入的 Starter 和 Magic-API 插件。
+Boot 在 Core 之上提供 Spring Boot 4.1.x 自动配置。`fw-plus-boot-autoconfigure` 汇集核心自动配置，`fw-plus-boot-starters` 提供可按需引入的 Starter 和 Magic-API 插件。
 
 ### Cloud
 
-Cloud 在 Boot 之上提供 Spring Cloud 2025.0.0 扩展，包括 Cloud 通用能力、自动配置、Eureka 服务端、灰度负载均衡与 Magic-API Cloud 插件。
+Cloud 在 Boot 之上提供 Spring Cloud 2025.1（Oakwood 线）扩展，包括 Cloud 通用能力、自动配置、Eureka 服务端、灰度负载均衡与 Magic-API Cloud 插件。
 
 ### AI
 
@@ -203,6 +203,8 @@ Magic Script、YAML 或 FreeMarker 内容
 | [`fw-plus-ai-mcp-server-sample`](./fw-plus-sample/fw-plus-ai-samples/fw-plus-ai-mcp-server-sample/) | MCP Server 集成 |
 | [`fw-plus-ai-chat-sample`](./fw-plus-sample/fw-plus-ai-samples/fw-plus-ai-chat-sample/) | AI 对话 |
 | [`fw-plus-ai-agentscope-sample`](./fw-plus-sample/fw-plus-ai-samples/fw-plus-ai-agentscope-sample/) | AgentScope 集成 |
+| [`fw-plus-ai-nl2sql-sample`](./fw-plus-sample/fw-plus-ai-samples/fw-plus-ai-nl2sql-sample/) | NL2SQL |
+| [`fw-plus-ai-structured-output-sample`](./fw-plus-sample/fw-plus-ai-samples/fw-plus-ai-structured-output-sample/) | 结构化输出 |
 
 ## 开发与维护
 
@@ -243,7 +245,7 @@ java-framework/
 - 集成测试命名为 `*IT.java`。
 - Cobertura HTML/XML 报告位于对应模块的 `target/site/cobertura/`。
 - Java 源码和资源统一使用 UTF-8。
-- 编译目标为 Java 17，源码已全面 jakarta 化（`jakarta.servlet.*`、`jakarta.validation.*`）。
+- 编译目标为 Java 21（Core / Boot 已落地；Cloud / AI 层过渡期仍为 17），源码已全面 jakarta 化（`jakarta.servlet.*`、`jakarta.validation.*`）。
 
 ### 版本与发布模型
 
@@ -258,22 +260,23 @@ java-framework/
 
 | 项目 | 当前基线 |
 | --- | --- |
-| Java | 17 |
-| Spring Boot | 3.5.8 |
-| Spring Cloud | 2025.0.0 |
-| Spring Cloud Alibaba | 2025.0.0.0 |
+| Java | 21（Core / Boot 已落地；Cloud / AI 过渡期 17） |
+| Spring Boot | 4.1.1 |
+| Spring Cloud | 2025.1.3（Oakwood） |
+| Spring Cloud Alibaba | 2025.1.0.0 |
 | Magic-API | 2.2.2，自行维护版本（jakarta 线） |
 | Magic Script | 1.9.0 |
-| MyBatis-Plus | 3.5.16 |
-| MyBatis-Flex | 1.11.4 |
+| MyBatis-Plus | 3.5.17（boot4 坐标） |
+| MyBatis-Flex | 1.11.8（boot4 坐标） |
 | LangChain4j | 1.22.0 |
-| Spring AI | 1.1.8 |
+| Spring AI | 2.0.1 |
 | AgentScope | 2.0.4 |
-| Sa-Token | 1.46.0 |
+| Sa-Token | 1.46.0（boot4 坐标） |
 
 使用前请注意：
 
-- 仓库当前处于 `springboot3` 分支（Spring Boot 2.7.18 → 3.5.8 迁移线），迁移版本矩阵与待办见 [Spring Boot 3 升级说明](./docs/springboot3-upgrade-notes.md)。
+- 仓库当前处于 `springboot4` 分支（JDK 17 + Spring Boot 3.5.8 → JDK 21 + Spring Boot 4.1.x 迁移线），Core 与 Boot 层已完成升级，Cloud / AI / Sample 层收口中。迁移版本矩阵与待办见 [Spring Boot 4 升级说明](./docs/springboot4-upgrade-notes.md)。
+- Boot 4 管线默认使用 **Jackson 3**（`tools.jackson`）；`com.fasterxml.jackson`（Jackson 2）仅在 magic-api fork 等兼容场景保留，新代码优先使用 Jackson 3 命名空间。
 - 代码已切换到 `jakarta.*` 命名空间，不要再引入 `javax.servlet` / `javax.validation`；`javax.sql` / `javax.xml` / `javax.tools` 等属保留包，无需迁移。
 - Magic-API 使用自行维护的 2.2.2（jakarta）版本，请勿自行替换为 Maven Central 中的其他版本。
 - 部分依赖通过项目 POM 声明的非中央仓库解析，外部环境需要具备对应网络和仓库访问能力。
@@ -283,7 +286,7 @@ java-framework/
 
 ## 贡献
 
-提交变更前请保持模块边界、Java 17 兼容性、jakarta 命名空间约束和现有代码风格，并运行受影响层的测试。
+提交变更前请保持模块边界、Java 21 兼容性（Cloud / AI 层过渡期仍为 Java 17）、jakarta 命名空间约束和现有代码风格，并运行受影响层的测试。
 
 - [提交 Issue](https://github.com/xiongx9527/java-framework/issues)
 - [创建 Pull Request](https://github.com/xiongx9527/java-framework/pulls)

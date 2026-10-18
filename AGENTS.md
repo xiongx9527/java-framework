@@ -9,11 +9,11 @@
 
 ## 项目概述
 
-fw-plus 是 9527 的 Java 开发框架，基于 Spring Boot 3.5.8（Jakarta EE / JDK 17），提供 Spring Boot 自动化配置、Spring Cloud 扩展、MyBatis-Plus/Flex 增强、Magic-API 插件、AI（LangChain4j / Spring AI / Spring AI Alibaba / AgentScope / LangGraph4j）集成、图数据库 JDBC 驱动等能力。四个库层当前版本为 `0.4.0-SNAPSHOT`，通过 `${revision}` + `flatten-maven-plugin` 管理；`fw-plus-sample` 样例聚合器固定使用 `0.4.0-SNAPSHOT`，不使用 `flatten-maven-plugin`。
+fw-plus 是 9527 的 Java 开发框架，基于 Spring Boot 4.1.1（Jakarta EE / JDK 21），提供 Spring Boot 自动化配置、Spring Cloud 扩展、MyBatis-Plus/Flex 增强、Magic-API 插件、AI（LangChain4j / Spring AI / Spring AI Alibaba / AgentScope / LangGraph4j）集成、图数据库 JDBC 驱动等能力。四个库层当前版本为 `0.4.0-SNAPSHOT`，通过 `${revision}` + `flatten-maven-plugin` 管理；`fw-plus-sample` 样例聚合器固定使用 `0.4.0-SNAPSHOT`，不使用 `flatten-maven-plugin`。
 
-**当前分支**：仓库处于 `springboot3` 分支（Spring Boot 2.7.18 → 3.5.8 迁移线）。Java 版本为 JDK 17，Servlet/校验等已切到 `jakarta.*` 命名空间。迁移详情、版本矩阵与待办见 `docs/springboot3-upgrade-notes.md`。
+**当前分支**：仓库处于 `springboot4` 分支（JDK 17 + Spring Boot 3.5.8 → JDK 21 + Spring Boot 4.1.x 迁移线）。Core 与 Boot 层已完成升级（JDK 21、Boot 4.1.1，测试全绿）；Cloud、AI、Sample 层升级收口中（这两层 `<jdk.version>` 暂为 17）。Jackson 已随 Boot 4 切换到 3.x（`tools.jackson`），Jackson 2 仅在 magic-api fork 等兼容场景保留。迁移详情、版本矩阵与待办见 `docs/springboot4-upgrade-notes.md`。
 
-**Git 仓库结构**：当前工作区只有根目录一个 `.git` 仓库（remote：`xiongx9527/java-framework`）；`fw-plus-core`、`fw-plus-boot`、`fw-plus-cloud`、`fw-plus-ai` 是同一仓库内的顶层 Maven 聚合目录，非 git submodule。根目录 `pom.xml` 聚合全部 5 层，可用根 `./mvnw` 一把构建。`.worktrees/` 下存在 git 工作树（如 `langchain4j-agentic-support`），由 Orca/Comet 管理，不参与根构建。当前工作区不包含旧文档曾提到的 `fw-plus-product/` 和独立 `resources/` 仓库。构建产物在各层之间通过 Maven 本地仓库（`~/.m2`）传递。
+**Git 仓库结构**：当前工作区只有根目录一个 `.git` 仓库（remote：`xiongx9527/java-framework`）；`fw-plus-core`、`fw-plus-boot`、`fw-plus-cloud`、`fw-plus-ai` 是同一仓库内的顶层 Maven 聚合目录，非 git submodule。根目录 `pom.xml` 聚合全部 5 层，可用根 `./mvnw` 一把构建。当前工作区不包含旧文档曾提到的 `fw-plus-product/` 和独立 `resources/` 仓库。构建产物在各层之间通过 Maven 本地仓库（`~/.m2`）传递。
 
 各层 GroupId：
 - Core: `com.xiongx9527.fw.plus`
@@ -32,7 +32,7 @@ fw-plus 是 9527 的 Java 开发框架，基于 Spring Boot 3.5.8（Jakarta EE /
 
 ```
 fw-plus/                      # 根目录（聚合工程，根 pom.xml 聚合下列 5 层，含 mvnw + .mvn/wrapper）
-├── fw-plus-core/             # 核心库层（JDK 17, Spring Boot 3.5.8）
+├── fw-plus-core/             # 核心库层（JDK 21, Spring Boot 4.1.1）
 │   ├── fw-plus-project/
 │   │   ├── fw-plus-parent/         # Core 层父 POM
 │   │   ├── fw-plus-common/         # 公共工具：加密、UID、异常、序列化、SpringUtils
@@ -182,19 +182,23 @@ fw-plus/                      # 根目录（聚合工程，根 pom.xml 聚合下
 │   │   ├── eureka-server-sample
 │   │   ├── eureka-service-sample
 │   │   └── nacos-gateway-sample
-│   └── fw-plus-ai-samples/            # AI 示例项目（4 个）
-│       ├── fw-plus-ai-magicapi-sample     # Magic-API AI 示例
-│       ├── fw-plus-ai-mcp-server-sample   # MCP Server 示例
-│       ├── fw-plus-ai-chat-sample         # AI 对话示例
-│       └── fw-plus-ai-agentscope-sample   # AgentScope 示例
+│   └── fw-plus-ai-samples/            # AI 示例项目（6 个）
+│       ├── fw-plus-ai-magicapi-sample          # Magic-API AI 示例
+│       ├── fw-plus-ai-mcp-server-sample        # MCP Server 示例
+│       ├── fw-plus-ai-chat-sample              # AI 对话示例
+│       ├── fw-plus-ai-agentscope-sample        # AgentScope 示例
+│       ├── fw-plus-ai-nl2sql-sample            # NL2SQL 示例
+│       └── fw-plus-ai-structured-output-sample # 结构化输出示例
 │
 ├── docs/                     # 项目文档
 │   ├── openspec/             # OpenSpec 变更与规格文档
 │   ├── comet/                # Comet 变更与规格文档
 │   ├── superpowers/          # superpowers plans / specs / reports
 │   ├── sql/                  # SQL 辅助资源（原 META-INF/sql）
+│   ├── nl2sql/               # NL2SQL 设计与脚本
 │   ├── ai-framework-migration/        # AI 框架迁移脚本
-│   └── springboot3-upgrade-notes.md   # Spring Boot 3 升级说明
+│   ├── springboot4-upgrade-notes.md   # Spring Boot 4 / Java 21 升级说明（当前迁移线）
+│   └── springboot3-upgrade-notes.md   # Spring Boot 3 升级说明（存档）
 ├── CONTEXT.md                # 领域术语表
 ├── CLAUDE.md                 # AI 助手配置
 └── README.md
@@ -298,19 +302,22 @@ fw-plus/                      # 根目录（聚合工程，根 pom.xml 聚合下
 
 | 类别 | 技术 |
 |------|------|
-| 基础框架 | Spring Boot 3.5.8, Spring Cloud 2025.0.0 |
-| JDK | 17（`jdk.version=17`，源码已 jakarta 化） |
-| 云生态 | Spring Cloud Alibaba 2025.0.0.0, Spring Cloud Tencent 1.14.0-2023.0.0-RC2 |
-| ORM | MyBatis-Plus 3.5.16, MyBatis-Flex 1.11.4, MyBatis 3.5.19, mybatis-plus-join 1.5.2, dynamic-datasource 4.3.1, Druid 1.2.28 |
-| 脚本引擎 | Magic-API 2.2.2（jakarta 线，自行维护版本，非中央仓库版本）, magic-script 1.9.0 |
-| AI | LangChain4j 1.22.0, Spring AI 1.1.8, Spring AI Alibaba 1.1.2.4-security-fix, AgentScope 2.0.4, LangGraph4j 1.9.3 |
-| 消息队列 | Kafka, Pulsar 2.11.2, RocketMQ 5.3.2, RabbitMQ, Mica MQTT 2.3.9 |
+| 基础框架 | Spring Boot 4.1.1, Spring Cloud 2025.1.3（Oakwood） |
+| JDK | 21（Core / Boot 已落地；Cloud / AI 层 `<jdk.version>` 暂为 17，升级收口中） |
+| 云生态 | Spring Cloud Alibaba 2025.1.0.0, Spring Cloud Tencent 1.14.0-2023.0.0-RC2（待 Cloud 层实测切 2.1.2.0-2025.1.1） |
+| ORM | MyBatis-Plus 3.5.17（boot4 坐标）, MyBatis-Flex 1.11.8（boot4 坐标）, MyBatis 3.5.19, mybatis-spring 4.0.0, mybatis-plus-join 1.5.9（仓内 fork 适配）, dynamic-datasource 4.6.0（boot4 坐标）, Druid 1.2.28（boot4 坐标） |
+| 脚本引擎 | Magic-API 2.2.2（仓内维护版本，非中央仓库版本；Spring 7 适配含 vendored Mapping 遮蔽）, magic-script 1.9.0 |
+| AI | LangChain4j 1.22.0（community 1.22.0-beta32）, Spring AI 2.0.1, Spring AI Alibaba 2.0.0-M1.1, AgentScope 2.0.4, LangGraph4j 1.9.3 |
+| 序列化 | Jackson 3.x（`tools.jackson`，Boot 4 管线）；Jackson 2 仅兼容场景保留（magic-api fork 走 `jackson-2-bom` 2.21.5） |
+| 消息队列 | Kafka, Pulsar 2.11.2, RocketMQ 5.3.2, RabbitMQ, Mica MQTT 2.6.13 |
 | 数据库/存储 | MySQL, InfluxDB 6.7.0, Redis（Jedis 7.2.1）, Elasticsearch 8.19.8, Nebula Graph（client 3.8.4 / driver 5.3.0）, Neo4j driver 6.0.5, Minio/S3 |
-| 工具库 | Hutool 5.8.47, EasyPoi 4.5.0, DynamicTp 1.2.1（Core BOM）/ 1.2.2（Boot BOM）, Debezium 1.9.8.Final |
+| 工具库 | Hutool 5.8.48, EasyPoi 4.5.0, DynamicTp 1.2.1（Core BOM）/ 1.2.2（Boot BOM）, Debezium 3.7.0.Final, Seata 2.6.0 |
 | 模板引擎 | Freemarker, docx4j, OpenPDF, poi-tl 1.12.2 |
-| API 文档 | knife4j 4.5.0（jakarta 坐标）, springdoc 2.8.17 |
-| 可观测性 | OpenTelemetry 1.56.0（AI 层 1.61.0）, Apollo 2.5.0, Spring Boot Admin 3.5.6, Plumelog 3.5.3 |
-| 认证鉴权 | Sa-Token 1.46.0, OAuth2 |
+| API 文档 | knife4j-next fork（com.baizhukui）5.7.8, springdoc 3.0.3（WebFlux 场景由 springdoc webflux 承载） |
+| 可观测性 | OpenTelemetry 1.56.0（AI 层 1.61.0）, Apollo 2.5.0, Spring Boot Admin 4.1.4, Plumelog 3.5.3 |
+| 字典翻译 | easy-trans 4.0.2（`org.dromara` 坐标，包名 `com.fhs.*` → `org.dromara.*`） |
+| 认证鉴权 | Sa-Token 1.46.0（boot4 坐标）, OAuth2 |
+| Servlet 容器 | Tomcat 11.0.27（钉版，Servlet 6.1） |
 | 前端 | Vue3, Vite（Magic-API 控制台与插件控制台） |
 
 ## 重要提醒
@@ -318,13 +325,13 @@ fw-plus/                      # 根目录（聚合工程，根 pom.xml 聚合下
 - **Maven 构建**：根目录是聚合工程（`pom.xml` + `mvnw` + `.mvn/wrapper`，模块为 `fw-plus-core`/`fw-plus-boot`/`fw-plus-cloud`/`fw-plus-ai`/`fw-plus-sample`），可用 `./mvnw clean install -DskipTests` 一把跑全仓；四个库层各自也带有 `mvnw`，用于按层增量构建。层间依赖按 Core → Boot → Cloud / AI 顺序准备到本地 Maven 仓库后即可构建。`fw-plus-sample` 聚合器无独立 wrapper，使用根 wrapper：`./mvnw -f fw-plus-sample/pom.xml validate`。发版按版本号统一发，不单独发某个模块。
   - **boot / cloud / ai 三层默认 `maven.test.skip=true`**（编译、打包、安装、deploy 均不含测试）。需要跑测试时必须显式覆盖：`-Dmaven.test.skip=false`。
   - **`fw-plus-ai-langchain4j-*` 各模块需显式声明 `lombok`(provided) 与 `langchain4j-core`**（上游 `langchain4j-core` 是 optional，不传递）。
-- **JDK 17**：四层顶层 pom 均设 `<jdk.version>17</jdk.version>`。已解除旧文档的 Java 8 约束，可使用 Java 9+ API（`List.of()`、`Map.copyOf()` 等）。同时代码已全面 **jakarta 化**（`jakarta.servlet.*`、`jakarta.validation.*`），不要再引入 `javax.servlet` / `javax.validation`；`javax.sql` / `javax.xml` / `javax.tools` 等属保留包，无需迁移。
+- **JDK 21**：四层顶层 pom 目标 `<jdk.version>21</jdk.version>`（Core / Boot 已落地；Cloud / AI 层当前仍为 17，升级收口中）。可使用 Java 9+ API（`List.of()`、`Map.copyOf()` 等）。同时代码已全面 **jakarta 化**（`jakarta.servlet.*`、`jakarta.validation.*`），不要再引入 `javax.servlet` / `javax.validation`；`javax.sql` / `javax.xml` / `javax.tools` 等属保留包，无需迁移。注意 Boot 4 管线默认 **Jackson 3**（`tools.jackson`），新代码优先使用 Jackson 3 命名空间；`com.fasterxml.jackson`（Jackson 2）仅用于 magic-api fork 等兼容场景。
 - **Magic-API 版本**：使用自行维护的 2.2.2（jakarta 线，依赖 `magic-api-servlet-jakarta`），`org.ssssssss` 组的依赖通过 `<repositories>` 指向内部 Nexus 仓库（jugui-snapshot / jugui-release），请勿修改这些依赖的版本号。
 - **源文件编码**：所有 Java 源文件、资源文件统一使用 UTF-8 编码。
 - **文件路径**：不构造硬编码的跨平台文件路径，系统路径使用 `System.getProperty()` 或 `Path` API，资源路径使用 Spring `ResourceLoader` 或 `ClassPathResource`。
 - **自定义类**：项目中包含大量自定义类和注解（如 `Algorithm`、`FieldEncrypt` 等），修改相关代码时确保充分理解其用途。
 - **resources/**：当前工作区未检出该目录；若在运行环境中单独挂载，Magic-API 会动态加载其中资源。修改 api/function/task 等脚本目录后通常即时生效，无需重启服务；修改 datasource/config 等配置目录后需要重启服务或触发配置刷新。
-- **迁移参考**：Spring Boot 3 迁移的版本矩阵、已落地改动与待办清单见 `docs/springboot3-upgrade-notes.md`。
+- **迁移参考**：Spring Boot 4 / Java 21 迁移的版本矩阵、各层落地记录与待办清单见 `docs/springboot4-upgrade-notes.md`（Spring Boot 3 迁移记录存档于 `docs/springboot3-upgrade-notes.md`）。
 - **领域术语**：`CONTEXT.md` 记录项目领域语言中已精确定义的术语（如宿主栈、栈支线、双栈一致、文档切面、控制台切面）；涉及相关概念时以其为准。
 
 ## 构建、测试与开发命令
@@ -354,7 +361,7 @@ cd fw-plus-core && ./mvnw clean deploy -DskipTests
 
 ## 编码风格与命名约定
 
-- **Java**: 目标 JDK 17，遵循标准 Java 编码规范。
+- **Java**: 目标 JDK 21（Core / Boot 已落地；Cloud / AI 层过渡期为 17），遵循标准 Java 编码规范。
 - **缩进**: 使用 Tab（与现有 `pom.xml` 文件一致），保持与周围文件风格统一。
 - **模块命名**: kebab-case — `fw-plus-core`、`fw-plus-boot`、`fw-plus-mp`。
 - **包命名**: `com.xiongx9527.fw.plus.*` — 如 `com.xiongx9527.fw.plus.mp`、`com.xiongx9527.fw.plus.common`。
@@ -364,12 +371,12 @@ cd fw-plus-core && ./mvnw clean deploy -DskipTests
 
 ## 测试指南
 
-- **框架**: JUnit，通过 `maven-surefire-plugin` 和 `maven-failsafe-plugin` 运行。
+- **框架**: JUnit 6（随 Boot 4 `spring-boot-starter-test`），通过 `maven-surefire-plugin` 和 `maven-failsafe-plugin` 运行。
 - **覆盖率**: Cobertura（`cobertura-maven-plugin 2.7`）生成 HTML + XML 报告。
 - **测试位置**: 各 Maven 模块的 `src/test/java/` 目录。
 - **命名**: 遵循标准 Maven 约定 — 单元测试用 `*Test.java`，集成测试用 `*IT.java`。
 - **运行测试**: 从模块根目录执行 `./mvnw clean test`。注意 `fw-plus-boot` / `fw-plus-cloud` / `fw-plus-ai` 默认 `maven.test.skip=true`，需加 `-Dmaven.test.skip=false`；`fw-plus-core` 默认执行测试。
-- **AI 层基线**: `fw-plus-ai-boot-autoconfigure` 含较多自动配置用例（含 `SpringBoot3DependencyBaselineTest` 等依赖基线校验），改动 AI 装配时优先回归该模块。
+- **AI 层基线**: `fw-plus-ai-boot-autoconfigure` 含较多自动配置用例（含 `SpringBoot3DependencyBaselineTest` 等依赖基线校验），改动 AI 装配时优先回归该模块；该基线在 AI 层 Boot4 升级时同步更新为 Boot4 断言（见 `docs/springboot4-upgrade-notes.md` 附录 B）。
 
 ## 提交与 PR 规范
 
@@ -385,7 +392,7 @@ cd fw-plus-core && ./mvnw clean deploy -DskipTests
 - **IDE**: IntelliJ IDEA（`.idea/` 目录已纳入版本控制）。
 - **AI 代理配置**: `AGENTS.md`（本文件）和 `CLAUDE.md` 包含项目指南和 AI 助手配置。
 - **领域术语**: `CONTEXT.md` 记录项目领域语言与术语。
-- **当前分支**: `springboot3`（Spring Boot 3 迁移线）。
+- **当前分支**: `springboot4`（JDK 21 + Spring Boot 4 迁移线）。
 - **许可证**: Apache 2.0。
 
 <comet-ambient-resume>
