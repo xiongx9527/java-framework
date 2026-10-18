@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.tools;
 import com.alibaba.fastjson2.JSON;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.config.MagicApiMcpProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.spi.MagicApiMcpCapabilityProvider;
+import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.AntPathMatcher;
 import org.ssssssss.magicapi.core.model.ApiInfo;
@@ -228,7 +229,28 @@ public class MagicApiMcpToolRegistry {
 			return Boolean.parseBoolean(String.valueOf(options.get(optionName)));
 		}
 		String value = safeOptionValue(info, optionName);
-		return StringUtils.isNotBlank(value) && Boolean.parseBoolean(value);
+		if (StringUtils.isNotBlank(value)) {
+			return Boolean.parseBoolean(value);
+		}
+		// JVM 参数兜底（参考 MagicAPIConfigUtils 模式）
+		String jvmValue = safeJvmOptionValue(info, optionName);
+		return StringUtils.isNotBlank(jvmValue) && Boolean.parseBoolean(jvmValue);
+	}
+
+	/**
+	 * 从 JVM 参数读取 MCP 工具 opt-in 配置。
+	 * key 格式：{@code magic.api.mcp.api.<api-id>.<optionName>}。
+	 */
+	private String safeJvmOptionValue(ApiInfo info, String optionName) {
+		try {
+			String id = info.getId();
+			if (StringUtils.isBlank(id)) {
+				return null;
+			}
+			return SpringUtils.getAppConfig("magic.api.mcp.api." + id + "." + optionName, null);
+		} catch (Exception ignored) {
+			return null;
+		}
 	}
 
 	private Map<String, String> safeOptions(ApiInfo info) {

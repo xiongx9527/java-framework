@@ -32,7 +32,7 @@ public class DisposableWorkerIdAssigner implements WorkerIdAssigner {
      * 从配置文件中读取表名，默认为"WORKER_NODE"
      */
     @Value("${fw.plus.uid.jdbc.worker_node_table_name:WORKER_NODE}")
-    private String workerNodeTableName;
+    private String workerNodeTableName = "WORKER_NODE";
 
     /**
      * JDBC模板对象
