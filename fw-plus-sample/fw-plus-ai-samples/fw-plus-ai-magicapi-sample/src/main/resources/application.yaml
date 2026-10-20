@@ -28,19 +28,20 @@ fw:
       langchain4j:
         chat-memory:
           # 存储后端：in-memory（默认，进程内）/ mem0（mem0 兼容 REST 服务，跨进程保留会话历史）。
-          # 本地起 mem0 后即可跑通多轮记忆；未启动 mem0 应用仍可启动，仅对话调用时连接失败
+          # 指向内网共享 mem0（192.168.1.100:8888，mem0 CE docker 部署）；mem0 不可达时应用仍可启动，仅对话调用时连接失败
+          # 该实例开启鉴权：运行时以环境变量提供 key，如 export MEM0_ADMIN_API_KEY=<ADMIN_API_KEY>
           type: mem0
           mem0:
-            base-url: http://localhost:8000 # 网关要求 /v1 前缀时写 http://localhost:8000/v1
-            api-key: ""                     # 本地未开启鉴权时留空（不发送 Authorization 头）
+            base-url: http://192.168.1.100:8888 # API 路径无 /v1 前缀，直接拼 /memories 等；网关要求 /v1 时自行带前缀
+            api-key: ${MEM0_ADMIN_API_KEY:}    # 该部署 ADMIN_API_KEY，经 X-API-Key 头认证；留空不发送
         assistant:
           session:
             # 跨会话事实记忆：每轮抽取事实入库，下一轮召回注入上下文（事实 → 摘要顺序）；
             # 与 chat-memory 各自独立配置，可指向同一或不同 mem0 实例
             facts:
               enabled: true
-              base-url: http://localhost:8000 # 独立 mem0 实例；网关要求 /v1 前缀时自行带前缀
-              api-key: ""                     # X-API-Key 认证（留空不发送）
+              base-url: http://192.168.1.100:8888 # 与 chat-memory 指向同一实例，也可分开指不同实例
+              api-key: ${MEM0_ADMIN_API_KEY:}    # X-API-Key 认证（留空不发送）
               extractor: mem0                 # mem0 | llm | rule | hybrid
               write-mode: per-turn            # per-turn | batched | session-end
               retriever: semantic             # semantic | keyword | hybrid | rerank
@@ -52,8 +53,13 @@ fw:
       langchain4j:
         simple-assistant:
           enabled: true
-          use-default-key: true
           key: gemma4 # 默认 key = langchain4j-chat-model 数据源 key（见 langchain4j-chat-model/gemma4.json）
+          # 仅对话类模型回落默认 key；tokenizer/scoring 等未配置数据源，禁止回落
+          #（否则 TokenWindowChatMemory 估算 token 时按 key 取 tokenizer 失败，对话直接报错）
+          use-default-key: false
+          use-default-keys:
+            chatModel: true
+            streamingModel: true
           memory-max-messages: 20 # 会话记忆窗口（条）
 
 fw-plus:
