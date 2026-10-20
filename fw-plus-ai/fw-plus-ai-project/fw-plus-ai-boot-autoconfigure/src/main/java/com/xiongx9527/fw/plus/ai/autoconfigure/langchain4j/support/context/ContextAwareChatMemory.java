@@ -68,8 +68,8 @@ public class ContextAwareChatMemory implements ChatMemory {
 		List<ChatMessage> beforeWrite = delegate.messages();
 		delegate.add(message);
 		if (message instanceof AiMessage) {
-			// 写时为主：每轮 AI 回复落库后滚动维护一次（抢在窗口驱逐前）
-			maintain(beforeWrite);
+			// 写时为主：每轮 AI 回复落库后滚动维护一次（抢在窗口驱逐前），携带本次写入的消息
+			maintain(beforeWrite, message);
 			this.maintainedSinceLastWrite = true;
 		}
 	}
@@ -77,9 +77,9 @@ public class ContextAwareChatMemory implements ChatMemory {
 	@Override
 	public List<ChatMessage> messages() {
 		List<ChatMessage> base = delegate.messages();
-		// 读时兜底：本轮尚未写过（如进程新加载历史）时补一次维护
+		// 读时兜底：本轮尚未写过（如进程新加载历史）时补一次维护（无当轮消息）
 		if (!maintainedSinceLastWrite) {
-			maintain(base);
+			maintain(base, null);
 			this.maintainedSinceLastWrite = true;
 		}
 		String context = injector.render(requestFactory.create(latestUserMessage));
@@ -92,14 +92,14 @@ public class ContextAwareChatMemory implements ChatMemory {
 		return injected;
 	}
 
-	private void maintain(List<ChatMessage> currentMessages) {
+	private void maintain(List<ChatMessage> currentMessages, ChatMessage turnMessage) {
 		if (maintenances.isEmpty()) {
 			return;
 		}
 		ContextRequest request = requestFactory.create(latestUserMessage);
 		for (ContextMaintenance maintenance : maintenances) {
 			try {
-				maintenance.maintain(request, currentMessages);
+				maintenance.maintain(request, currentMessages, turnMessage);
 			} catch (Exception e) {
 				// 维护失败不中断本轮，来源照旧（可能为空）
 				log.warn("上下文维护 {} 失败，本轮跳过：{}",

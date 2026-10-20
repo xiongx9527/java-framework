@@ -10,6 +10,8 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.logging.ChatC
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatstore.ChatMemoryStoreProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatstore.ChatMemoryTenantResolver;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatstore.Mem0ChatMemoryStore;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.facts.FactStore;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.facts.Mem0FactStore;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.summary.InMemorySummaryStore;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.summary.SummaryStore;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.rag.DifyContentRetriever;
@@ -67,6 +69,7 @@ import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
 			LangChain4jSupportAutoConfiguration.DifyRagPropertiesConfiguration.class,
 			LangChain4jSupportAutoConfiguration.AssistantEnvelopeConfiguration.class,
 			LangChain4jSupportAutoConfiguration.SummaryMemoryConfiguration.class,
+			LangChain4jSupportAutoConfiguration.FactMemoryConfiguration.class,
 			LangChain4jIntentAutoConfiguration.class})
 public class LangChain4jSupportAutoConfiguration {
 
@@ -259,6 +262,36 @@ public class LangChain4jSupportAutoConfiguration {
 		@ConditionalOnMissingBean(SummaryStore.class)
 		public SummaryStore inMemorySummaryStore() {
 			return new InMemorySummaryStore();
+		}
+	}
+
+	/**
+	 * 跨会话事实存储装配：默认注册独立 mem0 实例的 {@link FactStore}（{@link Mem0FactStore}），
+	 * 使用方自定义 {@code FactStore} Bean 即自动覆盖。
+	 *
+	 * <p>事实来源/维护钩子不在此装配：它们需要按 magic-api 运行时构造的模型现场组装，
+	 * 收口在 {@code Langchain4jModuleConfiguration#simpleAssistant} 的
+	 * {@code FactMemoryAssembler.apply(...)}（先于摘要装配）。</p>
+	 */
+	@Configuration(proxyBeanMethods = false)
+	static class FactMemoryConfiguration {
+
+		/** 默认独立 mem0 事实存储：enabled=true 且使用方未提供 {@link FactStore} 时兜底；base-url 缺失即启动失败 */
+		@Bean
+		@ConditionalOnProperty(prefix = Langchain4jAssistantProperties.PREFIX, name = "session.facts.enabled",
+				havingValue = "true")
+		@ConditionalOnMissingBean(FactStore.class)
+		public FactStore mem0FactStore(Langchain4jAssistantProperties properties) {
+			Langchain4jAssistantProperties.Session session = properties.getSession();
+			Langchain4jAssistantProperties.Session.Facts facts = session == null ? null : session.getFacts();
+			if (facts == null || facts.getBaseUrl() == null || facts.getBaseUrl().trim().isEmpty()) {
+				throw new IllegalStateException(String.format(
+						"%s.session.facts.enabled=true，但 session.facts.base-url 未配置（且无自定义 FactStore Bean）："
+								+ "请填写独立 mem0 服务地址",
+						Langchain4jAssistantProperties.PREFIX));
+			}
+			return new Mem0FactStore(facts.getBaseUrl().trim(), facts.getApiKey(),
+					facts.getConnectTimeout(), facts.getReadTimeout());
 		}
 	}
 

@@ -1,0 +1,16 @@
+{
+  "change": "langchain4j-fact-memory",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "task_hash_policy": "task-content-v1",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "4e5b10fca3c8b3c1532ebdc9321f2d311240c88afaf02dfd0c32558550556396",
+  "files": [
+    { "path": "docs/openspec/changes/langchain4j-fact-memory/proposal.md", "sha256": "b24bafdb9e2bf317ba88516846fa3c515d33874f1d217976bf85626a9db659a2" },
+    { "path": "docs/openspec/changes/langchain4j-fact-memory/design.md", "sha256": "db0f86ad23a49fc70b1217d1b78828eee3a95f23f9dcfd5a8408d90bd0be25ac" },
+    { "path": "docs/openspec/changes/langchain4j-fact-memory/tasks.md", "sha256": "42f3bd7294a4777cdae548f7b22048912fd9b5b009b3b383fc0dcbade55eda26" },
+    { "path": "docs/openspec/changes/langchain4j-fact-memory/.openspec.yaml", "sha256": "c5936a7e8ac90455175dd905c9e8fb9d33cf82476be795f24133b51ef95c3d96" },
+    { "path": "docs/openspec/changes/langchain4j-fact-memory/specs/langchain4j-fact-memory/spec.md", "sha256": "bcc187a19b6af7a4946b44706ce73753a88c1454aa0f8b6593e561bb0d1fb9f8" }
+  ]
+}
