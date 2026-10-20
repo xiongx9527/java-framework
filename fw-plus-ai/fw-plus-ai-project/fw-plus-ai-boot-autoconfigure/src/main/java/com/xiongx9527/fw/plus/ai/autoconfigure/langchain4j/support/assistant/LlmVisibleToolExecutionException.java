@@ -21,8 +21,11 @@ public class LlmVisibleToolExecutionException extends BizException {
 
 	private static final long serialVersionUID = 1L;
 
+	/** 状态码 50005001（SERVER/BUSINESS/001 工具业务异常回传 LLM） */
+	public static final int CODE = 50_005_001;
+
 	private LlmVisibleToolExecutionException(String message) {
-		super(message);
+		super(CODE, message);
 	}
 
 	/**

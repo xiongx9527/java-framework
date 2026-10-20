@@ -8,6 +8,11 @@ import com.xiongx9527.fw.plus.common.exception.BizException;
 
 public class JavaEntityCompilationException extends BizException {
 
+    private static final long serialVersionUID = 1L;
+
+    /** 状态码 50029001（SERVER/SCRIPT/001 动态实体 Java 源码编译失败） */
+    public static final int CODE = 50_029_001;
+
     private final List<JavaEntityDiagnostic> diagnostics;
 
     public JavaEntityCompilationException(JavaEntityDiagnostic diagnostic) {
@@ -15,7 +20,7 @@ public class JavaEntityCompilationException extends BizException {
     }
 
     public JavaEntityCompilationException(List<JavaEntityDiagnostic> diagnostics) {
-        super(firstMessage(diagnostics));
+        super(CODE, firstMessage(diagnostics));
         this.diagnostics = Collections.unmodifiableList(new ArrayList<>(diagnostics));
     }
 

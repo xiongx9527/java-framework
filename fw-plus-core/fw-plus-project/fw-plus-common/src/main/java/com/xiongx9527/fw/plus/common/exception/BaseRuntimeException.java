@@ -7,11 +7,14 @@ public class BaseRuntimeException extends BizException {
      */
     private static final long serialVersionUID = -27048199131316992L;
 
+    /** 状态码 50010001（SERVER/INFRASTRUCTURE/001 公共运行时异常） */
+    public static final int CODE = 50_010_001;
+
     /**
      * Default constructor
      */
     public BaseRuntimeException() {
-        super();
+        super(CODE, (String) null);
     }
 
     /**
@@ -21,7 +24,7 @@ public class BaseRuntimeException extends BizException {
      * @param cause
      */
     public BaseRuntimeException(String message, Throwable cause) {
-        super(message, cause);
+        super(CODE, message, cause);
     }
 
     /**
@@ -30,7 +33,7 @@ public class BaseRuntimeException extends BizException {
      * @param message
      */
     public BaseRuntimeException(String message) {
-        super(message);
+        super(CODE, message);
     }
 
     /**
@@ -40,7 +43,7 @@ public class BaseRuntimeException extends BizException {
      * @param args
      */
     public BaseRuntimeException(String msgFormat, Object... args) {
-        super(String.format(msgFormat, args));
+        super(CODE, String.format(msgFormat, args));
     }
 
     /**
@@ -49,7 +52,7 @@ public class BaseRuntimeException extends BizException {
      * @param cause
      */
     public BaseRuntimeException(Throwable cause) {
-        super(cause);
+        super(CODE, cause);
     }
 
 }

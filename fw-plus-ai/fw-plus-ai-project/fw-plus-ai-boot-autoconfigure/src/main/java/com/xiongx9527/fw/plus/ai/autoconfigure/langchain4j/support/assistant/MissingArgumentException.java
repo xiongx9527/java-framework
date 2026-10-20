@@ -19,12 +19,15 @@ public class MissingArgumentException extends BizException {
 
 	private static final long serialVersionUID = 1L;
 
+	/** 状态码 40001001（CLIENT/REQUEST/001 工具调用必填参数缺失） */
+	public static final int CODE = 40_001_001;
+
 	private final String toolName;
 
 	private final List<String> missingParameters;
 
 	public MissingArgumentException(String toolName, List<String> missingParameters) {
-		super(String.format("工具 '%s' 缺少必填参数：%s", toolName, missingParameters));
+		super(CODE, String.format("工具 '%s' 缺少必填参数：%s", toolName, missingParameters));
 		this.toolName = toolName;
 		this.missingParameters = Collections.unmodifiableList(new ArrayList<String>(missingParameters));
 	}

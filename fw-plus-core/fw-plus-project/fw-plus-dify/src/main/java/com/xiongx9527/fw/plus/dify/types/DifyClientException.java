@@ -3,11 +3,15 @@ package com.xiongx9527.fw.plus.dify.types;
 import com.xiongx9527.fw.plus.common.exception.BizException;
 
 public class DifyClientException extends BizException {
+
+    /** 状态码 50008002（SERVER/THIRD_PARTY/002 Dify HTTP 客户端调用失败） */
+    public static final int CODE = 50_008_002;
+
     /**
      * Constructs a new runtime exception with {@code null} as its
      */
     public DifyClientException() {
-        super();
+        super(CODE, (String) null);
     }
 
     /**
@@ -15,7 +19,7 @@ public class DifyClientException extends BizException {
      * @param message String
      */
     public DifyClientException(String message) {
-        super(message);
+        super(CODE, message);
     }
 
     /**
@@ -24,7 +28,7 @@ public class DifyClientException extends BizException {
      * @param cause Throwable
      */
     public DifyClientException(String message, Throwable cause) {
-        super(message, cause);
+        super(CODE, message, cause);
     }
 
     /**
@@ -32,7 +36,7 @@ public class DifyClientException extends BizException {
      * @param cause Throwable
      */
     public DifyClientException(Throwable cause) {
-        super(cause);
+        super(CODE, cause);
     }
 
 }

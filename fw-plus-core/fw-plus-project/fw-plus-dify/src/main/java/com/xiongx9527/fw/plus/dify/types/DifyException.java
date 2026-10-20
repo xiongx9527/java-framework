@@ -12,6 +12,10 @@ import java.util.Map;
  * Dify exception type
  */
 public class DifyException extends BizException {
+
+    /** 状态码 50008001（SERVER/THIRD_PARTY/001 Dify 服务返回错误） */
+    public static final int CODE = 50_008_001;
+
     @Getter
     private String original;
 
@@ -33,10 +37,11 @@ public class DifyException extends BizException {
     private String params;
 
     public DifyException() {
-        super();
+        super(CODE, (String) null);
     }
 
     public DifyException(String response, Integer status) {
+        super(CODE, (String) null);
         this.httpStatus = status;
         this.status = status;
         this.original = response;

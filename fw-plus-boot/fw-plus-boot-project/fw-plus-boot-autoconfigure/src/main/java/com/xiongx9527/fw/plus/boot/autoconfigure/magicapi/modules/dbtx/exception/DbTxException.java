@@ -7,12 +7,15 @@ public class DbTxException extends BizException {
 
 	private static final long serialVersionUID = 1L;
 
+	/** 状态码 50009009（SERVER/DATABASE/009 动态事务执行失败） */
+	public static final int CODE = 50_009_009;
+
 	private final DbTxErrorCode dbTxCode;
 
 	private final DbTxOutcome outcome;
 
 	public DbTxException(DbTxErrorCode code, String message) {
-		super(message);
+		super(CODE, message);
 		this.dbTxCode = code;
 		this.outcome = null;
 	}
@@ -22,7 +25,7 @@ public class DbTxException extends BizException {
 	}
 
 	public DbTxException(DbTxErrorCode code, String message, Throwable cause, DbTxOutcome outcome) {
-		super(message, cause);
+		super(CODE, message, cause);
 		this.dbTxCode = code;
 		this.outcome = outcome;
 	}

@@ -21,24 +21,31 @@ import lombok.Getter;
  * <h3>使用示例</h3>
  * <pre>
  *   // 基础用法：来源 + 分类 + 编号 + 消息
- *   throw new BizException(ErrorSource.CLIENT, ErrorCategory.REQUEST, 1, "重复提交");
- *   // → code = 40,001,001
+ *   throw new BizException(ErrorSource.CLIENT, ErrorCategory.REQUEST, 101, "重复提交");
+ *   // → code = 40,001,101
  *
  *   // 带附加数据
- *   throw new BizException(ErrorSource.CLIENT, ErrorCategory.BUSINESS, 1, "库存不足", Map.of("sku", "A001"));
- *   // → code = 40,005,001
+ *   throw new BizException(ErrorSource.CLIENT, ErrorCategory.BUSINESS, 101, "库存不足", Map.of("sku", "A001"));
+ *   // → code = 40,005,101
  *
  *   // 带原始异常
- *   throw new BizException(ErrorSource.SERVER, ErrorCategory.DATABASE, 1, "连接超时", e);
- *   // → code = 50,009,001
+ *   throw new BizException(ErrorSource.SERVER, ErrorCategory.DATABASE, 101, "连接超时", e);
+ *   // → code = 50,009,101
  *
  *   // 快捷方法
- *   throw BizException.client(ErrorCategory.REQUEST, 1, "重复提交");    // code = 40,001,001
- *   throw BizException.server(ErrorCategory.DATABASE, 1, "连接超时");    // code = 50,009,001
- *   throw BizException.param(1, "参数缺失");                              // code = 40,001,001
- *   throw BizException.biz(1, "库存不足");                               // code = 40,005,001
- *   throw BizException.internal(1, "系统繁忙");                           // code = 50,010,001
+ *   throw BizException.client(ErrorCategory.REQUEST, 101, "重复提交");    // code = 40,001,101
+ *   throw BizException.server(ErrorCategory.DATABASE, 101, "连接超时");    // code = 50,009,101
+ *   throw BizException.param(101, "参数缺失");                              // code = 40,001,101
+ *   throw BizException.biz(101, "库存不足");                               // code = 40,005,101
+ *   throw BizException.internal(101, "系统繁忙");                           // code = 50,010,101
  * </pre>
+ *
+ * <h3>状态码段分配</h3>
+ * <ul>
+ *   <li><b>框架内置异常类</b>：各子类以 {@code public static final int CODE} 常量自声明固定状态码，
+ *       占用各分类下 specific 的 <b>001-099</b> 段（分配表见各异常类 CODE 注释）。</li>
+ *   <li><b>业务代码</b>：建议 specific 从 <b>100</b> 起分配，避免与框架内置码冲突。</li>
+ * </ul>
  *
  * @see ErrorSource      错误来源
  * @see ErrorCategory    错误分类
@@ -86,6 +93,31 @@ public class BizException extends RuntimeException {
     public BizException(Throwable cause) {
         super(cause);
         this.code = DEFAULT_CODE;
+        this.data = null;
+    }
+
+    /**
+     * 固定状态码 + 消息：供框架内置异常子类以 {@code CODE} 常量自声明错误码
+     * @param code    8 位统一状态码（40/50 开头）
+     * @param message 错误消息
+     */
+    public BizException(int code, String message) {
+        super(message);
+        this.code = checkCode(code);
+        this.data = null;
+    }
+
+    /** 固定状态码 + 消息 + 原始异常 */
+    public BizException(int code, String message, Throwable cause) {
+        super(message, cause);
+        this.code = checkCode(code);
+        this.data = null;
+    }
+
+    /** 固定状态码 + 原始异常（消息取 {@code cause.toString()}，与 {@link #BizException(Throwable)} 一致） */
+    public BizException(int code, Throwable cause) {
+        super(cause);
+        this.code = checkCode(code);
         this.data = null;
     }
 
@@ -176,6 +208,10 @@ public class BizException extends RuntimeException {
             throw new IllegalArgumentException("specific 必须在 0-999 之间: " + specific);
         }
         int code = source.getCode() * 1_000_000 + category.getCode() * 1_000 + specific;
+        return checkCode(code);
+    }
+
+    private static int checkCode(int code) {
         if (code < 10_000_000 || code > 99_999_999) {
             throw new IllegalStateException("状态码非 8 位: " + code);
         }

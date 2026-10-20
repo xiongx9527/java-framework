@@ -16,6 +16,9 @@ public class StructuredOutputException extends BizException {
 
 	private static final long serialVersionUID = 1L;
 
+	/** 状态码 50024001（SERVER/SERIALIZATION/001 模型结构化输出解析失败） */
+	public static final int CODE = 50_024_001;
+
 	private final String lastReply;
 
 	private final List<String> errors;
@@ -33,7 +36,7 @@ public class StructuredOutputException extends BizException {
 	}
 
 	public StructuredOutputException(String message, String lastReply, List<String> errors, Throwable cause) {
-		super(message, cause);
+		super(CODE, message, cause);
 		this.lastReply = lastReply;
 		this.errors = errors == null ? Collections.<String>emptyList()
 				: Collections.unmodifiableList(new ArrayList<String>(errors));
