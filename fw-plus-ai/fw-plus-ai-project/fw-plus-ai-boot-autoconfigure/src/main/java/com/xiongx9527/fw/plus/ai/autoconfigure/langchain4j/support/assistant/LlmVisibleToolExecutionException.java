@@ -1,5 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant;
 
+import com.xiongx9527.fw.plus.common.exception.BizException;
+
 /**
  * 「抛出消息给 LLM」语义标记异常：工具方法内部抛出本异常时，其消息作为工具执行结果
  * 回传给 LLM，由 LLM 向用户解释并继续对话，而不是炸给业务调用方。
@@ -15,7 +17,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant;
  * 无需适配。</li>
  * </ul>
  */
-public class LlmVisibleToolExecutionException extends RuntimeException {
+public class LlmVisibleToolExecutionException extends BizException {
 
 	private static final long serialVersionUID = 1L;
 

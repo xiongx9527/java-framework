@@ -4,13 +4,15 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import com.xiongx9527.fw.plus.common.exception.BizException;
+
 /**
  * 结构化输出失败：模型返回无法解析为 JSON，或多次尝试后仍未通过校验。
  *
  * <p>{@link #getLastReply()} 保留最后一次原始回复（便于排查或人工兜底），
  * {@link #getErrors()} 是最后一次的校验错误清单（已回喂给模型）。</p>
  */
-public class StructuredOutputException extends RuntimeException {
+public class StructuredOutputException extends BizException {
 
 	private static final long serialVersionUID = 1L;
 

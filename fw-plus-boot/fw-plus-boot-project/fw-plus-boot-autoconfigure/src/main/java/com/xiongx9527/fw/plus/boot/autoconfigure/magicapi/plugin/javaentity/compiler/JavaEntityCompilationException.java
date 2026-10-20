@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class JavaEntityCompilationException extends RuntimeException {
+import com.xiongx9527.fw.plus.common.exception.BizException;
+
+public class JavaEntityCompilationException extends BizException {
 
     private final List<JavaEntityDiagnostic> diagnostics;
 

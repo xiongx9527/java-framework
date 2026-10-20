@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import com.xiongx9527.fw.plus.common.exception.BizException;
+
 /**
  * 工具调用必填参数缺失异常。
  *
@@ -13,7 +15,7 @@ import java.util.List;
  * 再交由 {@link ToolArgumentsErrorHandler} 决定回给 LLM 的文本
  * （默认提示向用户反问缺失参数）。语义对齐 langchain4j 1.x 的工具参数缺失场景。</p>
  */
-public class MissingArgumentException extends IllegalArgumentException {
+public class MissingArgumentException extends BizException {
 
 	private static final long serialVersionUID = 1L;
 
