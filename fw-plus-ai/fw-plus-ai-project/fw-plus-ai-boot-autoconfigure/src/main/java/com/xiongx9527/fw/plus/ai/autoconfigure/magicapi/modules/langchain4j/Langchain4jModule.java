@@ -11,6 +11,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.modul
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jStreamingLanguageModelModule;
 import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.model.language.StreamingLanguageModel;
+import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import org.ssssssss.magicapi.core.annotation.MagicModule;
 import org.springframework.beans.factory.ObjectProvider;
@@ -40,6 +41,12 @@ import java.util.function.Function;
  * var reply = assistant.chat('session-1', '杭州天气怎么样');
  *
  * var chat = langchain4j.chatAssistant().generate('你好');
+ *
+ * // 自建助手复用容器同一份记忆存储（mem0 等），跨脚本调用保留会话历史
+ * var custom = langchain4j.assistant()
+ *         .chatModel(langchain4jChatModel['deepseek'])
+ *         .memoryStore(langchain4j.memoryStore())
+ *         .build();
  * }</pre>
  */
 @MagicModule("langchain4j")
@@ -54,16 +61,20 @@ public class Langchain4jModule {
 	/** 全能力助手：由容器注入（{@code Langchain4jModuleConfiguration#simpleAssistant}） */
 	private final SimpleAssistant simpleAssistant;
 
+	/** 会话记忆存储：容器 {@code ChatMemoryStore} Bean（mem0 / 自定义实现），供脚本自建助手复用 */
+	private final ChatMemoryStore memoryStore;
+
 	/** 无依赖构造：仅 {@code assistant()} 可用；其余方法会提示未配置 */
 	public Langchain4jModule() {
-		this(null, null, null, null, null);
+		this(null, null, null, null, null, null);
 	}
 
 	public Langchain4jModule(Langchain4jSimpleAssistantProperties properties,
 			ObjectProvider<Langchain4jChatModelModule> chatModelModules,
 			ObjectProvider<Langchain4jLanguageModelModule> languageModelModules,
 			ObjectProvider<Langchain4jStreamingLanguageModelModule> streamingLanguageModelModules,
-			SimpleAssistant simpleAssistant) {
+			SimpleAssistant simpleAssistant,
+			ObjectProvider<ChatMemoryStore> chatMemoryStores) {
 		String key = properties == null ? null : properties.getKey();
 		// 3 个单能力对象在构造方法里获取：MagicDynamic 代理包装（module + key，实时解析防实例失效），
 		// 插件缺席时为 null（方法侧提示）
@@ -78,6 +89,8 @@ public class Langchain4jModule {
 				module -> new SimpleAssistant(new MagicDynamicStreamingLanguageModel(module, key)));
 		// 第 4 个：全能力助手由外面的 bean 注入（Langchain4jModuleConfiguration#simpleAssistant）
 		this.simpleAssistant = simpleAssistant;
+		// 容器 ChatMemoryStore（有 Bean 即暴露给脚本；缺席则 memoryStore() 方法侧提示）
+		this.memoryStore = chatMemoryStores == null ? null : chatMemoryStores.getIfAvailable();
 	}
 
 	private static <M> M module(ObjectProvider<M> modules) {
@@ -112,6 +125,22 @@ public class Langchain4jModule {
 	public SimpleAssistant simpleAssistant() {
 		return require(simpleAssistant, "simple-assistant（请配置 fw.plus.magicapi.langchain4j.simple-assistant.enabled=true "
 				+ "及 keys.<类型>）");
+	}
+
+	/**
+	 * 会话记忆存储（容器 {@code ChatMemoryStore} Bean：mem0 / 自定义实现）：给脚本自建助手复用
+	 * 容器同一份存储——{@code assistant().memoryStore(langchain4j.memoryStore())}。
+	 *
+	 * <p>不传 store 时 {@code AssistantBuilder} 每次 {@code build()} 都自带进程内 store，
+	 * 会话历史随本次脚本调用结束而丢失，且 {@code chat-memory.type=mem0} 等容器配置对
+	 * 自建助手不生效。</p>
+	 */
+	public ChatMemoryStore memoryStore() {
+		if (memoryStore == null) {
+			throw new IllegalArgumentException("当前应用未装配 langchain4j-ChatMemoryStore 相关资源，无法提供该存储："
+					+ "请注册 mem0 或自定义 ChatMemoryStore Bean");
+		}
+		return memoryStore;
 	}
 
 	private SimpleAssistant require(SimpleAssistant assistant, String resourceType) {

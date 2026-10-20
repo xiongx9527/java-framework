@@ -56,7 +56,7 @@ import java.util.function.Function;
  * {@link MultimodalAssistantBridge}（多模态桥接），对外仍表现为 {@link Assistant} 接口。
  *
  * <p>所有依赖都由调用方作为参数传入（不做 Spring 注入）：实例从各类型脚本模块取，
- * 如 {@code langchain4jChatModel['key']}、{@code langchain4jChatMemoryStore['key']}、
+ * 如 {@code langchain4jChatModel['key']}、{@code langchain4j.memoryStore()}、
  * {@code langchain4jToolProvider['key']}、{@code langchain4jContentRetriever['key']}、
  * {@code langchain4jContentInjector.get(path)}。</p>
  *
@@ -264,7 +264,8 @@ public class AssistantBuilder {
 		return this;
 	}
 
-	/** 记忆存储：{@code langchain4jChatMemoryStore['key']}（记忆由 magic-api 函数托管，可持久化） */
+	/** 记忆存储：脚本侧取 {@code langchain4j.memoryStore()}（容器 ChatMemoryStore Bean：mem0 /
+	 * 自定义实现）；不传则每次 {@code build()} 自带进程内 store，会话历史随脚本调用结束而丢失 */
 	public AssistantBuilder memoryStore(ChatMemoryStore store) {
 		this.memoryStore = store;
 		return this;

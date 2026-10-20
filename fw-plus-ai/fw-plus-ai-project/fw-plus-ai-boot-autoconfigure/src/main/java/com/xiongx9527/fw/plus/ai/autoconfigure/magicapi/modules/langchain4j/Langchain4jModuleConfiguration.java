@@ -253,13 +253,14 @@ public class Langchain4jModuleConfiguration {
 			ObjectProvider<Langchain4jChatModelModule> chatModelModules,
 			ObjectProvider<Langchain4jLanguageModelModule> languageModelModules,
 			ObjectProvider<Langchain4jStreamingLanguageModelModule> streamingLanguageModelModules,
-			@Autowired(required = false) SimpleAssistant simpleAssistant) {
+			@Autowired(required = false) SimpleAssistant simpleAssistant,
+			ObjectProvider<ChatMemoryStore> chatMemoryStores) {
 		if (simpleAssistantProperties.isSimpleAssistantRequired() && simpleAssistant == null) {
 			throw new IllegalStateException("simple-assistant.required=true 但 SimpleAssistant 未装配："
 					+ "请检查 fw.plus.magicapi.langchain4j.simple-assistant.enabled 与 keys 配置");
 		}
 		return new Langchain4jModule(simpleAssistantProperties, chatModelModules, languageModelModules,
-				streamingLanguageModelModules, simpleAssistant);
+				streamingLanguageModelModules, simpleAssistant, chatMemoryStores);
 	}
 
 	/** 解析某类型的资源 key：专属 key 优先；没有时按 {@code use-default-key} 开关决定是否回落默认
