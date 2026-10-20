@@ -22,6 +22,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.modul
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jTokenizerModule;
 import dev.langchain4j.model.Tokenizer;
 import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -72,7 +73,8 @@ public class Langchain4jModuleConfiguration {
 			ObjectProvider<Langchain4jAssistantProperties> assistantProperties,
 			ObjectProvider<SummaryStore> summaryStores,
 			ObjectProvider<SummaryModel> summaryModels,
-			ObjectProvider<SessionIdResolver> sessionResolvers) {
+			ObjectProvider<SessionIdResolver> sessionResolvers,
+			ObjectProvider<ChatMemoryStore> chatMemoryStores) {
 		AssistantBuilder assistantBuilder = new AssistantBuilder();
 		String chatModelKey = typeKey("chatModel", properties);
 		ChatLanguageModel chatModel = null;
@@ -117,6 +119,13 @@ public class Langchain4jModuleConfiguration {
 		}
 		// Ephemeral 记忆：AI 持久化策略（含位置/长度/工具结果开关）等
 		assistantBuilder.ephemeralChatMemory(properties.getEphemeral());
+		// 会话消息记忆：接入容器 ChatMemoryStore（in-memory 兜底 / mem0 / 自定义 Bean）。
+		// 不接则 builder 自带进程内 store——chat-memory.type=mem0 配置失效、
+		// 与 envelope 通道各写各的历史（属性类 Session.window-size 注释要求两通道共用同一个 store）
+		ChatMemoryStore chatMemoryStore = chatMemoryStores.getIfAvailable();
+		if (chatMemoryStore != null) {
+			assistantBuilder.memoryStore(chatMemoryStore);
+		}
 		// 会话/摘要配置：把 fw.plus.ai.langchain4j.assistant.session.* 落到 builder
 		// （session.enabled=false 或属性类缺席时不动，保持既有非会话行为）
 		applySessionMemory(assistantBuilder, assistantProperties, summaryStores, summaryModels, sessionResolvers,
