@@ -23,6 +23,38 @@ fw:
       jackson:
         write_longs_as_strings:
           enabled: true
+    # LangChain4j 会话记忆（消息历史）
+    ai:
+      langchain4j:
+        chat-memory:
+          # 存储后端：in-memory（默认，进程内）/ mem0（mem0 兼容 REST 服务，跨进程保留会话历史）。
+          # 本地起 mem0 后即可跑通多轮记忆；未启动 mem0 应用仍可启动，仅对话调用时连接失败
+          type: mem0
+          mem0:
+            base-url: http://localhost:8000 # 网关要求 /v1 前缀时写 http://localhost:8000/v1
+            api-key: ""                     # 本地未开启鉴权时留空（不发送 Authorization 头）
+        assistant:
+          session:
+            # 跨会话事实记忆：每轮抽取事实入库，下一轮召回注入上下文（事实 → 摘要顺序）；
+            # 与 chat-memory 各自独立配置，可指向同一或不同 mem0 实例
+            facts:
+              enabled: true
+              base-url: http://localhost:8000 # 独立 mem0 实例；网关要求 /v1 前缀时自行带前缀
+              api-key: ""                     # X-API-Key 认证（留空不发送）
+              extractor: mem0                 # mem0 | llm | rule | hybrid
+              write-mode: per-turn            # per-turn | batched | session-end
+              retriever: semantic             # semantic | keyword | hybrid | rerank
+              top-k: 5                        # 召回条数上限
+              max-facts-tokens: 500           # 事实段 token 软上限（4 字符/token 折算）
+    # 全能力助手 bean：脚本经 langchain4j.simpleAssistant() 获取；
+    # 自建助手（langchain4j.assistant()）经 langchain4j.memoryStore() 复用同一份会话存储
+    magicapi:
+      langchain4j:
+        simple-assistant:
+          enabled: true
+          use-default-key: true
+          key: gemma4 # 默认 key = langchain4j-chat-model 数据源 key（见 langchain4j-chat-model/gemma4.json）
+          memory-max-messages: 20 # 会话记忆窗口（条）
 
 fw-plus:
   ai:
