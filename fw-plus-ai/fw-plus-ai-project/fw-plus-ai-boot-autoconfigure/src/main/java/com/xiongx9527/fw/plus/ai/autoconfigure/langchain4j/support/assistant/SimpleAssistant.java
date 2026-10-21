@@ -1319,7 +1319,8 @@ public class SimpleAssistant {
 
 	private StreamingChatModel streamingTextModel() {
 		if (streamingTextModel == null) {
-			throw new IllegalStateException("未配置 StreamingChatModel：请用构造方法传入");
+			throw new IllegalStateException(
+					I18nMessageResolver.resolveKey("fw.ai.SimpleAssistant.streamingChatModelNotConfigured"));
 		}
 		return streamingTextModel;
 	}

@@ -10,6 +10,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.Intent
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentRag;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentSupplier;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentTools;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.AiPersistenceStrategy;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.EphemeralChatMemory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.EphemeralChatMemoryProperties;
@@ -561,7 +562,8 @@ public final class AgenticBuilder<T> {
      */
     public <I extends Enum<I>> IntentRouting<I> intent(IntentClassifier<I> classifier) {
         if (classifier == null) {
-            throw new IllegalArgumentException("classifier 不能为 null");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                    "fw.ai.AgenticBuilder.classifierRequired"));
         }
         return new IntentRouting<>(classifier);
     }
@@ -592,7 +594,8 @@ public final class AgenticBuilder<T> {
         if (delegate instanceof UntypedAgentBuilder untyped) {
             return untyped;
         }
-        throw new IllegalStateException("returnType/inputKey/inputKeys 仅适用于 untyped agent（用 AgenticBuilder.agent() 构建）");
+        throw new IllegalStateException(I18nMessageResolver.resolveKey(
+                "fw.ai.AgenticBuilder.untypedOnlyParams"));
     }
 
     // ------------------------------------------------------------------
@@ -703,8 +706,8 @@ public final class AgenticBuilder<T> {
             AiPersistenceStrategy resolved = AiPersistenceStrategy.Registry.tryResolve(aiPersistenceStrategyKey);
             if (resolved == null) {
                 if (strictAiPersistenceStrategy) {
-                    throw new IllegalArgumentException("未知的 AI 持久化策略：'" + aiPersistenceStrategyKey
-                            + "'（未在 AiPersistenceStrategy.Registry 注册，也无法作为 AiPersistenceStrategy 类实例化）");
+                    throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                            "fw.ai.AssistantBuilder.unknownPersistenceStrategy", aiPersistenceStrategyKey));
                 }
                 resolved = AiPersistenceStrategy.PERSIST_NON_TOOL_FINAL_ANSWER;
             }

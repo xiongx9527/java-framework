@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.fact
 
 import com.oracle.bmc.Region;
 import com.oracle.bmc.auth.ConfigFileAuthenticationDetailsProvider;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.ModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
 import dev.langchain4j.community.model.oracle.oci.genai.OciGenAiChatModel;
@@ -64,7 +65,8 @@ public class Langchain4jOciGenAiModelFactory implements ModelFactory {
                     ? new ConfigFileAuthenticationDetailsProvider(profile)
                     : new ConfigFileAuthenticationDetailsProvider(path, profile);
         } catch (Exception e) {
-            throw new IllegalStateException("OCI 认证配置加载失败（config-path/config-profile）: " + e.getMessage(), e);
+            throw new IllegalStateException(I18nMessageResolver.resolveKey(
+                    "fw.ai.Langchain4jOciGenAiModelFactory.authConfigLoadFailed", e.getMessage()), e);
         }
     }
 

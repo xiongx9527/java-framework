@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.store;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.mongodb.MongoCommandException;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
@@ -177,7 +178,8 @@ public class MongoAgenticScopeStore implements AgenticScopeStore, AutoCloseable 
 
     private static String requireText(String value, String name) {
         if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException(name + " 不能为空");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                    "fw.ai.MongoAgenticScopeStore.fieldRequired", name));
         }
         return value.trim();
     }
@@ -253,13 +255,16 @@ public class MongoAgenticScopeStore implements AgenticScopeStore, AutoCloseable 
             boolean hasConnectionString = connectionString != null && !connectionString.trim().isEmpty();
             if (hasClient == hasConnectionString) {
                 throw new IllegalArgumentException(hasClient
-                        ? "mongoClient(...) 与 connectionString(...) 只能二选一"
-                        : "必须提供 mongoClient(...) 或 connectionString(...) 之一");
+                        ? I18nMessageResolver.resolveKey(
+                                "fw.ai.MongoAgenticScopeStore.clientAndConnectionStringExclusive")
+                        : I18nMessageResolver.resolveKey(
+                                "fw.ai.MongoAgenticScopeStore.clientOrConnectionStringRequired"));
             }
             String resolvedDatabase = requireText(database, "database");
             String resolvedCollection = requireText(collection, "collection");
             if (ttl != null && ttl.getSeconds() < 1) {
-                throw new IllegalArgumentException("ttl 必须不小于 1 秒: " + ttl);
+                throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                        "fw.ai.MongoAgenticScopeStore.ttlTooSmall", ttl));
             }
             allowPackagePrefixes.stream()
                     .filter(prefix -> prefix != null && !prefix.trim().isEmpty())

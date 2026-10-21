@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.service.tool.ToolProvider;
 
@@ -46,8 +47,8 @@ public final class AgenticToolProviders {
             String toolName, String toolDescription, String outputKey, String... inputKeys) {
         UntypedAgent pipeline = registry.get(agenticKey);
         if (pipeline == null) {
-            throw new IllegalArgumentException(String.format(
-                    "编排注册中心中不存在 agenticKey '%s'，已注册: %s", agenticKey, registry.keys()));
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                    "fw.ai.AgenticToolProviders.agenticKeyNotFound", agenticKey, registry.keys()));
         }
         return agenticToolProvider(pipeline, toolName, toolDescription, outputKey, inputKeys);
     }

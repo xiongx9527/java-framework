@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.agentic.scope.AgenticScope;
 import dev.langchain4j.agentic.scope.AgenticScopePersister;
@@ -144,7 +145,8 @@ public final class AgenticPlannerBuilder {
 
     public UntypedAgent build() {
         if (chatModel == null) {
-            throw new IllegalArgumentException("planner 需要由调用方经 chatModel(...) 注入 ChatModel");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                    "fw.ai.AgenticPlannerBuilder.chatModelRequired"));
         }
         if (scopeStore != null) {
             AgenticScopePersister.setStore(scopeStore);

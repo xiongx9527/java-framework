@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.store;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.ModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
 import dev.langchain4j.community.store.embedding.valkey.ValkeyEmbeddingStore;
@@ -46,7 +47,8 @@ public class Langchain4jValkeyModelFactory implements ModelFactory {
             if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }
-            throw new IllegalStateException("创建 Valkey GLIDE 客户端失败：" + e.getMessage(), e);
+            throw new IllegalStateException(I18nMessageResolver.resolveKey(
+                    "fw.ai.Langchain4jValkeyModelFactory.clientCreationFailed", e.getMessage()), e);
         }
         return ValkeyEmbeddingStore.builder()
                 .client(client)

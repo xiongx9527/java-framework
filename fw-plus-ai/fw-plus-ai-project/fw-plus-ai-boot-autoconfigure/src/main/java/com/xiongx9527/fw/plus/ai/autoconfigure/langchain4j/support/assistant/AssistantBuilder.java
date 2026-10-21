@@ -452,8 +452,8 @@ private Integer rerankMaxResults;
 		try {
 			return tools(new dev.langchain4j.community.tool.webscraper.WebScraperTool());
 		} catch (NoClassDefFoundError e) {
-			throw new IllegalStateException(
-					"webScraperTool 需要 classpath 引入 dev.langchain4j:langchain4j-community-tool-web-scraper", e);
+			throw new IllegalStateException(I18nMessageResolver.resolveKey(
+					"fw.ai.AssistantBuilder.webScraperToolClasspathMissing"), e);
 		}
 	}
 
@@ -495,7 +495,8 @@ private Integer rerankMaxResults;
 	public AssistantBuilder agentic(dev.langchain4j.agentic.UntypedAgent pipeline, String toolName,
 			String toolDescription, String outputKey, String... inputKeys) {
 		if (pipeline == null) {
-			throw new IllegalArgumentException("agentic 需要非 null 的编排产物（UntypedAgent）");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.AssistantBuilder.agenticResultRequired"));
 		}
 		return toolProvider(AgenticToolProviders.agenticToolProvider(pipeline, toolName, toolDescription,
 				outputKey, inputKeys));
@@ -515,7 +516,8 @@ private Integer rerankMaxResults;
 	public AssistantBuilder agenticByKey(AgenticPipelineRegistry registry, String agenticKey, String toolName,
 			String toolDescription, String outputKey, String... inputKeys) {
 		if (registry == null) {
-			throw new IllegalArgumentException("agenticByKey 需要非 null 的 AgenticPipelineRegistry");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.AssistantBuilder.agenticRegistryRequired"));
 		}
 		return toolProvider(AgenticToolProviders.agenticToolProviderByKey(registry, agenticKey, toolName,
 				toolDescription, outputKey, inputKeys));
@@ -534,7 +536,8 @@ private Integer rerankMaxResults;
 			org.bsc.langgraph4j.CompiledGraph<? extends org.bsc.langgraph4j.state.AgentState> compiledGraph,
 			String toolName, String toolDescription) {
 		if (compiledGraph == null) {
-			throw new IllegalArgumentException("agenticGraph 需要非 null 的 CompiledGraph");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.AssistantBuilder.agenticGraphRequired"));
 		}
 		return toolProvider(AgenticToolProviders.graphToolProvider(compiledGraph, toolName, toolDescription));
 	}
@@ -576,11 +579,12 @@ private Integer rerankMaxResults;
 	private static final ToolArgumentsErrorHandler DEFAULT_ARGUMENTS_ERROR_HANDLER = (error, context) -> {
 		String message = error.getMessage();
 		if (message != null && message.startsWith("Required parameter")) {
-			return ToolErrorHandlerResult.text(
-					"工具调用缺少必要参数，请向用户询问缺失的信息，等用户补齐参数后再调用。详情：" + message);
+			return ToolErrorHandlerResult.text(I18nMessageResolver.resolveKey(
+					"fw.ai.AssistantBuilder.toolMissingArguments", message));
 		}
 		String detail = message != null ? message : error.getClass().getSimpleName();
-		return ToolErrorHandlerResult.text("工具调用参数格式错误，请修正参数后重试。详情：" + detail);
+		return ToolErrorHandlerResult.text(I18nMessageResolver.resolveKey(
+				"fw.ai.AssistantBuilder.toolArgumentsFormatError", detail));
 	};
 
 	/** 检索增强：{@code langchain4jContentRetriever['key']}（自动包成 DefaultRetrievalAugmentor） */
