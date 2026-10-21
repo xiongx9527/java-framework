@@ -1,0 +1,7 @@
+{
+  "openspec_proposal": "docs/openspec/changes/biz-exception-finalize/proposal.md",
+  "openspec_design": "docs/openspec/changes/biz-exception-finalize/design.md",
+  "openspec_tasks": "docs/openspec/changes/biz-exception-finalize/tasks.md",
+  "handoff_context": "docs/openspec/changes/biz-exception-finalize/.comet/handoff/design-context.json",
+  "handoff_markdown": "docs/openspec/changes/biz-exception-finalize/.comet/handoff/design-context.md"
+}
