@@ -41,6 +41,6 @@ public class WebAuthService {
             return loginResult.getData();
         }
 
-        throw new DifyClientException("登录失败: " + result);
+        throw DifyClientException.of(DifyClientException.LOGIN_FAILED, result);
     }
 }

@@ -6,6 +6,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.model.
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.model.RabbitMqSubscribeInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.service.RabbitMqDataSourceInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.starter.MagicRabbitMqConfig;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.ssssssss.magicapi.core.config.JsonCodeConstants;
@@ -76,7 +77,7 @@ public interface BaseService extends MagicBaseService , JsonCodeConstants {
             RabbitMqDataSourceInfo oldKafkaDataSourceInfo =  magicResourceService.file(entity.getId());
             if (null != oldKafkaDataSourceInfo) {
                 if (!oldKafkaDataSourceInfo.getKey().equals(entity.getKey())) {
-                    throw new IllegalArgumentException("key不可修改");
+                    throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.rabbitmq.keyImmutable"));
                 }
             }
         }

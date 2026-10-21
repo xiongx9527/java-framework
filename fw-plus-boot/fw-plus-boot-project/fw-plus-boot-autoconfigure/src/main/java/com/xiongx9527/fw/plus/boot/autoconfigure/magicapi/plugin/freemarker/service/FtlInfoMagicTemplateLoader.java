@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.freemarker.service;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.freemarker.model.FtlInfo;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import freemarker.cache.TemplateLoader;
 
@@ -43,7 +44,7 @@ public class FtlInfoMagicTemplateLoader implements TemplateLoader  {
     @Override
     public Object findTemplateSource(String s) throws IOException {
         if (s == null || s.trim().isEmpty()) {
-            throw new IllegalArgumentException("模板路径不能为空");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.freemarker.templatePathRequired"));
         }
 
         String path = s;
@@ -55,7 +56,7 @@ public class FtlInfoMagicTemplateLoader implements TemplateLoader  {
 
         FreemarkerMagicDynamicRegistry registry = getFreemarkerMagicDynamicRegistry();
         if (registry == null) {
-            throw new IllegalStateException("Freemarker动态注册表未初始化");
+            throw new IllegalStateException(I18nMessageResolver.resolveKey("fw.boot.freemarker.registryNotInitialized"));
         }
 
         return registry.getMapping(path);

@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.dtp.service;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.dtp.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.dtp.model.DtpDataSourceInfo;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 import org.ssssssss.magicapi.core.resource.Resource;
 import org.ssssssss.magicapi.core.service.MagicResourceService;
@@ -84,14 +85,14 @@ public class DtpDataSourceInfoMagicResourceStorage implements MagicResourceStora
     public void validate(DtpDataSourceInfo entity) {
         validateField(entity);
         if (!IoUtils.validateFileName(entity.getKey())) {
-            throw new IllegalArgumentException("key包含非法文件名字符");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.dtp.keyInvalidFileName"));
         }
         validateKeyUnique(entity.getKey(), entity.getId());
 
         if (entity.getId() != null) {
             DtpDataSourceInfo oldInfo = magicResourceService.file(entity.getId());
             if (null != oldInfo && !oldInfo.getKey().equals(entity.getKey())) {
-                throw new IllegalArgumentException("key不可修改");
+                throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.dtp.keyImmutable"));
             }
         }
     }
@@ -104,7 +105,7 @@ public class DtpDataSourceInfoMagicResourceStorage implements MagicResourceStora
                 .map(DtpDataSourceInfo.class::cast)
                 .anyMatch(it -> !it.getId().equals(currentId) && Objects.equals(it.getKey(), key));
         if (exists) {
-            throw new IllegalArgumentException(String.format("数据源唯一标识(key) '%s' 已存在，请使用其他唯一标识", key));
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.dtp.datasourceKeyExists", key));
         }
     }
 

@@ -9,6 +9,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.comp
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.model.JavaEntityInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.starter.JavaEntityProperties;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -143,8 +144,9 @@ public class DynamicEntityRegistry implements AutoCloseable {
             DynamicEntityStatus currentStatus = status.get();
             if (!currentStatus.isAvailable()) {
                 String reason = currentStatus.getDiagnostics().isEmpty()
-                        ? "无可用代际" : currentStatus.getDiagnostics().get(0).getMessage();
-                throw new IllegalStateException("动态实体不可用: " + reason, exception);
+                        ? I18nMessageResolver.resolveKey("fw.boot.javaentity.noGeneration")
+                        : currentStatus.getDiagnostics().get(0).getMessage();
+                throw new IllegalStateException(I18nMessageResolver.resolveKey("fw.boot.javaentity.unavailable", reason), exception);
             }
             throw exception;
         }
@@ -171,7 +173,7 @@ public class DynamicEntityRegistry implements AutoCloseable {
     private CompiledGeneration compile(long version, List<JavaSourceUnit> units) {
         if (!compilationPermits.tryAcquire()) {
             throw new JavaEntityCompilationException(new JavaEntityDiagnostic("", 0, 0,
-                    "compiler.busy", "动态实体编译并发数量已达到限制"));
+                    "compiler.busy", I18nMessageResolver.resolveKey("fw.boot.javaentity.compilerBusy")));
         }
         CompileInvocation invocation = new CompileInvocation(version, units);
         Future<CompiledGeneration> future;
@@ -190,14 +192,16 @@ public class DynamicEntityRegistry implements AutoCloseable {
             invocation.releaseIfNotStarted();
             rotateCompileExecutor();
             throw new JavaEntityCompilationException(new JavaEntityDiagnostic("", 0, 0,
-                    "compiler.timeout", "动态实体编译超过限制时间 " + timeoutMillis + "ms"));
+                    "compiler.timeout",
+                    I18nMessageResolver.resolveKey("fw.boot.javaentity.compilerTimeout",
+                            Long.toString(timeoutMillis))));
         } catch (InterruptedException exception) {
             future.cancel(true);
             invocation.releaseIfNotStarted();
             rotateCompileExecutor();
             Thread.currentThread().interrupt();
             throw new JavaEntityCompilationException(new JavaEntityDiagnostic("", 0, 0,
-                    "compiler.interrupted", "动态实体编译等待被中断"));
+                    "compiler.interrupted", I18nMessageResolver.resolveKey("fw.boot.javaentity.compilerInterrupted")));
         } catch (ExecutionException exception) {
             Throwable cause = exception.getCause();
             if (cause instanceof JavaEntityCompilationException) {
@@ -233,7 +237,7 @@ public class DynamicEntityRegistry implements AutoCloseable {
             if (duplicateClass != null) {
                 throw new JavaEntityCompilationException(new JavaEntityDiagnostic(
                         unit.getResourceId(), 0, 0, "entity.class.duplicate",
-                        "动态实体全限定类名重复: " + unit.getClassName()));
+                        I18nMessageResolver.resolveKey("fw.boot.javaentity.classDuplicate", unit.getClassName())));
             }
             Integer count = aliasCounts.get(unit.getSimpleName());
             aliasCounts.put(unit.getSimpleName(), count == null ? 1 : count + 1);
@@ -255,13 +259,17 @@ public class DynamicEntityRegistry implements AutoCloseable {
             long sourceBytes = source.getBytes(StandardCharsets.UTF_8).length;
             if (sourceBytes > maxSourceBytes) {
                 throw new JavaEntityCompilationException(new JavaEntityDiagnostic(entity.getId(), 0, 0,
-                        "source.too-large", "动态实体源码超过限制: " + sourceBytes + " bytes"));
+                        "source.too-large",
+                        I18nMessageResolver.resolveKey("fw.boot.javaentity.sourceTooLarge",
+                                Long.toString(sourceBytes))));
             }
             totalBytes += sourceBytes;
         }
         if (totalBytes > Math.max(0L, properties.getMaxTotalSourceBytes())) {
             throw new JavaEntityCompilationException(new JavaEntityDiagnostic("", 0, 0,
-                    "generation.too-large", "动态实体总代码量超过限制: " + totalBytes + " bytes"));
+                    "generation.too-large",
+                    I18nMessageResolver.resolveKey("fw.boot.javaentity.generationTooLarge",
+                            Long.toString(totalBytes))));
         }
     }
 
@@ -335,7 +343,7 @@ public class DynamicEntityRegistry implements AutoCloseable {
         @Override
         public CompiledGeneration call() {
             if (!started.compareAndSet(false, true)) {
-                throw new IllegalStateException("动态实体编译任务已取消");
+                throw new IllegalStateException(I18nMessageResolver.resolveKey("fw.boot.javaentity.compilationCancelled"));
             }
             try {
                 return compiler.compile(version, units);

@@ -1,3 +1,4 @@
+import $i from '../i18n.js'
 import { CharacterStream, LiteralToken, ParseException, Token, TokenStream, TokenType } from './index.js'
 
 const regexpToken = (stream, tokens) => {
@@ -108,11 +109,11 @@ const tokenizerString = (stream, tokenType, tokens) => {
 			}
 			let ch = stream.consume();
 			if (tokenType !== TokenType.TripleQuote && (ch === '\r' || ch === '\n')) {
-				throw new ParseException(tokenType.error + tokenType.error + "定义的字符串不能换行", stream.endSpan());
+				throw new ParseException($i('editor.parse.stringCannotWrap', tokenType.error + tokenType.error), stream.endSpan());
 			}
 		}
 		if (!matchedEndQuote) {
-			throw new ParseException("字符串没有结束符" + tokenType.error, stream.endSpan());
+			throw new ParseException($i('editor.parse.stringNotClosed', tokenType.error), stream.endSpan());
 		}
 		let stringSpan = stream.endSpan();
 		stringSpan = stream.getSpan(stringSpan.getStart(), stringSpan.getEnd() - tokenType.literal.length);
@@ -214,12 +215,12 @@ const tokenizerLanguage = (stream, tokens) => {
 			tokens.push(new Token(TokenType.Language, language));
 			stream.startSpan();
 			if (!stream.skipUntil("```")) {
-				throw new ParseException('```需要以```结尾', stream.endSpan());
+				throw new ParseException($i('editor.parse.tripleQuoteNotClosed'), stream.endSpan());
 			}
 			tokens.push(new Token(TokenType.Language, stream.endSpan(-3)));
 			return true;
 		} else {
-			throw new ParseException('```后需要标识语言类型', stream.endSpan());
+			throw new ParseException($i('editor.parse.tripleQuoteLanguageRequired'), stream.endSpan());
 		}
 	}
 	return false;

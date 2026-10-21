@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.dtp.module;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.dtp.model.MagicDynamicDtpDataSource;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.dromara.dynamictp.core.executor.DtpExecutor;
@@ -141,7 +142,7 @@ public class DtpModule implements DynamicAttribute<DtpModule, DtpModule>, Dynami
     private DtpModule moduleForKey(String key) {
         DtpExecutor client = this.magicDynamicDtpDataSource.getClient(key);
         if (client == null) {
-            throw new IllegalArgumentException("DTP数据源不存在: " + key);
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.dtp.datasourceNotExists", key));
         }
         return new DtpModule(this.magicDynamicDtpDataSource, client);
     }

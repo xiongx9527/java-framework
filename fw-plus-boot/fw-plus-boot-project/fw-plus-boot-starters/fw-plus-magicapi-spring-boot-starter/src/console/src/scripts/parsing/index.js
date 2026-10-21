@@ -1,3 +1,4 @@
+import $i from '../i18n.js'
 class ParseException extends Error {
 	constructor(message, span) {
 		super(message)
@@ -177,21 +178,21 @@ const TokenType = {
 	DoubleQuote: { literal: '"', error: '"' },
 	TripleQuote: { literal: '"""', error: '"""' },
 	SingleQuote: { literal: '\'', error: '\'' },
-	Lambda: { error: '=> 或 ->' },
-	BooleanLiteral: { error: 'true 或 false' },
-	DoubleLiteral: { error: '一个 double 类型数值' },
-	DecimalLiteral: { error: '一个 BigDecimal 类型数值' },
-	FloatLiteral: { error: '一个 float 类型数值' },
-	LongLiteral: { error: '一个 long 类型数值' },
-	IntegerLiteral: { error: '一个 int 类型数值' },
-	ShortLiteral: { error: '一个 short 类型数值' },
-	ByteLiteral: { error: '一个 byte 类型数据' },
-	CharacterLiteral: { error: '一个 char 类型数据' },
-	RegexpLiteral: { error: '一个 正则表达式' },
-	StringLiteral: { error: '一个 字符串' },
+	Lambda: { error: $i('editor.parse.expectLambda') },
+	BooleanLiteral: { error: $i('editor.parse.expectBoolean') },
+	DoubleLiteral: { error: $i('editor.parse.expectDouble') },
+	DecimalLiteral: { error: $i('editor.parse.expectDecimal') },
+	FloatLiteral: { error: $i('editor.parse.expectFloat') },
+	LongLiteral: { error: $i('editor.parse.expectLong') },
+	IntegerLiteral: { error: $i('editor.parse.expectInteger') },
+	ShortLiteral: { error: $i('editor.parse.expectShort') },
+	ByteLiteral: { error: $i('editor.parse.expectByte') },
+	CharacterLiteral: { error: $i('editor.parse.expectCharacter') },
+	RegexpLiteral: { error: $i('editor.parse.expectRegexp') },
+	StringLiteral: { error: $i('editor.parse.expectString') },
 	NullLiteral: { error: 'null' },
 	Language: { error: 'language' },
-	Identifier: { error: '标识符' },
+	Identifier: { error: $i('editor.parse.expectIdentifier') },
 	Unknown: { error: 'unknown' }
 };
 let tokenTypeValues = Object.getOwnPropertyNames(TokenType).map(e => TokenType[e]);

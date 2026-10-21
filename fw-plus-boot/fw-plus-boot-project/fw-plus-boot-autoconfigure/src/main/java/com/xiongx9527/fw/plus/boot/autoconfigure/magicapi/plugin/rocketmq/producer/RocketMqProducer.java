@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.producer;
 
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.model.RocketMqDataSourceInfo;
 import lombok.extern.slf4j.Slf4j;
@@ -63,7 +64,7 @@ public class RocketMqProducer {
         this.key = Options.DEFAULT_DATA_SOURCE.getValue();
         RocketMqDataSourceInfo dataSourceInfo = new RocketMqDataSourceInfo();
         dataSourceInfo.setId("");
-        dataSourceInfo.setName("默认数据源");
+        dataSourceInfo.setName(I18nMessageResolver.resolveKey("fw.boot.datasource.defaultName"));
         dataSourceInfo.setKey("default");
         this.dataSourceInfo = dataSourceInfo;
     }

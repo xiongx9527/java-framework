@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mybatisflex.se
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.mybatis.DynamicEntityMybatisTypeAliasRegistrar;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.runtime.DynamicEntityRegistry;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mybatisflex.model.MybatisFlexXmlInfo;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.ibatis.builder.xml.XMLMapperBuilder;
 import org.apache.ibatis.builder.xml.XMLMapperEntityResolver;
@@ -79,11 +80,11 @@ public class MybatisFlexXmlMapperRegistry {
 	public void validateDatabaseAndTable(String dbKey, String tableName) {
 		String normalizedDbKey = normalizeDbKey(dbKey);
 		if (StringUtils.isBlank(tableName)) {
-			throw new IllegalArgumentException("表名不能为空");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.mybatisflex.tableNameRequired"));
 		}
 		MagicDynamicDataSource.DataSourceNode node = dataSourceNode(normalizedDbKey);
 		if (!tableExists(node.getDataSource(), tableName)) {
-			throw new IllegalArgumentException(String.format("数据源[%s]中表[%s]不存在", normalizedDbKey, tableName));
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.mybatisflex.tableNotFound", normalizedDbKey, tableName));
 		}
 	}
 
@@ -97,7 +98,7 @@ public class MybatisFlexXmlMapperRegistry {
 			XMLMapperBuilder builder = new XMLMapperBuilder(input, configuration, resource, configuration.getSqlFragments());
 			builder.parse();
 		} catch (RuntimeException exception) {
-			throw new IllegalArgumentException("MyBatis-Flex XML校验失败: " + exception.getMessage(), exception);
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.mybatisflex.xmlValidateFailed", exception.getMessage()), exception);
 		}
 	}
 
@@ -123,7 +124,7 @@ public class MybatisFlexXmlMapperRegistry {
 	private String rewriteNamespace(MybatisFlexXmlInfo info) {
 		String namespace = namespace(info.getScript());
 		if (StringUtils.isBlank(namespace)) {
-			throw new IllegalArgumentException("MyBatis-Flex XML 必须包含 mapper namespace");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.mybatisflex.xmlNamespaceRequired"));
 		}
 		return replaceNamespace(info.getScript(), namespace, physicalNamespace(info));
 	}
@@ -147,12 +148,12 @@ public class MybatisFlexXmlMapperRegistry {
 
 	private MagicDynamicDataSource.DataSourceNode dataSourceNode(String dbKey) {
 		if (dynamicDataSource == null) {
-			throw new IllegalArgumentException("MagicDynamicDataSource 未配置");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.mybatisflex.dynamicDataSourceNotConfigured"));
 		}
 		try {
 			return DEFAULT_DB_KEY.equals(dbKey) ? dynamicDataSource.getDataSource() : dynamicDataSource.getDataSource(dbKey);
 		} catch (RuntimeException exception) {
-			throw new IllegalArgumentException(String.format("数据源key:%s 不存在", dbKey), exception);
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.mybatisflex.datasourceKeyNotExists", dbKey), exception);
 		}
 	}
 
@@ -170,7 +171,7 @@ public class MybatisFlexXmlMapperRegistry {
 					|| exists(metaData, connection.getCatalog(), schema, pureTableName.toUpperCase())
 					|| exists(metaData, connection.getCatalog(), schema, pureTableName.toLowerCase());
 		} catch (SQLException exception) {
-			throw new IllegalArgumentException("校验表名失败: " + exception.getMessage(), exception);
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.mybatisflex.validateTableNameFailed", exception.getMessage()), exception);
 		}
 	}
 
@@ -193,7 +194,7 @@ public class MybatisFlexXmlMapperRegistry {
 			}
 			return mapper.getStringAttribute("namespace");
 		} catch (RuntimeException exception) {
-			throw new IllegalArgumentException("MyBatis-Flex XML校验失败: " + exception.getMessage(), exception);
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.mybatisflex.xmlValidateFailed", exception.getMessage()), exception);
 		}
 	}
 }

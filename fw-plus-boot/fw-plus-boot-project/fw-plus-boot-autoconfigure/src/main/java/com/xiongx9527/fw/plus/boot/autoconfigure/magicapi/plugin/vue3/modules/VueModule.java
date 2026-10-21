@@ -4,6 +4,7 @@ import com.alibaba.fastjson2.JSON;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.vue3.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.vue3.model.VueInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.vue3.service.VueMagicDynamicRegistry;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.ResponseEntity;
@@ -427,11 +428,11 @@ public class VueModule implements BaseService {
         }
         // 验证组件是否存在
         if (Objects.isNull(entity)) {
-            throw new IllegalArgumentException("未找到对应的组件");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.vue.componentNotFound"));
         }
         // 验证组件源码是否已编译
         if (StringUtils.isBlank(entity.getCompileJs())) {
-            throw new IllegalArgumentException("源码还未编译");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.vue.notCompiled"));
         }
 
         // 获取组件名称和依赖信息

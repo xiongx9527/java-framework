@@ -26,7 +26,9 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.modul
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jTokenizerModule;
 import dev.langchain4j.model.TokenCountEstimator;
 import dev.langchain4j.model.chat.ChatModel;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import dev.langchain4j.model.scoring.ScoringModel;
+import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -80,7 +82,8 @@ public class Langchain4jModuleConfiguration {
 			ObjectProvider<SummaryStore> summaryStores,
 			ObjectProvider<SummaryModel> summaryModels,
 			ObjectProvider<FactStore> factStores,
-			ObjectProvider<SessionIdResolver> sessionResolvers) {
+			ObjectProvider<SessionIdResolver> sessionResolvers,
+			ObjectProvider<ChatMemoryStore> chatMemoryStores) {
 		AssistantBuilder assistantBuilder = new AssistantBuilder();
 		String chatModelKey = typeKey("chatModel", properties);
 		ChatModel chatModel = null;
@@ -149,6 +152,13 @@ public class Langchain4jModuleConfiguration {
 		}
 		// Ephemeral 记忆：AI 持久化策略（含位置/长度/工具结果开关）等
 		assistantBuilder.ephemeralChatMemory(properties.getEphemeral());
+		// 会话消息记忆：接入容器 ChatMemoryStore（in-memory 兜底 / mem0 / 自定义 Bean）。
+		// 不接则 builder 自带进程内 store——chat-memory.type=mem0 配置失效、
+		// 与 envelope 通道各写各的历史（属性类 Session.window-size 注释要求两通道共用同一个 store）
+		ChatMemoryStore chatMemoryStore = chatMemoryStores.getIfAvailable();
+		if (chatMemoryStore != null) {
+			assistantBuilder.memoryStore(chatMemoryStore);
+		}
 		// 会话/摘要配置：把 fw.plus.ai.langchain4j.assistant.session.* 落到 builder
 		// （session.enabled=false 或属性类缺席时不动，保持既有非会话行为）
 		applySessionMemory(assistantBuilder, assistantProperties, summaryStores, summaryModels, factStores,
@@ -272,13 +282,14 @@ public class Langchain4jModuleConfiguration {
 			ObjectProvider<Langchain4jChatModelModule> chatModelModules,
 			ObjectProvider<Langchain4jLanguageModelModule> languageModelModules,
 			ObjectProvider<Langchain4jStreamingLanguageModelModule> streamingLanguageModelModules,
-			@Autowired(required = false) SimpleAssistant simpleAssistant) {
+			@Autowired(required = false) SimpleAssistant simpleAssistant,
+			ObjectProvider<ChatMemoryStore> chatMemoryStores) {
 		if (simpleAssistantProperties.isSimpleAssistantRequired() && simpleAssistant == null) {
-			throw new IllegalStateException("simple-assistant.required=true 但 SimpleAssistant 未装配："
-					+ "请检查 fw.plus.magicapi.langchain4j.simple-assistant.enabled 与 keys 配置");
+			throw new IllegalStateException(
+					I18nMessageResolver.resolveKey("fw.ai.Langchain4jModuleConfiguration.simpleAssistantMissing"));
 		}
 		return new Langchain4jModule(simpleAssistantProperties, chatModelModules, languageModelModules,
-				streamingLanguageModelModules, simpleAssistant);
+				streamingLanguageModelModules, simpleAssistant, chatMemoryStores);
 	}
 
 	/** 解析某类型的资源 key：专属 key 优先；没有时按 {@code use-default-key} 开关决定是否回落默认

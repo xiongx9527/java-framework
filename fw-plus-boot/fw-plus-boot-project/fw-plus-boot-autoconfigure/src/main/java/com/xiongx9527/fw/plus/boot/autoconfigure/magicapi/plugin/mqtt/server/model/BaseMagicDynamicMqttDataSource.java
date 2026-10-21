@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.server.model;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.server.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.cluster.RedisMqttMessageDownReceiver;
@@ -555,7 +556,7 @@ public abstract class BaseMagicDynamicMqttDataSource implements BaseService, Dis
             if (client != null) {
                 MqttDataSourceInfo dataSourceInfo = new MqttDataSourceInfo();
                 dataSourceInfo.setKey("default");
-                dataSourceInfo.setName("默认数据源");
+                dataSourceInfo.setName(I18nMessageResolver.resolveKey("fw.boot.datasource.defaultName"));
                 dataSourceInfoList.add(dataSourceInfo);
             }
         } catch (Exception e) {

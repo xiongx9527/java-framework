@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.facts;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.scoring.ScoringModel;
@@ -55,8 +56,8 @@ public final class FactRetrievers {
 	public static FactRetriever resolveOrThrow(String nameOrClass, FactStore store, ScoringModel rerankModel) {
 		FactRetriever resolved = resolve(nameOrClass, store, rerankModel);
 		if (resolved == null) {
-			throw new IllegalArgumentException("未知事实召回策略（非内置 " + SEMANTIC + "/" + KEYWORD + "/" + HYBRID
-					+ "/" + RERANK + "，也非可构造的 FQCN）：" + nameOrClass);
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.FactRetrievers.unknownStrategy", SEMANTIC, KEYWORD, HYBRID, RERANK, nameOrClass));
 		}
 		return resolved;
 	}
@@ -147,7 +148,8 @@ public final class FactRetrievers {
 
 		public SemanticFactRetriever(FactStore store) {
 			if (store == null) {
-				throw new IllegalArgumentException("SemanticFactRetriever: store 不能为空");
+				throw new IllegalArgumentException(
+						I18nMessageResolver.resolveKey("fw.ai.FactRetrievers.semanticStoreRequired"));
 			}
 			this.store = store;
 		}
@@ -171,7 +173,8 @@ public final class FactRetrievers {
 
 		public KeywordFactRetriever(FactStore store) {
 			if (store == null) {
-				throw new IllegalArgumentException("KeywordFactRetriever: store 不能为空");
+				throw new IllegalArgumentException(
+						I18nMessageResolver.resolveKey("fw.ai.FactRetrievers.keywordStoreRequired"));
 			}
 			this.store = store;
 		}
@@ -227,7 +230,8 @@ public final class FactRetrievers {
 
 		public HybridFactRetriever(FactStore store) {
 			if (store == null) {
-				throw new IllegalArgumentException("HybridFactRetriever: store 不能为空");
+				throw new IllegalArgumentException(
+						I18nMessageResolver.resolveKey("fw.ai.FactRetrievers.hybridStoreRequired"));
 			}
 			this.semantic = new SemanticFactRetriever(store);
 			this.keyword = new KeywordFactRetriever(store);
@@ -274,7 +278,8 @@ public final class FactRetrievers {
 
 		public RerankFactRetriever(FactStore store, ScoringModel model) {
 			if (store == null) {
-				throw new IllegalArgumentException("RerankFactRetriever: store 不能为空");
+				throw new IllegalArgumentException(
+						I18nMessageResolver.resolveKey("fw.ai.FactRetrievers.rerankStoreRequired"));
 			}
 			this.store = store;
 			this.model = model;

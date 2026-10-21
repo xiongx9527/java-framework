@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.server.mo
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.cluster.RedisMqttMessageDownReceiver;
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.cluster.RedisMqttMessageExchangeReceiver;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import lombok.extern.slf4j.Slf4j;
 import net.dreamlu.iot.mqtt.core.server.MqttServer;
 
@@ -57,7 +58,7 @@ public class MagicAPIMqttServer {
             try {
                 this.mqttServer.start();
             } catch (Exception e) {
-                throw new RuntimeException("MQTT服务器启动失败", e);
+                throw new RuntimeException(I18nMessageResolver.resolveKey("fw.boot.mqtt.serverStartFailed"), e);
             }
         }
 
@@ -73,7 +74,7 @@ public class MagicAPIMqttServer {
                     } catch (Exception e1) {
                     }
                 }
-                throw new RuntimeException("Redis下行消息接收器启动失败", e);
+                throw new RuntimeException(I18nMessageResolver.resolveKey("fw.boot.mqtt.redisDownlinkReceiverStartFailed"), e);
             }
         }
 
@@ -95,7 +96,7 @@ public class MagicAPIMqttServer {
                     } catch (Exception e1) {
                     }
                 }
-                throw new RuntimeException("Redis交换消息接收器启动失败", e);
+                throw new RuntimeException(I18nMessageResolver.resolveKey("fw.boot.mqtt.redisExchangeReceiverStartFailed"), e);
             }
         }
 

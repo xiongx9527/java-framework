@@ -439,7 +439,7 @@ public final class DataChangeEngine {
 	private DataChangeException safe(RuntimeException exception) {
 		if (exception instanceof DataChangeException) {
 			DataChangeException dataChange = (DataChangeException) exception;
-			return new DataChangeException(dataChange.getCode(), dataChange.getCode().name());
+			return new DataChangeException(dataChange.getErrorCode(), dataChange.getErrorCode().name());
 		}
 		return new DataChangeException(DataChangeErrorCode.UNKNOWN, "DATA_CHANGE_POST_PROCESSING_FAILED");
 	}

@@ -4,6 +4,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.se
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.common.MqttClientBaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.model.MqttClientDataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.model.MqttClientSubscribeInfo;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.ssssssss.magicapi.core.service.AbstractPathMagicResourceStorage;
@@ -38,13 +39,13 @@ public class MqttClientSubscribeInfoMagicResourceStorage extends AbstractPathMag
         if (map.containsKey(entity.getKey())) {
             Map<String, MqttClientSubscribeInfo> topicMap = ListUtils.emptyIfNull(map.get(entity.getKey())).stream().collect(Collectors.toMap(MqttClientSubscribeInfo::getTopic, val -> val, (k1, k2) -> k1));
             if (topicMap.containsKey(entity.getTopic()) && !topicMap.get(entity.getTopic()).getId().equals(entity.getId())) {
-                throw new IllegalArgumentException(String.format("Topic:%s 已存在", entity.getTopic()));
+                throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.mqtt.client.topicExists", entity.getTopic()));
             }
         }
         MqttClientDataSourceInfoMagicResourceStorage dataSourceStorage = SpringUtils.getBean(MqttClientDataSourceInfoMagicResourceStorage.class);
         Map<String, MqttClientDataSourceInfo> dataSourceMap = ListUtils.emptyIfNull(dataSourceStorage.findAll()).stream().collect(Collectors.toMap(MqttClientDataSourceInfo::getKey, val -> val, (k1, k2) -> k1));
         if (!dataSourceMap.containsKey(entity.getKey())) {
-            throw new IllegalArgumentException(String.format("数据源key:%s 不存在", entity.getKey()));
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.mqtt.client.datasourceKeyNotExists", entity.getKey()));
         }
     }
 

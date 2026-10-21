@@ -9,6 +9,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.starter.Magic
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.tools.MagicApiMcpToolInvoker;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.tools.MagicApiMcpToolRegistrar;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.tools.MagicApiMcpToolRegistry;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import lombok.extern.slf4j.Slf4j;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.resource.service.MagicApiMcpCapabilityRegistrar;
 import com.xiongx9527.fw.plus.auth.core.InstanceAuthRegistry;
@@ -167,10 +168,10 @@ public class MagicDynamicMcpServer implements DisposableBean, SmartInitializingS
 	public synchronized String testConnection(MagicMcpServerInfo info) {
 		String key = info.getKey();
 		if (key == null || key.trim().isEmpty()) {
-			return "key不能为空";
+			return I18nMessageResolver.resolveKey("fw.ai.magicapi.mcpServer.keyRequired");
 		}
 		if (info.getEndpoint() == null || info.getEndpoint().trim().isEmpty()) {
-			return "endpoint不能为空";
+			return I18nMessageResolver.resolveKey("fw.ai.magicapi.mcpServer.endpointRequired");
 		}
 		McpServerRuntime runtime = null;
 		try {
@@ -180,7 +181,7 @@ public class MagicDynamicMcpServer implements DisposableBean, SmartInitializingS
 			return "ok";
 		} catch (Throwable e) {
 			log.error("MCP server:[{}]连接测试失败", key, e);
-			return "连接失败: " + e.getMessage();
+			return I18nMessageResolver.resolveKey("fw.ai.magicapi.mcpServer.connectFailed", e.getMessage());
 		} finally {
 			closeTransportQuietly(key, runtime);
 		}

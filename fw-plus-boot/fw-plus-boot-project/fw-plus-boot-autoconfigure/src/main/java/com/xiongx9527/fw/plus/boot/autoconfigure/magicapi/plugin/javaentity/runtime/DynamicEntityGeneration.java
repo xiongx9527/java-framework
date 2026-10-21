@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.run
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.compiler.CompiledGeneration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.compiler.JavaSourceUnit;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -56,7 +57,7 @@ final class DynamicEntityGeneration {
         String className = classes.containsKey(name) ? name : aliases.get(name);
         Class<?> type = className == null ? null : classes.get(className);
         if (type == null) {
-            throw new IllegalArgumentException("动态实体不存在: " + name);
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.javaentity.notExists", name));
         }
         return new DynamicEntityDescriptor(version, resourceIds.get(className), sourceDigests.get(className), type);
     }
@@ -71,7 +72,7 @@ final class DynamicEntityGeneration {
             }
             return result.toString();
         } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("当前 JDK 不支持 SHA-256", exception);
+            throw new IllegalStateException(I18nMessageResolver.resolveKey("fw.boot.javaentity.sha256Unsupported"), exception);
         }
     }
 }

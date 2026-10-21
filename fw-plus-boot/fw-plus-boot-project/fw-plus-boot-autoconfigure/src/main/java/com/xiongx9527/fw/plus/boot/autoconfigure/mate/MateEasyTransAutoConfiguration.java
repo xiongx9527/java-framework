@@ -10,6 +10,7 @@ import com.fhs.trans.advice.ReleaseTransCacheAdvice;
 import com.fhs.trans.ds.DataSourceSetter;
 import com.fhs.trans.listener.TransMessageListener;
 import com.fhs.trans.service.impl.*;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.easytrans.service.*;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.InitializingBean;
@@ -434,7 +435,7 @@ public class MateEasyTransAutoConfiguration implements InitializingBean , BeanFa
         // 检查是否开启了多数据源支持
         if (TransConfig.MULTIPLE_DATA_SOURCES && null == this.dataSourceSetter) {
             // 如果开启了多数据源支持，但没有提供dataSourceSetter，抛出异常
-            throw new IllegalArgumentException("easytrans 如果开启多数据源支持，需要自定义 DataSourceSetter 来切换数据源");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.mate.easytrans.dataSourceSetterRequired"));
         } else {
             // 如果没有开启多数据源支持，或者提供了dataSourceSetter，进行配置
             TransConfig.dataSourceSetter = this.dataSourceSetter;

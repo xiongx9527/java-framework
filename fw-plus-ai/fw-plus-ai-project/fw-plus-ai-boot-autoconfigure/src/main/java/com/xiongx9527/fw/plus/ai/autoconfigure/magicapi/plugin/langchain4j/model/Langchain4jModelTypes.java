@@ -1,6 +1,8 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model;
 
-/** 模型资源的类型常量：同时作为 datasource type 与 storage folder。 */
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
+
+/** 七类模型资源的类型常量：同时作为 datasource type 与 storage folder。 */
 public enum Langchain4jModelTypes {
     CHAT_MODEL("langchain4j-chat-model"),
     STREAMING_CHAT_MODEL("langchain4j-streaming-chat-model"),
@@ -27,6 +29,7 @@ public enum Langchain4jModelTypes {
                 return t;
             }
         }
-        throw new IllegalArgumentException("不支持的资源类型: " + type);
+        throw new IllegalArgumentException(
+            I18nMessageResolver.resolveKey("fw.ai.Langchain4jModelTypes.unsupportedResourceType", type));
     }
 }

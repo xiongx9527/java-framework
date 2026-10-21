@@ -4,6 +4,7 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import com.mongodb.ConnectionString;
 import com.mongodb.client.MongoClient;
@@ -51,7 +52,7 @@ public class MagicDynamicMongoDataSource implements DisposableBean {
         // 检查数据源信息是否为空
         if (dataSourceInfo == null) {
             log.warn("数据源信息为空，无法构建Mongo连接工厂");
-            throw new RuntimeException("数据源信息为空，无法构建Mongo连接工厂");
+            throw new RuntimeException(I18nMessageResolver.resolveKey("fw.boot.mongo.datasourceInfoEmpty"));
         }
         
         try {
@@ -68,7 +69,7 @@ public class MagicDynamicMongoDataSource implements DisposableBean {
             }
         } catch (Exception e) {
             log.error("创建MongoDatabaseFactory失败: {}", dataSourceInfo.getKey(), e);
-            throw new RuntimeException("创建MongoDatabaseFactory失败: " + dataSourceInfo.getKey(), e);
+            throw new RuntimeException(I18nMessageResolver.resolveKey("fw.boot.mongo.createFactoryFailed", dataSourceInfo.getKey()), e);
         }
     }
 
@@ -170,7 +171,7 @@ public class MagicDynamicMongoDataSource implements DisposableBean {
             return new SimpleMongoClientDatabaseFactory(mongoClient, database);
         } catch (Exception e) {
             log.error("创建集群模式MongoDatabaseFactory失败: {}", dataSourceInfo.getKey(), e);
-            throw new RuntimeException("创建集群模式MongoDatabaseFactory失败: " + dataSourceInfo.getKey(), e);
+            throw new RuntimeException(I18nMessageResolver.resolveKey("fw.boot.mongo.createClusterFactoryFailed", dataSourceInfo.getKey()), e);
         }
     }
 
@@ -287,7 +288,7 @@ public class MagicDynamicMongoDataSource implements DisposableBean {
             return new SimpleMongoClientDatabaseFactory(mongoClient, database);
         } catch (Exception e) {
             log.error("创建副本集模式MongoDatabaseFactory失败: {}", dataSourceInfo.getKey(), e);
-            throw new RuntimeException("创建副本集模式MongoDatabaseFactory失败: " + dataSourceInfo.getKey(), e);
+            throw new RuntimeException(I18nMessageResolver.resolveKey("fw.boot.mongo.createReplicaSetFactoryFailed", dataSourceInfo.getKey()), e);
         }
     }
 
@@ -377,7 +378,7 @@ public class MagicDynamicMongoDataSource implements DisposableBean {
             return new SimpleMongoClientDatabaseFactory(mongoClient, database);
         } catch (Exception e) {
             log.error("创建单机模式MongoDatabaseFactory失败: {}", dataSourceInfo.getKey(), e);
-            throw new RuntimeException("创建单机模式MongoDatabaseFactory失败: " + dataSourceInfo.getKey(), e);
+            throw new RuntimeException(I18nMessageResolver.resolveKey("fw.boot.mongo.createStandaloneFactoryFailed", dataSourceInfo.getKey()), e);
         }
     }
 
@@ -461,7 +462,7 @@ public class MagicDynamicMongoDataSource implements DisposableBean {
             if (mongoDatabaseFactory != null) {
                 MongoDataSourceInfo dataSourceInfo = new MongoDataSourceInfo();
                 dataSourceInfo.setKey("default");
-                dataSourceInfo.setName("默认数据源");
+                dataSourceInfo.setName(I18nMessageResolver.resolveKey("fw.boot.datasource.defaultName"));
                 dataSourceInfoList.add(dataSourceInfo);
             }
         } catch (Exception e) {

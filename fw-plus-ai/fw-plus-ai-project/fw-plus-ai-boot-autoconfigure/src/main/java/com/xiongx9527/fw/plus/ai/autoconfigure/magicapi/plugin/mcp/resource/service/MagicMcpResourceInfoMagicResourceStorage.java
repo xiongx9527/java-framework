@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.resource.service;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.resource.model.MagicMcpResourceInfo;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 import org.ssssssss.magicapi.core.resource.Resource;
 import org.ssssssss.magicapi.core.service.MagicResourceService;
@@ -61,7 +62,8 @@ public class MagicMcpResourceInfoMagicResourceStorage implements MagicResourceSt
 		if (entity.getId() != null && magicResourceService != null) {
 			MagicMcpResourceInfo old = magicResourceService.file(entity.getId());
 			if (old != null && !Objects.equals(old.getUri(), entity.getUri())) {
-				throw new IllegalArgumentException("uri不可修改");
+				throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+						"fw.ai.MagicMcpResourceInfoMagicResourceStorage.uriImmutable"));
 			}
 		}
 	}
@@ -88,16 +90,19 @@ public class MagicMcpResourceInfoMagicResourceStorage implements MagicResourceSt
 
 	private void validateRequired(String value, String field) {
 		if (value == null || value.trim().length() == 0) {
-			throw new IllegalArgumentException(field + "不能为空");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.MagicMcpResourceInfoMagicResourceStorage.fieldRequired", field));
 		}
 	}
 
 	private void validateUri(String uri) {
 		if (uri.indexOf(' ') >= 0) {
-			throw new IllegalArgumentException("uri不能包含空格");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.MagicMcpResourceInfoMagicResourceStorage.uriSpaceInvalid"));
 		}
 		if (!uri.startsWith("/") && !uri.contains("://")) {
-			throw new IllegalArgumentException("uri需为绝对路径或带协议的地址");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.MagicMcpResourceInfoMagicResourceStorage.uriAbsoluteRequired"));
 		}
 	}
 
@@ -106,7 +111,8 @@ public class MagicMcpResourceInfoMagicResourceStorage implements MagicResourceSt
 			return;
 		}
 		if (!mimeType.matches("^[\\w.+-]+/[\\w.+-]+$")) {
-			throw new IllegalArgumentException("mimeType格式非法，应形如 text/plain");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.MagicMcpResourceInfoMagicResourceStorage.mimeTypeInvalid"));
 		}
 	}
 
@@ -119,7 +125,8 @@ public class MagicMcpResourceInfoMagicResourceStorage implements MagicResourceSt
 				.filter(it -> !Objects.equals(it.getId(), currentId))
 				.noneMatch(it -> Objects.equals(it.getUri(), uri));
 		if (!noneMatchUri) {
-			throw new IllegalArgumentException(String.format("uri '%s' 已存在，请使用其他 uri", uri));
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.MagicMcpResourceInfoMagicResourceStorage.uriDuplicated", uri));
 		}
 	}
 }

@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicBaseServic
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.freemarker.model.FtlInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.freemarker.modules.FreemarkerModule;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.freemarker.service.FtlInfoMagicResourceStorage;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import freemarker.template.Template;
 import lombok.extern.slf4j.Slf4j;
@@ -36,12 +37,12 @@ public class MagicFreemarkerController extends MagicController implements MagicB
     @PostMapping("/freemarker/execute")
     public ResponseEntity<String> execute(String id) {
         if (StringUtils.isBlank(id)) {
-            throw new IllegalArgumentException("参数 id 不能为空");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.freemarker.idRequired"));
         }
 
         FtlInfo entity = MagicConfiguration.getMagicResourceService().file(id);
         if (entity == null) {
-            throw new RuntimeException("未找到对应的模板文件");
+            throw new RuntimeException(I18nMessageResolver.resolveKey("fw.boot.freemarker.templateFileNotFound"));
         }
 
         String params = entity.getParams();
@@ -62,7 +63,7 @@ public class MagicFreemarkerController extends MagicController implements MagicB
                     .body(out.toString());
         } catch (Exception e) {
             log.error("模板处理失败: {}", e.getMessage(), e);
-            throw new RuntimeException("模板处理失败", e);
+            throw new RuntimeException(I18nMessageResolver.resolveKey("fw.boot.freemarker.templateProcessFailed"), e);
         }
     }
 

@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.service;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.model.KafkaDataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.model.MagicDynamicKafkaDataSource;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
@@ -132,7 +133,7 @@ public class KafkaDataSourceMagicDynamicRegistry extends AbstractMagicDynamicReg
         // 从生产者节点中获取没有ID的节点，并转换为数据源信息列表
         List<KafkaDataSourceInfo> dataSourceInfoList = this.magicDynamicKafkaDataSource.producerNodes().stream().filter(it -> it.getId() == null).map(it -> {
             KafkaDataSourceInfo dataSourceInfo = new KafkaDataSourceInfo();
-            dataSourceInfo.setName(StringUtils.defaultIfBlank(it.getName(), StringUtils.defaultIfBlank(it.getKey(), "默认数据源")));
+            dataSourceInfo.setName(StringUtils.defaultIfBlank(it.getName(), StringUtils.defaultIfBlank(it.getKey(), I18nMessageResolver.resolveKey("fw.boot.datasource.defaultName"))));
             dataSourceInfo.setKey(it.getKey());
             return dataSourceInfo;
         }).collect(Collectors.toList());
@@ -145,7 +146,7 @@ public class KafkaDataSourceMagicDynamicRegistry extends AbstractMagicDynamicReg
                 if (Objects.nonNull(bootstrapServers) ) {
                     KafkaDataSourceInfo dataSourceInfo = new KafkaDataSourceInfo();
                     dataSourceInfo.setKey("default");
-                    dataSourceInfo.setName("默认数据源");
+                    dataSourceInfo.setName(I18nMessageResolver.resolveKey("fw.boot.datasource.defaultName"));
                     dataSourceInfoList.add(dataSourceInfo);
                 }
             }

@@ -1,3 +1,4 @@
+import $i from '../i18n.js'
 import JavaClass from './java-class.js'
 import tokenizer from '../parsing/tokenizer.js'
 import { TokenStream } from '../parsing/index.js'
@@ -244,7 +245,7 @@ const completionMethod = async (className, suggestions) => {
                 let param = method.parameters[j];
                 document.push(`\`${param.name}\`：${(param.comment || param.type)}`)
             }
-            document.push(`返回类型：\`${method.returnType}\``)
+            document.push($i('editor.completion.returnType', method.returnType))
             suggestions.push({
                 sortText: method.sortText || method.fullName,
                 label: method.fullName,
@@ -287,23 +288,23 @@ async function completionScript(suggestions, input) {
     }
 }
 
-const quickSuggestions = [
-    ['break', 'break;', '跳出循环'],
-    ['continue', 'continue;', '继续循环'],
+const quickSuggestions = () => [
+    ['break', 'break;', $i('editor.completion.break')],
+    ['continue', 'continue;', $i('editor.completion.continue')],
     ['instanceof', 'instanceof $1', 'instanceof'],
     ['async', 'async $1', 'async'],
-    ['import', 'import $1', '导入'],
-    ['import as', 'import $1 as $2', '导入并设置别名'],
-    ['if', 'if (${1:condition}){\r\n\t$2\r\n}', '判断'],
-    ['if else', 'if (${1:condition}) {\r\n\t$2\r\n} else { \r\n\t$3\r\n}', '判断'],
-    ['for', 'for (${2:item} in ${1:collection}) {\r\n\t$3\r\n}', '循环集合'],
-    ['exit', 'exit ${1:code}, ${2:message};', '退出'],
-    ['log.info', 'log.info($1);', 'info日志'],
-    ['log.debug', 'log.debug($1);', 'debug日志'],
-    ['log.error', 'log.error($1);', 'error日志'],
-    ['assert', 'assert ${1:condition} : ${2:code}, ${3:message}', '校验参数'],
-    ['select', 'select $1', 'LINQ查询'],
-    ['throw', 'throw ${1:e}', '抛出异常'],
+    ['import', 'import $1', $i('editor.completion.import')],
+    ['import as', 'import $1 as $2', $i('editor.completion.importAs')],
+    ['if', 'if (${1:condition}){\r\n\t$2\r\n}', $i('editor.completion.if')],
+    ['if else', 'if (${1:condition}) {\r\n\t$2\r\n} else { \r\n\t$3\r\n}', $i('editor.completion.if')],
+    ['for', 'for (${2:item} in ${1:collection}) {\r\n\t$3\r\n}', $i('editor.completion.for')],
+    ['exit', 'exit ${1:code}, ${2:message};', $i('editor.completion.exit')],
+    ['log.info', 'log.info($1);', $i('editor.completion.logInfo')],
+    ['log.debug', 'log.debug($1);', $i('editor.completion.logDebug')],
+    ['log.error', 'log.error($1);', $i('editor.completion.logError')],
+    ['assert', 'assert ${1:condition} : ${2:code}, ${3:message}', $i('editor.completion.assert')],
+    ['select', 'select $1', $i('editor.completion.select')],
+    ['throw', 'throw ${1:e}', $i('editor.completion.throw')],
     ['try catch', 'try {\r\n\t$1\r\n} catch(${2:e}) {\r\n\t$3\r\n}', 'try catch'],
     ['try finally', 'try {\r\n\t$1\r\n} finally {\r\n\t$2\r\n}', 'try finally'],
     ['try catch finally', 'try {\r\n\t$1\r\n} catch(${2:e}) {\r\n\t$3\r\n} finally {\r\n\t$4\r\n}', 'try catch finally'],
@@ -334,7 +335,7 @@ const CompletionItemProvider = {
             endColumn: word.endColumn
         }
         let incomplete = false;
-        let suggestions = quickSuggestions.map(item => {
+        let suggestions = quickSuggestions().map(item => {
             return {
                 label: item[0],
                 kind: monaco.languages.CompletionItemKind.Struct,
@@ -352,7 +353,7 @@ const CompletionItemProvider = {
             suggestions = ['int', 'long', 'date', 'string', 'short', 'byte', 'float', 'double', 'json', 'stringify', 'sql'].map(it => {
                 return {
                     label: it,
-                    detail: `转换为${it === 'stringify' ? 'json字符串' : it === 'sql' ? 'sql参数类型' : it}`,
+                    detail: $i('editor.completion.convertTo', it === 'stringify' ? $i('editor.completion.convertToJsonString') : it === 'sql' ? $i('editor.completion.convertToSql') : it),
                     insertText: it,
                     kind: monaco.languages.CompletionItemKind.TypeParameter,
                     insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet

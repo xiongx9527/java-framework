@@ -1,0 +1,15 @@
+{
+  "change": "biz-exception-finalize",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "task_hash_policy": "task-content-v1",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "4c9b503ae5c7ee80a861c63c39623f2ee3ecf4ec8800c8abc0bb3993abed713f",
+  "files": [
+    { "path": "docs/openspec/changes/biz-exception-finalize/proposal.md", "sha256": "da723dcd1675d46040ac8cb3ced748d610c8f194beeba17e9f47dca4e27c15a5" },
+    { "path": "docs/openspec/changes/biz-exception-finalize/design.md", "sha256": "34923a5452d3563fc281825445abb36d8c5b241131e95087d357a63037128040" },
+    { "path": "docs/openspec/changes/biz-exception-finalize/tasks.md", "sha256": "8c219fd739c2f4ff0950d053b3d68d1cde4024493eb168f03ea75a9fc3f2a9f0" },
+    { "path": "docs/openspec/changes/biz-exception-finalize/.openspec.yaml", "sha256": "9dce7645e8d23214043e04d1f4443f95ea5ca40f4320e09322b23b0ed2bc02ec" }
+  ]
+}

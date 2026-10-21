@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.envelope;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.structured.Rule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.structured.StructuredOutput;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -70,13 +71,16 @@ public final class BusinessContract {
 
 	private BusinessContract(Builder builder) {
 		if (builder.name == null || builder.name.trim().isEmpty()) {
-			throw new IllegalArgumentException("业务名称不能为空");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.BusinessContract.nameRequired"));
 		}
 		if (builder.jsonSchema == null || builder.jsonSchema.trim().isEmpty()) {
-			throw new IllegalArgumentException("业务 " + builder.name + " 缺少内层 schema（schema 不能为空）");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.BusinessContract.schemaRequired", builder.name));
 		}
 		if (builder.maxAttempts != null && builder.maxAttempts < 1) {
-			throw new IllegalArgumentException("业务 " + builder.name + " 的 max-attempts 必须 >= 1（含首次）");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.BusinessContract.maxAttemptsInvalid", builder.name));
 		}
 		this.name = builder.name.trim();
 		this.jsonSchema = builder.jsonSchema.trim();

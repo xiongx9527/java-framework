@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.model;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.file.MultipartFileWrapperAdapter;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.file.MyFileStorageService;
@@ -635,7 +636,7 @@ public class MagicDynamicS3DataSource implements DisposableBean {
             if (fileStorageService != null) {
                 S3DataSourceInfo dataSourceInfo = new S3DataSourceInfo();
                 dataSourceInfo.setKey("default");
-                dataSourceInfo.setName("默认数据源");
+                dataSourceInfo.setName(I18nMessageResolver.resolveKey("fw.boot.datasource.defaultName"));
                 dataSourceInfoList.add(dataSourceInfo);
             }
         } catch (Exception e) {

@@ -1,0 +1,15 @@
+{
+  "change": "i18n-takeover-finish",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "task_hash_policy": "task-content-v1",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "73341c029c7605c9b6953601bb9710891fbace2d4ad7ea8833498524c57d4b85",
+  "files": [
+    { "path": "docs/openspec/changes/i18n-takeover-finish/proposal.md", "sha256": "ffa0235393d6c0d6804f4df2c105ed74ec23c6638ed72116196d824f1311eca8" },
+    { "path": "docs/openspec/changes/i18n-takeover-finish/design.md", "sha256": "ee0ecb325d7893352947f1dce72b1b9c6b0aaa9beebf7c34a0e254d6000ba8b0" },
+    { "path": "docs/openspec/changes/i18n-takeover-finish/tasks.md", "sha256": "e621b520c5a7847aebd97f3a392709d77831f0a768f25e9de1ab7cbe5e28c4ea" },
+    { "path": "docs/openspec/changes/i18n-takeover-finish/specs/i18n/spec.md", "sha256": "021eb2cf00b53d8ca9205f8cc27d9da0435ffd37c5d7786da85b49a84bf2fc33" }
+  ]
+}

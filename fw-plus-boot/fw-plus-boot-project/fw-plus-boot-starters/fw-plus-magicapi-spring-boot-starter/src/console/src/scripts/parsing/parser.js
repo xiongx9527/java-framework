@@ -1,3 +1,4 @@
+import $i from '../i18n.js'
 import { ParseException, Span, TokenType } from './index.js'
 import JavaClass from '../editor/java-class.js'
 import {
@@ -212,7 +213,7 @@ export class Parser {
 
 	checkKeyword(span) {
 		if (keywords.indexOf(span.getText()) > -1) {
-			throw new ParseException('变量名不能定义为关键字', span);
+			throw new ParseException($i('editor.parse.keywordAsVariableName'), span);
 		}
 	}
 
@@ -422,7 +423,7 @@ export class Parser {
                         result = this.parseVarDefine();
                     } else {
                         if (this.stream.matchAny(keywords, false)) {
-                            throw new ParseException("try 括号中只允许写赋值语句", this.stream.consume().getSpan());
+                            throw new ParseException($i('editor.parse.tryOnlyAssignment'), this.stream.consume().getSpan());
                         }
                         let index = this.stream.makeIndex();
                         if (this.matchTypeDefine()) {
@@ -431,7 +432,7 @@ export class Parser {
                         }
                         if (result == null) {
                             this.stream.resetIndex(index);
-                            throw new ParseException("try 括号中只允许写赋值语句", this.stream.consume().getSpan());
+                            throw new ParseException($i('editor.parse.tryOnlyAssignment'), this.stream.consume().getSpan());
                         }
                     }
                     tryResources.push(result);
@@ -514,7 +515,7 @@ export class Parser {
 		while (this.stream.hasMore() && this.stream.match(operators, false)) {
 			let operator = this.stream.consume();
 			if (operator.type.inLinq && this.linqLevel === 0) {
-				throw new ParseException(operator.getText() + " 只能在Linq中使用", this.stream.hasMore() ? this.stream.consume().getSpan() : this.stream.getPrev().getSpan());
+				throw new ParseException($i('editor.parse.operatorOnlyInLinq', operator.getText()), this.stream.hasMore() ? this.stream.consume().getSpan() : this.stream.getPrev().getSpan());
 			}
 			let right = nextLevel === precedence.length ? this.parseUnaryOperator(expectRightCurly) : this.parseBinaryOperator(nextLevel, expectRightCurly);
 			left = new BinaryOperation(left, operator, right, this.linqLevel);
@@ -797,9 +798,9 @@ export class Parser {
 
 			if (this.stream.match(TokenType.Identifier, false) && !this.stream.match(linqKeywords, false, true)) {
 				if (expression instanceof WholeLiteral) {
-					throw new ParseException("* 后边不能跟别名", this.stream.hasMore() ? this.stream.consume().getSpan() : this.stream.getPrev().getSpan());
+					throw new ParseException($i('editor.parse.noAliasAfterAsterisk'), this.stream.hasMore() ? this.stream.consume().getSpan() : this.stream.getPrev().getSpan());
 				} else if (expression instanceof MemberAccess && expression.isWhole()) {
-					throw new ParseException(expression.getSpan().getText() + " 后边不能跟别名", this.stream.hasMore() ? this.stream.consume().getSpan() : this.stream.getPrev().getSpan());
+					throw new ParseException($i('editor.parse.noAliasAfterExpression', expression.getSpan().getText()), this.stream.hasMore() ? this.stream.consume().getSpan() : this.stream.getPrev().getSpan());
 				}
 				let alias = this.stream.consume().getSpan();
 				fields.push(new LinqField(new Span(expression.getSpan(), alias), expression, alias.getText()));
@@ -808,7 +809,7 @@ export class Parser {
 			}
 		} while (this.stream.match(TokenType.Comma, true));	//,
 		if (fields.length === 0) {
-			throw new ParseException("至少要查询一个字段", this.stream.hasMore() ? this.stream.consume().getSpan() : this.stream.getPrev().getSpan());
+			throw new ParseException($i('editor.parse.needAtLeastOneField'), this.stream.hasMore() ? this.stream.consume().getSpan() : this.stream.getPrev().getSpan());
 		}
 		return fields;
 	}

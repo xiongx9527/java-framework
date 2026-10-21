@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.common.util;
 
 import com.alibaba.fastjson2.JSON;
 import com.xiongx9527.fw.plus.common.exception.BaseRuntimeException;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.web.WebRequest;
 import com.xiongx9527.fw.plus.common.web.WebRequestContextHolder;
 import com.xiongx9527.fw.plus.common.web.WebResponse;
@@ -246,8 +247,8 @@ public abstract class WebUtils extends org.springframework.web.util.WebUtils {
                 return Arrays.copyOf(body, bodyLen);
             }
         } catch (IOException e) {
-            // 当读取请求体过程中发生IO异常时，抛出自定义内部错误异常
-            throw new BaseRuntimeException("获取RequestBody失败", e);
+            // 当读取请求体过程中发生IO异常时，抛出自定义内部错误异常（文案走 i18n）
+            throw new BaseRuntimeException(I18nMessageResolver.resolveKey("fw.common.web.readRequestBodyFailed"), e);
         }
     }
 

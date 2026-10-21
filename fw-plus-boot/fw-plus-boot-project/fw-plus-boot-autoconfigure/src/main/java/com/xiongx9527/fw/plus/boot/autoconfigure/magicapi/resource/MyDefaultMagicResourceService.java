@@ -4,6 +4,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mybatisflex.mod
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mybatisflex.service.MybatisFlexXmlMapperRegistry;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mybatisplus.model.MybatisPlusXmlInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mybatisplus.service.MybatisPlusXmlMapperRegistry;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.ssssssss.magicapi.core.config.Constants;
@@ -939,13 +940,13 @@ public class MyDefaultMagicResourceService extends DefaultMagicResourceService {
             if (item instanceof MybatisPlusXmlInfo) {
                 MybatisPlusXmlInfo info = (MybatisPlusXmlInfo) item;
                 if (dbKey.equals(MybatisPlusXmlMapperRegistry.normalizeDbKey(info.getDbKey()))) {
-                    throw new IllegalArgumentException("数据源[" + dbKey + "]已被 MyBatis-Plus XML[" + info.getName() + "]引用，不能删除");
+                    throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.magicapi.datasourceReferencedByMybatisPlus", dbKey, info.getName()));
                 }
             }
             if (item instanceof MybatisFlexXmlInfo) {
                 MybatisFlexXmlInfo info = (MybatisFlexXmlInfo) item;
                 if (dbKey.equals(MybatisFlexXmlMapperRegistry.normalizeDbKey(info.getDbKey()))) {
-                    throw new IllegalArgumentException("数据源[" + dbKey + "]已被 MyBatis-Flex XML[" + info.getName() + "]引用，不能删除");
+                    throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.magicapi.datasourceReferencedByMybatisFlex", dbKey, info.getName()));
                 }
             }
         }

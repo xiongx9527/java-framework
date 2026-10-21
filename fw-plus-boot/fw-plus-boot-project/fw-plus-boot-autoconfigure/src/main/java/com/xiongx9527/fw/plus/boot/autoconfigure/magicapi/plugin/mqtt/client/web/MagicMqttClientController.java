@@ -6,6 +6,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.mod
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.model.MqttClientDataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.model.MqttClientSubscribeInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.service.MqttClientDataSourceInfoMagicResourceStorage;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import net.dreamlu.iot.mqtt.codec.*;
@@ -99,10 +100,10 @@ public class MagicMqttClientController extends MagicController implements MagicE
             if (mqttClientTemplate.isConnected()) {
                 return new JsonBean<>("ok");
             } else {
-                return new JsonBean<>("连接失败: 无法建立MQTT连接");
+                return new JsonBean<>(I18nMessageResolver.resolveKey("fw.boot.magicapi.mqttClient.cannotEstablishConnection"));
             }
         } catch (Exception e) {
-            return new JsonBean<>("连接失败: " + e.getMessage());
+            return new JsonBean<>(I18nMessageResolver.resolveKey("fw.boot.magicapi.mqttClient.connectFailed", e.getMessage()));
         } finally {
             if (mqttClientTemplate != null) {
                 try {

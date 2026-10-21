@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.starter;
 
+import com.xiongx9527.fw.plus.auth.core.CustomAuthService;
 import com.xiongx9527.fw.plus.auth.core.InstanceAuthRegistry;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.auth.WsAuthHandshakeInterceptor;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.auth.WsAuthSupport;
@@ -111,13 +112,23 @@ public class WsAutoConfiguration {
 
     /**
      * 实例认证内核：容器已有（如同时启用 MCP）时不重复创建，供 WS 握手按实例解析 provider。
+     * <p>
+     * 业务提供的 {@link CustomAuthService} Bean 在此注册为自定义 provider：
+     * {@code fw.plus.ws.servers[].auth.provider} 指向其 {@code getProviderKey()} 时，
+     * {@link WsAuthSupport} 经 {@link InstanceAuthRegistry#resolve} 走业务实现。
+     * 本 Bean 与 MCP 侧互斥共享（{@code @ConditionalOnMissingBean}），自定义 provider 只注册一次。
+     * </p>
      *
+     * @param customAuthServices 业务自定义认证实现（可为空）
      * @return 实例认证注册表
      */
     @Bean
     @ConditionalOnMissingBean
-    public InstanceAuthRegistry instanceAuthRegistry() {
-        return new InstanceAuthRegistry();
+    public InstanceAuthRegistry instanceAuthRegistry(ObjectProvider<CustomAuthService> customAuthServices) {
+        InstanceAuthRegistry registry = new InstanceAuthRegistry();
+        customAuthServices.orderedStream()
+                .forEach(service -> registry.registerProvider(service.getProviderKey(), service));
+        return registry;
     }
 
     /**

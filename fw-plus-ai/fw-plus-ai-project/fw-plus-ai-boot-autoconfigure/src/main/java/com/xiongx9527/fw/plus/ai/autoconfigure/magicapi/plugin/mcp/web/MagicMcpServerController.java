@@ -6,6 +6,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.model.MagicMc
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.service.MagicMcpServerInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.service.MagicMcpServerMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.auth.core.InstanceAuthRegistry;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.ListUtils;
@@ -112,7 +113,7 @@ public class MagicMcpServerController extends MagicController implements MagicEx
 		}
 		MagicDynamicMcpServer dataSource = dynamicDataSource();
 		if (dataSource == null) {
-			return new JsonBean<>("MCP server runtime 未装配，无法测试连接（未启用 MCP server runtime）");
+			return new JsonBean<>(I18nMessageResolver.resolveKey("fw.ai.magicapi.mcpServer.runtimeNotAssembledTest"));
 		}
 		return new JsonBean<>(dataSource.testConnection(info));
 	}
@@ -124,7 +125,7 @@ public class MagicMcpServerController extends MagicController implements MagicEx
 	@ResponseBody
 	public JsonBean<Object> doDelete(@RequestBody MagicMcpServerInfo info) {
 		if (info.isEnabled()) {
-			return new JsonBean<>("该 MCP server「" + info.getKey() + "」已启用，请先停用后再删除");
+			return new JsonBean<>(I18nMessageResolver.resolveKey("fw.ai.magicapi.mcpServer.enabledCannotDelete", info.getKey()));
 		}
 		return new JsonBean<>("ok");
 	}
@@ -137,7 +138,7 @@ public class MagicMcpServerController extends MagicController implements MagicEx
 	public JsonBean<Object> changeConnected(@RequestBody MagicMcpServerInfo info) {
 		MagicDynamicMcpServer dataSource = dynamicDataSource();
 		if (dataSource == null) {
-			return new JsonBean<>("MCP server runtime 未装配，无法启停实例（未启用 MCP server runtime）");
+			return new JsonBean<>(I18nMessageResolver.resolveKey("fw.ai.magicapi.mcpServer.runtimeNotAssembledChangeConnected"));
 		}
 		if (!info.isEnabled()) {
 			dataSource.destroyClientByKey(info.getKey());
@@ -157,7 +158,7 @@ public class MagicMcpServerController extends MagicController implements MagicEx
 	public JsonBean<Object> refresh() {
 		MagicDynamicMcpServer dataSource = dynamicDataSource();
 		if (dataSource == null) {
-			return new JsonBean<>("MCP server runtime 未装配，无法刷新工具（未启用 MCP server runtime）");
+			return new JsonBean<>(I18nMessageResolver.resolveKey("fw.ai.magicapi.mcpServer.runtimeNotAssembledRefresh"));
 		}
 		dataSource.refreshTools();
 		return new JsonBean<>("ok");

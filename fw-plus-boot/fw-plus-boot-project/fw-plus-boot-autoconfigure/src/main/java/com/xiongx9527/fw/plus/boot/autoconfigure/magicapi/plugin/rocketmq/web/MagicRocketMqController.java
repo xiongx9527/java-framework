@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.web;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.model.RocketMqDataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.model.RocketMqSubscribeInfo;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
@@ -105,7 +106,7 @@ public class MagicRocketMqController extends MagicController implements MagicExc
             newProducer.start();
             // 检查生产者服务状态
             if (newProducer.getDefaultMQProducerImpl().getServiceState() != ServiceState.RUNNING) {
-                throw new RuntimeException("RocketMQ服务未启动");
+                throw new RuntimeException(I18nMessageResolver.resolveKey("fw.boot.rocketmq.serviceNotStarted"));
             }
             return new JsonBean<>("ok");
         } catch (MQClientException e) {

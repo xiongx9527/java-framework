@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.config.starter
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.config.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.config.model.ConfigInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.config.service.ConfigMagicResourceStorage;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
@@ -53,10 +54,10 @@ public class MagicAPIEnvironmentRepository implements EnvironmentRepository, Bas
     public Environment findOne(String application, String profile, String label) {
         // 添加参数空值检查
         if (StringUtils.isBlank(application)) {
-            throw new IllegalArgumentException("应用名称不能为空");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.config.env.applicationNameRequired"));
         }
         if (StringUtils.isBlank(profile)) {
-            throw new IllegalArgumentException("配置文件不能为空");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.config.env.configFileRequired"));
         }
         
         log.info("获取配置环境: application={}, profile={}, label={}", application, profile, label);

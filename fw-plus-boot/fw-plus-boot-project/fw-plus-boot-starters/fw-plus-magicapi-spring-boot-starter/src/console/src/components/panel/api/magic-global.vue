@@ -9,11 +9,12 @@
 </template>
 <script setup>
 import { resolveDynamicComponent } from 'vue'
+import $i from '../../../scripts/i18n.js'
 const navbars = [{
-	title: '全局请求参数',
+	title: $i('api.global.parameter'),
 	component: resolveDynamicComponent('magic-global-parameter')
 },{
-	title: '全局请求Header',
+	title: $i('api.global.header'),
 	component: resolveDynamicComponent('magic-global-header')
 }]
 </script>

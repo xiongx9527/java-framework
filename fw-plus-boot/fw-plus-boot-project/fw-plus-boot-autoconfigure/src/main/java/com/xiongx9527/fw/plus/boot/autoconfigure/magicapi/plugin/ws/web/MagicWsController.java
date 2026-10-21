@@ -7,6 +7,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.model.WsSubs
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.service.WsDataSourceInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.service.WsSubscribeInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.handler.AbstractWebSocketHandler;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.ListUtils;
@@ -137,7 +138,7 @@ public class MagicWsController extends MagicController implements MagicException
 
     private void validateDataSourceInfo(WsDataSourceInfo properties) {
         if (properties == null) {
-            throw new IllegalArgumentException("数据源不能为空");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.ws.datasourceRequired"));
         }
         WsDataSourceInfoMagicResourceStorage storage = getWsDataSourceInfoMagicResourceStorage();
         if (storage != null) {

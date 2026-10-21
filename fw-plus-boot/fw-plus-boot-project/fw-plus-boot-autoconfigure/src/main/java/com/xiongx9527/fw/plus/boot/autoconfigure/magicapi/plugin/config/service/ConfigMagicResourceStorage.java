@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.config.service
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.config.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.config.model.ConfigInfo;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import org.ssssssss.magicapi.core.service.AbstractPathMagicResourceStorage;
 
 import java.util.List;
@@ -61,13 +62,13 @@ public class ConfigMagicResourceStorage extends AbstractPathMagicResourceStorage
             ConfigInfo oldConfigInfo = magicResourceService.file(entity.getId());
             if (oldConfigInfo != null) {
                 if (!oldConfigInfo.getAppId().equals(entity.getAppId())) {
-                    throw new IllegalArgumentException("AppId不可修改");
+                    throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.config.resource.appIdImmutable"));
                 }
                 if (!oldConfigInfo.getNamespace().equals(entity.getNamespace())) {
-                    throw new IllegalArgumentException("Namespace不可修改");
+                    throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.config.resource.namespaceImmutable"));
                 }
                 if (!oldConfigInfo.getEnv().equals(entity.getEnv())) {
-                    throw new IllegalArgumentException("Env不可修改");
+                    throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.config.resource.envImmutable"));
                 }
             }
         }
@@ -76,7 +77,7 @@ public class ConfigMagicResourceStorage extends AbstractPathMagicResourceStorage
                 .filter(e -> entity.getId() == null || !entity.getId().equals(e.getId()))
                 .collect(Collectors.groupingBy(this::buildUniquenessKey));
         if (map.containsKey(key)) {
-            throw new IllegalArgumentException(String.format("该环境已存在配置 env:%s , appId:%s , namespace:%s ", entity.getEnv(), entity.getAppId(), entity.getNamespace()));
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.config.resource.envExists", entity.getEnv(), entity.getAppId(), entity.getNamespace()));
         }
     }
 

@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
@@ -55,10 +56,12 @@ public final class EmbeddingIntentClassifier<I extends Enum<I>> implements Inten
 	public EmbeddingIntentClassifier(EmbeddingModel embeddingModel, Map<I, List<String>> exampleTexts,
 			double threshold, double margin) {
 		if (embeddingModel == null) {
-			throw new IllegalArgumentException("embeddingModel 不能为 null");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.EmbeddingIntentClassifier.embeddingModelRequired"));
 		}
 		if (exampleTexts == null || exampleTexts.isEmpty()) {
-			throw new IllegalArgumentException("必须至少为一个意图提供示例句");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.EmbeddingIntentClassifier.examplesRequired"));
 		}
 		this.embeddingModel = embeddingModel;
 		this.threshold = threshold;
@@ -86,7 +89,8 @@ public final class EmbeddingIntentClassifier<I extends Enum<I>> implements Inten
 	private Embedding embed(String text) {
 		Response<Embedding> response = embeddingModel.embed(text);
 		if (response == null || response.content() == null) {
-			throw new IllegalStateException("EmbeddingModel 返回空结果，无法完成示例向量化");
+			throw new IllegalStateException(
+					I18nMessageResolver.resolveKey("fw.ai.EmbeddingIntentClassifier.emptyEmbeddingResult"));
 		}
 		return response.content();
 	}

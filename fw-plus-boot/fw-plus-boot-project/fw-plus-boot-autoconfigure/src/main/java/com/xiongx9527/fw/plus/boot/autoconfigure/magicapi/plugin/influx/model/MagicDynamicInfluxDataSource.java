@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.influx.model;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.alibaba.fastjson.JSON;
 import com.influxdb.LogLevel;
 import com.influxdb.client.InfluxDBClient;
@@ -192,7 +193,7 @@ public class MagicDynamicInfluxDataSource implements DisposableBean {
             if (influxDBClient != null) {
                 InfluxDataSourceInfo dataSourceInfo = new InfluxDataSourceInfo();
                 dataSourceInfo.setKey("default");
-                dataSourceInfo.setName("默认数据源");
+                dataSourceInfo.setName(I18nMessageResolver.resolveKey("fw.boot.datasource.defaultName"));
                 dataSourceInfoList.add(dataSourceInfo);
             }
         } catch (Exception e) {

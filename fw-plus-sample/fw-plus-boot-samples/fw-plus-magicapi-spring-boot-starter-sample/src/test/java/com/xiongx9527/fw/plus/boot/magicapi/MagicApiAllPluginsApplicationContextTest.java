@@ -57,15 +57,14 @@ class MagicApiAllPluginsApplicationContextTest {
 			"fw-plus-magicapi-plugin-admin",
 			"fw-plus-magicapi-plugin-db",
 			// 以下插件的激活条件（classpath / 依赖 bean / 开关）在样例中未满足，
-			// 或引全 28 个插件会拉起数据源/MQ/Kafka 等运行时前置导致启动失败；
+			// 或引全 27 个插件会拉起数据源/MQ/Kafka 等运行时前置导致启动失败；
 			// 插件自身能力由各插件模块的测试覆盖，样例只验证已激活集合。
 			"fw-plus-magicapi-plugin-mybatisplus",
 			"fw-plus-magicapi-plugin-java-entity",
 			"fw-plus-magicapi-plugin-spring-bean"));
-	private static final String RESOURCE_ONLY_ARTIFACT = "fw-plus-magicapi-plugin-word";
 	/**
 	 * 只提供 Magic-API 扩展能力（marker/DSL 桥接）、不注册 {@code MagicPluginConfiguration} 的 starter；
-	 * 与 word 一样不参与 plugin name 对账，但必须是样例 classpath 与清单的一部分。
+	 * 不参与 plugin name 对账，但必须是样例 classpath 与清单的一部分。
 	 */
 	private static final Set<String> MARKER_ONLY_ARTIFACTS = new LinkedHashSet<String>(Arrays.asList(
 			"fw-plus-magicapi-plugin-mybatisplus",
@@ -75,8 +74,6 @@ class MagicApiAllPluginsApplicationContextTest {
 	 */
 	private static final Set<String> OFFLINE_UNAVAILABLE_ARTIFACTS = new LinkedHashSet<String>(Arrays.asList(
 			));
-	private static final String WORD_PLUGIN_RESOURCE = "magic-editor/plugins/magic-word.1.0.0.iife.js";
-
 	@Autowired
 	private ConfigurableApplicationContext applicationContext;
 
@@ -115,7 +112,6 @@ class MagicApiAllPluginsApplicationContextTest {
 
 		Set<String> mappedArtifacts = new LinkedHashSet<String>(ACTIVE_PLUGIN_CONFIGURATIONS.keySet());
 		mappedArtifacts.addAll(CONDITIONAL_BACKOFF_ARTIFACTS);
-		mappedArtifacts.add(RESOURCE_ONLY_ARTIFACT);
 		mappedArtifacts.addAll(MARKER_ONLY_ARTIFACTS);
 		mappedArtifacts.addAll(OFFLINE_UNAVAILABLE_ARTIFACTS);
 		Set<String> declaredArtifacts = MagicApiAllPluginsClasspathTest.PLUGIN_ARTIFACTS.stream()
@@ -130,7 +126,6 @@ class MagicApiAllPluginsApplicationContextTest {
 
 		assertThat(applicationContext.getBeansOfType(MongoModule.class)).isEmpty();
 		assertConditionDidNotMatch(MagicAPIMongoConfiguration.class.getName() + "#mongoFunctions");
-		assertThat(Thread.currentThread().getContextClassLoader().getResource(WORD_PLUGIN_RESOURCE)).isNotNull();
 	}
 
 	@Test

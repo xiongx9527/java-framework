@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.config.client;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.config.client.ConfigClientProperties;
 import org.springframework.cloud.config.client.ConfigServicePropertySourceLocator;
@@ -56,7 +57,7 @@ public class CachingConfigServicePropertySourceLocator extends ConfigServiceProp
                     return new MapPropertySource("configService", cached);
                 }
             }
-            throw new RuntimeException("获取配置失败且无可用本地缓存", e);
+            throw new RuntimeException(I18nMessageResolver.resolveKey("fw.boot.config.client.loadFailedNoCache"), e);
         }
     }
 

@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.influx.service;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.influx.model.MagicDynamicInfluxDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.influx.model.InfluxDataSourceInfo;
 import lombok.extern.slf4j.Slf4j;
@@ -133,8 +134,8 @@ public class InfluxDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRe
         // 筛选出ID为空的数据源节点，并转换为InfluxDataSourceInfo对象
         return this.magicDynamicInfluxDataSource.datasourceNodes().stream().filter(it -> it.getId() == null).map(it -> {
             InfluxDataSourceInfo dataSourceInfo = new InfluxDataSourceInfo();
-            // 设置数据源名称，优先使用name字段，其次使用key字段，最后使用默认值"默认数据源"
-            dataSourceInfo.setName(StringUtils.defaultIfBlank(it.getName(), StringUtils.defaultIfBlank(it.getKey(), "默认数据源")));
+            // 设置数据源名称，优先使用name字段，其次使用key字段，最后使用默认值I18nMessageResolver.resolveKey("fw.boot.datasource.defaultName")
+            dataSourceInfo.setName(StringUtils.defaultIfBlank(it.getName(), StringUtils.defaultIfBlank(it.getKey(), I18nMessageResolver.resolveKey("fw.boot.datasource.defaultName"))));
             dataSourceInfo.setKey(it.getKey());
             return dataSourceInfo;
         }).collect(Collectors.toList());

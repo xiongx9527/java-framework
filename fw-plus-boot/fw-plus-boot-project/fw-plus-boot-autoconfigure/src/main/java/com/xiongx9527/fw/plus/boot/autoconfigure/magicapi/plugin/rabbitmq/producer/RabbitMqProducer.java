@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.produ
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.model.RabbitMqDataSourceInfo;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
@@ -147,7 +148,7 @@ public class RabbitMqProducer {
      */
     public boolean send(String exchange, String routingKey, Object msg, boolean async) {
         if (msg == null) {
-            throw new IllegalArgumentException("消息内容不能为空");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.rabbitmq.messageRequired"));
         }
 
         // 生成消息ID

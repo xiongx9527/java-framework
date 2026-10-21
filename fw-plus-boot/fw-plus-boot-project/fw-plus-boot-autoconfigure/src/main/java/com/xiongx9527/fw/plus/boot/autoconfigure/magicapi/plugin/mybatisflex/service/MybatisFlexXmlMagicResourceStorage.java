@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mybatisflex.service;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mybatisflex.model.MybatisFlexXmlInfo;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import org.apache.commons.lang3.StringUtils;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 import org.ssssssss.magicapi.core.service.MagicResourceService;
@@ -57,8 +58,8 @@ public class MybatisFlexXmlMagicResourceStorage implements MagicResourceStorage<
 	@Override
 	public void validate(MybatisFlexXmlInfo entity) {
 		entity.setDbKey(MybatisFlexXmlMapperRegistry.normalizeDbKey(entity.getDbKey()));
-		notBlank(entity.getTableName(), "表名不能为空");
-		notBlank(entity.getScript(), "MyBatis-Flex XML 内容不能为空");
+		notBlank(entity.getTableName(), I18nMessageResolver.resolveKey("fw.boot.mybatisflex.tableNameRequired"));
+		notBlank(entity.getScript(), I18nMessageResolver.resolveKey("fw.boot.mybatisflex.xmlContentRequired"));
 		registry.validateMapperXml(entity.getScript());
 		validateDbKeyImmutable(entity);
 		validateUnique(entity);
@@ -80,7 +81,7 @@ public class MybatisFlexXmlMagicResourceStorage implements MagicResourceStorage<
 		}
 		MybatisFlexXmlInfo old = magicResourceService.file(entity.getId());
 		if (old != null && !Objects.equals(MybatisFlexXmlMapperRegistry.normalizeDbKey(old.getDbKey()), entity.getDbKey())) {
-			throw new IllegalArgumentException("dbKey不可修改");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.mybatisflex.dbKeyImmutable"));
 		}
 	}
 
@@ -93,7 +94,7 @@ public class MybatisFlexXmlMagicResourceStorage implements MagicResourceStorage<
 			if (!Objects.equals(existing.getId(), entity.getId())
 					&& Objects.equals(MybatisFlexXmlMapperRegistry.normalizeDbKey(existing.getDbKey()), entity.getDbKey())
 					&& Objects.equals(existing.getTableName(), entity.getTableName())) {
-				throw new IllegalArgumentException("dbKey + 表名已存在");
+				throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.mybatisflex.dbKeyTableExists"));
 			}
 		}
 	}

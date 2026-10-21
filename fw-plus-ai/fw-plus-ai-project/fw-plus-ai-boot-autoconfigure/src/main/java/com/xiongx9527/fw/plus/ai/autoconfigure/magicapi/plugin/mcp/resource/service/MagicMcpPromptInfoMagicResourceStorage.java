@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.resource.ser
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.resource.model.MagicMcpPromptInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.resource.model.MagicMcpPromptMessage;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 import org.ssssssss.magicapi.core.resource.Resource;
 import org.ssssssss.magicapi.core.service.MagicResourceService;
@@ -92,7 +93,8 @@ public class MagicMcpPromptInfoMagicResourceStorage implements MagicResourceStor
 
 	private void validateRequired(String value, String field) {
 		if (value == null || value.trim().length() == 0) {
-			throw new IllegalArgumentException(field + "不能为空");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.MagicMcpPromptInfoMagicResourceStorage.fieldRequired", field));
 		}
 	}
 
@@ -107,21 +109,25 @@ public class MagicMcpPromptInfoMagicResourceStorage implements MagicResourceStor
 			}
 			validateRequired(argument.getName(), "arguments.name");
 			if (!names.add(argument.getName())) {
-				throw new IllegalArgumentException(String.format("参数名 '%s' 重复", argument.getName()));
+				throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+						"fw.ai.MagicMcpPromptInfoMagicResourceStorage.argumentDuplicated", argument.getName()));
 			}
 		}
 	}
 
 	private void validateMessages(List<MagicMcpPromptMessage> messages) {
 		if (messages == null || messages.isEmpty()) {
-			throw new IllegalArgumentException("messages不能为空");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.MagicMcpPromptInfoMagicResourceStorage.messagesRequired"));
 		}
 		for (MagicMcpPromptMessage message : messages) {
 			if (message == null || message.getContent() == null || message.getContent().trim().length() == 0) {
-				throw new IllegalArgumentException("messages.content不能为空");
+				throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+						"fw.ai.MagicMcpPromptInfoMagicResourceStorage.messageContentRequired"));
 			}
 			if (message.getRole() == null || !ROLES.contains(message.getRole())) {
-				throw new IllegalArgumentException("messages.role仅支持 user 或 assistant");
+				throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+						"fw.ai.MagicMcpPromptInfoMagicResourceStorage.messageRoleInvalid"));
 			}
 		}
 	}
@@ -135,7 +141,8 @@ public class MagicMcpPromptInfoMagicResourceStorage implements MagicResourceStor
 				.filter(it -> !Objects.equals(it.getId(), currentId))
 				.noneMatch(it -> Objects.equals(it.getName(), name));
 		if (!noneMatchName) {
-			throw new IllegalArgumentException(String.format("提示词名称 '%s' 已存在，请使用其他名称", name));
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.MagicMcpPromptInfoMagicResourceStorage.nameDuplicated", name));
 		}
 	}
 }

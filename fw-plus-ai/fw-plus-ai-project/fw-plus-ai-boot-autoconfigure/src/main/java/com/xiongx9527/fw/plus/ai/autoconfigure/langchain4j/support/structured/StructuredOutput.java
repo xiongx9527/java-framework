@@ -7,6 +7,7 @@ import com.alibaba.fastjson2.JSONReader;
 import com.alibaba.fastjson2.schema.JSONSchema;
 import com.alibaba.fastjson2.schema.ValidateResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant.SimpleAssistant;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -69,13 +70,14 @@ public final class StructuredOutput {
 	/** 从 JSON Schema 文本构建 */
 	public static StructuredOutput of(String jsonSchemaText) {
 		if (jsonSchemaText == null || jsonSchemaText.trim().isEmpty()) {
-			throw new IllegalArgumentException("jsonSchema 不能为空");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.ai.SchemaRules.jsonSchemaRequired"));
 		}
 		JSONSchema validator;
 		try {
 			validator = JSONSchema.parseSchema(jsonSchemaText);
 		} catch (RuntimeException e) {
-			throw new IllegalArgumentException("jsonSchema 不是合法的 JSON Schema：" + e.getMessage(), e);
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.SchemaRules.jsonSchemaInvalidJson", e.getMessage()), e);
 		}
 		return new StructuredOutput(jsonSchemaText.trim(), validator);
 	}
@@ -87,7 +89,7 @@ public final class StructuredOutput {
 	 */
 	public static StructuredOutput of(Type type) {
 		if (type == null) {
-			throw new IllegalArgumentException("type 不能为 null");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.ai.StructuredOutput.typeRequired"));
 		}
 		JSONSchema validator = JSONSchema.of(type);
 		return new StructuredOutput(validator.toString(), validator);
@@ -149,23 +151,22 @@ public final class StructuredOutput {
 	 */
 	public static JSONObject parseReply(String reply) {
 		if (reply == null) {
-			throw new StructuredOutputException("模型返回为空，无法解析为 JSON");
+			throw StructuredOutputException.of(StructuredOutputException.REPLY_EMPTY, null, null);
 		}
 		String text = stripFence(reply);
 		int firstObject = text.indexOf('{');
 		int firstArray = text.indexOf('[');
 		if (firstArray >= 0 && (firstObject < 0 || firstArray < firstObject)) {
-			throw new StructuredOutputException("返回内容顶层是数组，本工具要求顶层为 JSON 对象（数组请包一层，如 "
-					+ "{\"items\": [...]}）", reply, null);
+			throw StructuredOutputException.of(StructuredOutputException.TOP_LEVEL_ARRAY, reply, null);
 		}
 		int lastObject = text.lastIndexOf('}');
 		if (firstObject < 0 || lastObject <= firstObject) {
-			throw new StructuredOutputException("返回内容里找不到 JSON 对象", reply, null);
+			throw StructuredOutputException.of(StructuredOutputException.JSON_OBJECT_NOT_FOUND, reply, null);
 		}
 		try {
 			return JSON.parseObject(text.substring(firstObject, lastObject + 1), JSONReader.Feature.SupportSmartMatch);
 		} catch (JSONException e) {
-			throw new StructuredOutputException("返回内容不是合法 JSON：" + e.getMessage(), reply, null, e);
+			throw StructuredOutputException.of(StructuredOutputException.INVALID_JSON, reply, e, e.getMessage());
 		}
 	}
 
@@ -218,7 +219,7 @@ public final class StructuredOutput {
 	 */
 	public JSONObject chat(SimpleAssistant assistant, String memoryId, String userText, int maxAttempts) {
 		if (assistant == null) {
-			throw new IllegalArgumentException("assistant 不能为 null");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.ai.StructuredOutput.assistantRequired"));
 		}
 		final SimpleAssistant target = assistant;
 		final String sessionId = memoryId;
@@ -228,7 +229,7 @@ public final class StructuredOutput {
 	/** 一条龙（回调式）：由调用方决定怎么发这一次请求 */
 	public JSONObject chat(ChatFunction chat, String userText, int maxAttempts) {
 		if (chat == null) {
-			throw new IllegalArgumentException("chat 不能为 null");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.ai.StructuredOutput.chatRequired"));
 		}
 		int attempts = maxAttempts < 1 ? 1 : maxAttempts;
 		String errors = null;
@@ -250,7 +251,8 @@ public final class StructuredOutput {
 				errors = e.getMessage();
 			}
 		}
-		throw new StructuredOutputException("结构化输出失败（已尝试 " + attempts + " 次）：" + errors, lastReply, lastErrors);
+		throw StructuredOutputException.of(StructuredOutputException.ATTEMPTS_EXHAUSTED, lastReply, lastErrors, null,
+				attempts, errors);
 	}
 
 	// -------------------------------------------------- 内部工具

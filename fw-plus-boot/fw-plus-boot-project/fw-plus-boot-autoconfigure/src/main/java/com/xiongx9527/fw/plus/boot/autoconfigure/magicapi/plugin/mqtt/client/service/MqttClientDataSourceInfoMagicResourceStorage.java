@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.se
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.common.MqttClientBaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.model.MqttClientDataSourceInfo;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 import org.ssssssss.magicapi.core.resource.Resource;
 import org.ssssssss.magicapi.core.service.MagicResourceService;
@@ -59,7 +60,7 @@ public class MqttClientDataSourceInfoMagicResourceStorage implements MagicResour
             MqttClientDataSourceInfo oldInfo = magicResourceService.file(entity.getId());
             if (null != oldInfo) {
                 if (!oldInfo.getKey().equals(entity.getKey())) {
-                    throw new IllegalArgumentException("key不可修改");
+                    throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.mqtt.client.keyImmutable"));
                 }
             }
         }
@@ -74,7 +75,7 @@ public class MqttClientDataSourceInfoMagicResourceStorage implements MagicResour
                 .filter(it -> !it.getId().equals(currentId))
                 .noneMatch(it -> Objects.equals(it.getKey(), key));
         if (!noneMatchKey) {
-            throw new IllegalArgumentException(String.format("数据源唯一标识(key) '%s' 已存在，请使用其他唯一标识", key));
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.mqtt.client.datasourceKeyExists", key));
         }
     }
 
