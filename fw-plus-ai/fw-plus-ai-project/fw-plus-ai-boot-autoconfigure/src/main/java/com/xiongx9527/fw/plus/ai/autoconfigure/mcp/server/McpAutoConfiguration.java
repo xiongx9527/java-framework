@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server;
 
+import com.xiongx9527.fw.plus.auth.core.CustomAuthService;
 import com.xiongx9527.fw.plus.auth.core.InstanceAuthRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.cluster.McpRedisBroadcaster;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.cluster.McpRedisMessageConsumer;
@@ -51,11 +52,19 @@ public class McpAutoConfiguration {
 	/**
 	 * 按实例 provider 解析认证服务。未配置 provider 的 runtime 保持未认证并拒绝请求，
 	 * 不回退到全局或放行服务；provider 对应模块缺失时 fail-closed 拒绝请求。
+	 * <p>
+	 * 业务提供的 {@link CustomAuthService} Bean 在此注册为自定义 provider：
+	 * runtime 的 {@code auth.provider} 指向其 {@code getProviderKey()} 时走业务实现。
+	 * 本 Bean 与 WS 侧互斥共享（{@code @ConditionalOnMissingBean}），自定义 provider 只注册一次。
+	 * </p>
 	 */
 	@Bean
 	@ConditionalOnMissingBean
-	public InstanceAuthRegistry instanceAuthRegistry() {
-		return new InstanceAuthRegistry();
+	public InstanceAuthRegistry instanceAuthRegistry(ObjectProvider<CustomAuthService> customAuthServices) {
+		InstanceAuthRegistry registry = new InstanceAuthRegistry();
+		customAuthServices.orderedStream()
+				.forEach(service -> registry.registerProvider(service.getProviderKey(), service));
+		return registry;
 	}
 
 	/**
