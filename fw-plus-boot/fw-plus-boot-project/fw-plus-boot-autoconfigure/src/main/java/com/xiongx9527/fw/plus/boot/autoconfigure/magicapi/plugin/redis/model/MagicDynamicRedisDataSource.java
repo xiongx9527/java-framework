@@ -816,7 +816,7 @@ public class MagicDynamicRedisDataSource implements DisposableBean {
             if (redisConnectionFactory != null) {
                 RedisDataSourceInfo dataSourceInfo = new RedisDataSourceInfo();
                 dataSourceInfo.setKey("default");
-                dataSourceInfo.setName("默认数据源");
+                dataSourceInfo.setName(I18nMessageResolver.resolveKey("fw.boot.datasource.defaultName"));
                 dataSourceInfoList.add(dataSourceInfo);
             }
         } catch (Exception e) {

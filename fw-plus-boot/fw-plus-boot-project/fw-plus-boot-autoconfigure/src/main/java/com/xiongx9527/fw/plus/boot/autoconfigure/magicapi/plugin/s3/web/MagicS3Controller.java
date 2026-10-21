@@ -10,6 +10,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.options.Magi
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.options.MagicS3PlatformOptionProperties;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.options.MagicS3PlatformOptionProvider;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.service.S3DataSourceInfoMagicResourceStorage;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.ListUtils;
@@ -181,7 +182,7 @@ public class MagicS3Controller extends MagicController implements MagicException
                 fileInfo = fileStorageService.upload(testInputStream, "test.txt");
             }
             if (Objects.isNull(fileInfo)) {
-                return new JsonBean<>("上传文件失败");
+                return new JsonBean<>(I18nMessageResolver.resolveKey("fw.boot.magicapi.s3.uploadFailed"));
             }
             fileStorageService.delete(fileInfo);
             return new JsonBean<>("ok");

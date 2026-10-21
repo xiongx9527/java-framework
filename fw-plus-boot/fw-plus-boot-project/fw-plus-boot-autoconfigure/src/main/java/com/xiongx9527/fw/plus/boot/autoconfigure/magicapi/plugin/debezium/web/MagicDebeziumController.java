@@ -295,7 +295,7 @@ public class MagicDebeziumController extends MagicController implements MagicExc
         } catch (Exception e) {
             log.error("测试数据源失败", e);
             String message = e.getMessage() != null ? e.getMessage() : "未知错误";
-            return new JsonBean<>("数据源连接失败: " + message);
+            return new JsonBean<>(I18nMessageResolver.resolveKey("fw.boot.magicapi.debezium.datasourceConnectFailed", message));
         }
     }
 

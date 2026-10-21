@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.redis.service;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.redis.model.MagicDynamicRedisDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.redis.model.RedisDataSourceInfo;
 import lombok.extern.slf4j.Slf4j;
@@ -108,7 +109,7 @@ public class RedisDataSourceMagicDynamicRegistry extends AbstractMagicDynamicReg
     public List<RedisDataSourceInfo> defaultMappings() {
         return magicRedisDataSource.datasourceNodes().stream().filter(it -> it.getId() == null).map(it -> {
             RedisDataSourceInfo dataSourceInfo = new RedisDataSourceInfo();
-            dataSourceInfo.setName(StringUtils.defaultIfBlank(it.getName(), StringUtils.defaultIfBlank(it.getKey(), "默认数据源")));
+            dataSourceInfo.setName(StringUtils.defaultIfBlank(it.getName(), StringUtils.defaultIfBlank(it.getKey(), I18nMessageResolver.resolveKey("fw.boot.datasource.defaultName"))));
             dataSourceInfo.setKey(it.getKey());
             return dataSourceInfo;
         }).collect(Collectors.toList());

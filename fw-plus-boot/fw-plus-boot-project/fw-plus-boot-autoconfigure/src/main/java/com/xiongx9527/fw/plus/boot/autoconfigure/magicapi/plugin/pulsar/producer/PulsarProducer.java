@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.producer;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.alibaba.fastjson.JSON;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.common.BaseService;
@@ -73,7 +74,7 @@ public class PulsarProducer implements BaseService {
         this.magicDynamicPulsarDataSource = magicDynamicPulsarDataSource;
         PulsarDataSourceInfo dataSourceInfo = new PulsarDataSourceInfo();
         dataSourceInfo.setId("");
-        dataSourceInfo.setName("默认数据源");
+        dataSourceInfo.setName(I18nMessageResolver.resolveKey("fw.boot.datasource.defaultName"));
         dataSourceInfo.setKey("default");
         this.id = dataSourceInfo.getId();
         this.key = dataSourceInfo.getKey();

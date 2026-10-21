@@ -58,8 +58,8 @@ public class MybatisFlexXmlMagicResourceStorage implements MagicResourceStorage<
 	@Override
 	public void validate(MybatisFlexXmlInfo entity) {
 		entity.setDbKey(MybatisFlexXmlMapperRegistry.normalizeDbKey(entity.getDbKey()));
-		notBlank(entity.getTableName(), "表名不能为空");
-		notBlank(entity.getScript(), "MyBatis-Flex XML 内容不能为空");
+		notBlank(entity.getTableName(), I18nMessageResolver.resolveKey("fw.boot.mybatisflex.tableNameRequired"));
+		notBlank(entity.getScript(), I18nMessageResolver.resolveKey("fw.boot.mybatisflex.xmlContentRequired"));
 		registry.validateMapperXml(entity.getScript());
 		validateDbKeyImmutable(entity);
 		validateUnique(entity);

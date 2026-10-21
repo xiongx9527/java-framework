@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.envelope;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -94,9 +95,11 @@ public class Langchain4jAssistantProperties implements InitializingBean {
 
 	// -------------------------------------------------- 内部工具
 
-	/** 非法配置异常：带上完整配置项与取值 */
+	/** 非法配置异常：带上完整配置项与取值；reason 为国际化 key */
 	static IllegalStateException illegal(String key, Object value, String reason) {
-		return new IllegalStateException("非法配置 " + PREFIX + "." + key + "=" + value + "：" + reason);
+		return new IllegalStateException(I18nMessageResolver.resolveKey(
+				"fw.ai.langchain4jAssistant.illegalConfig", PREFIX + "." + key, value,
+				I18nMessageResolver.resolveKey(reason)));
 	}
 
 	/** 运行期非法值告警：沿用旧值，不中断服务 */
@@ -174,7 +177,7 @@ public class Langchain4jAssistantProperties implements InitializingBean {
 
 		public void validate() {
 			if (maxAttempts < 1) {
-				throw illegal("structured.max-attempts", maxAttempts, "结构化重试上限必须 >= 1（含首次）");
+				throw illegal("structured.max-attempts", maxAttempts, "fw.ai.langchain4jAssistant.reason.1");
 			}
 		}
 
@@ -235,10 +238,10 @@ public class Langchain4jAssistantProperties implements InitializingBean {
 
 		public void validate() {
 			if (historyUserMessages < 0) {
-				throw illegal("classifier.history-user-messages", historyUserMessages, "分类历史条数必须 >= 0（0 = 只看本轮）");
+				throw illegal("classifier.history-user-messages", historyUserMessages, "fw.ai.langchain4jAssistant.reason.2");
 			}
 			if (maxAttempts < 1) {
-				throw illegal("classifier.max-attempts", maxAttempts, "分类尝试次数必须 >= 1（含首次）");
+				throw illegal("classifier.max-attempts", maxAttempts, "fw.ai.langchain4jAssistant.reason.3");
 			}
 		}
 
@@ -358,10 +361,10 @@ public class Langchain4jAssistantProperties implements InitializingBean {
 
 		public void validate() {
 			if (windowSize < 1) {
-				throw illegal("session.window-size", windowSize, "会话窗口条数必须 >= 1");
+				throw illegal("session.window-size", windowSize, "fw.ai.langchain4jAssistant.reason.4");
 			}
 			if (idleTimeoutMinutes < 1) {
-				throw illegal("session.idle-timeout-minutes", idleTimeoutMinutes, "空闲超时分钟数必须 >= 1");
+				throw illegal("session.idle-timeout-minutes", idleTimeoutMinutes, "fw.ai.langchain4jAssistant.reason.5");
 			}
 			summary.validate();
 			facts.validate();
@@ -487,16 +490,16 @@ public class Langchain4jAssistantProperties implements InitializingBean {
 
 			public void validate() {
 				if (triggerTokens < 1) {
-					throw illegal("session.summary.trigger-tokens", triggerTokens, "摘要触发阈值必须 >= 1");
+					throw illegal("session.summary.trigger-tokens", triggerTokens, "fw.ai.langchain4jAssistant.reason.6");
 				}
 				if (keepTokens < 1) {
-					throw illegal("session.summary.keep-tokens", keepTokens, "摘要压缩目标必须 >= 1");
+					throw illegal("session.summary.keep-tokens", keepTokens, "fw.ai.langchain4jAssistant.reason.7");
 				}
 				if (maxSummaryTokens < 1) {
-					throw illegal("session.summary.max-summary-tokens", maxSummaryTokens, "摘要正文上限必须 >= 1");
+					throw illegal("session.summary.max-summary-tokens", maxSummaryTokens, "fw.ai.langchain4jAssistant.reason.8");
 				}
 				if (rebuildEvery < 0) {
-					throw illegal("session.summary.rebuild-every", rebuildEvery, "全量重摘间隔必须 >= 0（0 = 不重摘）");
+					throw illegal("session.summary.rebuild-every", rebuildEvery, "fw.ai.langchain4jAssistant.reason.9");
 				}
 			}
 		}
@@ -698,28 +701,28 @@ public class Langchain4jAssistantProperties implements InitializingBean {
 
 			public void validate() {
 				if (batchSize < 1) {
-					throw illegal("session.facts.batch-size", batchSize, "批量写入阈值必须 >= 1");
+					throw illegal("session.facts.batch-size", batchSize, "fw.ai.langchain4jAssistant.reason.10");
 				}
 				if (topK < 1) {
-					throw illegal("session.facts.top-k", topK, "召回条数上限必须 >= 1");
+					throw illegal("session.facts.top-k", topK, "fw.ai.langchain4jAssistant.reason.11");
 				}
 				if (maxFactsTokens < 1) {
-					throw illegal("session.facts.max-facts-tokens", maxFactsTokens, "事实段 token 上限必须 >= 1");
+					throw illegal("session.facts.max-facts-tokens", maxFactsTokens, "fw.ai.langchain4jAssistant.reason.12");
 				}
 				if (!SUPPORTED_EXTRACTORS.contains(extractor)) {
-					throw illegal("session.facts.extractor", extractor, "抽取策略只支持 mem0/llm/rule/hybrid");
+					throw illegal("session.facts.extractor", extractor, "fw.ai.langchain4jAssistant.reason.13");
 				}
 				if (!SUPPORTED_WRITE_MODES.contains(writeMode)) {
-					throw illegal("session.facts.write-mode", writeMode, "写入模式只支持 per-turn/batched/session-end");
+					throw illegal("session.facts.write-mode", writeMode, "fw.ai.langchain4jAssistant.reason.14");
 				}
 				if (!SUPPORTED_RETRIEVERS.contains(retriever)) {
-					throw illegal("session.facts.retriever", retriever, "召回策略只支持 semantic/keyword/hybrid/rerank");
+					throw illegal("session.facts.retriever", retriever, "fw.ai.langchain4jAssistant.reason.15");
 				}
 				if (connectTimeout == null || connectTimeout.isZero() || connectTimeout.isNegative()) {
-					throw illegal("session.facts.connect-timeout", connectTimeout, "连接超时必须为正时长");
+					throw illegal("session.facts.connect-timeout", connectTimeout, "fw.ai.langchain4jAssistant.reason.16");
 				}
 				if (readTimeout == null || readTimeout.isZero() || readTimeout.isNegative()) {
-					throw illegal("session.facts.read-timeout", readTimeout, "读取超时必须为正时长");
+					throw illegal("session.facts.read-timeout", readTimeout, "fw.ai.langchain4jAssistant.reason.17");
 				}
 			}
 		}

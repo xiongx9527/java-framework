@@ -73,7 +73,7 @@ public class Langchain4jDatasourceController extends MagicController implements 
             EmbeddingModel embeddingModel = null;
             if (modelType == Langchain4jModelTypes.EMBEDDING_STORE) {
                 if (embeddingModels == null) {
-                    return new JsonBean<>("当前应用未装配 LangChain4j embedding-model，无法测试 embedding-store");
+                    return new JsonBean<>(I18nMessageResolver.resolveKey("fw.ai.magicapi.langchain4jDatasource.embeddingModelNotAssembled"));
                 }
                 embeddingModel = Langchain4jEmbeddingStoreMagicDynamicRegistry.requireEmbeddingModel(
                         (Langchain4jEmbeddingStoreInfo) info,

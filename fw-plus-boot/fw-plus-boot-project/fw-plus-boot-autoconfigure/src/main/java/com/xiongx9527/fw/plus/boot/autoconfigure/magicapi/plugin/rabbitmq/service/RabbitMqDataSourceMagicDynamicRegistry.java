@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.service;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.model.MagicDynamicRabbitMqDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.model.RabbitMqDataSourceInfo;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
@@ -144,7 +145,7 @@ public class RabbitMqDataSourceMagicDynamicRegistry extends AbstractMagicDynamic
         // 从生产者节点中获取没有ID的节点，并转换为数据源信息列表
         List<RabbitMqDataSourceInfo> dataSourceInfoList = this.magicDynamicRabbitMqDataSource.producerNodes().stream().filter(it -> it.getId() == null).map(it -> {
             RabbitMqDataSourceInfo dataSourceInfo = new RabbitMqDataSourceInfo();
-            dataSourceInfo.setName(StringUtils.defaultIfBlank(it.getName(), StringUtils.defaultIfBlank(it.getKey(), "默认数据源")));
+            dataSourceInfo.setName(StringUtils.defaultIfBlank(it.getName(), StringUtils.defaultIfBlank(it.getKey(), I18nMessageResolver.resolveKey("fw.boot.datasource.defaultName"))));
             dataSourceInfo.setKey(it.getKey());
             return dataSourceInfo;
         }).collect(Collectors.toList());
@@ -163,7 +164,7 @@ public class RabbitMqDataSourceMagicDynamicRegistry extends AbstractMagicDynamic
                       && port != -1) {
                     RabbitMqDataSourceInfo dataSourceInfo = new RabbitMqDataSourceInfo();
                     dataSourceInfo.setKey("default");
-                    dataSourceInfo.setName("默认数据源");
+                    dataSourceInfo.setName(I18nMessageResolver.resolveKey("fw.boot.datasource.defaultName"));
                     dataSourceInfoList.add(dataSourceInfo);
                 }
             }

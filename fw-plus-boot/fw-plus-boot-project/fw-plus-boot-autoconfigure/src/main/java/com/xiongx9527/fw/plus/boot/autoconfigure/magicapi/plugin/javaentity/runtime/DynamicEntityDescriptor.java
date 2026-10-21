@@ -76,16 +76,18 @@ public final class DynamicEntityDescriptor {
             }
             Field field = findField(type, property);
             if (field == null || Modifier.isStatic(field.getModifiers()) || Modifier.isFinal(field.getModifiers())) {
-                throw propertyError(property, "属性不存在或不可写", null);
+                throw propertyError(property, I18nMessageResolver.resolveKey("fw.boot.javaentity.propertyNotWritable"), null);
             }
             if (!field.isAccessible()) {
                 field.setAccessible(true);
             }
             field.set(instance, convert(value, field.getType(), property));
         } catch (InvocationTargetException exception) {
-            throw propertyError(property, "setter 执行失败", exception.getCause());
+            throw propertyError(property, I18nMessageResolver.resolveKey("fw.boot.javaentity.setterFailed"),
+                    exception.getCause());
         } catch (IllegalAccessException exception) {
-            throw propertyError(property, "属性不可访问", exception);
+            throw propertyError(property, I18nMessageResolver.resolveKey("fw.boot.javaentity.propertyNotAccessible"),
+                    exception);
         }
     }
 
@@ -118,7 +120,8 @@ public final class DynamicEntityDescriptor {
     private Object convert(Object value, Class<?> targetType, String property) {
         if (value == null) {
             if (targetType.isPrimitive()) {
-                throw propertyError(property, "基本类型不能赋值为 null", null);
+                throw propertyError(property,
+                        I18nMessageResolver.resolveKey("fw.boot.javaentity.primitiveNullAssignment"), null);
             }
             return null;
         }
@@ -154,13 +157,17 @@ public final class DynamicEntityDescriptor {
                 return enumValue;
             }
         } catch (RuntimeException exception) {
-            throw propertyError(property, "值无法转换为 " + targetType.getName(), exception);
+            throw propertyError(property,
+                    I18nMessageResolver.resolveKey("fw.boot.javaentity.valueTypeConvertFailed", targetType.getName()),
+                    exception);
         }
-        throw propertyError(property, "值无法转换为 " + targetType.getName(), null);
+        throw propertyError(property,
+                I18nMessageResolver.resolveKey("fw.boot.javaentity.valueTypeConvertFailed", targetType.getName()), null);
     }
 
     private IllegalArgumentException propertyError(String property, String reason, Throwable cause) {
-        String message = "动态实体 " + type.getName() + " 属性 " + property + ": " + reason;
+        String message = I18nMessageResolver.resolveKey("fw.boot.javaentity.propertyError",
+                type.getName(), property, reason);
         return cause == null ? new IllegalArgumentException(message) : new IllegalArgumentException(message, cause);
     }
 

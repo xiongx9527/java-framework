@@ -7,6 +7,7 @@ import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.alibaba.csp.sentinel.slots.block.flow.FlowException;
 import com.alibaba.csp.sentinel.slots.block.flow.param.ParamFlowException;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.enums.Options;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.ParamConfig;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.key.MagicApiRequestKeyResolver;
 import lombok.extern.slf4j.Slf4j;
@@ -29,8 +30,6 @@ import java.util.List;
 public class MagicApiSentinelGuardRequestInterceptor implements RequestInterceptor {
 
 	static final String ENTRY_CONTEXT_KEY = "__fw_plus_magicapi_sentinel_entries";
-	private static final String HOT_DATA_BLOCK_MESSAGE = "热点数据访问过于频繁，请稍后再试。";
-	private static final String FALLBACK_BLOCK_MESSAGE = "接口触发熔断降级，请稍后再试。";
 
 	private final ResultProvider resultProvider;
 	private final MagicApiRequestKeyResolver keyResolver;
@@ -58,15 +57,15 @@ public class MagicApiSentinelGuardRequestInterceptor implements RequestIntercept
 		}
 		MagicScriptContext context = ensureMagicScriptContext(requestEntity);
 		List<EntryHolder> entries = new ArrayList<>();
-		String blockMessage = FALLBACK_BLOCK_MESSAGE;
+		String blockMessage = fallbackBlockMessage();
 		try {
 			if (options.isHotDataEffective()) {
 				String hotKey = keyResolver.resolve(info, requestEntity,
 						ParamConfig.get(info, Options.HOT_DATA_KEY.getValue()));
-				blockMessage = HOT_DATA_BLOCK_MESSAGE;
+				blockMessage = hotDataBlockMessage();
 				entries.add(EntryHolder.hotData(enterHotData(resource, hotKey), hotKey));
 			} else if (options.isFallbackEffective()) {
-				blockMessage = FALLBACK_BLOCK_MESSAGE;
+				blockMessage = fallbackBlockMessage();
 				entries.add(EntryHolder.fallback(enterFallback(resource)));
 			}
 			context.set(ENTRY_CONTEXT_KEY, entries);
@@ -92,12 +91,20 @@ public class MagicApiSentinelGuardRequestInterceptor implements RequestIntercept
 
 	private String blockMessage(BlockException exception, String fallback) {
 		if (exception instanceof ParamFlowException) {
-			return HOT_DATA_BLOCK_MESSAGE;
+			return hotDataBlockMessage();
 		}
 		if (exception instanceof FlowException) {
-			return FALLBACK_BLOCK_MESSAGE;
+			return fallbackBlockMessage();
 		}
 		return fallback;
+	}
+
+	private static String hotDataBlockMessage() {
+		return I18nMessageResolver.resolveKey("fw.boot.sentinel.hotDataBlocked");
+	}
+
+	private static String fallbackBlockMessage() {
+		return I18nMessageResolver.resolveKey("fw.boot.sentinel.fallbackBlocked");
 	}
 
 	@Override

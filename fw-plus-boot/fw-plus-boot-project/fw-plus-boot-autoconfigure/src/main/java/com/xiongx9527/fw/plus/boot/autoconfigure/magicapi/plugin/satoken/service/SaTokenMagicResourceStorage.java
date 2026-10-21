@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.satoken.service;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.satoken.model.SaTokenInfo;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import org.ssssssss.magicapi.core.config.JsonCodeConstants;
 import org.ssssssss.magicapi.core.model.JsonCode;
 import org.ssssssss.magicapi.core.service.AbstractPathMagicResourceStorage;
@@ -31,12 +32,13 @@ public class SaTokenMagicResourceStorage extends AbstractPathMagicResourceStorag
 
     @Override
     public void validate(SaTokenInfo entity) {
-        notBlank(entity.getBizType(), new JsonCode(990, "业务类型不能为空"));
+        notBlank(entity.getBizType(),
+                new JsonCode(990, I18nMessageResolver.resolveKey("fw.boot.satoken.bizTypeRequired")));
         boolean noneMatchKey = magicResourceService.listFiles(folder() + ":0").stream()
                 .map(it -> (SaTokenInfo)it)
                 .filter(it -> !it.getId().equals(entity.getId()))
                 .noneMatch(it -> Objects.equals(it.getBizType(), entity.getBizType()));
-        isTrue(noneMatchKey, new JsonCode(991, "业务类型已存在"));
+        isTrue(noneMatchKey, new JsonCode(991, I18nMessageResolver.resolveKey("fw.boot.satoken.bizTypeExists")));
     }
 
     public List<SaTokenInfo> findAll() {

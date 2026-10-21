@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mongo.web;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mongo.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mongo.model.MagicDynamicMongoDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mongo.model.MongoDataSourceInfo;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.mongodb.MongoDatabaseFactory;
@@ -46,16 +47,16 @@ public class MagicMongoController extends MagicController implements MagicExcept
             return new JsonBean<>("ok");
         } catch (IllegalArgumentException e) {
             log.warn("Mongo数据源配置验证失败: {}", e.getMessage());
-            return new JsonBean<>("配置验证失败: " + e.getMessage());
+            return new JsonBean<>(I18nMessageResolver.resolveKey("fw.boot.magicapi.mongo.configValidateFailed", e.getMessage()));
         } catch (com.mongodb.MongoSocketException e) {
             log.warn("MongoDB连接失败: {}", e.getMessage());
-            return new JsonBean<>("连接失败: " + e.getMessage());
+            return new JsonBean<>(I18nMessageResolver.resolveKey("fw.boot.magicapi.mongo.connectFailed", e.getMessage()));
         } catch (com.mongodb.MongoSecurityException e) {
             log.warn("MongoDB认证失败: {}", e.getMessage());
-            return new JsonBean<>("认证失败: " + e.getMessage());
+            return new JsonBean<>(I18nMessageResolver.resolveKey("fw.boot.magicapi.mongo.authFailed", e.getMessage()));
         } catch (Exception e) {
             log.error("测试Mongo数据源配置失败", e);
-            return new JsonBean<>("测试失败: " + e.getMessage());
+            return new JsonBean<>(I18nMessageResolver.resolveKey("fw.boot.magicapi.mongo.testFailed", e.getMessage()));
         } finally {
             // 确保资源被正确释放
             if (mongoDatabaseFactory != null) {

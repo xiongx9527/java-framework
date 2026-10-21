@@ -1,6 +1,7 @@
 
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.service;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.model.MagicDynamicMqttClientDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.model.MqttClientDataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.model.MqttClientSubscribeScriptInfo;
@@ -136,7 +137,7 @@ public class MqttClientDataSourceMagicDynamicRegistry extends AbstractMagicDynam
     public List<MqttClientDataSourceInfo> defaultMappings() {
         return magicDynamicMqttClientDataSource.producerNodes().stream().filter(it -> it.getId() == null).map(it -> {
             MqttClientDataSourceInfo dataSourceInfo = new MqttClientDataSourceInfo();
-            dataSourceInfo.setName(StringUtils.defaultIfBlank(it.getName(), StringUtils.defaultIfBlank(it.getKey(), "默认数据源")));
+            dataSourceInfo.setName(StringUtils.defaultIfBlank(it.getName(), StringUtils.defaultIfBlank(it.getKey(), I18nMessageResolver.resolveKey("fw.boot.datasource.defaultName"))));
             dataSourceInfo.setKey(it.getKey());
             return dataSourceInfo;
         }).collect(Collectors.toList());

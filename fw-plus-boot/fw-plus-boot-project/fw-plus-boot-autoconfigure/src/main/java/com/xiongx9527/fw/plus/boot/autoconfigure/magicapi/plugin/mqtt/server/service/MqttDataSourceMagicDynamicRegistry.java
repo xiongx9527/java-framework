@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.server.service;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.server.model.BaseMagicDynamicMqttDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.server.model.MqttDataSourceInfo;
 import lombok.extern.slf4j.Slf4j;
@@ -124,8 +125,8 @@ public class MqttDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRegi
         // 筛选出ID为空的数据源节点，并转换为数据源信息对象
         return magicDynamicWeaviateDataSource.datasourceNodes().stream().filter(it -> it.getId() == null).map(it -> {
             MqttDataSourceInfo dataSourceInfo = new MqttDataSourceInfo();
-            // 设置数据源名称，优先使用name字段，如果为空则使用key字段，都为空则使用"默认数据源"
-            dataSourceInfo.setName(StringUtils.defaultIfBlank(it.getName(), StringUtils.defaultIfBlank(it.getKey(), "默认数据源")));
+            // 设置数据源名称，优先使用name字段，如果为空则使用key字段，都为空则使用I18nMessageResolver.resolveKey("fw.boot.datasource.defaultName")
+            dataSourceInfo.setName(StringUtils.defaultIfBlank(it.getName(), StringUtils.defaultIfBlank(it.getKey(), I18nMessageResolver.resolveKey("fw.boot.datasource.defaultName"))));
             dataSourceInfo.setKey(it.getKey());
             return dataSourceInfo;
         }).collect(Collectors.toList());

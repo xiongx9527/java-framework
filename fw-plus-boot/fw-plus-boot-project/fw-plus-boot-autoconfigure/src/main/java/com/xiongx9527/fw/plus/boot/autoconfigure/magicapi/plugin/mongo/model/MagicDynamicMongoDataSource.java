@@ -462,7 +462,7 @@ public class MagicDynamicMongoDataSource implements DisposableBean {
             if (mongoDatabaseFactory != null) {
                 MongoDataSourceInfo dataSourceInfo = new MongoDataSourceInfo();
                 dataSourceInfo.setKey("default");
-                dataSourceInfo.setName("默认数据源");
+                dataSourceInfo.setName(I18nMessageResolver.resolveKey("fw.boot.datasource.defaultName"));
                 dataSourceInfoList.add(dataSourceInfo);
             }
         } catch (Exception e) {

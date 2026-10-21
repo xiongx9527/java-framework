@@ -26,7 +26,7 @@ public final class DtpDataSourceValidator {
 		if (info == null) {
 			throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.dtp.configRequired"));
 		}
-		requireText(info.getKey(), "key不能为空");
+		requireText(info.getKey(), I18nMessageResolver.resolveKey("fw.boot.magicapi.dtp.keyRequired"));
 		if (info.getCorePoolSize() <= 0) {
 			throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.dtp.corePoolSizeInvalid"));
 		}

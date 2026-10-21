@@ -71,10 +71,10 @@ public class KafkaProducer {
     public KafkaProducer(KafkaTemplate producer) {
         this.dataSourceInfo = new KafkaDataSourceInfo();
         this.dataSourceInfo.setId("");
-        this.dataSourceInfo.setName("默认数据源");
+        this.dataSourceInfo.setName(I18nMessageResolver.resolveKey("fw.boot.datasource.defaultName"));
         this.dataSourceInfo.setKey("default");
         this.id = "";
-        this.name = "默认数据源";
+        this.name = I18nMessageResolver.resolveKey("fw.boot.datasource.defaultName");
         this.key = "default";
         this.producer = producer;
     }
