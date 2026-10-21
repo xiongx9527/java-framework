@@ -19,8 +19,8 @@ verification_report: docs/openspec/changes/mcp-websocket-custom-auth/verificatio
 branch_status: pending
 created_at: 2026-10-21
 verified_at: 2026-10-21
-archive_confirmation: pending
-archived: false
+archive_confirmation: confirmed
+archived: true
 bound_branch: dev
 direct_override: null
 handoff_context: docs/openspec/changes/mcp-websocket-custom-auth/.comet/handoff/design-context.json
@@ -28,4 +28,4 @@ handoff_hash: a50bc502a57a36b5fd6c007aa90a43b9b8385692c9b8c99c8329c3b7ebb15faf
 classic_profile: full
 classic_migration: 1
 run_id: 82415f48-2d78-4a9c-a060-1a5c42348bf3
-check_epoch: 4
+check_epoch: 6
