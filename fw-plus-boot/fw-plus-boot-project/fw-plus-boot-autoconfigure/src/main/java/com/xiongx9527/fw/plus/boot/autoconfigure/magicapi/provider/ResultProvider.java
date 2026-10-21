@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider;
 
 import com.xiongx9527.fw.plus.common.exception.BizException;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.trace.AbstractTrace;
 import org.ssssssss.magicapi.core.config.Constants;
 import org.ssssssss.magicapi.core.config.MagicAPIProperties;
@@ -72,9 +73,11 @@ public class ResultProvider implements org.ssssssss.magicapi.core.interceptor.Re
 		Object result = null;
 		if (throwable instanceof BizException) {
 			BizException bizException = (BizException) throwable;
+			// BizException.getMessage() 已按当前请求语言（Accept-Language / ?lang=）解析文案，
+			// 前端再据 code 做二次本地化兜底，实现后端文案 + 前端 code 的双保险
 			result = this.buildResult(requestEntity, bizException.getCode(), bizException.getMessage(), bizException.getData());
 		} else {
-			result = this.buildResult(requestEntity, Constants.RESPONSE_CODE_EXCEPTION, "系统内部出现错误");
+			result = this.buildResult(requestEntity, Constants.RESPONSE_CODE_EXCEPTION, I18nMessageResolver.resolve(50099900));
 		}
 		if (null !=result && result instanceof JsonBean) {
 			((JsonBean<?>) result).setSuccess(false);

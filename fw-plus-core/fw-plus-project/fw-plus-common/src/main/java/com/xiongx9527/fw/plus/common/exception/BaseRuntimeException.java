@@ -37,6 +37,27 @@ public class BaseRuntimeException extends BizException {
     }
 
     /**
+     * Constructor with internationalized message args.
+     *
+     * <p>文案取自资源文件 {@code i18n/messages} 中 key 为 {@link #CODE} 的条目。</p>
+     *
+     * @param i18nArgs 文案占位参数
+     */
+    protected BaseRuntimeException(Object[] i18nArgs) {
+        super(CODE, i18nArgs);
+    }
+
+    /**
+     * 构造国际化运行时异常：文案由资源文件按 {@link #CODE} 解析。
+     *
+     * @param i18nArgs 文案占位参数
+     */
+    public static BaseRuntimeException i18n(Object... i18nArgs) {
+        // 包了一层 Object[] 以避开与 (String) 构造器的歧义
+        return new BaseRuntimeException(i18nArgs);
+    }
+
+    /**
      * Constructor with message format
      *
      * @param msgFormat

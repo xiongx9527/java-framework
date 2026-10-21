@@ -139,7 +139,7 @@ public class RowPermissionInterceptor implements Interceptor {
 
 	private void loadConfig(String fileName, InputStream inputStream) {
 		if (inputStream == null) {
-			throw new RowPermissionConfigException("行权限配置输入流为空。file=" + fileName);
+			throw RowPermissionConfigException.of(RowPermissionConfigException.INPUT_STREAM_EMPTY, fileName);
 		}
 		try {
 			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -153,10 +153,10 @@ public class RowPermissionInterceptor implements Interceptor {
 			String tableName = attribute(table, "name");
 			String dbType = childText(table, "db-type");
 			if (isBlank(dbType)) {
-				throw new RowPermissionConfigException("必须配置dbType。 file=" + fileName);
+				throw RowPermissionConfigException.of(RowPermissionConfigException.DB_TYPE_REQUIRED, fileName);
 			}
 			if (isBlank(tableName)) {
-				throw new RowPermissionConfigException("必须配置tableName。 file=" + fileName);
+				throw RowPermissionConfigException.of(RowPermissionConfigException.TABLE_NAME_REQUIRED, fileName);
 			}
 			TableRowPermissionInternal internal = new TableRowPermissionInternal();
 			internal.tableName = tableName.trim().toLowerCase();
@@ -181,11 +181,11 @@ public class RowPermissionInterceptor implements Interceptor {
 			for (Element rowPermission : children(rowPermissions, "row-permission")) {
 				String scopeText = childText(rowPermission, "scope");
 				if (isBlank(scopeText)) {
-					throw new RowPermissionConfigException("必须配置scope。 file=" + fileName);
+					throw RowPermissionConfigException.of(RowPermissionConfigException.SCOPE_REQUIRED, fileName);
 				}
 				Integer scope = Integer.valueOf(scopeText.trim());
 				if (scopes.containsKey(scope)) {
-					throw new RowPermissionConfigException("scope=" + scope + " 重复定义。 file=" + fileName);
+					throw RowPermissionConfigException.of(RowPermissionConfigException.SCOPE_DUPLICATED, scope, fileName);
 				}
 				String clause = childText(rowPermission, "scope-clause");
 				if (isBlank(clause)) {
@@ -202,7 +202,7 @@ public class RowPermissionInterceptor implements Interceptor {
 		} catch (RowPermissionConfigException exception) {
 			throw exception;
 		} catch (Exception exception) {
-			throw new RowPermissionConfigException("加载行权限配置失败。file=" + fileName, exception);
+			throw RowPermissionConfigException.of(RowPermissionConfigException.LOAD_FAILED, fileName);
 		}
 	}
 
@@ -267,7 +267,7 @@ public class RowPermissionInterceptor implements Interceptor {
 		int first = url == null ? -1 : url.indexOf(':');
 		int second = first < 0 ? -1 : url.indexOf(':', first + 1);
 		if (first < 0 || second < 0) {
-			throw new RowPermissionHandleException("未能从jdbcUrl获取dbType。URL=" + url);
+			throw RowPermissionHandleException.of(RowPermissionHandleException.DB_TYPE_UNRESOLVED, url);
 		}
 		try {
 			DbType dbType = DbType.of(url.substring(first + 1, second));
@@ -276,7 +276,7 @@ public class RowPermissionInterceptor implements Interceptor {
 			}
 			return dbType;
 		} catch (IllegalArgumentException exception) {
-			throw new RowPermissionHandleException("不支持的数据库类型。URL=" + url, exception);
+			throw RowPermissionHandleException.of(RowPermissionHandleException.UNSUPPORTED_DB_TYPE, url);
 		}
 	}
 
@@ -290,9 +290,9 @@ public class RowPermissionInterceptor implements Interceptor {
 		} else if (statement instanceof SQLInsertStatement) {
 			return SQLUtils.toSQLString(statement);
 		} else if (statement instanceof SQLReplaceStatement || statement instanceof SQLCallStatement) {
-			throw new RowPermissionHandleException("暂不支持的SQL: " + statement);
+			throw RowPermissionHandleException.of(RowPermissionHandleException.UNSUPPORTED_SQL, statement);
 		} else {
-			throw new RowPermissionHandleException("暂不支持的SQL: " + statement);
+			throw RowPermissionHandleException.of(RowPermissionHandleException.UNSUPPORTED_SQL, statement);
 		}
 		return SQLUtils.toSQLString(statement);
 	}
@@ -320,7 +320,7 @@ public class RowPermissionInterceptor implements Interceptor {
 			handleSelectQuery(union.getRight(), rowPermissionStatus, requestPath);
 			return;
 		}
-		throw new RowPermissionHandleException("不支持的query类型：" + query.getClass().getName());
+		throw RowPermissionHandleException.of(RowPermissionHandleException.UNSUPPORTED_QUERY_TYPE, query.getClass().getName());
 	}
 
 	private void visitExpression(SQLExpr expression, int rowPermissionStatus, String requestPath) {
@@ -357,7 +357,7 @@ public class RowPermissionInterceptor implements Interceptor {
 				handleSelectQuery(child, rowPermissionStatus, requestPath);
 			}
 		} else {
-			throw new RowPermissionHandleException("不支持的tableSource类型：" + tableSource.getClass().getName());
+			throw RowPermissionHandleException.of(RowPermissionHandleException.UNSUPPORTED_TABLE_SOURCE_TYPE, tableSource.getClass().getName());
 		}
 	}
 
@@ -421,7 +421,7 @@ public class RowPermissionInterceptor implements Interceptor {
 		}
 		if (!extraOn.isEmpty()) {
 			if (join.getUsing() != null && !join.getUsing().isEmpty()) {
-				throw new RowPermissionHandleException("不支持Join Using");
+				throw RowPermissionHandleException.of(RowPermissionHandleException.UNSUPPORTED_JOIN_USING);
 			}
 			for (SQLExpr expression : extraOn) {
 				join.addCondition(expression);
@@ -431,11 +431,11 @@ public class RowPermissionInterceptor implements Interceptor {
 
 	private void handleUpdateStatement(SQLUpdateStatement statement, int rowPermissionStatus) {
 		if (statement.getFrom() != null) {
-			throw new RowPermissionHandleException("暂时不支持update from语句");
+			throw RowPermissionHandleException.of(RowPermissionHandleException.UNSUPPORTED_UPDATE_FROM);
 		}
 		SQLWithSubqueryClause with = statement.getWith();
 		if (with != null) {
-			throw new RowPermissionHandleException("暂时不支持update with语句");
+			throw RowPermissionHandleException.of(RowPermissionHandleException.UNSUPPORTED_UPDATE_WITH);
 		}
 		List<String> targetTables = new ArrayList<String>();
 		collectTargetTables(statement.getTableSource(), targetTables);
@@ -449,7 +449,7 @@ public class RowPermissionInterceptor implements Interceptor {
 
 	private void handleDeleteStatement(SQLDeleteStatement statement, int rowPermissionStatus) {
 		if (statement.getWith() != null) {
-			throw new RowPermissionHandleException("暂时不支持delete with语句");
+			throw RowPermissionHandleException.of(RowPermissionHandleException.UNSUPPORTED_DELETE_WITH);
 		}
 		List<String> targetTables = new ArrayList<String>();
 		collectTargetTables(statement.getTableSource(), targetTables);
@@ -480,7 +480,7 @@ public class RowPermissionInterceptor implements Interceptor {
 		} else if (source instanceof SQLSubqueryTableSource) {
 			return;
 		} else {
-			throw new RowPermissionHandleException("不支持的tableSource类型：" + source.getClass().getName());
+			throw RowPermissionHandleException.of(RowPermissionHandleException.UNSUPPORTED_TABLE_SOURCE_TYPE, source.getClass().getName());
 		}
 	}
 
@@ -496,7 +496,7 @@ public class RowPermissionInterceptor implements Interceptor {
 				}
 			}
 		}
-		throw new RowPermissionHandleException("表" + table + "未定义行权限");
+		throw RowPermissionHandleException.of(RowPermissionHandleException.TABLE_PERMISSION_UNDEFINED, table);
 	}
 
 	private String buildRowPermissionSql(TableRowPermissionInternal config, int operation, String requestPath) {
@@ -516,8 +516,8 @@ public class RowPermissionInterceptor implements Interceptor {
 		for (Integer scope : scopes) {
 			ScopeRowPermissionInternal permission = config.scopePermissionMap.get(scope);
 			if (permission == null) {
-				throw new RowPermissionHandleException(
-						"表" + config.tableName + "未定义scope=" + scope + "的行权限");
+				throw RowPermissionHandleException.of(RowPermissionHandleException.SCOPE_PERMISSION_UNDEFINED,
+						config.tableName, scope);
 			}
 			if (isBlank(permission.scopeClause)) {
 				return null;
@@ -550,7 +550,7 @@ public class RowPermissionInterceptor implements Interceptor {
 	private Object evaluateExpression(String expressionText) {
 		Expression expression = expressionCache.get(expressionText);
 		if (expression == null) {
-			throw new RowPermissionHandleException("表达式没有预编译！ " + expressionText);
+			throw RowPermissionHandleException.of(RowPermissionHandleException.EXPRESSION_NOT_PRECOMPILED, expressionText);
 		}
 		EvaluationContext context = new StandardEvaluationContext();
 		return expression.getValue(context, rowPermissionProvider);
@@ -587,7 +587,7 @@ public class RowPermissionInterceptor implements Interceptor {
 		if (value instanceof Integer || value instanceof Long || value instanceof Boolean) {
 			return value.toString();
 		}
-		throw new RowPermissionHandleException("不支持的数据类型: " + value.getClass().getName());
+		throw RowPermissionHandleException.of(RowPermissionHandleException.UNSUPPORTED_VALUE_TYPE, value.getClass().getName());
 	}
 
 	private int getRowPermissionStatus(MappedStatement mappedStatement,
@@ -605,12 +605,12 @@ public class RowPermissionInterceptor implements Interceptor {
 				expression = spelExpressionParser.parseExpression(annotation.condition());
 				expressionCache.put(annotation.condition(), expression);
 			} catch (SpelParseException exception) {
-				throw new RowPermissionHandleException("行权限条件解析失败: " + annotation.condition(), exception);
+				throw RowPermissionHandleException.of(RowPermissionHandleException.CONDITION_PARSE_FAILED, annotation.condition());
 			}
 		}
 		Object value = expression.getValue(new StandardEvaluationContext(), rowPermissionProvider);
 		if (!(value instanceof Number)) {
-			throw new RowPermissionHandleException("行权限条件必须返回数字状态: " + annotation.condition());
+			throw RowPermissionHandleException.of(RowPermissionHandleException.CONDITION_NOT_NUMERIC, annotation.condition());
 		}
 		return validateStatus(((Number) value).intValue());
 	}
@@ -618,7 +618,7 @@ public class RowPermissionInterceptor implements Interceptor {
 	private int validateStatus(int status) {
 		if (status != RowPermission.STATUS_NEITHER && status != RowPermission.STATUS_TENANT_ONLY
 				&& status != RowPermission.STATUS_BOTH) {
-			throw new RowPermissionHandleException("无效的行权限状态: " + status);
+			throw RowPermissionHandleException.of(RowPermissionHandleException.INVALID_PERMISSION_STATUS, status);
 		}
 		return status;
 	}
@@ -713,8 +713,8 @@ public class RowPermissionInterceptor implements Interceptor {
 			try {
 				expressionCache.put(expressionText, spelExpressionParser.parseExpression(expressionText));
 			} catch (SpelParseException exception) {
-				throw new RowPermissionConfigException(
-						"scope-clause解析失败。table=" + tableName + ", clause=" + clause, exception);
+				throw RowPermissionConfigException.of(RowPermissionConfigException.SCOPE_CLAUSE_PARSE_FAILED,
+						tableName, clause);
 			}
 		}
 	}
