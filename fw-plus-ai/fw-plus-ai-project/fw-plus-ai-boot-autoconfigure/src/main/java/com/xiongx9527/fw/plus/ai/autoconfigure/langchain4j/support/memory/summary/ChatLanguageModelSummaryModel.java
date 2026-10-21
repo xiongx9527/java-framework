@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.summary;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 
 /**
@@ -14,7 +15,8 @@ public class ChatLanguageModelSummaryModel implements SummaryModel {
 
 	public ChatLanguageModelSummaryModel(ChatLanguageModel model) {
 		if (model == null) {
-			throw new IllegalArgumentException("ChatLanguageModelSummaryModel: model 不能为空");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.ChatLanguageModelSummaryModel.modelRequired"));
 		}
 		this.model = model;
 	}

@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.structured;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -36,28 +37,31 @@ final class SchemaRules {
 	/** 从 JSON Schema 文本派生规则；schema 不合法时 fail-fast */
 	static Rule[] from(String jsonSchemaText) {
 		if (jsonSchemaText == null || jsonSchemaText.trim().isEmpty()) {
-			throw new IllegalArgumentException("jsonSchema 不能为空");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.ai.SchemaRules.jsonSchemaRequired"));
 		}
 		Object parsed;
 		try {
 			parsed = JSON.parse(jsonSchemaText.trim());
 		} catch (RuntimeException e) {
-			throw new IllegalArgumentException("jsonSchema 不是合法的 JSON：" + e.getMessage(), e);
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.SchemaRules.jsonSchemaInvalidJson", e.getMessage()), e);
 		}
 		if (!(parsed instanceof JSONObject)) {
-			throw new IllegalArgumentException("jsonSchema 不是合法的 JSON Schema：顶层必须是 JSON 对象");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.SchemaRules.jsonSchemaNotObject"));
 		}
 		Set<Rule> rules = new LinkedHashSet<Rule>();
 		try {
 			collect((JSONObject) parsed, "", rules);
 		} catch (PatternSyntaxException e) {
-			throw new IllegalArgumentException("jsonSchema 的 pattern 不是合法正则：" + e.getDescription()
-					+ "（" + e.getPattern() + "）", e);
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.SchemaRules.jsonSchemaPatternInvalid", e.getDescription(), e.getPattern()), e);
 		} catch (IllegalArgumentException e) {
 			// 我们自己抛出的结构错误，保留原始信息
 			throw e;
 		} catch (RuntimeException e) {
-			throw new IllegalArgumentException("jsonSchema 结构非法：" + e.getMessage(), e);
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.SchemaRules.jsonSchemaStructureInvalid", e.getMessage()), e);
 		}
 		return rules.toArray(new Rule[0]);
 	}
@@ -66,7 +70,8 @@ final class SchemaRules {
 		Object rawProperties = schema.get("properties");
 		if (rawProperties != null) {
 			if (!(rawProperties instanceof JSONObject)) {
-				throw new IllegalArgumentException("jsonSchema 结构非法：properties 必须是对象");
+				throw new IllegalArgumentException(
+						I18nMessageResolver.resolveKey("fw.ai.SchemaRules.propertiesMustBeObject"));
 			}
 			JSONObject properties = (JSONObject) rawProperties;
 			for (Map.Entry<String, Object> entry : properties.entrySet()) {
@@ -83,7 +88,8 @@ final class SchemaRules {
 		Object rawRequired = schema.get("required");
 		if (rawRequired != null) {
 			if (!(rawRequired instanceof JSONArray)) {
-				throw new IllegalArgumentException("jsonSchema 结构非法：required 必须是数组");
+				throw new IllegalArgumentException(
+						I18nMessageResolver.resolveKey("fw.ai.SchemaRules.requiredMustBeArray"));
 			}
 			JSONArray required = (JSONArray) rawRequired;
 			// 声明顺序去重：同一字段被重复声明时只派生一条规则

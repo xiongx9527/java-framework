@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,10 +68,12 @@ public final class LlmIntentClassifier<I extends Enum<I>> implements IntentClass
 	public LlmIntentClassifier(IntentLlm llm, Class<I> intentType, Map<I, String> descriptions,
 			double confidenceThreshold) {
 		if (llm == null) {
-			throw new IllegalArgumentException("llm 不能为 null");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.LlmIntentClassifier.llmRequired"));
 		}
 		if (intentType == null) {
-			throw new IllegalArgumentException("intentType 不能为 null");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.LlmIntentClassifier.intentTypeRequired"));
 		}
 		this.llm = llm;
 		this.intentType = intentType;

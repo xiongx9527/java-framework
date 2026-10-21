@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.nosql.redis.options;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.nosql.redis.helper.RedisHelper;
 import com.xiongx9527.fw.plus.boot.autoconfigure.nosql.redis.template.DynamicRedisTemplate;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import org.springframework.data.redis.core.RedisTemplate;
 
 import java.util.Map;
@@ -184,7 +185,7 @@ public class DefaultOptionsRedisDb extends AbstractOptionsRedisDb<String, String
         Map<Object, RedisTemplate<String, String>> redisTemplates = redisHelper.getRedisTemplates();
         // 静态redisHelper不能切换db
         if (redisTemplates == null) {
-            throw new RuntimeException("静态redisHelper不支持动态切换redis db，若需要动态切换db，请开启动态配置.");
+            throw new RuntimeException(I18nMessageResolver.resolveKey("fw.boot.redis.staticHelperNoDynamicDb"));
         }
 
         // 获取到该RedisHelper的redisTemplate(一定有，在创建redisHelper的时候就赋值了)

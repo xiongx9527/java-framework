@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.lock;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import lombok.extern.slf4j.Slf4j;
 import org.ssssssss.magicapi.core.annotation.MagicModule;
 
@@ -35,7 +36,7 @@ public class LocalLockModule implements Lock {
             lock.lock();
             return lock;
         } catch (Exception e) {
-            throw new RuntimeException("获取本地锁失败: " + e.getMessage(), e);
+            throw new RuntimeException(I18nMessageResolver.resolveKey("fw.boot.lock.acquireFailed", e.getMessage()), e);
         }
     }
 
@@ -48,12 +49,12 @@ public class LocalLockModule implements Lock {
             if (lock.tryLock(acquireTimeout, TimeUnit.MILLISECONDS)) {
                 return lock;
             }
-            throw new RuntimeException("获取本地锁超时");
+            throw new RuntimeException(I18nMessageResolver.resolveKey("fw.boot.lock.acquireTimeout"));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("获取本地锁被中断");
+            throw new RuntimeException(I18nMessageResolver.resolveKey("fw.boot.lock.acquireInterrupted"));
         } catch (Exception e) {
-            throw new RuntimeException("获取本地锁失败: " + e.getMessage());
+            throw new RuntimeException(I18nMessageResolver.resolveKey("fw.boot.lock.acquireFailed", e.getMessage()));
         }
     }
 

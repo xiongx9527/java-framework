@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.redis.model;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import io.lettuce.core.ClientOptions;
 import io.lettuce.core.SocketOptions;
@@ -452,7 +453,7 @@ public class MagicDynamicRedisDataSource implements DisposableBean {
     private RedisStandaloneConfiguration createStandaloneConfig(RedisDataSourceInfo dataSourceInfo) {
         // 添加空值检查
         if (dataSourceInfo == null) {
-            throw new IllegalArgumentException("数据源信息不能为空");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.redis.datasourceInfoRequired"));
         }
         
         RedisStandaloneConfiguration standaloneConfig = new RedisStandaloneConfiguration();
@@ -471,7 +472,7 @@ public class MagicDynamicRedisDataSource implements DisposableBean {
         try {
             port = Integer.parseInt(portStr);
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("端口(port)必须是有效数字: " + portStr, e);
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.redis.portInvalid", portStr), e);
         }
         standaloneConfig.setPort(port);
         // 设置用户名（如果存在）
@@ -492,7 +493,7 @@ public class MagicDynamicRedisDataSource implements DisposableBean {
         try {
             database = Integer.parseInt(databaseStr);
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("数据库(database)必须是有效数字: " + databaseStr, e);
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.redis.databaseInvalid", databaseStr), e);
         }
         standaloneConfig.setDatabase(database);
         return standaloneConfig;
@@ -507,7 +508,7 @@ public class MagicDynamicRedisDataSource implements DisposableBean {
     private RedisClusterConfiguration createClusterConfig(RedisDataSourceInfo dataSourceInfo) {
         // 添加空值检查
         if (dataSourceInfo == null) {
-            throw new IllegalArgumentException("数据源信息不能为空");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.redis.datasourceInfoRequired"));
         }
         RedisClusterConfiguration clusterConfig = new RedisClusterConfiguration();
         // 注意：Redis集群模式下，通常不支持SELECT命令切换数据库，只能使用默认的0号数据库
@@ -523,7 +524,7 @@ public class MagicDynamicRedisDataSource implements DisposableBean {
             try {
                 port = Integer.parseInt(portStr);
             } catch (NumberFormatException e) {
-                throw new IllegalArgumentException("端口(port)必须是有效数字: " + portStr, e);
+                throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.redis.portInvalid", portStr), e);
             }
             String nodeKey = hostname + ":" + port;
             if (!addedNodes.contains(nodeKey)) {
@@ -548,7 +549,7 @@ public class MagicDynamicRedisDataSource implements DisposableBean {
                             try {
                                 portInt = Integer.parseInt(port);
                             } catch (NumberFormatException e) {
-                                throw new IllegalArgumentException("集群节点端口必须是有效数字: " + port, e);
+                                throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.redis.clusterNodePortInvalid", port), e);
                             }
                             String nodeKey = host + ":" + portInt;
                             if (!addedNodes.contains(nodeKey)) {
@@ -591,7 +592,7 @@ public class MagicDynamicRedisDataSource implements DisposableBean {
     private RedisSentinelConfiguration createSentinelConfig(RedisDataSourceInfo dataSourceInfo) {
         // 添加空值检查
         if (dataSourceInfo == null) {
-            throw new IllegalArgumentException("数据源信息不能为空");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.redis.datasourceInfoRequired"));
         }
         
         RedisSentinelConfiguration sentinelConfig = new RedisSentinelConfiguration();
@@ -605,7 +606,7 @@ public class MagicDynamicRedisDataSource implements DisposableBean {
         try {
             database = Integer.parseInt(databaseStr);
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("数据库(database)必须是有效数字: " + databaseStr, e);
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.redis.databaseInvalid", databaseStr), e);
         }
         sentinelConfig.setDatabase(database);
 
@@ -636,7 +637,7 @@ public class MagicDynamicRedisDataSource implements DisposableBean {
                         try {
                             port = Integer.parseInt(portStr);
                         } catch (NumberFormatException e) {
-                            throw new IllegalArgumentException("端口(port)必须是有效数字: " + portStr, e);
+                            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.redis.portInvalid", portStr), e);
                         }
                         sentinelConfig.sentinel(hostname, port);
                         addedSentinels.add(sentinelKey);
@@ -653,7 +654,7 @@ public class MagicDynamicRedisDataSource implements DisposableBean {
                             try {
                                 portInt = Integer.parseInt(port);
                             } catch (NumberFormatException e) {
-                                throw new IllegalArgumentException("哨兵节点端口必须是有效数字: " + port, e);
+                                throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.redis.sentinelNodePortInvalid", port), e);
                             }
                             String sentinelKey = host + ":" + portInt;
                             if (!addedSentinels.contains(sentinelKey)) {
@@ -729,7 +730,7 @@ public class MagicDynamicRedisDataSource implements DisposableBean {
                 try {
                     port = Integer.parseInt(portStr);
                 } catch (NumberFormatException e) {
-                    throw new IllegalArgumentException("端口(port)必须是有效数字: " + portStr, e);
+                    throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.redis.portInvalid", portStr), e);
                 }
                 sentinelConfig.sentinel(hostname, port);
                 addedSentinels.add(sentinelKey);

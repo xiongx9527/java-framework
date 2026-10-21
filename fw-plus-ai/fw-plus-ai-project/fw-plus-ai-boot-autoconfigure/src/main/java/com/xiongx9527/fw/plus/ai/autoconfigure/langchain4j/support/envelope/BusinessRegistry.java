@@ -1,5 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.envelope;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -33,18 +35,22 @@ public final class BusinessRegistry {
 	 */
 	public BusinessRegistry register(BusinessContract contract) {
 		if (contract == null) {
-			throw new IllegalArgumentException("业务契约不能为 null");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.BusinessRegistry.contractRequired"));
 		}
 		String name = contract.getName();
 		if (name == null || name.trim().isEmpty()) {
-			throw new IllegalArgumentException("业务名称不能为空");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.BusinessRegistry.nameRequired"));
 		}
 		if (FALLBACK.equals(name)) {
-			throw new IllegalArgumentException("业务名称 " + FALLBACK + " 是兜底业务，不能注册为业务契约");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.BusinessRegistry.fallbackNotRegistrable", FALLBACK));
 		}
 		BusinessContract exists = contracts.get(name);
 		if (exists != null) {
-			throw new IllegalArgumentException("业务名称重复：" + name + "（已注册 " + exists + "）");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.BusinessRegistry.nameDuplicated", name, exists));
 		}
 		contracts.put(name, contract);
 		return this;

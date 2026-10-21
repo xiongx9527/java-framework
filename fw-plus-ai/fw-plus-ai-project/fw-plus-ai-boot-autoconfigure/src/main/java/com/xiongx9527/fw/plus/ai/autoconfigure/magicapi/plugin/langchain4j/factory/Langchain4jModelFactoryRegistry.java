@@ -10,6 +10,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jScoringModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jStreamingLanguageModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jTokenizerInfo;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.Tokenizer;
@@ -100,7 +101,8 @@ public class Langchain4jModelFactoryRegistry {
             case EMBEDDING_STORE:
                 return factory.buildEmbeddingStore(reader, embeddingModel);
             default:
-                throw new IllegalArgumentException("不支持的资源类型: " + type);
+                throw new IllegalArgumentException(
+                    I18nMessageResolver.resolveKey("fw.ai.Langchain4jModelFactoryRegistry.unsupportedResourceType", type));
         }
     }
 

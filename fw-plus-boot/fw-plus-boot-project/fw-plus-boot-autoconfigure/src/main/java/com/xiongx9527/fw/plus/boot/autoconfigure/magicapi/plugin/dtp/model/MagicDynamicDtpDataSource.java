@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.dtp.model;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.dtp.common.BaseService;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -43,7 +44,7 @@ public class MagicDynamicDtpDataSource implements BaseService, DisposableBean {
 
         int capacity = Integer.parseInt(MagicAPIConfigUtils.getDtpConfig(info.getKey(), "queueCapacity", String.valueOf(info.getQueueCapacity())));
         if (DtpDataSourceValidator.isBoundedQueue(queueType) && capacity <= 0) {
-            throw new IllegalArgumentException("queueCapacity必须大于0");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.dtp.queueCapacityInvalid"));
         }
 
         switch (queueType) {
@@ -63,7 +64,7 @@ public class MagicDynamicDtpDataSource implements BaseService, DisposableBean {
                 return new LinkedBlockingDeque<>(capacity);
             default:
                 // 抛出异常而不是静默使用默认队列，防止配置错误被忽略
-                throw new IllegalArgumentException("queueType不支持: " + queueType);
+                throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.dtp.queueTypeUnsupported", queueType));
         }
     }
 
@@ -122,7 +123,7 @@ public class MagicDynamicDtpDataSource implements BaseService, DisposableBean {
             case "discard_oldest":
                 return new ThreadPoolExecutor.DiscardOldestPolicy();
             default:
-                throw new IllegalArgumentException("rejectedPolicy不支持: " + rejectedPolicy);
+                throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.dtp.rejectedPolicyUnsupported", rejectedPolicy));
         }
     }
 

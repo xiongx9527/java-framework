@@ -9,6 +9,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.comp
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.model.JavaEntityInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.starter.JavaEntityProperties;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -144,7 +145,7 @@ public class DynamicEntityRegistry implements AutoCloseable {
             if (!currentStatus.isAvailable()) {
                 String reason = currentStatus.getDiagnostics().isEmpty()
                         ? "无可用代际" : currentStatus.getDiagnostics().get(0).getMessage();
-                throw new IllegalStateException("动态实体不可用: " + reason, exception);
+                throw new IllegalStateException(I18nMessageResolver.resolveKey("fw.boot.javaentity.unavailable", reason), exception);
             }
             throw exception;
         }
@@ -335,7 +336,7 @@ public class DynamicEntityRegistry implements AutoCloseable {
         @Override
         public CompiledGeneration call() {
             if (!started.compareAndSet(false, true)) {
-                throw new IllegalStateException("动态实体编译任务已取消");
+                throw new IllegalStateException(I18nMessageResolver.resolveKey("fw.boot.javaentity.compilationCancelled"));
             }
             try {
                 return compiler.compile(version, units);

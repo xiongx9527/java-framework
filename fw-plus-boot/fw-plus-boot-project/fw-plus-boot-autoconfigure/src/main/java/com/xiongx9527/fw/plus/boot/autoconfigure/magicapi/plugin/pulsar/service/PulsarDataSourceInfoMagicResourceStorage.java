@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.service;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.model.PulsarDataSourceInfo;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import org.apache.commons.lang3.StringUtils;
 import org.ssssssss.magicapi.core.config.JsonCodeConstants;
 import org.ssssssss.magicapi.core.model.MagicEntity;
@@ -128,7 +129,7 @@ public class PulsarDataSourceInfoMagicResourceStorage implements MagicResourceSt
             PulsarDataSourceInfo oldPulsarDataSourceInfo = magicResourceService.file(entity.getId());
             if (null != oldPulsarDataSourceInfo) {
                 if (!oldPulsarDataSourceInfo.getKey().equals(entity.getKey())) {
-                    throw new IllegalArgumentException("key不可修改");
+                    throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.pulsar.keyImmutable"));
                 }
             }
         }

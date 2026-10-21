@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.service;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.model.WsDataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.model.WsSubscribeInfo;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.ssssssss.magicapi.core.service.AbstractPathMagicResourceStorage;
@@ -69,14 +70,14 @@ public class WsSubscribeInfoMagicResourceStorage extends AbstractPathMagicResour
 			Map<String, WsSubscribeInfo> wsDataSourceInfoMap = ListUtils.emptyIfNull(map.get(entity.getKey())).stream().collect(Collectors.toMap(WsSubscribeInfo::getBusinessId, val -> val, (k1, k2) -> k1));
 			if (wsDataSourceInfoMap.containsKey(entity.getBusinessId())
 					&& (entity.getId() == null || !Objects.equals(wsDataSourceInfoMap.get(entity.getBusinessId()).getId(), entity.getId()))) {
-				throw new IllegalArgumentException(String.format("业务标识:%s 已存在", entity.getBusinessId()));
+				throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.ws.businessIdExists", entity.getBusinessId()));
 			}
 		}
 		// 验证数据源key是否存在
 		WsDataSourceInfoMagicResourceStorage wsDataSourceInfoMagicResourceStorage = SpringUtils.getBean(WsDataSourceInfoMagicResourceStorage.class);
 		Map<String, WsDataSourceInfo> wsDataSourceInfoMap = ListUtils.emptyIfNull(wsDataSourceInfoMagicResourceStorage.findAll()).stream().collect(Collectors.toMap(WsDataSourceInfo::getKey, val -> val, (k1, k2) -> k1));
 		if (!wsDataSourceInfoMap.containsKey(entity.getKey())) {
-			throw new IllegalArgumentException(String.format("数据源key:%s 不存在", entity.getKey()));
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.ws.datasourceKeyNotExists", entity.getKey()));
 		}
 
 	}

@@ -5,6 +5,7 @@ import com.google.common.cache.CacheBuilder;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.freemarker.model.FtlInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.freemarker.service.FreemarkerMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.freemarker.service.FtlInfoMagicTemplateLoader;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import freemarker.cache.MultiTemplateLoader;
 import freemarker.cache.TemplateLoader;
@@ -97,7 +98,7 @@ public class FreemarkerModule {
             return templateCache.get(path, () -> {
                 Template t = createTemplate(path);
                 if (t == null) {
-                    throw new MagicAPIException("未找到模板：" + path);
+                    throw new MagicAPIException(I18nMessageResolver.resolveKey("fw.boot.freemarker.templateNotFound", path));
                 }
                 return t;
             });
@@ -108,7 +109,7 @@ public class FreemarkerModule {
                 throw (MagicAPIException) cause;
             }
             log.error("获取模板异常, path={}", path, e);
-            throw new MagicAPIException("获取模板异常: " + path, e);
+            throw new MagicAPIException(I18nMessageResolver.resolveKey("fw.boot.freemarker.templateFetchFailed", path), e);
         }
     }
 
@@ -174,7 +175,7 @@ public class FreemarkerModule {
      */
     public ResponseEntity<String> view(String path, Object params) throws IOException, TemplateException {
         if (!isValidPath(path)) {
-            throw new MagicAPIException("非法的模板路径：" + path);
+            throw new MagicAPIException(I18nMessageResolver.resolveKey("fw.boot.freemarker.templatePathIllegal", path));
         }
         if (Objects.isNull(params)) {
             params = Collections.emptyMap();

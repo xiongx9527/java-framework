@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.file;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.IoUtil;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -91,7 +92,7 @@ public class MultipartFileWrapper implements FileWrapper {
             try {
                 FileUtil.writeFromStream(getInputStream(), dest);
             } catch (Exception e) {
-                throw new FileStorageRuntimeException("文件移动失败", e);
+                throw new FileStorageRuntimeException(I18nMessageResolver.resolveKey("fw.boot.s3.fileMoveFailed"), e);
             }
         }
     }

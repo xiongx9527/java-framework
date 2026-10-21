@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant;
 
 import com.xiongx9527.fw.plus.common.exception.BizException;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 
 /**
  * 「抛出消息给 LLM」语义标记异常：工具方法内部抛出本异常时，其消息作为工具执行结果
@@ -34,7 +35,8 @@ public class LlmVisibleToolExecutionException extends BizException {
 	 */
 	public static LlmVisibleToolExecutionException from(String message) {
 		if (message == null || message.trim().isEmpty()) {
-			throw new IllegalArgumentException("回传给 LLM 的消息不能为空");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.LlmVisibleToolExecutionException.messageBlank"));
 		}
 		return new LlmVisibleToolExecutionException(message);
 	}

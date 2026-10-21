@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 
 import java.util.ArrayList;
@@ -69,7 +70,8 @@ public class IntentClassifierFactory {
 
 	public <I extends Enum<I>> IntentClassifier<I> embedding(Map<I, List<String>> examples) {
 		if (embeddingModel == null) {
-			throw new IllegalStateException("容器中未提供 EmbeddingModel，无法构建向量意图分类器");
+			throw new IllegalStateException(
+					I18nMessageResolver.resolveKey("fw.ai.IntentClassifierFactory.embeddingModelMissing"));
 		}
 		return IntentClassifiers.embedding(embeddingModel, examples,
 				properties.getEmbeddingThreshold(), properties.getEmbeddingMargin());
@@ -81,7 +83,8 @@ public class IntentClassifierFactory {
 
 	public <I extends Enum<I>> IntentClassifier<I> llm(Class<I> intentType, Map<I, String> descriptions) {
 		if (llm == null) {
-			throw new IllegalStateException("容器中未提供 IntentLlm，无法构建大模型意图分类器");
+			throw new IllegalStateException(
+					I18nMessageResolver.resolveKey("fw.ai.IntentClassifierFactory.intentLlmMissing"));
 		}
 		return IntentClassifiers.llm(llm, intentType, descriptions, properties.getLlmConfidenceThreshold());
 	}
@@ -96,7 +99,8 @@ public class IntentClassifierFactory {
 	public <I extends Enum<I>> IntentClassifier<I> auto(Class<I> intentType, List<IntentRule<I>> rules,
 			Map<I, List<String>> examples) {
 		if (intentType == null) {
-			throw new IllegalArgumentException("intentType 不能为 null");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.IntentClassifierFactory.intentTypeRequired"));
 		}
 		List<IntentClassifier<I>> tiers = new ArrayList<IntentClassifier<I>>();
 		if (rules != null && !rules.isEmpty()) {
@@ -109,7 +113,8 @@ public class IntentClassifierFactory {
 			tiers.add(llm(intentType, null));
 		}
 		if (tiers.isEmpty()) {
-			throw new IllegalStateException("没有可用的意图判定层级：请至少提供规则、EmbeddingModel 或 IntentLlm");
+			throw new IllegalStateException(
+					I18nMessageResolver.resolveKey("fw.ai.IntentClassifierFactory.noTierAvailable"));
 		}
 		return IntentClassifiers.cascading(tiers, properties.getCascadeMinConfidence());
 	}

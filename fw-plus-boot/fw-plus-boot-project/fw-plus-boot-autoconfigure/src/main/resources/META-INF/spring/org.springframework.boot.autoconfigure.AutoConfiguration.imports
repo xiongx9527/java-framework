@@ -1,6 +1,7 @@
 com.xiongx9527.fw.plus.boot.autoconfigure.BaseAutoConfiguration
 com.xiongx9527.fw.plus.boot.autoconfigure.trace.TraceAutoConfiguration
 com.xiongx9527.fw.plus.boot.autoconfigure.web.WebAutoConfiguration
+com.xiongx9527.fw.plus.boot.autoconfigure.web.i18n.I18nAutoConfiguration
 com.xiongx9527.fw.plus.boot.autoconfigure.mate.MateAutoConfiguration
 com.xiongx9527.fw.plus.boot.autoconfigure.nosql.NoSqlAutoConfiguration
 com.xiongx9527.fw.plus.boot.autoconfigure.jdbc.JdbcAutoConfiguration

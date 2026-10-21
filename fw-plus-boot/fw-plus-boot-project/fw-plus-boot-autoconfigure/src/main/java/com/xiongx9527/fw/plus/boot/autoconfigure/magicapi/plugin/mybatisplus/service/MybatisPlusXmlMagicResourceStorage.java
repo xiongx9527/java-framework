@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mybatisplus.service;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mybatisplus.model.MybatisPlusXmlInfo;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import org.apache.commons.lang3.StringUtils;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 import org.ssssssss.magicapi.core.service.MagicResourceService;
@@ -80,7 +81,7 @@ public class MybatisPlusXmlMagicResourceStorage implements MagicResourceStorage<
 		}
 		MybatisPlusXmlInfo old = magicResourceService.file(entity.getId());
 		if (old != null && !Objects.equals(MybatisPlusXmlMapperRegistry.normalizeDbKey(old.getDbKey()), entity.getDbKey())) {
-			throw new IllegalArgumentException("dbKey不可修改");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.mybatisplus.dbKeyImmutable"));
 		}
 	}
 
@@ -93,7 +94,7 @@ public class MybatisPlusXmlMagicResourceStorage implements MagicResourceStorage<
 			if (!Objects.equals(existing.getId(), entity.getId())
 					&& Objects.equals(MybatisPlusXmlMapperRegistry.normalizeDbKey(existing.getDbKey()), entity.getDbKey())
 					&& Objects.equals(existing.getTableName(), entity.getTableName())) {
-				throw new IllegalArgumentException("dbKey + 表名已存在");
+				throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.mybatisplus.dbKeyTableExists"));
 			}
 		}
 	}

@@ -18,6 +18,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.Length
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatstore.ChatMemoryIds;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.PersistToolResultsAiPersistenceStrategy;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.session.SessionIdResolver;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.agent.tool.ToolSpecifications;
@@ -413,7 +414,8 @@ public class AssistantBuilder {
 	 */
 	public <I extends Enum<I>> IntentRouting<I> intent(IntentClassifier<I> classifier) {
 		if (classifier == null) {
-			throw new IllegalArgumentException("classifier 不能为 null");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.AssistantBuilder.classifierRequired"));
 		}
 		this.intentClassifier = classifier;
 		return new IntentRouting<I>(this, classifier);
@@ -610,9 +612,8 @@ public class AssistantBuilder {
 		if (chatModel == null && streamingModel == null) {
 			// 无对话模型时允许只装配直连补全/检索能力：AiServices 侧不参与
 			if (languageModel == null && streamingLanguageModel == null && retrievalAugmentor == null) {
-				throw new IllegalArgumentException("构建助手缺少模型：请至少调用 chatModel(...) 或 "
-						+ "streamingModel(...) 之一指定；仅补全/检索形态请调用 languageModel(...)、"
-						+ "streamingLanguageModel(...)、retrievalAugmentor(...) 或 contentRetriever(...)");
+				throw new IllegalArgumentException(
+						I18nMessageResolver.resolveKey("fw.ai.AssistantBuilder.missingModel"));
 			}
 			return null;
 		}
@@ -747,8 +748,8 @@ public class AssistantBuilder {
 			AiPersistenceStrategy resolved = AiPersistenceStrategy.Registry.tryResolve(aiPersistenceStrategyKey);
 			if (resolved == null) {
 				if (strictAiPersistenceStrategy) {
-					throw new IllegalArgumentException("未知的 AI 持久化策略：'" + aiPersistenceStrategyKey
-							+ "'（未在 AiPersistenceStrategy.Registry 注册，也无法作为 AiPersistenceStrategy 类实例化）");
+					throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+							"fw.ai.AssistantBuilder.unknownPersistenceStrategy", aiPersistenceStrategyKey));
 				}
 				resolved = AiPersistenceStrategy.PERSIST_NON_TOOL_FINAL_ANSWER;
 			}

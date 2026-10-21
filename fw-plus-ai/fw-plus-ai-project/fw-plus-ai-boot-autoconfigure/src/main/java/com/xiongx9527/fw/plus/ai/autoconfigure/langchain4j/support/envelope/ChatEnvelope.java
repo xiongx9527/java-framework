@@ -5,6 +5,7 @@ import com.alibaba.fastjson2.JSONObject;
 import com.alibaba.fastjson2.JSONWriter;
 import com.alibaba.fastjson2.annotation.JSONField;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -79,7 +80,8 @@ public final class ChatEnvelope {
 	private ChatEnvelope(boolean ok, String business, String version, JSONObject result, String text) {
 		if (!ok && result != null) {
 			// 不变量：ok=false ⇒ result=null，构造入口封死，保证任何路径都同形
-			throw new IllegalArgumentException("ok=false 时 result 必须为 null");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.ChatEnvelope.resultMustBeNull"));
 		}
 		this.ok = ok;
 		this.business = business == null ? "" : business;
@@ -91,7 +93,8 @@ public final class ChatEnvelope {
 	/** 结构化成功：{@code ok=true}、{@code result} 为业务对象、{@code text} 为空串 */
 	public static ChatEnvelope structured(String business, JSONObject result, String version) {
 		if (result == null) {
-			throw new IllegalArgumentException("结构化成功必须带 result");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.ChatEnvelope.resultRequired"));
 		}
 		return new ChatEnvelope(true, business, version, result, "");
 	}

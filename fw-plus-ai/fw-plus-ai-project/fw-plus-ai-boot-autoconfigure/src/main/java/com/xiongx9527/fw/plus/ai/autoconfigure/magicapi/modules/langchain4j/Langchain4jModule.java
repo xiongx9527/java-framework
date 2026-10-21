@@ -9,6 +9,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jChatModelModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jLanguageModelModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jStreamingLanguageModelModule;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.model.language.StreamingLanguageModel;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
@@ -137,16 +138,16 @@ public class Langchain4jModule {
 	 */
 	public ChatMemoryStore memoryStore() {
 		if (memoryStore == null) {
-			throw new IllegalArgumentException("当前应用未装配 langchain4j-ChatMemoryStore 相关资源，无法提供该存储："
-					+ "请注册 mem0 或自定义 ChatMemoryStore Bean");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.Langchain4jModule.chatMemoryStoreMissing"));
 		}
 		return memoryStore;
 	}
 
 	private SimpleAssistant require(SimpleAssistant assistant, String resourceType) {
 		if (assistant == null) {
-			throw new IllegalArgumentException("当前应用未装配 langchain4j-" + resourceType
-					+ " 相关资源，无法提供该助手");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.Langchain4jModule.assistantMissing", resourceType));
 		}
 		return assistant;
 	}

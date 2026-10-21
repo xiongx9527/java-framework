@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicBaseServic
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.model.RocketMqDataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.model.RocketMqSubscribeInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.service.RocketMqDataSourceInfoMagicResourceStorage;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.ssssssss.magicapi.core.config.JsonCodeConstants;
@@ -71,7 +72,7 @@ public interface BaseService extends MagicBaseService, JsonCodeConstants {
             RocketMqDataSourceInfo oldKafkaDataSourceInfo =  magicResourceService.file(entity.getId());
             if (null != oldKafkaDataSourceInfo) {
                 if (!oldKafkaDataSourceInfo.getKey().equals(entity.getKey())) {
-                    throw new IllegalArgumentException("key不可修改");
+                    throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.rocketmq.keyImmutable"));
                 }
             }
         }

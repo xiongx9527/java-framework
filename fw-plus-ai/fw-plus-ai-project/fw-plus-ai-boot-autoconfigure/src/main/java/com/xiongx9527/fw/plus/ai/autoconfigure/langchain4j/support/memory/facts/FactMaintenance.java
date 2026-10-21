@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.facts
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextMaintenance;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextRequest;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatstore.ChatMemoryIds;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -48,7 +49,8 @@ public class FactMaintenance implements ContextMaintenance {
 	public FactMaintenance(FactExtractor extractor, FactWriteMode writeMode, int batchSize,
 			boolean extractAsync, FactTurnBuffer buffer) {
 		if (extractor == null) {
-			throw new IllegalArgumentException("FactMaintenance: extractor 不能为空");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.FactMaintenance.extractorRequired"));
 		}
 		this.extractor = extractor;
 		this.writeMode = writeMode == null ? FactWriteMode.PER_TURN : writeMode;

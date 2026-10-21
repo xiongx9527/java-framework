@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.service;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.config.MagicApiMcpProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.model.MagicMcpServerInfo;
 import com.xiongx9527.fw.plus.auth.core.InstanceAuthRegistry;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 import org.ssssssss.magicapi.core.resource.Resource;
 import org.ssssssss.magicapi.core.service.MagicResourceService;
@@ -58,15 +59,18 @@ public class MagicMcpServerInfoMagicResourceStorage implements MagicResourceStor
 	public void validate(MagicMcpServerInfo entity) {
 		validateRequired(entity.getKey(), "key");
 		if (!entity.getKey().matches("^[\\w.-]+$")) {
-			throw new IllegalArgumentException("key只能包含字母、数字、下划线、点与中划线");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.MagicMcpServerInfoMagicResourceStorage.keyPatternInvalid"));
 		}
 		validateRequired(entity.getEndpoint(), "endpoint");
 		if (!entity.getEndpoint().startsWith("/")) {
-			throw new IllegalArgumentException("endpoint需以 / 开头");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.MagicMcpServerInfoMagicResourceStorage.endpointInvalid"));
 		}
 		String transport = entity.getTransport();
 		if (transport != null && !"http-sse".equals(transport) && !"streamable-http".equals(transport)) {
-			throw new IllegalArgumentException("transport仅支持 http-sse 或 streamable-http");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.MagicMcpServerInfoMagicResourceStorage.transportUnsupported"));
 		}
 		validateAuthProvider(entity.getAuth());
 		validateKeyUnique(entity.getKey(), entity.getId());
@@ -84,7 +88,8 @@ public class MagicMcpServerInfoMagicResourceStorage implements MagicResourceStor
 		List<String> availableProviders = InstanceAuthRegistry.availableProviders(
 				InstanceAuthRegistry.class.getClassLoader());
 		if (!availableProviders.contains(provider)) {
-			throw new IllegalArgumentException("auth.provider仅支持当前 classpath 可用的认证方式: " + provider);
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.MagicMcpServerInfoMagicResourceStorage.authProviderUnsupported", provider));
 		}
 	}
 
@@ -110,7 +115,8 @@ public class MagicMcpServerInfoMagicResourceStorage implements MagicResourceStor
 
 	private void validateRequired(String value, String field) {
 		if (value == null || value.trim().length() == 0) {
-			throw new IllegalArgumentException(field + "不能为空");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.MagicMcpServerInfoMagicResourceStorage.fieldRequired", field));
 		}
 	}
 
@@ -123,7 +129,8 @@ public class MagicMcpServerInfoMagicResourceStorage implements MagicResourceStor
 				.filter(it -> !Objects.equals(it.getId(), currentId))
 				.noneMatch(it -> Objects.equals(it.getKey(), key));
 		if (!noneMatchKey) {
-			throw new IllegalArgumentException(String.format("key '%s' 已存在，请使用其他 key", key));
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.MagicMcpServerInfoMagicResourceStorage.keyDuplicated", key));
 		}
 	}
 }

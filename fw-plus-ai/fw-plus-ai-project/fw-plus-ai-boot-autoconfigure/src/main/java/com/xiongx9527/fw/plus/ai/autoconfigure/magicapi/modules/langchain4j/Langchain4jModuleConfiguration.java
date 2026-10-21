@@ -22,6 +22,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.modul
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jStreamingChatModelModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jStreamingLanguageModelModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.module.Langchain4jTokenizerModule;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import dev.langchain4j.model.Tokenizer;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.scoring.ScoringModel;
@@ -256,8 +257,8 @@ public class Langchain4jModuleConfiguration {
 			@Autowired(required = false) SimpleAssistant simpleAssistant,
 			ObjectProvider<ChatMemoryStore> chatMemoryStores) {
 		if (simpleAssistantProperties.isSimpleAssistantRequired() && simpleAssistant == null) {
-			throw new IllegalStateException("simple-assistant.required=true 但 SimpleAssistant 未装配："
-					+ "请检查 fw.plus.magicapi.langchain4j.simple-assistant.enabled 与 keys 配置");
+			throw new IllegalStateException(
+					I18nMessageResolver.resolveKey("fw.ai.Langchain4jModuleConfiguration.simpleAssistantMissing"));
 		}
 		return new Langchain4jModule(simpleAssistantProperties, chatModelModules, languageModelModules,
 				streamingLanguageModelModules, simpleAssistant, chatMemoryStores);

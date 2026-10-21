@@ -1,5 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
+
 /**
  * 意图来源：只暴露「当前文本对应的意图」，供 RAG / 工具路由消费。
  *
@@ -17,7 +19,8 @@ public interface IntentSupplier<I extends Enum<I>> {
 	/** 适配一个分类器：每次调用都现跑一遍分类。 */
 	static <I extends Enum<I>> IntentSupplier<I> of(final IntentClassifier<I> classifier) {
 		if (classifier == null) {
-			throw new IllegalArgumentException("classifier 不能为 null");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.IntentSupplier.classifierRequired"));
 		}
 		return new IntentSupplier<I>() {
 			@Override

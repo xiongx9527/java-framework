@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.modu
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jChatModelDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import org.springframework.beans.factory.ObjectProvider;
 import org.ssssssss.magicapi.core.annotation.MagicModule;
@@ -25,8 +26,8 @@ public class Langchain4jChatModelModule extends AbstractLangchain4jModelModule<C
 
     @Override
     public Langchain4jChatModelModule setDynamicAttribute(String key, ChatLanguageModel value) {
-        throw new UnsupportedOperationException(
-                "脚本不支持设置模型实例，请在控制台维护 langchain4j-chat-model 数据源");
+        throw new UnsupportedOperationException(I18nMessageResolver.resolveKey(
+                "fw.ai.modelModule.scriptSetUnsupported", "langchain4j-chat-model"));
     }
 
     @Override

@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.service;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.model.S3DataSourceInfo;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 import org.ssssssss.magicapi.core.resource.Resource;
 import org.ssssssss.magicapi.core.service.MagicResourceService;
@@ -99,7 +100,7 @@ public class S3DataSourceInfoMagicResourceStorage implements MagicResourceStorag
             S3DataSourceInfo oldS3DataSourceInfo = magicResourceService.file(entity.getId());
             if (null != oldS3DataSourceInfo) {
                 if (!oldS3DataSourceInfo.getKey().equals(entity.getKey())) {
-                    throw new IllegalArgumentException("key不可修改");
+                    throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.resource.keyImmutable"));
                 }
             }
         }
@@ -123,7 +124,7 @@ public class S3DataSourceInfoMagicResourceStorage implements MagicResourceStorag
                 .noneMatch(it -> Objects.equals(it.getKey(), key));
 
         if (!noneMatchKey) {
-            throw new IllegalArgumentException(String.format("数据源唯一标识(key) '%s' 已存在，请使用其他唯一标识", key));
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.resource.keyExists", key));
         }
 
     }

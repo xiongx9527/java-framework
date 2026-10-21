@@ -6,6 +6,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.debezium.model.
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.debezium.model.DebeziumDataSourceInfo;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoIterable;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -215,7 +216,7 @@ public class MagicDebeziumController extends MagicController implements MagicExc
                 List<String> difference = new ArrayList<>(tableList);
                 difference.removeAll(allTables);
                 if (!difference.isEmpty()) {
-                    throw new RuntimeException("未找到表：" + String.join(", ", difference));
+                    throw new RuntimeException(I18nMessageResolver.resolveKey("fw.boot.debezium.tableNotFound", String.join(", ", difference)));
                 }
             } catch (Exception e) {
                 log.error("MongoDB 连接失败: " + e.getMessage());
@@ -238,7 +239,7 @@ public class MagicDebeziumController extends MagicController implements MagicExc
                 List<String> difference = new ArrayList<>(tableList);
                 difference.removeAll(allTables);
                 if (!difference.isEmpty()) {
-                    throw new RuntimeException("未找到表：" + String.join(", ", difference));
+                    throw new RuntimeException(I18nMessageResolver.resolveKey("fw.boot.debezium.tableNotFound", String.join(", ", difference)));
                 }
             } catch (Exception e) {
                 log.error("数据库连接失败: " + e.getMessage());

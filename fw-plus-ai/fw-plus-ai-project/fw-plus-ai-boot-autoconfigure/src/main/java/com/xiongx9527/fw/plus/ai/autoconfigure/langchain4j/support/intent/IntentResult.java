@@ -1,5 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
+
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -43,7 +45,8 @@ public final class IntentResult<I extends Enum<I>> {
 	public static <I extends Enum<I>> IntentResult<I> of(I intent, double confidence,
 			Map<String, String> slots, IntentSource source) {
 		if (intent == null) {
-			throw new IllegalArgumentException("intent 不能为 null；未匹配请使用 none(source)");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.IntentResult.intentRequired"));
 		}
 		return new IntentResult<I>(intent, confidence, slots, source);
 	}

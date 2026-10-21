@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.web.MagicSwaggerController;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.webflux.WebFluxRequestMagicDynamicRegistry;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import io.swagger.v3.oas.models.OpenAPI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -112,7 +113,7 @@ public class MagicSwaggerConfiguration implements MagicPluginConfiguration {
 			try {
 				swaggerJsonMethod = MagicSwaggerController.class.getDeclaredMethod("swaggerJson");
 			} catch (NoSuchMethodException e) {
-				throw new IllegalStateException("未找到 swaggerJson 方法", e);
+				throw new IllegalStateException(I18nMessageResolver.resolveKey("fw.boot.swagger.jsonMethodNotFound"), e);
 			}
 			mapping.register(mapping.paths(location).methods(RequestMethod.GET).build(), controller, swaggerJsonMethod);
 			logger.info("已注册Swagger文档端点: {}", location);

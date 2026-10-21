@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.dtp.model;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Arrays;
@@ -23,28 +24,28 @@ public final class DtpDataSourceValidator {
 
 	public static void validate(DtpDataSourceInfo info) {
 		if (info == null) {
-			throw new IllegalArgumentException("DTP 数据源配置不能为空");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.dtp.configRequired"));
 		}
 		requireText(info.getKey(), "key不能为空");
 		if (info.getCorePoolSize() <= 0) {
-			throw new IllegalArgumentException("corePoolSize必须大于0");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.dtp.corePoolSizeInvalid"));
 		}
 		if (info.getMaximumPoolSize() < info.getCorePoolSize()) {
-			throw new IllegalArgumentException("maximumPoolSize必须大于等于corePoolSize");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.dtp.maximumPoolSizeInvalid"));
 		}
 		if (info.getKeepAliveTime() < 0) {
-			throw new IllegalArgumentException("keepAliveTime不能小于0");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.dtp.keepAliveTimeInvalid"));
 		}
 		String queueType = normalizeQueueType(info.getQueueType());
 		if (!isSupportedQueueType(queueType)) {
-			throw new IllegalArgumentException("queueType不支持: " + info.getQueueType());
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.dtp.queueTypeUnsupported", info.getQueueType()));
 		}
 		if (isBoundedQueue(queueType) && info.getQueueCapacity() <= 0) {
-			throw new IllegalArgumentException("queueCapacity必须大于0");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.dtp.queueCapacityInvalid"));
 		}
 		String rejectedPolicy = normalizeRejectedPolicy(info.getRejectedPolicy());
 		if (!isSupportedRejectedPolicy(rejectedPolicy)) {
-			throw new IllegalArgumentException("rejectedPolicy不支持: " + info.getRejectedPolicy());
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.dtp.rejectedPolicyUnsupported", info.getRejectedPolicy()));
 		}
 	}
 

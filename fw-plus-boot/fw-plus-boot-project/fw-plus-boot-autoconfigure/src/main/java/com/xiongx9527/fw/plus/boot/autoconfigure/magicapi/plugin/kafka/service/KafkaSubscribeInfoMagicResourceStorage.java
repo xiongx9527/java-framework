@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.service;
 import com.alibaba.fastjson.JSONValidator;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.model.KafkaDataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.model.KafkaSubscribeInfo;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -96,7 +97,7 @@ public class KafkaSubscribeInfoMagicResourceStorage extends AbstractPathMagicRes
         KafkaDataSourceInfoMagicResourceStorage kafkaDataSourceInfoMagicResourceStorage = SpringUtils.getBean(KafkaDataSourceInfoMagicResourceStorage.class);
         Map<String,KafkaDataSourceInfo> kafkaDataSourceInfoMap = ListUtils.emptyIfNull(kafkaDataSourceInfoMagicResourceStorage.findAll()).stream().collect(Collectors.toMap(KafkaDataSourceInfo::getKey, val->val,(k1, k2)->k1));
         if (!kafkaDataSourceInfoMap.containsKey(entity.getKey())) {
-            throw new IllegalArgumentException(String.format("数据源key:%s 不存在", entity.getKey()));
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.kafka.datasourceKeyNotExists", entity.getKey()));
         }
     }
 

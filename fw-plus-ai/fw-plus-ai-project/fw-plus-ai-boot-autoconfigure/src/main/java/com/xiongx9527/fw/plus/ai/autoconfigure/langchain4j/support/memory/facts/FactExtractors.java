@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.facts
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -60,8 +61,8 @@ public final class FactExtractors {
 	public static FactExtractor resolveOrThrow(String nameOrClass, FactStore store, ChatLanguageModel extractModel) {
 		FactExtractor resolved = resolve(nameOrClass, store, extractModel);
 		if (resolved == null) {
-			throw new IllegalArgumentException("未知事实抽取策略（非内置 " + MEM0 + "/" + LLM + "/" + RULE + "/"
-					+ HYBRID + "，也非可构造的 FQCN）：" + nameOrClass);
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.FactExtractors.unknownStrategy", MEM0, LLM, RULE, HYBRID, nameOrClass));
 		}
 		return resolved;
 	}
@@ -152,7 +153,8 @@ public final class FactExtractors {
 
 		public Mem0FactExtractor(FactStore store) {
 			if (store == null) {
-				throw new IllegalArgumentException("Mem0FactExtractor: store 不能为空");
+				throw new IllegalArgumentException(
+						I18nMessageResolver.resolveKey("fw.ai.FactExtractors.mem0StoreRequired"));
 			}
 			this.store = store;
 		}
@@ -177,7 +179,8 @@ public final class FactExtractors {
 
 		public LlmFactExtractor(FactStore store, ChatLanguageModel model) {
 			if (store == null) {
-				throw new IllegalArgumentException("LlmFactExtractor: store 不能为空");
+				throw new IllegalArgumentException(
+						I18nMessageResolver.resolveKey("fw.ai.FactExtractors.llmStoreRequired"));
 			}
 			this.store = store;
 			this.model = model;
@@ -226,7 +229,8 @@ public final class FactExtractors {
 
 		public RuleFactExtractor(FactStore store) {
 			if (store == null) {
-				throw new IllegalArgumentException("RuleFactExtractor: store 不能为空");
+				throw new IllegalArgumentException(
+						I18nMessageResolver.resolveKey("fw.ai.FactExtractors.ruleStoreRequired"));
 			}
 			this.store = store;
 		}
@@ -282,7 +286,8 @@ public final class FactExtractors {
 
 		public HybridFactExtractor(FactStore store, ChatLanguageModel model) {
 			if (store == null) {
-				throw new IllegalArgumentException("HybridFactExtractor: store 不能为空");
+				throw new IllegalArgumentException(
+						I18nMessageResolver.resolveKey("fw.ai.FactExtractors.hybridStoreRequired"));
 			}
 			this.store = store;
 			this.rule = new RuleFactExtractor(store);

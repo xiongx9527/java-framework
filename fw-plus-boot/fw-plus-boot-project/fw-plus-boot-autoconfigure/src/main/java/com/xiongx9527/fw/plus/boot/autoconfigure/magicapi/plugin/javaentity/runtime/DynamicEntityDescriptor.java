@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.runtime;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -50,9 +51,9 @@ public final class DynamicEntityDescriptor {
             Constructor<?> constructor = type.getDeclaredConstructor();
             return constructor.newInstance();
         } catch (NoSuchMethodException | InstantiationException | IllegalAccessException exception) {
-            throw new IllegalStateException("动态实体 " + type.getName() + " 不存在可访问的无参构造器", exception);
+            throw new IllegalStateException(I18nMessageResolver.resolveKey("fw.boot.javaentity.noAccessibleNoArgConstructor", type.getName()), exception);
         } catch (InvocationTargetException exception) {
-            throw new IllegalStateException("动态实体 " + type.getName() + " 无参构造器执行失败",
+            throw new IllegalStateException(I18nMessageResolver.resolveKey("fw.boot.javaentity.noArgConstructorFailed", type.getName()),
                     exception.getCause());
         }
     }

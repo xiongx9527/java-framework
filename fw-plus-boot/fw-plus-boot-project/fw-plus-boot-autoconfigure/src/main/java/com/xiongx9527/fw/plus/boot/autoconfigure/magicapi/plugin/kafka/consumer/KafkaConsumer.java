@@ -7,6 +7,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.model.Kaf
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.model.KafkaSubscribeInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.model.KafkaSubscribeScriptInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.model.MagicDynamicKafkaDataSource;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -719,7 +720,7 @@ public class KafkaConsumer implements BaseService {
         private void resetRetryCount(ConsumerRecord<Object, Object> msg, int retryCount) {
             // 参数验证
             if (retryCount < 0) {
-                throw new IllegalArgumentException("重试次数不能为负数");
+                throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.kafka.retryCountNegative"));
             }
 
             // 重置已重试次数
@@ -754,7 +755,7 @@ public class KafkaConsumer implements BaseService {
                         acknowledgment.acknowledge();
                     }
                 } else {
-                    throw new RuntimeException("消息消费失败");
+                    throw new RuntimeException(I18nMessageResolver.resolveKey("fw.boot.kafka.consumeFailed"));
                 }
             } catch (Exception e) {
                 log.error("消费消息失败，topic: {}, partition: {}, offset: {}",

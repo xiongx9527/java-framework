@@ -8,6 +8,7 @@ import com.fhs.trans.controller.TransProxyController;
 import com.fhs.trans.service.impl.SimpleTransService;
 import com.fhs.trans.vo.BasicVO;
 import com.fhs.trans.vo.FindByIdsQueryPayload;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -64,7 +65,8 @@ public class MateEasyTransProxyController extends TransProxyController {
         List<? extends Serializable> ids = payload.getIds();
         Class<? extends VO> poClazz =  (Class<? extends VO>) Class.forName(targetClass);
         if(customRpc && !poClazz.isAnnotationPresent(RpcTrans.class)){
-            throw new IllegalArgumentException(targetClass + "没有被标记@RpcTrans 注解");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                    "fw.easytrans.MateEasyTransProxyController.notMarkedRpcTrans", targetClass));
         }
         Class fieldType = getPkeyFieldType(poClazz);
         // 如果字段类型不是String，则转换
@@ -131,7 +133,8 @@ public class MateEasyTransProxyController extends TransProxyController {
         Serializable sid = id;
         Class<? extends VO> poClazz =  (Class<? extends VO>) Class.forName(targetClass);
         if(customRpc && !poClazz.isAnnotationPresent(RpcTrans.class)){
-            throw new IllegalArgumentException(targetClass + "没有被标记@RpcTrans 注解");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                    "fw.easytrans.MateEasyTransProxyController.notMarkedRpcTrans", targetClass));
         }
         Class fieldType = getPkeyFieldType(poClazz);
         // 如果字段类型不是String，则转换
