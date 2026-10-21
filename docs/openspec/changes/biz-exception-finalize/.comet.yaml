@@ -19,8 +19,8 @@ verification_report: docs/openspec/changes/biz-exception-finalize/VERIFICATION.m
 branch_status: pending
 created_at: 2026-10-21
 verified_at: 2026-10-21
-archive_confirmation: pending
-archived: false
+archive_confirmation: confirmed
+archived: true
 bound_branch: dev
 direct_override: null
 handoff_context: docs/openspec/changes/biz-exception-finalize/.comet/handoff/design-context.json
@@ -28,4 +28,4 @@ handoff_hash: 4c9b503ae5c7ee80a861c63c39623f2ee3ecf4ec8800c8abc0bb3993abed713f
 classic_profile: full
 classic_migration: 1
 run_id: 528a6c1c-5b10-491e-9edc-47df31fce878
-check_epoch: 4
+check_epoch: 6
