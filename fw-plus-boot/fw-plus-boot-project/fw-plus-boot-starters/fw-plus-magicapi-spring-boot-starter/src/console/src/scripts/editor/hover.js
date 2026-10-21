@@ -1,3 +1,4 @@
+import $i from '../i18n.js'
 import tokenizer from '../parsing/tokenizer.js'
 import { TokenStream } from '../parsing/index.js'
 import {
@@ -39,7 +40,7 @@ const generateMethodDocument = (prefix, method, contents) => {
             contents.push({ value: `${param.name}：${(param.comment || param.type)}` })
         }
     })
-    contents.push({ value: `返回类型：\`${method.returnType}\`` })
+    contents.push({ value: $i('editor.hover.returnType', method.returnType) })
 }
 
 const generateFunctionCall = (methodName, env, contents, isNew) => {
@@ -63,8 +64,8 @@ const generateFunctionCall = (methodName, env, contents, isNew) => {
             }
 
         } else {
-            contents.push({ value: `${isNew ? '创建对象' : '访问变量'}：${methodName}` })
-            contents.push({ value: `类型：${value || 'unknow'}` })
+            contents.push({ value: isNew ? $i('editor.hover.createObject', methodName) : $i('editor.hover.accessVariable', methodName) })
+            contents.push({ value: $i('editor.hover.type', value || $i('editor.hover.unknow')) })
         }
     }
 }
@@ -90,24 +91,24 @@ const HoverProvider = {
                 let line = best.getSpan().getLine();
                 if (best instanceof VarDefine) {
                     let value = env[best.getVarName()];
-                    contents.push({ value: `定义变量：${best.getVarName()}` })
-                    contents.push({ value: `变量类型：${value}` })
+                    contents.push({ value: $i('editor.hover.defineVariable', best.getVarName()) })
+                    contents.push({ value: $i('editor.hover.variableType', value) })
                 } else if (best instanceof ClassConverter) {
                     if (best.convert === 'json') {
-                        contents.push({ value: '强制转换为`JSON`类型' })
+                        contents.push({ value: $i('editor.hover.convertToJson') })
                     } else if (best.convert === 'stringify') {
-                        contents.push({ value: '转换为`JSON`字符串' })
+                        contents.push({ value: $i('editor.hover.convertToJsonString') })
                     } else if (best.convert === 'sql') {
                         let args = best.args || []
-                        contents.push({ value: `等同于\`new SqlParameterValue(java.sql.Types.${args[0]?.span?.getText()?.toUpperCase()},${best.target.getSpan().getText()})\`` })
+                        contents.push({ value: $i('editor.hover.convertToSql', args[0]?.span?.getText()?.toUpperCase(), best.target.getSpan().getText()) })
                     } else {
-                        contents.push({ value: `转换为\`${best.convert}\`` })
+                        contents.push({ value: $i('editor.hover.convertTo', best.convert) })
                     }
                 } else if (best instanceof VariableAccess) {
                     let value = env[best.getVariable()];
                     if (value) {
-                        contents.push({ value: `访问变量：${best.getVariable()}` })
-                        contents.push({ value: `变量类型：${value || 'unknow'}` })
+                        contents.push({ value: $i('editor.hover.accessVariable', best.getVariable()) })
+                        contents.push({ value: $i('editor.hover.variableType', value || $i('editor.hover.unknow')) })
                     } else {
                         generateFunctionCall(best.getVariable(), env, contents)
                     }
@@ -118,12 +119,12 @@ const HoverProvider = {
                     JavaClass.findMethods(clazz).filter(method => method.name === memberName)
                         .forEach(method => generateMethodDocument(`${JavaClass.getSimpleClass(javaType)}.`, method, contents))
                     JavaClass.findEnums(clazz).filter(it => it === memberName).forEach(it => {
-                        contents.push({ value: `访问枚举：\`${javaType}.${memberName}\`` })
+                        contents.push({ value: $i('editor.hover.accessEnum', javaType, memberName) })
                     })
                     JavaClass.findAttributes(clazz).filter(attr => attr.name === memberName).forEach(it => {
-                        contents.push({ value: `访问属性：\`${javaType}.${memberName}\`` })
+                        contents.push({ value: $i('editor.hover.accessAttribute', javaType, memberName) })
                         it.comment && contents.push({ value: `${it.comment}` })
-                        contents.push({ value: `属性类型：` + `\`${it.type}\`` })
+                        contents.push({ value: $i('editor.hover.attributeType', it.type) })
                     })
                     line = best.member.getLine();
                 } else if (best instanceof FunctionCall) {
@@ -135,9 +136,9 @@ const HoverProvider = {
                         generateFunctionCall(target, env, contents, true)
                     }
                 } else if (best instanceof MapOrArrayAccess) {
-                    contents.push({ value: `访问Map或数组` })
+                    contents.push({ value: $i('editor.hover.accessMapOrArray') })
                 } else if (best instanceof LinqSelect) {
-                    contents.push({ value: `linq查询` })
+                    contents.push({ value: $i('editor.hover.linqQuery') })
                 } else {
                     return;
                 }
