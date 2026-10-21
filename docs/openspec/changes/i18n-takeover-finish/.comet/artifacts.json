@@ -1,0 +1,8 @@
+{
+  "openspec_proposal": "docs/openspec/changes/i18n-takeover-finish/proposal.md",
+  "openspec_design": "docs/openspec/changes/i18n-takeover-finish/design.md",
+  "openspec_tasks": "docs/openspec/changes/i18n-takeover-finish/tasks.md",
+  "openspec_delta_spec": "docs/openspec/changes/i18n-takeover-finish/specs/i18n/spec.md",
+  "handoff_context": "docs/openspec/changes/i18n-takeover-finish/.comet/handoff/design-context.json",
+  "handoff_markdown": "docs/openspec/changes/i18n-takeover-finish/.comet/handoff/design-context.md"
+}

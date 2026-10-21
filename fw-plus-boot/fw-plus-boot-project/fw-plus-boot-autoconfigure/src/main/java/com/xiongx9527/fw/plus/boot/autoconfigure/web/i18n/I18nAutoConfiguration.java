@@ -4,7 +4,6 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.web.WebAutoConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.properties.WebProperties;
 import com.xiongx9527.fw.plus.common.i18n.ComposableMessageSource;
 import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
-import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -19,7 +18,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.i18n.AcceptHeaderLocaleResolver;
 import org.springframework.web.servlet.i18n.LocaleChangeInterceptor;
 
-import javax.annotation.PostConstruct;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -116,11 +114,4 @@ public class I18nAutoConfiguration {
         };
     }
 
-    /**
-     * 把容器中的 MessageSource 注入静态解析器，供异常类使用。
-     */
-    @PostConstruct
-    public void initResolver() {
-        I18nMessageResolver.setMessageSource(SpringUtils.getBean(MessageSource.class));
-    }
 }
