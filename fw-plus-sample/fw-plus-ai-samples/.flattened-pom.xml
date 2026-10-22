@@ -24,6 +24,7 @@
     <module>fw-plus-ai-chat-sample</module>
     <module>fw-plus-ai-agentscope-sample</module>
     <module>fw-plus-ai-nl2sql-sample</module>
+    <module>fw-plus-ai-structured-output-sample</module>
   </modules>
   <properties>
     <main.basedir>${basedir}/../..</main.basedir>

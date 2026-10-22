@@ -1,5 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
+
 import java.util.regex.Pattern;
 
 /**
@@ -23,20 +25,24 @@ public final class IntentRule<I extends Enum<I>> {
 
 	public static <I extends Enum<I>> IntentRule<I> of(I intent, String regex) {
 		if (intent == null) {
-			throw new IllegalArgumentException("intent 不能为 null");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.IntentRule.intentRequired"));
 		}
 		if (regex == null || regex.trim().isEmpty()) {
-			throw new IllegalArgumentException("regex 不能为空");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.IntentRule.regexRequired"));
 		}
 		return new IntentRule<I>(intent, Pattern.compile(regex));
 	}
 
 	public static <I extends Enum<I>> IntentRule<I> of(I intent, Pattern pattern) {
 		if (intent == null) {
-			throw new IllegalArgumentException("intent 不能为 null");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.IntentRule.intentRequired"));
 		}
 		if (pattern == null) {
-			throw new IllegalArgumentException("pattern 不能为 null");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.IntentRule.patternRequired"));
 		}
 		return new IntentRule<I>(intent, pattern);
 	}

@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.agentic.store;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import dev.langchain4j.agentic.scope.AgenticScopePersister;
 import dev.langchain4j.agentic.scope.AgenticScopeSerializer;
 import dev.langchain4j.agentic.scope.AgenticScopeStore;
@@ -53,8 +54,8 @@ public class AgenticScopeStoreAutoConfiguration {
             if (!AgenticScopeStoreProperties.TYPE_IN_MEMORY.equals(type)
                     && !AgenticScopeStoreProperties.TYPE_MONGO.equals(type)
                     && !AgenticScopeStoreProperties.TYPE_NONE.equals(type)) {
-                throw new IllegalStateException(String.format(
-                        "%s.type 取值非法: '%s'，仅支持 %s / %s / %s",
+                throw new IllegalStateException(I18nMessageResolver.resolveKey(
+                        "fw.ai.AgenticScopeStoreAutoConfiguration.typeInvalid",
                         AgenticScopeStoreProperties.PREFIX, properties.getType(),
                         AgenticScopeStoreProperties.TYPE_IN_MEMORY, AgenticScopeStoreProperties.TYPE_MONGO,
                         AgenticScopeStoreProperties.TYPE_NONE));
@@ -124,9 +125,8 @@ public class AgenticScopeStoreAutoConfiguration {
             applySerializationWhitelist(properties.getSerialization());
             AgenticScopeStore store = stores.getIfAvailable();
             if (store == null) {
-                throw new IllegalStateException(String.format(
-                        "%s.type=%s，但容器中没有任何 AgenticScopeStore Bean：mongo 后端需引入 "
-                                + "org.mongodb:mongodb-driver-sync，也可定义自定义 AgenticScopeStore Bean",
+                throw new IllegalStateException(I18nMessageResolver.resolveKey(
+                        "fw.ai.AgenticScopeStoreAutoConfiguration.storeBeanMissing",
                         AgenticScopeStoreProperties.PREFIX, properties.getType()));
             }
             AgenticScopePersister.setStore(store);

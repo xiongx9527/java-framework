@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.structured;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -34,7 +35,8 @@ final class Rules {
 				return;
 			}
 		}
-		throw new IllegalArgumentException("未知的期望类型：" + type + "（可用：" + String.join(", ", TYPE_NAMES) + "）");
+		throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+				"fw.ai.Rules.unknownExpectedType", type, String.join(", ", TYPE_NAMES)));
 	}
 
 	static boolean matchesType(Object value, String type) {
@@ -139,7 +141,8 @@ final class Rules {
 		if (value instanceof Double || value instanceof Float) {
 			double number = value.doubleValue();
 			if (Double.isNaN(number) || Double.isInfinite(number)) {
-				throw new IllegalArgumentException("不支持的数值：" + value);
+				throw new IllegalArgumentException(
+						I18nMessageResolver.resolveKey("fw.ai.Rules.unsupportedNumber", value));
 			}
 		}
 		return new BigDecimal(value.toString());

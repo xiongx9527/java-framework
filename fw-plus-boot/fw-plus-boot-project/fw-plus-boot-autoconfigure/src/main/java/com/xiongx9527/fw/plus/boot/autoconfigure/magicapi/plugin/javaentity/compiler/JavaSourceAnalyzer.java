@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.compiler;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.model.JavaEntityInfo;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticCollector;
@@ -39,10 +40,12 @@ public class JavaSourceAnalyzer {
 
     public JavaSourceUnit analyze(String resourceId, String resourceName, String source) {
         if (compiler == null) {
-            throw failure(resourceId, 0, 0, "compiler.unavailable", "当前运行环境未提供 JDK JavaCompiler");
+            throw failure(resourceId, 0, 0, "compiler.unavailable",
+                    I18nMessageResolver.resolveKey("fw.boot.javaentity.compilerUnavailable"));
         }
         if (source == null || source.trim().isEmpty()) {
-            throw failure(resourceId, 0, 0, "entity.source.empty", "动态实体 Java 源码不能为空");
+            throw failure(resourceId, 0, 0, "entity.source.empty",
+                    I18nMessageResolver.resolveKey("fw.boot.javaentity.sourceRequired"));
         }
 
         DiagnosticCollector<JavaFileObject> collector = new DiagnosticCollector<>();
@@ -70,14 +73,15 @@ public class JavaSourceAnalyzer {
             }
             if (publicClasses.size() != 1) {
                 throw failure(resourceId, 0, 0, "entity.public-class.count",
-                        "每个动态实体 Resource 必须且只能包含一个顶级公开类");
+                        I18nMessageResolver.resolveKey("fw.boot.javaentity.publicClassCount"));
             }
 
             String simpleName = String.valueOf(invokeTreeMethod(publicClasses.get(0),
                     "com.sun.source.tree.ClassTree", "getSimpleName"));
             if (!simpleName.equals(resourceName)) {
                 throw failure(resourceId, 0, 0, "entity.resource-name.mismatch",
-                        "Resource 名称 " + resourceName + " 必须与公开类 " + simpleName + " 一致");
+                        I18nMessageResolver.resolveKey("fw.boot.javaentity.resourceNameMismatch",
+                                resourceName, simpleName));
             }
             Object packageNode = invokeTreeMethod(unit,
                     "com.sun.source.tree.CompilationUnitTree", "getPackageName");
@@ -88,7 +92,8 @@ public class JavaSourceAnalyzer {
         } catch (JavaEntityCompilationException exception) {
             throw exception;
         } catch (Exception exception) {
-            throw failure(resourceId, 0, 0, "compiler.source.parse", "无法解析动态实体 Java 语法树");
+            throw failure(resourceId, 0, 0, "compiler.source.parse",
+                    I18nMessageResolver.resolveKey("fw.boot.javaentity.parseFailed"));
         } finally {
             try {
                 fileManager.close();

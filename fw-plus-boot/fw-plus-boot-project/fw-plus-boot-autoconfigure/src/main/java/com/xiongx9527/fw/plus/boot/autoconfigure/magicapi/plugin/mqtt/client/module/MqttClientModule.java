@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.mo
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.model.MagicDynamicMqttClientDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.producer.MqttClientProducer;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import lombok.extern.slf4j.Slf4j;
 import org.dromara.mica.mqtt.codec.MqttQoS;
 import org.dromara.mica.mqtt.spring.client.MqttClientTemplate;
@@ -72,7 +73,7 @@ public class MqttClientModule implements DynamicAttribute<MqttClientModule, Mqtt
             return this.mqttClientProducer;
         }
         String dataSourceKey = StringUtils.defaultIfBlank(this.key, "default");
-        throw new IllegalStateException("未找到可用的 MQTT Client 数据源: " + dataSourceKey);
+        throw new IllegalStateException(I18nMessageResolver.resolveKey("fw.boot.mqtt.client.datasourceNotFound", dataSourceKey));
     }
 
     public boolean publish(String topic, Object payload) {

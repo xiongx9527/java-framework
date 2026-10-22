@@ -10,6 +10,7 @@ import org.dromara.trans.listener.TransMessageListener;
 import org.dromara.trans.service.impl.SimpleTransService;
 import org.dromara.trans.service.impl.TransService;
 import org.dromara.trans.vo.BasicVO;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.LoggerFactory;
@@ -89,7 +90,8 @@ public class MateEasyTransRpcTransService extends MateEasyTransSimpleTransServic
 
             } catch (ClassNotFoundException e) {
                 //如果类名找不到，则抛出非法参数异常
-                throw new IllegalArgumentException("类找不到：" + tempTrans.targetClassName());
+                throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                        "fw.easytrans.MateEasyTransRpcTransService.classNotFound", tempTrans.targetClassName()));
             }
         }
         //准备远程调用的参数
@@ -138,7 +140,8 @@ public class MateEasyTransRpcTransService extends MateEasyTransSimpleTransServic
                 }, tempTrans.dataSource());
             } catch (ClassNotFoundException e) {
                 // 如果目标类不存在，则抛出异常
-                throw new IllegalArgumentException("类找不到：" + tempTrans.targetClassName());
+                throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                        "fw.easytrans.MateEasyTransRpcTransService.classNotFound", tempTrans.targetClassName()));
             }
         }
         // 执行远程调用

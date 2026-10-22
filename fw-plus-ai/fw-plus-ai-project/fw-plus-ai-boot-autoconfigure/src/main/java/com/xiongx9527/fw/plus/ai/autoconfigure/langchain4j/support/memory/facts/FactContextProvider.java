@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.facts
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.context.ContextRequest;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatstore.ChatMemoryIds;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
@@ -43,7 +44,8 @@ public class FactContextProvider implements ContextProvider {
 
 	public FactContextProvider(FactRetriever retriever, int topK, int maxFactsTokens) {
 		if (retriever == null) {
-			throw new IllegalArgumentException("FactContextProvider: retriever 不能为空");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.FactContextProvider.retrieverRequired"));
 		}
 		this.retriever = retriever;
 		this.topK = topK < 1 ? 1 : topK;

@@ -17,6 +17,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.summar
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.summary.SummaryStore;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.rag.DifyContentRetriever;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.rag.DifyRagProperties;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.dify.dataset.IDatasetClient;
 import com.xiongx9527.fw.plus.dify.utils.DatasetBuilder;
 
@@ -126,8 +127,8 @@ public class LangChain4jSupportAutoConfiguration {
 		requireDifyProperty(properties.getBaseUrl(), "base-url");
 		requireDifyProperty(properties.getApiKey(), "api-key");
 		if (properties.getDatasetIds() == null || properties.getDatasetIds().isEmpty()) {
-			throw new IllegalStateException(
-					DifyRagProperties.PREFIX + ".dataset-ids 未配置，请填写至少一个知识库 ID");
+			throw new IllegalStateException(I18nMessageResolver.resolveKey(
+					"fw.ai.LangChain4jSupportAutoConfiguration.difyDatasetIdsMissing", DifyRagProperties.PREFIX));
 		}
 		properties.getMetaFields().validate();
 		IDatasetClient client = DatasetBuilder
@@ -138,7 +139,8 @@ public class LangChain4jSupportAutoConfiguration {
 
 	private static void requireDifyProperty(String value, String field) {
 		if (value == null || value.trim().isEmpty()) {
-			throw new IllegalStateException(DifyRagProperties.PREFIX + "." + field + " 未配置");
+			throw new IllegalStateException(I18nMessageResolver.resolveKey(
+					"fw.ai.LangChain4jSupportAutoConfiguration.difyPropertyMissing", DifyRagProperties.PREFIX, field));
 		}
 	}
 

@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.modu
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.MagicDynamicLangchain4jEmbeddingStoreDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import org.springframework.beans.factory.ObjectProvider;
@@ -26,8 +27,8 @@ public class Langchain4jEmbeddingStoreModule extends AbstractLangchain4jModelMod
 
     @Override
     public Langchain4jEmbeddingStoreModule setDynamicAttribute(String key, EmbeddingStore<TextSegment> value) {
-        throw new UnsupportedOperationException(
-                "脚本不支持设置模型实例，请在控制台维护 langchain4j-embedding-store 数据源");
+        throw new UnsupportedOperationException(I18nMessageResolver.resolveKey(
+                "fw.ai.modelModule.scriptSetUnsupported", "langchain4j-embedding-store"));
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.webflux;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.alibaba.fastjson2.JSONValidator;
@@ -114,11 +115,11 @@ public class ReactiveWsHandler implements org.springframework.web.reactive.socke
 
 		int maxTotalSessions = config.getMaxTotalSessions();
 		if (maxTotalSessions > 0 && registry.count() >= maxTotalSessions) {
-			return session.close(new CloseStatus(CloseStatus.SERVICE_OVERLOAD.getCode(), "连接数已达上限"));
+			return session.close(new CloseStatus(CloseStatus.SERVICE_OVERLOAD.getCode(), I18nMessageResolver.resolveKey("fw.boot.ws.maxTotalSessionsReached")));
 		}
 		if (config.getMaxSessionsPerClient() > 0
 				&& registry.findByClientId(auth.clientId).size() >= config.getMaxSessionsPerClient()) {
-			return session.close(new CloseStatus(CloseStatus.SERVICE_OVERLOAD.getCode(), "客户端连接数已达上限"));
+			return session.close(new CloseStatus(CloseStatus.SERVICE_OVERLOAD.getCode(), I18nMessageResolver.resolveKey("fw.boot.ws.maxSessionsPerClientReached")));
 		}
 
 		registry.register(wsSession, auth.appId, auth.clientId);
@@ -287,16 +288,16 @@ public class ReactiveWsHandler implements org.springframework.web.reactive.socke
 		Map<String, String> credentials = WsAuthSupport.mergeCredentials(query, headerValues);
 		if (!new WsAuthSupport(wsConfig, authRegistry).isAuthenticated(path, credentials)) {
 			log.error("WebSocket handshake authentication failed for path: {}", path);
-			return AuthResult.reject(org.springframework.web.socket.CloseStatus.POLICY_VIOLATION, "认证失败");
+			return AuthResult.reject(org.springframework.web.socket.CloseStatus.POLICY_VIOLATION, I18nMessageResolver.resolveKey("fw.boot.ws.authFailed"));
 		}
 
 		String clientId = params.get(config.getClientIdParamName());
 		if (StringUtils.isBlank(clientId)) {
 			log.error("Missing required parameter: {}", config.getClientIdParamName());
-			return AuthResult.reject(org.springframework.web.socket.CloseStatus.POLICY_VIOLATION, "缺少必要参数");
+			return AuthResult.reject(org.springframework.web.socket.CloseStatus.POLICY_VIOLATION, I18nMessageResolver.resolveKey("fw.boot.ws.missingRequiredParam"));
 		}
 		if (clientId.length() > config.getMaxClientIdLength()) {
-			return AuthResult.reject(org.springframework.web.socket.CloseStatus.POLICY_VIOLATION, "客户端ID过长");
+			return AuthResult.reject(org.springframework.web.socket.CloseStatus.POLICY_VIOLATION, I18nMessageResolver.resolveKey("fw.boot.ws.clientIdTooLong"));
 		}
 		// 按端点路径解析实例 appId：未命中实例或实例未配置 appId 时回落到默认 appId
 		String appId = WsInstanceResolver.resolveAppId(wsConfig, uri == null ? null : uri.getPath());
@@ -304,7 +305,7 @@ public class ReactiveWsHandler implements org.springframework.web.reactive.socke
 			appId = config.getDefaultAppId();
 		}
 		if (businessDispatcher != null && !businessDispatcher.existsApp(appId)) {
-			return AuthResult.reject(org.springframework.web.socket.CloseStatus.POLICY_VIOLATION, "AppId不存在");
+			return AuthResult.reject(org.springframework.web.socket.CloseStatus.POLICY_VIOLATION, I18nMessageResolver.resolveKey("fw.boot.ws.appIdNotExists"));
 		}
 		return AuthResult.accept(appId, clientId);
 	}

@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.registry;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import org.springframework.beans.factory.ObjectProvider;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,7 +50,7 @@ public class Langchain4jStreamingChatModelMagicDynamicRegistry
         if (defaultInstance.getIfAvailable() != null) {
             Langchain4jStreamingChatModelInfo info = new Langchain4jStreamingChatModelInfo();
             info.setKey(AbstractLangchain4jModelMagicDynamicRegistry.DEFAULT_KEY);
-            info.setName("默认数据源");
+            info.setName(I18nMessageResolver.resolveKey("fw.boot.datasource.defaultName"));
             info.setProvider(defaultProvider());
             info.setEnabled(true);
             result.add(info);

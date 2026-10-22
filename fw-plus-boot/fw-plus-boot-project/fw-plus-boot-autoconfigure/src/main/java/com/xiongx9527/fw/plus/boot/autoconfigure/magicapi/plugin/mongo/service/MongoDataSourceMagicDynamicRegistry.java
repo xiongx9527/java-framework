@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mongo.service;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mongo.model.MagicDynamicMongoDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mongo.model.MongoDataSourceInfo;
 import lombok.extern.slf4j.Slf4j;
@@ -123,7 +124,7 @@ public class MongoDataSourceMagicDynamicRegistry extends AbstractMagicDynamicReg
     public List<MongoDataSourceInfo> defaultMappings() {
         return magicDynamicMongoDataSource.datasourceNodes().stream().filter(it -> it.getId() == null).map(it -> {
             MongoDataSourceInfo dataSourceInfo = new MongoDataSourceInfo();
-            dataSourceInfo.setName(StringUtils.defaultIfBlank(it.getName(), StringUtils.defaultIfBlank(it.getKey(), "默认数据源")));
+            dataSourceInfo.setName(StringUtils.defaultIfBlank(it.getName(), StringUtils.defaultIfBlank(it.getKey(), I18nMessageResolver.resolveKey("fw.boot.datasource.defaultName"))));
             dataSourceInfo.setKey(it.getKey());
             return dataSourceInfo;
         }).collect(Collectors.toList());

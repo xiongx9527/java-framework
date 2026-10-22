@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.module;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.model.MagicDynamicPulsarDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.producer.PulsarProducer;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.client.admin.PulsarAdmin;
@@ -89,7 +90,7 @@ public class PulsarModule implements DynamicAttribute<PulsarModule, PulsarModule
         }
         PulsarProducer pulsarProducer = this.magicDynamicPulsarDataSource.getProducer(key);
         if (pulsarProducer == null) {
-            throw new IllegalArgumentException("Pulsar数据源不存在: " + key);
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.pulsar.datasourceNotExists", key));
         }
         PulsarModule pulsarModule = new PulsarModule(this.magicDynamicPulsarDataSource, pulsarProducer);
         pulsarModule.key = key;
@@ -111,7 +112,7 @@ public class PulsarModule implements DynamicAttribute<PulsarModule, PulsarModule
         }
         PulsarProducer pulsarProducer = this.magicDynamicPulsarDataSource.getProducer(dataSourceKey);
         if (pulsarProducer == null) {
-            throw new IllegalArgumentException("Pulsar数据源不存在: " + dataSourceKey);
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.pulsar.datasourceNotExists", dataSourceKey));
         }
         PulsarModule pulsarModule = new PulsarModule(this.magicDynamicPulsarDataSource, pulsarProducer);
         pulsarModule.key = dataSourceKey;
@@ -132,7 +133,7 @@ public class PulsarModule implements DynamicAttribute<PulsarModule, PulsarModule
      */
     public boolean send(String topic, Integer partition, String key, Long delay, TimeUnit unit, Object msg , boolean async) {
         if (this.producer == null) {
-            throw new IllegalStateException("PulsarModule producer 未初始化，请指定数据源或确保已配置默认 Producer");
+            throw new IllegalStateException(I18nMessageResolver.resolveKey("fw.boot.pulsar.producerNotInitialized"));
         }
         return this.producer.send(topic, partition, key, delay, unit, msg, async);
     }
@@ -306,13 +307,13 @@ public class PulsarModule implements DynamicAttribute<PulsarModule, PulsarModule
         if (Objects.isNull(this.key)) {
             String serviceHttpUrl = MagicAPIConfigUtils.getPulsarConfig("default", "serviceHttpUrl", null);
             if (StringUtils.isBlank(serviceHttpUrl)) {
-                throw new PulsarClientException("Pulsar Admin serviceHttpUrl 未配置，请先在配置中心设置 default.serviceHttpUrl");
+                throw new PulsarClientException(I18nMessageResolver.resolveKey("fw.boot.pulsar.adminServiceHttpUrlNotConfigured"));
             }
             this.magicDynamicPulsarDataSource.createDefaultPulsarAdmin(serviceHttpUrl);
             pulsarAdmin = this.magicDynamicPulsarDataSource.getDefaultPulsarAdmin();
         } else {
             if (this.producer == null) {
-                throw new PulsarClientException("PulsarModule producer 未初始化，无法获取 PulsarAdmin，key: " + this.key);
+                throw new PulsarClientException(I18nMessageResolver.resolveKey("fw.boot.pulsar.adminProducerNotInitialized", this.key));
             }
             this.magicDynamicPulsarDataSource.putPulsarAdmin(this.producer.getDataSourceInfo());
             pulsarAdmin = this.magicDynamicPulsarDataSource.getPulsarAdmin(this.key);

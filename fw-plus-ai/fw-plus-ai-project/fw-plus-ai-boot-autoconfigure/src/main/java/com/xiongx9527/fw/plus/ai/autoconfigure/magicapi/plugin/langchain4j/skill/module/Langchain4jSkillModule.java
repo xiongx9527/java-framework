@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.skill.module;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.skill.model.MagicDynamicLangchain4jSkillDataSource;
 import dev.langchain4j.skills.Skill;
 import dev.langchain4j.skills.Skills;
@@ -34,8 +35,8 @@ public class Langchain4jSkillModule
 	public Skill getDynamicAttribute(String key) {
 		Skill skill = dataSource.get(key);
 		if (skill == null) {
-			throw new IllegalArgumentException(String.format(
-					"未配置 LangChain4j Skill: %s，已配置: %s", key, new TreeSet<>(dataSource.keys())));
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.langchain4jModel.modelNotConfigured", "Skill", key, new TreeSet<>(dataSource.keys())));
 		}
 		return skill;
 	}
@@ -62,8 +63,8 @@ public class Langchain4jSkillModule
 
 	@Override
 	public Langchain4jSkillModule setDynamicAttribute(String key, Skill value) {
-		throw new UnsupportedOperationException(
-				"脚本不支持设置 Skill，请在控制台维护 langchain4j-skill 数据源");
+		throw new UnsupportedOperationException(I18nMessageResolver.resolveKey(
+				"fw.ai.modelModule.scriptSetUnsupported", "langchain4j-skill"));
 	}
 
 	@Override

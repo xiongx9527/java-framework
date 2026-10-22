@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.envelope;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ChatMessageType;
@@ -54,10 +55,12 @@ public final class EnvelopeSessionMemory {
 
 	public EnvelopeSessionMemory(ChatMemoryStore store, int maxMessages) {
 		if (store == null) {
-			throw new IllegalArgumentException("chatMemoryStore 不能为 null");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.EnvelopeSessionMemory.chatMemoryStoreRequired"));
 		}
 		if (maxMessages < 1) {
-			throw new IllegalArgumentException("会话窗口条数必须 >= 1，实际：" + maxMessages);
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.EnvelopeSessionMemory.windowSizeInvalid", maxMessages));
 		}
 		this.store = store;
 		this.maxMessages = maxMessages;

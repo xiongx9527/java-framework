@@ -1,6 +1,7 @@
 
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.producer;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.alibaba.fastjson2.JSON;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.client.common.MqttClientConfigSupport;
@@ -35,7 +36,7 @@ public class MqttClientProducer {
     public MqttClientProducer(MqttClientTemplate mqttClientTemplate) {
         MqttClientDataSourceInfo dataSourceInfo = new MqttClientDataSourceInfo();
         dataSourceInfo.setId("");
-        dataSourceInfo.setName("默认数据源");
+        dataSourceInfo.setName(I18nMessageResolver.resolveKey("fw.boot.datasource.defaultName"));
         dataSourceInfo.setKey("default");
         this.id = dataSourceInfo.getId();
         this.name = dataSourceInfo.getName();

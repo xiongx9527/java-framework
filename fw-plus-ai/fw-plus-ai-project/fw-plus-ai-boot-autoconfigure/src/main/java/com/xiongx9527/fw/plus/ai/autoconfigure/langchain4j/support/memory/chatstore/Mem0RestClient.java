@@ -1,5 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatstore;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -42,14 +44,16 @@ public class Mem0RestClient {
 
 	public Mem0RestClient(String baseUrl, String apiKey, Duration connectTimeout, Duration readTimeout) {
 		if (baseUrl == null || baseUrl.trim().isEmpty()) {
-			throw new IllegalArgumentException("Mem0ChatMemoryStore: base-url 不能为空");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.Mem0RestClient.baseUrlRequired"));
 		}
 		String trimmed = baseUrl.trim();
 		while (trimmed.endsWith("/")) {
 			trimmed = trimmed.substring(0, trimmed.length() - 1);
 		}
 		if (trimmed.isEmpty()) {
-			throw new IllegalArgumentException("Mem0ChatMemoryStore: base-url 不能为空");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.Mem0RestClient.baseUrlRequired"));
 		}
 		this.baseUrl = trimmed;
 		this.apiKey = apiKey == null ? "" : apiKey.trim();
@@ -107,14 +111,15 @@ public class Mem0RestClient {
 					? connection.getInputStream() : connection.getErrorStream();
 			String response = stream == null ? "" : readFully(stream);
 			if (status < 200 || status >= 300) {
-				throw new IllegalStateException(String.format(
-						"mem0 请求失败: %s %s -> HTTP %d: %s", method, url, status, truncate(response)));
+				throw new IllegalStateException(I18nMessageResolver.resolveKey(
+						"fw.ai.Mem0RestClient.requestFailedHttp", method, url, status, truncate(response)));
 			}
 			return response;
 		} catch (IllegalStateException e) {
 			throw e;
 		} catch (IOException e) {
-			throw new IllegalStateException(String.format("mem0 请求失败: %s %s -> %s", method, url, e.getMessage()), e);
+			throw new IllegalStateException(I18nMessageResolver.resolveKey(
+					"fw.ai.Mem0RestClient.requestFailed", method, url, e.getMessage()), e);
 		} finally {
 			if (connection != null) {
 				connection.disconnect();
@@ -142,7 +147,8 @@ public class Mem0RestClient {
 			return URLEncoder.encode(value, "UTF-8");
 		} catch (IOException e) {
 			// URLEncoder.encode(String, String) 声明 UnsupportedEncodingException（UTF-8 恒存在）
-			throw new IllegalStateException("UTF-8 编码不可用", e);
+			throw new IllegalStateException(
+					I18nMessageResolver.resolveKey("fw.ai.Mem0RestClient.utf8Unavailable"), e);
 		}
 	}
 
@@ -156,7 +162,8 @@ public class Mem0RestClient {
 				builder.append(buffer, 0, read);
 			}
 		} catch (IOException e) {
-			throw new IllegalStateException("读取 mem0 响应失败: " + e.getMessage(), e);
+			throw new IllegalStateException(I18nMessageResolver.resolveKey(
+					"fw.ai.Mem0RestClient.readResponseFailed", e.getMessage()), e);
 		} finally {
 			try {
 				reader.close();

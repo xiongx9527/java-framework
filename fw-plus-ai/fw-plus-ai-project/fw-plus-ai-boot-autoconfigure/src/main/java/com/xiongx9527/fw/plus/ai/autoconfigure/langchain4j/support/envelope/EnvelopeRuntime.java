@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.envelope;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.structured.StructuredOutput;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -65,13 +66,16 @@ public final class EnvelopeRuntime {
 	public EnvelopeRuntime(ChatModel chatModel, ChatMemoryStore store, BusinessRegistry registry,
 			Langchain4jAssistantProperties properties) {
 		if (chatModel == null) {
-			throw new IllegalArgumentException("chatModel 不能为 null：分类与结构化生成都直连它");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.EnvelopeRuntime.chatModelRequired"));
 		}
 		if (store == null) {
-			throw new IllegalArgumentException("chatMemoryStore 不能为 null：会话历史必须与既有通道共用同一份存储");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.EnvelopeRuntime.chatMemoryStoreRequired"));
 		}
 		if (properties == null) {
-			throw new IllegalArgumentException("配置不能为 null");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.EnvelopeRuntime.propertiesRequired"));
 		}
 		this.chatModel = chatModel;
 		this.registry = registry == null ? new BusinessRegistry() : registry;
@@ -170,7 +174,7 @@ public final class EnvelopeRuntime {
 		if (round == null || !round.isStructured()) {
 			// 契约调用错误（不是输入问题）：本轮根本没有契约可校验，无法产出有意义的 result
 			throw new IllegalArgumentException(
-					"structuredRound 只接受结构化轮次：请先用 decide(memoryId, message) 判定本轮形态");
+					I18nMessageResolver.resolveKey("fw.ai.EnvelopeRuntime.structuredRoundRequired"));
 		}
 		BusinessContract contract = round.getContract();
 		try {

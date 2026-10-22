@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.elasticsearch.model;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -231,7 +232,7 @@ public class MagicDynamicElasticSearchDataSource implements DisposableBean {
                     // 创建默认数据源信息并添加到列表中
                     ElasticSearchDataSourceInfo dataSourceInfo = new ElasticSearchDataSourceInfo();
                     dataSourceInfo.setKey("default");
-                    dataSourceInfo.setName("默认数据源");
+                    dataSourceInfo.setName(I18nMessageResolver.resolveKey("fw.boot.datasource.defaultName"));
                     dataSourceInfoList.add(dataSourceInfo);
                 }
             }

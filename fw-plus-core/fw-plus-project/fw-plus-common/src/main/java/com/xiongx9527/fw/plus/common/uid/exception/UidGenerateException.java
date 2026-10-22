@@ -14,11 +14,14 @@ public class UidGenerateException extends BizException {
      */
     private static final long serialVersionUID = -27048199131316992L;
 
+    /** 状态码 50010002（SERVER/INFRASTRUCTURE/002 分布式 UID 生成失败） */
+    public static final int CODE = 50_010_002;
+
     /**
      * Default constructor
      */
     public UidGenerateException() {
-        super();
+        super(CODE, (String) null);
     }
 
     /**
@@ -28,7 +31,7 @@ public class UidGenerateException extends BizException {
      * @param cause
      */
     public UidGenerateException(String message, Throwable cause) {
-        super(message, cause);
+        super(CODE, message, cause);
     }
 
     /**
@@ -37,7 +40,7 @@ public class UidGenerateException extends BizException {
      * @param message
      */
     public UidGenerateException(String message) {
-        super(message);
+        super(CODE, message);
     }
     
     /**
@@ -47,7 +50,7 @@ public class UidGenerateException extends BizException {
      * @param args
      */
     public UidGenerateException(String msgFormat, Object... args) {
-        super(String.format(msgFormat, args));
+        super(CODE, String.format(msgFormat, args));
     }
 
     /**
@@ -56,7 +59,7 @@ public class UidGenerateException extends BizException {
      * @param cause
      */
     public UidGenerateException(Throwable cause) {
-        super(cause);
+        super(CODE, cause);
     }
 
 }

@@ -1,6 +1,7 @@
 
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.task.service;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
 import org.springframework.beans.BeansException;
@@ -124,7 +125,7 @@ public class ClusterTaskMagicDynamicRegistry extends BaseTaskMagicDynamicRegistr
 		}
 		// 如果未找到合适的RedisTemplate实例，则抛出运行时异常
 		if (this.stringRedisTemplate == null) {
-			throw new RuntimeException("未找到RedisTemplate实例");
+			throw new RuntimeException(I18nMessageResolver.resolveKey("fw.boot.task.redisTemplateNotFound"));
 		}
 	}
 }

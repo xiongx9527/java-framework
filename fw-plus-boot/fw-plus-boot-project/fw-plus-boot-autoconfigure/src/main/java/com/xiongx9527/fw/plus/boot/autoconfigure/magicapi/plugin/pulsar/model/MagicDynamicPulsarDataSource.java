@@ -4,6 +4,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigU
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.consumer.PulsarConsumer;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.consumer.PulsarConsumerService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.producer.PulsarProducer;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -135,7 +136,7 @@ public class MagicDynamicPulsarDataSource implements DisposableBean {
             Map<String, Object> pulsarConfig = new HashMap<>();
             String servers = MagicAPIConfigUtils.getPulsarConfig(info.getKey(), "servers", info.getServers());
             if (StringUtils.isBlank(servers)) {
-                throw new PulsarClientException("Pulsar servers 不能为空，key: " + info.getKey());
+                throw new PulsarClientException(I18nMessageResolver.resolveKey("fw.boot.pulsar.serversRequired", info.getKey()));
             }
             pulsarConfig.put("serviceUrl", "pulsar://" + servers);
             String configuredProperties = MagicAPIConfigUtils.getPulsarConfig(info.getKey(), "properties", null);
@@ -167,7 +168,7 @@ public class MagicDynamicPulsarDataSource implements DisposableBean {
                 String adminUrl = info.getServiceUrls();
                 adminUrl = MagicAPIConfigUtils.getPulsarConfig(info.getKey(), "serviceHttpUrl", adminUrl);
                 if (StringUtils.isBlank(adminUrl)) {
-                    throw new PulsarClientException("Pulsar Admin serviceHttpUrl 不能为空，key: " + info.getKey());
+                    throw new PulsarClientException(I18nMessageResolver.resolveKey("fw.boot.pulsar.adminServiceHttpUrlRequired", info.getKey()));
                 }
                 PulsarAdmin pulsarAdmin = PulsarAdmin.builder().serviceHttpUrl(adminUrl).build();
                 PulsarAdmin oldPulsarAdmin = this.pulsarAdminMap.put(info.getKey(), pulsarAdmin);

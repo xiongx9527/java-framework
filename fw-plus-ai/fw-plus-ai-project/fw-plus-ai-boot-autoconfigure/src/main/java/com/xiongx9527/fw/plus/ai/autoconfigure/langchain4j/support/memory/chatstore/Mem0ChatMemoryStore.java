@@ -6,6 +6,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -82,7 +83,8 @@ public class Mem0ChatMemoryStore extends AbstractJsonChatMemoryStore {
 	Mem0ChatMemoryStore(ChatMemoryTenantResolver tenantResolver, String defaultAppId, Mem0RestClient client) {
 		super(tenantResolver, defaultAppId);
 		if (client == null) {
-			throw new IllegalArgumentException("Mem0ChatMemoryStore: client 不能为空");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.Mem0ChatMemoryStore.clientRequired"));
 		}
 		this.client = client;
 	}
@@ -187,7 +189,8 @@ public class Mem0ChatMemoryStore extends AbstractJsonChatMemoryStore {
 		try {
 			root = JsonParser.parseString(body == null ? "" : body);
 		} catch (JsonSyntaxException e) {
-			throw new IllegalStateException("mem0 响应不是合法 JSON: " + snippet(body), e);
+			throw new IllegalStateException(I18nMessageResolver.resolveKey(
+					"fw.ai.Mem0ChatMemoryStore.responseInvalidJson", snippet(body)), e);
 		}
 		JsonArray array;
 		if (root.isJsonArray()) {
@@ -197,10 +200,12 @@ public class Mem0ChatMemoryStore extends AbstractJsonChatMemoryStore {
 			if (results != null && results.isJsonArray()) {
 				array = results.getAsJsonArray();
 			} else {
-				throw new IllegalStateException("mem0 响应缺少结果数组: " + snippet(body));
+				throw new IllegalStateException(I18nMessageResolver.resolveKey(
+						"fw.ai.Mem0ChatMemoryStore.responseMissingResults", snippet(body)));
 			}
 		} else {
-			throw new IllegalStateException("mem0 响应格式无法解析: " + snippet(body));
+			throw new IllegalStateException(I18nMessageResolver.resolveKey(
+					"fw.ai.Mem0ChatMemoryStore.responseFormatUnsupported", snippet(body)));
 		}
 		List<JsonObject> items = new ArrayList<>(array.size());
 		for (JsonElement element : array) {
@@ -284,7 +289,8 @@ public class Mem0ChatMemoryStore extends AbstractJsonChatMemoryStore {
 		try {
 			messageJson = JsonParser.parseString(target.getJson());
 		} catch (JsonSyntaxException e) {
-			throw new IllegalStateException("Mem0ChatMemoryStore: 消息 JSON 无法解析: " + snippet(target.getJson()), e);
+			throw new IllegalStateException(I18nMessageResolver.resolveKey(
+					"fw.ai.Mem0ChatMemoryStore.messageJsonInvalid", snippet(target.getJson())), e);
 		}
 		JsonObject wrapper = new JsonObject();
 		wrapper.addProperty("seq", seq);

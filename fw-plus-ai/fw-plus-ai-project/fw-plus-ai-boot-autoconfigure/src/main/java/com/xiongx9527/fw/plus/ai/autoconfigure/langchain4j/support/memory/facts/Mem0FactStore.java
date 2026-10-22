@@ -7,6 +7,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatstore.Mem0RestClient;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -52,7 +53,8 @@ public class Mem0FactStore implements FactStore {
 
 	Mem0FactStore(Mem0RestClient client) {
 		if (client == null) {
-			throw new IllegalArgumentException("Mem0FactStore: client 不能为空");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.Mem0FactStore.clientRequired"));
 		}
 		this.client = client;
 	}
@@ -117,7 +119,8 @@ public class Mem0FactStore implements FactStore {
 
 	private static void requireUserId(String userId) {
 		if (userId == null || userId.trim().isEmpty()) {
-			throw new IllegalArgumentException("Mem0FactStore: userId 不能为空");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.Mem0FactStore.userIdRequired"));
 		}
 	}
 
@@ -172,7 +175,8 @@ public class Mem0FactStore implements FactStore {
 		try {
 			root = JsonParser.parseString(body == null ? "" : body);
 		} catch (JsonSyntaxException e) {
-			throw new IllegalStateException("mem0 响应不是合法 JSON: " + snippet(body), e);
+			throw new IllegalStateException(I18nMessageResolver.resolveKey(
+					"fw.ai.Mem0FactStore.responseInvalidJson", snippet(body)), e);
 		}
 		JsonArray array;
 		if (root.isJsonArray()) {
@@ -181,7 +185,8 @@ public class Mem0FactStore implements FactStore {
 				&& root.getAsJsonObject().get("results").isJsonArray()) {
 			array = root.getAsJsonObject().getAsJsonArray("results");
 		} else {
-			throw new IllegalStateException("mem0 响应缺少结果数组: " + snippet(body));
+			throw new IllegalStateException(I18nMessageResolver.resolveKey(
+					"fw.ai.Mem0FactStore.responseMissingResults", snippet(body)));
 		}
 		List<String> memories = new ArrayList<String>(array.size());
 		for (JsonElement element : array) {

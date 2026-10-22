@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.uid;
 
 import cn.hutool.core.date.DateUtil;
 import com.xiongx9527.fw.plus.boot.autoconfigure.uid.jdbc.worker.DisposableWorkerIdAssigner;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.uid.UidGenerator;
 import com.xiongx9527.fw.plus.common.uid.impl.CachedUidGenerator;
 import com.xiongx9527.fw.plus.common.uid.worker.WorkerIdAssigner;
@@ -130,7 +131,7 @@ public class UidModule implements DynamicAttribute<UidModule, UidModule>, Dynami
 	 */
 	private UidModule createForDataSource(String dataSourceKey) {
 		if (magicDynamicDataSource == null) {
-			throw new IllegalStateException("MagicDynamicDataSource 未配置，无法使用指定数据源的 UID");
+			throw new IllegalStateException(I18nMessageResolver.resolveKey("fw.boot.uid.dynamicDataSourceNotConfigured"));
 		}
 		UidModule module = new UidModule(this.magicDynamicDataSource, this.epochStr);
 		module.key = dataSourceKey;
@@ -145,7 +146,7 @@ public class UidModule implements DynamicAttribute<UidModule, UidModule>, Dynami
 	private UidGenerator createGenerator(String dataSourceKey) {
 		MagicDynamicDataSource.DataSourceNode node = magicDynamicDataSource.getDataSource(dataSourceKey);
 		if (node == null || node.getDataSource() == null) {
-			throw new IllegalArgumentException("数据源不存在: " + dataSourceKey);
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.uid.datasourceNotExists", dataSourceKey));
 		}
 		DataSource dataSource = node.getDataSource();
 		WorkerIdAssigner workerIdAssigner = new DisposableWorkerIdAssigner(new JdbcTemplate(dataSource));
@@ -159,7 +160,7 @@ public class UidModule implements DynamicAttribute<UidModule, UidModule>, Dynami
 		try {
 			generator.afterPropertiesSet();
 		} catch (Exception e) {
-			throw new IllegalStateException("初始化 UidGenerator 失败, 数据源: " + dataSourceKey, e);
+			throw new IllegalStateException(I18nMessageResolver.resolveKey("fw.boot.uid.initUidGeneratorFailed", dataSourceKey), e);
 		}
 		return generator;
 	}

@@ -4,6 +4,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.Intent
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentContext;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent.IntentSource;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import dev.langchain4j.agentic.scope.AgenticScope;
 
 import java.util.LinkedHashMap;
@@ -81,7 +82,8 @@ public final class AgenticIntentRouting<I extends Enum<I>> {
     /** 以分类器构建（默认文本键 {@code request}、意图键 {@code intent}）。 */
     public static <I extends Enum<I>> AgenticIntentRouting<I> of(IntentClassifier<I> classifier) {
         if (classifier == null) {
-            throw new IllegalArgumentException("classifier 不能为 null");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                    "fw.ai.AgenticIntentRouting.classifierRequired"));
         }
         return new AgenticIntentRouting<I>(classifier, DEFAULT_TEXT_KEY, DEFAULT_INTENT_KEY);
     }
@@ -99,7 +101,8 @@ public final class AgenticIntentRouting<I extends Enum<I>> {
     /** 条件谓词：当前意图等于指定值。共享一次判定（读取注入值或记忆化判定）。 */
     public Predicate<AgenticScope> is(I intent) {
         if (intent == null) {
-            throw new IllegalArgumentException("intent 不能为 null");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                    "fw.ai.AgenticIntentRouting.intentRequired"));
         }
         return scope -> intent.name().equals(resolvedIntentName(scope));
     }
@@ -164,7 +167,8 @@ public final class AgenticIntentRouting<I extends Enum<I>> {
 
     private static String requireKey(String key, String name) {
         if (key == null || key.trim().isEmpty()) {
-            throw new IllegalArgumentException(name + " 不能为空");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                    "fw.ai.AgenticIntentRouting.keyRequired", name));
         }
         return key;
     }

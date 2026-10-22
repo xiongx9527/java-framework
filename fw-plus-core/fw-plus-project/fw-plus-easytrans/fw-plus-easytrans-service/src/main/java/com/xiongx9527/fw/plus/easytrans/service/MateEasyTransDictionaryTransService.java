@@ -16,6 +16,7 @@ import org.dromara.trans.listener.TransMessageListener;
 import org.dromara.trans.service.impl.DictionaryTransService;
 import org.dromara.trans.service.impl.ITransTypeService;
 import org.dromara.trans.service.impl.TransService;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.validator.IDictValiatorService;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -101,7 +102,8 @@ public class MateEasyTransDictionaryTransService extends DictionaryTransService 
         // 检查是否使用Redis且Redis缓存服务是否已初始化
         if (this.isUseRedis && this.redisCacheService == null) {
             // 如果使用Redis但未初始化，抛出运行时异常
-            throw new RuntimeException("使用redis 请将 easy-trans.is-enable-redis 设置为true");
+            throw new RuntimeException(I18nMessageResolver.resolveKey(
+                    "fw.easytrans.MateEasyTransDictionaryTransService.redisNotEnabled"));
         } else {
             // 遍历字典映射，更新缓存
             dicMap.keySet().forEach((dictCode) -> {
@@ -397,7 +399,8 @@ public class MateEasyTransDictionaryTransService extends DictionaryTransService 
         this.bothCacheService.setUseRedis(true);
         // 如果Redis缓存服务未初始化，抛出异常
         if (this.redisCacheService == null) {
-            throw new RuntimeException("使用redis 请将 easy-trans.is-enable-redis 设置为true");
+            throw new RuntimeException(I18nMessageResolver.resolveKey(
+                    "fw.easytrans.MateEasyTransDictionaryTransService.redisNotEnabled"));
         }
     }
 

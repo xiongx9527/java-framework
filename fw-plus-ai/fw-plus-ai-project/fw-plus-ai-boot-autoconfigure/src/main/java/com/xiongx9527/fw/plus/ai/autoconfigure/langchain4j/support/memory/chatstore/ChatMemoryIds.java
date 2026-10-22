@@ -1,5 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatstore;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
+
 /**
  * memoryId（memId）构建与解析工具。
  * <ul>
@@ -131,12 +133,13 @@ public final class ChatMemoryIds {
 
 	private static String requireSegment(String name, String value) {
 		if (value == null || value.trim().isEmpty()) {
-			throw new IllegalArgumentException("ChatMemoryIds.build: " + name + " 不能为空");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.ChatMemoryIds.segmentRequired", name));
 		}
 		String trimmed = value.trim();
 		if (trimmed.contains(SEPARATOR)) {
-			throw new IllegalArgumentException(
-					"ChatMemoryIds.build: " + name + " 不允许包含分隔符 '" + SEPARATOR + "': " + value);
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.ChatMemoryIds.segmentSeparator", name, SEPARATOR, value));
 		}
 		return trimmed;
 	}

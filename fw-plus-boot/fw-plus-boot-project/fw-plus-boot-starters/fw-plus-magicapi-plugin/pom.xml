@@ -33,7 +33,6 @@
         <module>fw-plus-magicapi-plugin-elasticsearch</module>
         <module>fw-plus-magicapi-plugin-satoken</module>
         <module>fw-plus-magicapi-plugin-mqtt-client</module>
-        <module>fw-plus-magicapi-plugin-word</module>
         <module>fw-plus-magicapi-plugin-java-entity</module>
         <module>fw-plus-magicapi-plugin-spring-bean</module>
         <module>fw-plus-magicapi-plugin-mybatisplus</module>

@@ -4,6 +4,7 @@ import com.alibaba.fastjson.annotation.JSONField;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.dromara.core.trans.util.ReflectUtils;
 import org.dromara.core.trans.vo.TransPojo;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 
 import java.lang.reflect.Field;
 import java.util.LinkedHashMap;
@@ -51,7 +52,8 @@ public abstract class MateEasyTransDTO implements TransPojo {
         Object pkey = this.getPkey();
         // 如果唯一键为空，则抛出异常提示未设置唯一键
         if (Objects.isNull(pkey)) {
-            throw new RuntimeException(String.format("未找到%s的唯一key,请设置id或者实现getUniqueValue方法", this.getClass().getName()));
+            throw new RuntimeException(I18nMessageResolver.resolveKey(
+                    "fw.easytrans.MateEasyTransDTO.uniqueKeyNotFound", this.getClass().getName()));
         }
         // 构造缓存键，包含类名和唯一键，以确保键的唯一性
         String cacheKey = this.getClass().getName() + StrUtil.UNDERLINE + pkey;
@@ -93,7 +95,8 @@ public abstract class MateEasyTransDTO implements TransPojo {
             return idField.get(this);
         } catch (Throwable e) {
             // 如果发生异常，抛出运行时异常，指示未找到唯一的key，并建议设置id或者实现getUniqueValue方法
-            throw new RuntimeException(String.format("未找到%s的唯一key,请设置id或者实现getUniqueValue方法", this.getClass().getName()), e);
+            throw new RuntimeException(I18nMessageResolver.resolveKey(
+                    "fw.easytrans.MateEasyTransDTO.uniqueKeyNotFound", this.getClass().getName()), e);
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.handler;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.alibaba.fastjson2.JSONValidator;
@@ -403,7 +404,7 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
             // 校验必要参数
             if (StringUtils.isBlank(clientId)) {
                 log.error("Missing required parameter: {}", getClientIdParamName());
-                closeSession(session, "缺少必要参数", CloseStatus.POLICY_VIOLATION);
+                closeSession(session, I18nMessageResolver.resolveKey("fw.boot.ws.missingRequiredParam"), CloseStatus.POLICY_VIOLATION);
                 return;
             }
 
@@ -411,7 +412,7 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
             int maxClientIdLength = getMaxClientIdLength();
             if (clientId.length() > maxClientIdLength) {
                 log.error("Client ID too long - Length: {}, Max: {}", clientId.length(), maxClientIdLength);
-                closeSession(session, "客户端ID过长", CloseStatus.POLICY_VIOLATION);
+                closeSession(session, I18nMessageResolver.resolveKey("fw.boot.ws.clientIdTooLong"), CloseStatus.POLICY_VIOLATION);
                 return;
             }
 
@@ -424,7 +425,7 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
             // 判断appid 是否存在（未提供业务调度实现时不做校验，保持纯 WebSocket 通道可用）
             if (businessDispatcher != null && !businessDispatcher.existsApp(appId)) {
                 log.error("AppId not exist: {}", appId);
-                closeSession(session, "AppId不存在", CloseStatus.POLICY_VIOLATION);
+                closeSession(session, I18nMessageResolver.resolveKey("fw.boot.ws.appIdNotExists"), CloseStatus.POLICY_VIOLATION);
                 return;
             }
 
@@ -432,13 +433,13 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
             int maxTotalSessions = getMaxTotalSessions();
             if (maxTotalSessions > 0 && sessionCount() >= maxTotalSessions) {
                 log.error("Max total sessions reached - limit: {}", maxTotalSessions);
-                closeSession(session, "连接数已达上限", CloseStatus.SERVICE_OVERLOAD);
+                closeSession(session, I18nMessageResolver.resolveKey("fw.boot.ws.maxTotalSessionsReached"), CloseStatus.SERVICE_OVERLOAD);
                 return;
             }
             int maxSessionsPerClient = getMaxSessionsPerClient();
             if (maxSessionsPerClient > 0 && sessionsOf(clientId).size() >= maxSessionsPerClient) {
                 log.error("Max sessions per client reached - clientId: {}, limit: {}", clientId, maxSessionsPerClient);
-                closeSession(session, "客户端连接数已达上限", CloseStatus.SERVICE_OVERLOAD);
+                closeSession(session, I18nMessageResolver.resolveKey("fw.boot.ws.maxSessionsPerClientReached"), CloseStatus.SERVICE_OVERLOAD);
                 return;
             }
 
@@ -454,7 +455,7 @@ public abstract class AbstractWebSocketHandler implements WebSocketHandler, WsBa
             log.error("Error during connection establishment - Session ID: {}", sessionId, e);
             try {
                 if (session.isOpen()) {
-                    session.close(CloseStatus.SERVER_ERROR.withReason("服务器内部错误"));
+                    session.close(CloseStatus.SERVER_ERROR.withReason(I18nMessageResolver.resolveKey("fw.boot.ws.serverInternalError")));
                 }
             } catch (Exception closeException) {
                 log.error("Error closing session after establishment failure - Session ID: {}", sessionId, closeException);

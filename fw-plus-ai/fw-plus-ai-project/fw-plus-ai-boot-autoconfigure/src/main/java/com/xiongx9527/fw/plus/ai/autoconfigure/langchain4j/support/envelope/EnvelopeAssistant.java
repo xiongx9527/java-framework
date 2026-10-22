@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.envelope;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant.SimpleAssistant;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -41,10 +42,12 @@ public final class EnvelopeAssistant {
 	 */
 	public EnvelopeAssistant(EnvelopeRuntime runtime, ChatCaller chatCaller) {
 		if (runtime == null) {
-			throw new IllegalArgumentException("envelopeRuntime 不能为 null");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.EnvelopeAssistant.runtimeRequired"));
 		}
 		if (chatCaller == null) {
-			throw new IllegalArgumentException("chatCaller 不能为 null：非结构化轮次需要既有通道产出正文");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.EnvelopeAssistant.chatCallerRequired"));
 		}
 		this.runtime = runtime;
 		this.chatCaller = chatCaller;

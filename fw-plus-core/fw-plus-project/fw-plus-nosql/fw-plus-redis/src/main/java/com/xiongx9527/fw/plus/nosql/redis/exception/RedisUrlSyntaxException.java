@@ -9,12 +9,15 @@ import com.xiongx9527.fw.plus.common.exception.BizException;
  */
 public class RedisUrlSyntaxException extends BizException {
 
+    /** 状态码 50016001（SERVER/CONFIG/001 Redis URL 配置非法） */
+    public static final int CODE = 50_016_001;
+
     /**
      * 构造一个RedisURL语法异常实例
      * @param url 导致异常的Redis URL字符串
      */
     public RedisUrlSyntaxException(String url) {
-        super(buildMessage(url));
+        super(CODE, buildMessage(url));
     }
 
     /**
@@ -23,7 +26,7 @@ public class RedisUrlSyntaxException extends BizException {
      * @param cause 异常的根本原因
      */
     public RedisUrlSyntaxException(String url, Throwable cause) {
-        super(buildMessage(url),cause);
+        super(CODE, buildMessage(url), cause);
     }
 
     /**

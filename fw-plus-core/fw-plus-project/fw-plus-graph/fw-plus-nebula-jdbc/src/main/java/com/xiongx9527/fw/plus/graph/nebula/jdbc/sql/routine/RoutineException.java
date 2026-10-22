@@ -4,6 +4,9 @@ import com.xiongx9527.fw.plus.common.exception.BizException;
 
 public class RoutineException extends BizException {
 
+	/** 状态码 50009001（SERVER/DATABASE/001 nebula routine 执行错误） */
+	public static final int CODE = 50_009_001;
+
 	public static final int ER_PARSE_ERROR = 1064;
 	public static final int ER_SP_ALREADY_EXISTS = 1304;
 	public static final int ER_SP_DOES_NOT_EXIST = 1305;
@@ -16,7 +19,7 @@ public class RoutineException extends BizException {
 	private final int vendorCode;
 
 	public RoutineException(String message, String sqlState, int vendorCode) {
-		super(message);
+		super(CODE, message);
 		this.sqlState = sqlState;
 		this.vendorCode = vendorCode;
 	}

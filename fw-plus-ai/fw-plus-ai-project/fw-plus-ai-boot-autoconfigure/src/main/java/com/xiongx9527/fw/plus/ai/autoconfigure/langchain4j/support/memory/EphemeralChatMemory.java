@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ChatMessageType;
@@ -433,7 +434,8 @@ public class EphemeralChatMemory implements ChatMemory {
 
         public EphemeralChatMemory build() {
             if (delegate == null || store == null) {
-                throw new IllegalStateException("EphemeralChatMemory.Builder: delegate 与 store 不能为空");
+                throw new IllegalStateException(I18nMessageResolver.resolveKey(
+                        "fw.ai.EphemeralChatMemory.delegateOrStoreRequired"));
             }
             return new EphemeralChatMemory(this);
         }

@@ -5,10 +5,18 @@ import com.xiongx9527.fw.plus.auth.core.util.ClassUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
- * 按实例认证配置解析内置认证服务。
+ * 按实例认证配置解析认证服务：内置 SaToken/permit-all provider，以及业务经
+ * {@link #registerProvider} 注册的自定义 provider。
  * <p>
  * provider 清单固定：{@code permit-all}、{@code sa-token-login}、
  * {@code sa-token-oauth2}、{@code sa-token-jwt}、{@code sa-token-apikey}、{@code sa-token-sso}。
@@ -49,6 +57,20 @@ public class InstanceAuthRegistry {
     private static final String CLASS_SA_TOKEN_SSO = "cn.dev33.satoken.sso.template.SaSsoClientUtil";
 
     private final ClassLoader classLoader;
+
+    /**
+     * 业务自定义 provider 映射（key -> AuthService）。
+     * <p>
+     * 仅启动装配期写入、运行期只读（Spring Bean 创建时经 {@link #registerProvider} 装入）。
+     * 与内置 provider key 冲突时内置优先，重复 key 首次注册为准。
+     * </p>
+     */
+    private final Map<String, AuthService> customProviders = new LinkedHashMap<>();
+
+    private static final Set<String> BUILT_IN_PROVIDERS = Collections.unmodifiableSet(
+            new LinkedHashSet<>(Arrays.asList(PROVIDER_PERMIT_ALL, PROVIDER_SA_TOKEN_LOGIN,
+                    PROVIDER_SA_TOKEN_OAUTH2, PROVIDER_SA_TOKEN_JWT, PROVIDER_SA_TOKEN_APIKEY,
+                    PROVIDER_SA_TOKEN_SSO)));
 
     public InstanceAuthRegistry() {
         this(InstanceAuthRegistry.class.getClassLoader());
@@ -93,7 +115,55 @@ public class InstanceAuthRegistry {
      * 当前实例 classpath 可用的 provider 清单。
      */
     public List<String> availableProviders() {
-        return availableProviders(classLoader);
+        return availableProviders(classLoader, customProviders.keySet());
+    }
+
+    /**
+     * 静态可用 provider 清单 + 调用方提供的额外 key（如业务自定义 provider key）。
+     *
+     * @param classLoader    classpath 检查使用的类加载器
+     * @param extraProviders 额外追加的 provider key（可为空）
+     * @return 不可变有序清单
+     */
+    public static List<String> availableProviders(ClassLoader classLoader, Collection<String> extraProviders) {
+        List<String> providers = availableProviders(classLoader);
+        if (extraProviders != null) {
+            for (String key : extraProviders) {
+                if (key != null && !key.trim().isEmpty() && !providers.contains(key)) {
+                    providers.add(key);
+                }
+            }
+        }
+        return providers;
+    }
+
+    /**
+     * 注册业务自定义 provider：把业务的 {@link AuthService} 绑定到一个自定义 provider key。
+     * <p>
+     * 由自动配置在创建 {@link InstanceAuthRegistry} Bean 时遍历
+     * {@code ObjectProvider<CustomAuthService>} 调用，运行期不应再注册。
+     * </p>
+     * <p>
+     * 忽略空 key/空实现；与内置 provider key 冲突时跳过（内置优先）并告警；
+     * 重复 key 首次注册为准并告警。
+     * </p>
+     *
+     * @param providerKey 自定义 provider key
+     * @param authService 业务认证实现
+     */
+    public void registerProvider(String providerKey, AuthService authService) {
+        if (providerKey == null || providerKey.trim().isEmpty() || authService == null) {
+            return;
+        }
+        String key = providerKey.trim();
+        if (BUILT_IN_PROVIDERS.contains(key)) {
+            log.warn("Skip registering custom auth provider '{}': collides with a built-in provider"
+                    + " (built-in wins)", key);
+            return;
+        }
+        if (customProviders.putIfAbsent(key, authService) != null) {
+            log.warn("Skip registering custom auth provider '{}': already registered (first wins)", key);
+        }
     }
 
     /**
@@ -136,6 +206,10 @@ public class InstanceAuthRegistry {
             return available(CLASS_SA_TOKEN_SSO)
                     ? SsoHolder.create()
                     : reject(instanceKey, provider, CLASS_SA_TOKEN_SSO);
+        }
+        AuthService custom = customProviders.get(provider);
+        if (custom != null) {
+            return custom;
         }
         throw new IllegalArgumentException("Instance '" + instanceKey
                 + "' selects unsupported authentication provider '" + provider + "'");

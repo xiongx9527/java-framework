@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.template.easypoi;
 
 import cn.afterturn.easypoi.excel.ExcelXorHtmlUtil;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.template.filechange.AbstractExcel2Html;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
@@ -33,7 +34,8 @@ public class EasyPoiExcel2Html extends AbstractExcel2Html {
             }
         }
         if (workbook == null) {
-            throw new RuntimeException("无法解析Excel文件");
+            throw new RuntimeException(I18nMessageResolver.resolveKey(
+                    "fw.template.EasyPoiExcel2Html.excelParseFailed"));
         }
         // 生成HTML内容并转换为UTF-8字节数组
         String htmlContent = ExcelXorHtmlUtil.toAllHtml(workbook);

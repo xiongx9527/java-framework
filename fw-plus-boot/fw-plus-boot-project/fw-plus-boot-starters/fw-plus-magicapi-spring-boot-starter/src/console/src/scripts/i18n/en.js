@@ -114,7 +114,9 @@ export default {
         validateExpression: 'Expression',
 
         copySuccess: 'Copy {0} Success',
-        copyFailed: 'Failed to Copy {0}'
+        copyFailed: 'Failed to Copy {0}',
+
+        unsavedConfirm: 'Your changes may not be saved.'
     },
     plugin: {
         loading: 'Load plugin 「{0}」',
@@ -187,7 +189,69 @@ export default {
             format: 'Reformat Code',
             recent: 'Recent Opened Files'
         },
-        triggerSuggest: 'Trigger Suggest'
+        triggerSuggest: 'Trigger Suggest',
+        hover: {
+            returnType: 'Return Type: `{0}`',
+            createObject: 'Create Object: {0}',
+            accessVariable: 'Access Variable: {0}',
+            type: 'Type: {0}',
+            defineVariable: 'Define Variable: {0}',
+            variableType: 'Variable Type: {0}',
+            convertToJson: 'Convert to `JSON`',
+            convertToJsonString: 'Convert to `JSON` String',
+            convertToSql: 'Equivalent to `new SqlParameterValue(java.sql.Types.{0},{1})`',
+            convertTo: 'Convert to `{0}`',
+            accessEnum: 'Access Enum: `{0}.{1}`',
+            accessAttribute: 'Access Property: `{0}.{1}`',
+            attributeType: 'Property Type: `{0}`',
+            accessMapOrArray: 'Access Map or Array',
+            linqQuery: 'Linq Query',
+            unknow: 'unknow'
+        },
+        completion: {
+            returnType: 'Return Type: `{0}`',
+            convertTo: 'Convert to {0}',
+            convertToJsonString: 'json string',
+            convertToSql: 'sql parameter type',
+            break: 'Break Loop',
+            continue: 'Continue Loop',
+            import: 'Import',
+            importAs: 'Import with Alias',
+            if: 'If',
+            for: 'Loop Collection',
+            exit: 'Exit',
+            logInfo: 'info log',
+            logDebug: 'debug log',
+            logError: 'error log',
+            assert: 'Assert',
+            select: 'LINQ Select',
+            throw: 'Throw Exception'
+        },
+        parse: {
+            expectLambda: '=> or ->',
+            expectBoolean: 'true or false',
+            expectDouble: 'a double value',
+            expectDecimal: 'a BigDecimal value',
+            expectFloat: 'a float value',
+            expectLong: 'a long value',
+            expectInteger: 'an int value',
+            expectShort: 'a short value',
+            expectByte: 'a byte value',
+            expectCharacter: 'a char value',
+            expectRegexp: 'a regexp',
+            expectString: 'a string',
+            expectIdentifier: 'identifier',
+            stringCannotWrap: '{0}string cannot contain line breaks',
+            stringNotClosed: 'string is not closed{0}',
+            tripleQuoteNotClosed: '``` must end with ```',
+            tripleQuoteLanguageRequired: 'language type is required after ```',
+            keywordAsVariableName: 'variable name cannot be a keyword',
+            tryOnlyAssignment: 'only assignment statements are allowed in try parentheses',
+            operatorOnlyInLinq: '{0} can only be used in Linq',
+            noAliasAfterAsterisk: '* cannot be followed by an alias',
+            noAliasAfterExpression: '{0} cannot be followed by an alias',
+            needAtLeastOneField: 'at least one field is required'
+        }
     },
     api: {
         title: 'Api Info',
@@ -209,6 +273,10 @@ export default {
             option: 'Options',
             description: 'Descriptions',
             groupOption: 'Group Options'
+        },
+        global: {
+            parameter: 'Global Parameters',
+            header: 'Global Headers'
         },
         validateType: 'Validate Type',
         expression: 'Expression or Regex Pattern',
@@ -251,12 +319,27 @@ export default {
             other: 'Others'
         }
     },
+    task: {
+        title: 'Scheduled Task Information',
+        name: 'Scheduled Task',
+        form: {
+            name: 'Task Name',
+            path: 'Task Path',
+            placeholder: {
+                cron: 'Please enter a cron expression',
+                name: 'Please enter the task name',
+                path: 'Please enter the task path',
+                description: 'Please enter the task description'
+            }
+        }
+    },
     fn: {
         title: 'Function Info',
         name: 'Function',
         number: 'Nunmber',
         string: 'String',
         collection: 'Collection',
+        fnName: 'Function Name',
         returnValue: 'Return Types',
         parameter: 'Function Parameters',
         description: 'Function Description',
@@ -407,5 +490,25 @@ export default {
         confirmClearMessages: 'Are you sure you want to clear all chat messages?',
         clearMessages: 'Clear Messages',
         wsNotConnected: '(WebSocket not connected, please connect to the service first)'
+    },
+    assistant: {
+        welcomeTitle: 'AI Code Assistant',
+        welcomeDesc: 'I can help you generate code following the magic-api script syntax. Please describe your requirements.',
+        insertCode: 'Insert Code',
+        replaceCode: 'Replace Code',
+        copy: 'Copy',
+        carryContext: 'Carry current code context',
+        clear: 'Clear',
+        placeholder: 'Describe your requirements, Enter to send, Shift+Enter for a new line',
+        requestFailed: 'Request failed, status code: ',
+        emptyResponse: 'The assistant returned an empty response, please check the configuration.',
+        configError: 'Request failed, please check whether the assistant configuration is correct.',
+        connectionInterrupted: 'Connection interrupted',
+        insertSuccess: 'Code inserted into the editor',
+        replaceConfirm: 'Are you sure you want to replace all content in the editor?',
+        replaceSuccess: 'Code replaced',
+        copySuccess: 'Code copied to clipboard',
+        copyFailed: 'Failed to copy, please copy manually',
+        tips: 'Tips'
     }
 }

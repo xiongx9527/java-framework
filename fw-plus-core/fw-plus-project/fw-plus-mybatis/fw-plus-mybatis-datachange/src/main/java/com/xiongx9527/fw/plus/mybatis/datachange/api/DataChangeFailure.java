@@ -11,5 +11,5 @@ public final class DataChangeFailure {
 
 	public DataChangeEvent getEvent() { return event; }
 	public DataChangeException getException() { return exception; }
-	public DataChangeErrorCode getCode() { return exception == null ? DataChangeErrorCode.UNKNOWN : exception.getCode(); }
+	public DataChangeErrorCode getCode() { return exception == null ? DataChangeErrorCode.UNKNOWN : exception.getErrorCode(); }
 }

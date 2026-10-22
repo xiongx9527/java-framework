@@ -2,9 +2,7 @@ package com.xiongx9527.fw.plus.dify.dataset.types.external;
 
 import com.alibaba.fastjson.annotation.JSONField;
 import com.xiongx9527.fw.plus.common.exception.BizException;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.HashMap;
@@ -12,9 +10,11 @@ import java.util.Map;
 
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
 public class KnowledgeException extends BizException {
+
+    /** 状态码 50008003（SERVER/THIRD_PARTY/003 Dify 知识库接口错误） */
+    public static final int CODE = 50_008_003;
+
     /**
      * 错误代码
      */
@@ -24,6 +24,16 @@ public class KnowledgeException extends BizException {
      * 错误信息
      */
     private String error_msg;
+
+    public KnowledgeException() {
+        super(CODE, (String) null);
+    }
+
+    public KnowledgeException(Integer error_code, String error_msg) {
+        super(CODE, (String) null);
+        this.error_code = error_code;
+        this.error_msg = error_msg;
+    }
 
     /**
      * toObject

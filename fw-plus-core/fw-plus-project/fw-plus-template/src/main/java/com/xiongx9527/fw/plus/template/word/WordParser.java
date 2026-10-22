@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.template.word;
 
 import cn.afterturn.easypoi.word.entity.MyXWPFDocument;
 import cn.afterturn.easypoi.word.parse.ParseWord07;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import com.xiongx9527.fw.plus.template.filechange.AbstractWord2Html;
 import com.xiongx9527.fw.plus.template.filechange.AbstractWord2Pdf;
@@ -160,7 +161,8 @@ public class WordParser extends WordAbstractParser {
         // 获取Word文档对象
         MyXWPFDocument document = getXWPFDocument(data);
         if (document == null) {
-            throw new IllegalArgumentException("无法解析Word文档，请确认文件格式为 .docx（OOXML）");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                    "fw.template.WordParser.unsupportedWordFormat"));
         }
         // 解析Word文档内容
         this.parseWord07.parseWord(document, map);

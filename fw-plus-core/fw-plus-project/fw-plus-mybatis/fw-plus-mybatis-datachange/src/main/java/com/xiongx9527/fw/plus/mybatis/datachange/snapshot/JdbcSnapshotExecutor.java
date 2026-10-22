@@ -71,7 +71,7 @@ public final class JdbcSnapshotExecutor {
 
 	private DataChangeException sanitize(RuntimeException exception) {
 		if (exception instanceof DataChangeException) {
-			DataChangeErrorCode code = ((DataChangeException) exception).getCode();
+			DataChangeErrorCode code = ((DataChangeException) exception).getErrorCode();
 			if (code == DataChangeErrorCode.SNAPSHOT_LIMIT_EXCEEDED
 					|| code == DataChangeErrorCode.UNIQUE_KEY_UNAVAILABLE
 						|| code == DataChangeErrorCode.INVALID_UNIQUE_KEY

@@ -21,6 +21,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.Length
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatstore.ChatMemoryIds;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.PersistToolResultsAiPersistenceStrategy;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.session.SessionIdResolver;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 
 import dev.langchain4j.invocation.InvocationContext;
 import dev.langchain4j.memory.ChatMemory;
@@ -67,7 +68,7 @@ import java.util.function.UnaryOperator;
  * {@link MultimodalAssistantBridge}（多模态桥接），对外仍表现为 {@link Assistant} 接口。
  *
  * <p>所有依赖都由调用方作为参数传入（不做 Spring 注入）：实例从各类型脚本模块取，
- * 如 {@code langchain4jChatModel['key']}、{@code langchain4jChatMemoryStore['key']}、
+ * 如 {@code langchain4jChatModel['key']}、{@code langchain4j.memoryStore()}、
  * {@code langchain4jToolProvider['key']}、{@code langchain4jContentRetriever['key']}、
  * {@code langchain4jContentInjector.get(path)}。</p>
  *
@@ -375,7 +376,8 @@ private Integer rerankMaxResults;
 		return this;
 	}
 
-	/** 记忆存储：{@code langchain4jChatMemoryStore['key']}（记忆由 magic-api 函数托管，可持久化） */
+	/** 记忆存储：脚本侧取 {@code langchain4j.memoryStore()}（容器 ChatMemoryStore Bean：mem0 /
+	 * 自定义实现）；不传则每次 {@code build()} 自带进程内 store，会话历史随脚本调用结束而丢失 */
 	public AssistantBuilder memoryStore(ChatMemoryStore store) {
 		this.memoryStore = store;
 		return this;
@@ -450,8 +452,8 @@ private Integer rerankMaxResults;
 		try {
 			return tools(new dev.langchain4j.community.tool.webscraper.WebScraperTool());
 		} catch (NoClassDefFoundError e) {
-			throw new IllegalStateException(
-					"webScraperTool 需要 classpath 引入 dev.langchain4j:langchain4j-community-tool-web-scraper", e);
+			throw new IllegalStateException(I18nMessageResolver.resolveKey(
+					"fw.ai.AssistantBuilder.webScraperToolClasspathMissing"), e);
 		}
 	}
 
@@ -493,7 +495,8 @@ private Integer rerankMaxResults;
 	public AssistantBuilder agentic(dev.langchain4j.agentic.UntypedAgent pipeline, String toolName,
 			String toolDescription, String outputKey, String... inputKeys) {
 		if (pipeline == null) {
-			throw new IllegalArgumentException("agentic 需要非 null 的编排产物（UntypedAgent）");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.AssistantBuilder.agenticResultRequired"));
 		}
 		return toolProvider(AgenticToolProviders.agenticToolProvider(pipeline, toolName, toolDescription,
 				outputKey, inputKeys));
@@ -513,7 +516,8 @@ private Integer rerankMaxResults;
 	public AssistantBuilder agenticByKey(AgenticPipelineRegistry registry, String agenticKey, String toolName,
 			String toolDescription, String outputKey, String... inputKeys) {
 		if (registry == null) {
-			throw new IllegalArgumentException("agenticByKey 需要非 null 的 AgenticPipelineRegistry");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.AssistantBuilder.agenticRegistryRequired"));
 		}
 		return toolProvider(AgenticToolProviders.agenticToolProviderByKey(registry, agenticKey, toolName,
 				toolDescription, outputKey, inputKeys));
@@ -532,7 +536,8 @@ private Integer rerankMaxResults;
 			org.bsc.langgraph4j.CompiledGraph<? extends org.bsc.langgraph4j.state.AgentState> compiledGraph,
 			String toolName, String toolDescription) {
 		if (compiledGraph == null) {
-			throw new IllegalArgumentException("agenticGraph 需要非 null 的 CompiledGraph");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.AssistantBuilder.agenticGraphRequired"));
 		}
 		return toolProvider(AgenticToolProviders.graphToolProvider(compiledGraph, toolName, toolDescription));
 	}
@@ -574,11 +579,12 @@ private Integer rerankMaxResults;
 	private static final ToolArgumentsErrorHandler DEFAULT_ARGUMENTS_ERROR_HANDLER = (error, context) -> {
 		String message = error.getMessage();
 		if (message != null && message.startsWith("Required parameter")) {
-			return ToolErrorHandlerResult.text(
-					"工具调用缺少必要参数，请向用户询问缺失的信息，等用户补齐参数后再调用。详情：" + message);
+			return ToolErrorHandlerResult.text(I18nMessageResolver.resolveKey(
+					"fw.ai.AssistantBuilder.toolMissingArguments", message));
 		}
 		String detail = message != null ? message : error.getClass().getSimpleName();
-		return ToolErrorHandlerResult.text("工具调用参数格式错误，请修正参数后重试。详情：" + detail);
+		return ToolErrorHandlerResult.text(I18nMessageResolver.resolveKey(
+				"fw.ai.AssistantBuilder.toolArgumentsFormatError", detail));
 	};
 
 	/** 检索增强：{@code langchain4jContentRetriever['key']}（自动包成 DefaultRetrievalAugmentor） */
@@ -652,7 +658,8 @@ private Integer rerankMaxResults;
 	 */
 	public <I extends Enum<I>> IntentRouting<I> intent(IntentClassifier<I> classifier) {
 		if (classifier == null) {
-			throw new IllegalArgumentException("classifier 不能为 null");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.AssistantBuilder.classifierRequired"));
 		}
 		this.intentClassifier = classifier;
 		return new IntentRouting<I>(this, classifier);
@@ -848,9 +855,8 @@ private Integer rerankMaxResults;
 		if (chatModel == null && streamingModel == null) {
 			// 无对话模型时允许只装配直连补全/检索能力：AiServices 侧不参与
 			if (languageModel == null && streamingLanguageModel == null && retrievalAugmentor == null) {
-				throw new IllegalArgumentException("构建助手缺少模型：请至少调用 chatModel(...) 或 "
-						+ "streamingModel(...) 之一指定；仅补全/检索形态请调用 languageModel(...)、"
-						+ "streamingLanguageModel(...)、retrievalAugmentor(...) 或 contentRetriever(...)");
+				throw new IllegalArgumentException(
+						I18nMessageResolver.resolveKey("fw.ai.AssistantBuilder.missingModel"));
 			}
 			return null;
 		}
@@ -1044,8 +1050,8 @@ private Integer rerankMaxResults;
 			AiPersistenceStrategy resolved = AiPersistenceStrategy.Registry.tryResolve(aiPersistenceStrategyKey);
 			if (resolved == null) {
 				if (strictAiPersistenceStrategy) {
-					throw new IllegalArgumentException("未知的 AI 持久化策略：'" + aiPersistenceStrategyKey
-							+ "'（未在 AiPersistenceStrategy.Registry 注册，也无法作为 AiPersistenceStrategy 类实例化）");
+					throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+							"fw.ai.AssistantBuilder.unknownPersistenceStrategy", aiPersistenceStrategyKey));
 				}
 				resolved = AiPersistenceStrategy.PERSIST_NON_TOOL_FINAL_ANSWER;
 			}

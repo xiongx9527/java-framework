@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.lock.Lock;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.consumer.RabbitMQConsumer;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.consumer.RabbitMqConsumerService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.producer.RabbitMqProducer;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import lombok.extern.slf4j.Slf4j;
 import org.ssssssss.magicapi.utils.Assert;
 import java.util.ArrayList;
@@ -136,7 +137,7 @@ public class MagicDynamicRabbitMqDataSource {
      */
     public RabbitMqProducer getProducer(String datasourceKey) {
         RabbitMqProducer dataSourceNode = this.producerMap.get(datasourceKey);
-        Assert.isNotNull(dataSourceNode, String.format("找不到 RabbitMq 数据源%s", datasourceKey));
+        Assert.isNotNull(dataSourceNode, I18nMessageResolver.resolveKey("fw.boot.magicapi.rabbitmq.producerDatasourceNotFound", datasourceKey));
         return dataSourceNode;
     }
 

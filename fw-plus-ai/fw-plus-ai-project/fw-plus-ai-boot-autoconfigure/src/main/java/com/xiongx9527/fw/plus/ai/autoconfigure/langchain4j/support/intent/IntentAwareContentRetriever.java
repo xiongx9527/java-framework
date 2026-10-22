@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.rag.query.Query;
@@ -43,7 +44,8 @@ public final class IntentAwareContentRetriever<I extends Enum<I>> implements Con
 	public IntentAwareContentRetriever(IntentSupplier<I> intentSupplier, Map<I, ContentRetriever> routes,
 			Set<I> noRoute, ContentRetriever fallback) {
 		if (intentSupplier == null) {
-			throw new IllegalArgumentException("intentSupplier 不能为 null");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.IntentAwareContentRetriever.intentSupplierRequired"));
 		}
 		this.intentSupplier = intentSupplier;
 		this.routes = routes == null

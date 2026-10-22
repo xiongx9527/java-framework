@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.modu
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.AbstractMagicDynamicLangchain4jDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import org.ssssssss.magicapi.core.model.Options;
 import org.ssssssss.script.MagicScriptContext;
 
@@ -43,8 +44,8 @@ public abstract class AbstractLangchain4jModelModule<M> {
         }
         M instance = holder.get(key);
         if (instance == null) {
-            throw new IllegalArgumentException(String.format(
-                    "未配置 LangChain4j %s: %s，已配置: %s", type.type(), key, new TreeSet<>(holder.keys())));
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                    "fw.ai.langchain4jModel.modelNotConfigured", type.type(), key, new TreeSet<>(holder.keys())));
         }
         return instance;
     }
@@ -69,10 +70,8 @@ public abstract class AbstractLangchain4jModelModule<M> {
     private M requireDefaultInstance() {
         M instance = defaultInstance == null ? null : defaultInstance.getIfAvailable();
         if (instance == null) {
-            throw new IllegalArgumentException(String.format(
-                    "未指定 LangChain4j %s 的 datasource key，且 Spring 容器中没有默认实例"
-                            + "（请启用 langchain4j 对应自动配置，或在控制台维护 %s 数据源后用 ['key'] 取用）",
-                    type.type(), type.type()));
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                    "fw.ai.langchain4jModel.datasourceKeyUnspecified", type.type(), type.type()));
         }
         return instance;
     }

@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.skill.resource;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.skill.model.Langchain4jSkillInfo;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 import org.ssssssss.magicapi.core.resource.Resource;
@@ -55,7 +56,8 @@ public class Langchain4jSkillMagicResourceStorage implements MagicResourceStorag
 	public void validate(Langchain4jSkillInfo entity) {
 		validateRequired(entity.getKey(), "key");
 		if (!entity.getKey().matches("^[\\w.-]+$")) {
-			throw new IllegalArgumentException("key只能包含字母、数字、下划线、点与中划线");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.AbstractLangchain4jModelResourceStorage.keyPatternInvalid"));
 		}
 		validateRequired(entity.getName(), "name");
 		validateRequired(entity.getDescription(), "description");
@@ -84,7 +86,8 @@ public class Langchain4jSkillMagicResourceStorage implements MagicResourceStorag
 
 	private void validateRequired(String value, String field) {
 		if (value == null || value.trim().isEmpty()) {
-			throw new IllegalArgumentException(field + "不能为空");
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.AbstractLangchain4jModelResourceStorage.fieldRequired", field));
 		}
 	}
 
@@ -97,7 +100,8 @@ public class Langchain4jSkillMagicResourceStorage implements MagicResourceStorag
 				.filter(it -> !Objects.equals(it.getId(), currentId))
 				.noneMatch(it -> Objects.equals(it.getKey(), key));
 		if (!noneMatchKey) {
-			throw new IllegalArgumentException(String.format("key '%s' 已存在，请使用其他 key", key));
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.AbstractLangchain4jModelResourceStorage.keyDuplicated", key));
 		}
 	}
 }

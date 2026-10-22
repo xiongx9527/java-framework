@@ -104,7 +104,7 @@ if (constants.BASE_URL.startsWith('http')) { // http开头
 	link = link + '/' + constants.BASE_URL
 }
 if(config.blockClose !== false) {
-	window.onbeforeunload = () => '系统可能不会保存您所做的更改。'
+	window.onbeforeunload = () => $i('message.unsavedConfirm')
 }
 const requestConfig = config.request || {
 	beforeSend: config => config,

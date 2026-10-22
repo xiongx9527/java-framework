@@ -7,8 +7,8 @@
                 <div class="magic-assistant-messages" ref="messagesContainer">
                     <div v-if="messages.length === 0" class="magic-assistant-welcome">
                         <div class="magic-assistant-welcome-icon">✨</div>
-                        <div class="magic-assistant-welcome-title">代码助手</div>
-                        <div class="magic-assistant-welcome-desc">我可以帮你按照 magic-api 脚本语法生成代码，请描述你的需求。</div>
+                        <div class="magic-assistant-welcome-title">{{ $i('assistant.welcomeTitle') }}</div>
+                        <div class="magic-assistant-welcome-desc">{{ $i('assistant.welcomeDesc') }}</div>
 
                     </div>
                     <template v-if="messages.length > 0">
@@ -35,15 +35,15 @@
                                 <div class="magic-assistant-code-actions" v-if="msg.role === 'assistant' && !streaming && extractCode(msg.content)">
                                     <button class="magic-assistant-btn magic-assistant-btn--insert" @click="insertCode(extractCode(msg.content))">
                                         <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>
-                                        插入代码
+                                        {{ $i('assistant.insertCode') }}
                                     </button>
                                     <button class="magic-assistant-btn magic-assistant-btn--replace" @click="replaceCode(extractCode(msg.content))">
                                         <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 8h12M12 4l4 4-4 4"/></svg>
-                                        替换代码
+                                        {{ $i('assistant.replaceCode') }}
                                     </button>
                                     <button class="magic-assistant-btn magic-assistant-btn--copy" @click="copyCode(extractCode(msg.content))">
                                         <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M5 11H3.5A1.5 1.5 0 0 1 2 9.5v-7A1.5 1.5 0 0 1 3.5 1h7A1.5 1.5 0 0 1 12 2.5V5"/></svg>
-                                        复制
+                                        {{ $i('assistant.copy') }}
                                     </button>
                                 </div>
                             </div>
@@ -86,11 +86,11 @@
                     <div class="magic-assistant-input-toolbar">
                         <label class="magic-assistant-context-toggle">
                             <input type="checkbox" v-model="useCurrentCode" />
-                            <span class="magic-assistant-toggle-text">携带当前代码上下文</span>
+                            <span class="magic-assistant-toggle-text">{{ $i('assistant.carryContext') }}</span>
                         </label>
                         <button class="magic-assistant-clear-btn" @click="clearMessages" :disabled="messages.length === 0">
                             <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 4h12M5 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1M6 7v5M10 7v5M4 4l1 10h6l1-10"/></svg>
-                            清空
+                            {{ $i('assistant.clear') }}
                         </button>
                     </div>
                     <div class="magic-assistant-input-wrapper">
@@ -98,7 +98,7 @@
                             ref="inputRef"
                             v-model="inputText"
                             class="magic-assistant-textarea"
-                            placeholder="描述需求，Enter 发送，Shift+Enter 换行"
+                            :placeholder="$i('assistant.placeholder')"
                             @keydown="onKeydown"
                             :disabled="loading"
                             rows="3"
@@ -121,17 +121,18 @@ import request from '../../../scripts/request.js'
 import modal from '../../common/dialog/magic-modal.js'
 
 const bus = inject('bus')
+const $i = inject('i18n.format')
 
-const t_requestFailed = '请求失败，状态码: '
-const t_emptyResponse = '助手返回了空内容，请检查配置。'
-const t_configError = '请求失败，请检查助手配置是否正确。'
-const t_connectionInterrupted = '连接中断'
-const t_insertSuccess = '代码已插入到编辑器'
-const t_replaceConfirm = '确定要替换当前编辑器中的全部内容吗？'
-const t_replaceSuccess = '代码已替换'
-const t_copySuccess = '代码已复制到剪贴板'
-const t_copyFailed = '复制失败，请手动复制'
-const t_tips = '提示'
+const t_requestFailed = $i('assistant.requestFailed')
+const t_emptyResponse = $i('assistant.emptyResponse')
+const t_configError = $i('assistant.configError')
+const t_connectionInterrupted = $i('assistant.connectionInterrupted')
+const t_insertSuccess = $i('assistant.insertSuccess')
+const t_replaceConfirm = $i('assistant.replaceConfirm')
+const t_replaceSuccess = $i('assistant.replaceSuccess')
+const t_copySuccess = $i('assistant.copySuccess')
+const t_copyFailed = $i('assistant.copyFailed')
+const t_tips = $i('assistant.tips')
 
 const visible = ref(false)
 const messages = ref([])

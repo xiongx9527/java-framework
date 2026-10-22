@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.store;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.ModelFactory;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support.Langchain4jOptionsReader;
 import dev.langchain4j.data.segment.TextSegment;
@@ -33,7 +34,8 @@ public class Langchain4jOracleModelFactory implements ModelFactory {
             dataSource.setUser(o.string("user", null));
             dataSource.setPassword(o.string("password", null));
         } catch (SQLException e) {
-            throw new IllegalStateException("创建 Oracle 数据源失败：" + e.getMessage(), e);
+            throw new IllegalStateException(I18nMessageResolver.resolveKey(
+                    "fw.ai.Langchain4jOracleModelFactory.dataSourceCreationFailed", e.getMessage()), e);
         }
         return OracleEmbeddingStore.builder()
                 .dataSource(dataSource)

@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.debezium.servi
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.debezium.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.debezium.model.DebeziumDataSourceInfo;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import lombok.extern.slf4j.Slf4j;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 import org.ssssssss.magicapi.core.resource.Resource;
@@ -111,7 +112,7 @@ public class DebeziumDataSourceInfoMagicResourceStorage implements MagicResource
                     DebeziumDataSourceInfo oldDebeziumDataSourceInfo = (DebeziumDataSourceInfo) obj;
                     if (null != oldDebeziumDataSourceInfo) {
                         if (!oldDebeziumDataSourceInfo.getKey().equals(entity.getKey())) {
-                            throw new IllegalArgumentException("key不可修改");
+                            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.debezium.keyImmutable"));
                         }
                     }
                 }
@@ -142,7 +143,7 @@ public class DebeziumDataSourceInfoMagicResourceStorage implements MagicResource
                 .anyMatch(it -> Objects.equals(it.getKey(), key));
 
         if (exists) {
-            throw new IllegalArgumentException(String.format("数据源唯一标识(key) '%s' 已存在，请使用其他唯一标识", key));
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.debezium.datasourceKeyExists", key));
         }
     }
 

@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.service.tool.ToolExecutor;
 import dev.langchain4j.service.tool.ToolProvider;
@@ -54,7 +55,8 @@ public final class IntentAwareToolProvider<I extends Enum<I>> implements ToolPro
 			Map<I, Set<String>> allowed, Set<I> allowNone, Set<String> alwaysInclude,
 			FallbackMode fallbackMode, Set<String> fallbackTools) {
 		if (intentSupplier == null) {
-			throw new IllegalArgumentException("intentSupplier 不能为 null");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.IntentAwareToolProvider.intentSupplierRequired"));
 		}
 		this.intentSupplier = intentSupplier;
 		this.source = source;

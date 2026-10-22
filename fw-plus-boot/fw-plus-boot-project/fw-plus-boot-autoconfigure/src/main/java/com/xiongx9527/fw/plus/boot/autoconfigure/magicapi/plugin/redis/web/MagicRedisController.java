@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.redis.web;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.redis.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.redis.model.MagicDynamicRedisDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.redis.model.RedisDataSourceInfo;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.RedisClusterConnection;
@@ -51,7 +52,7 @@ public class MagicRedisController extends MagicController implements MagicExcept
             connectionFactory = magicDynamicRedisDataSource.createRedisConnectionFactory(properties);
 
             if (connectionFactory == null) {
-                return new JsonBean<>("无法创建Redis连接工厂，请检查客户端类型配置");
+                return new JsonBean<>(I18nMessageResolver.resolveKey("fw.boot.magicapi.redis.connectionFactoryFailed"));
             }
 
             // 初始化连接工厂：根据具体实现类型调用其初始化方法
@@ -93,7 +94,7 @@ public class MagicRedisController extends MagicController implements MagicExcept
             if ("PONG".equalsIgnoreCase(ping)) {
                 return new JsonBean<>("ok");
             } else {
-                return new JsonBean<>("无法建立Redis连接");
+                return new JsonBean<>(I18nMessageResolver.resolveKey("fw.boot.magicapi.redis.connectFailed"));
             }
         } catch (Exception e) {
             log.error("测试Redis数据源配置失败", e);
