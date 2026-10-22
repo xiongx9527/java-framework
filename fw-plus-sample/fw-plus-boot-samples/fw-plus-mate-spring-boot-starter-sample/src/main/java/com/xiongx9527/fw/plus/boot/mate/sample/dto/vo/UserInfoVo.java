@@ -42,7 +42,7 @@ public class UserInfoVo extends MateEasyTransDTO {
     @Excel(name = "userExtDesc", width = 25, orderNum = "5")
     private String userExtDesc;
 
-    @Trans(type = TransType.ENUM , target = UserSexEnum.class,fields = {"type","desc"},ref="sexShow")
+    @Trans(type = TransType.ENUM , targetClassName = "com.xiongx9527.fw.plus.boot.mate.sample.dto.vo.UserInfoVo$UserSexEnum",fields = {"type","desc"},ref="sexShow")
     private Integer sex;
 
     @Excel(name = "sexShow", width = 25, orderNum = "6")

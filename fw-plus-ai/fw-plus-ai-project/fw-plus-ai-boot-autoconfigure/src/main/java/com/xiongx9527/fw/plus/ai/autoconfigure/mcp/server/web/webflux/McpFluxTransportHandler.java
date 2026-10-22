@@ -254,7 +254,7 @@ class McpFluxTransportHandler {
 
 	private Map<String, String> headers(ServerRequest request) {
 		Map<String, String> values = new LinkedHashMap<>();
-		for (Map.Entry<String, java.util.List<String>> entry : request.headers().asHttpHeaders().entrySet()) {
+		for (Map.Entry<String, java.util.List<String>> entry : request.headers().asHttpHeaders().headerSet()) {
 			java.util.List<String> headerValues = entry.getValue();
 			if (headerValues != null && !headerValues.isEmpty()) {
 				values.put(entry.getKey(), headerValues.get(0));

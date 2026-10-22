@@ -21,7 +21,7 @@ public class SaveUserForm extends MateEasyTransDTO {
     @CommonsValidatorAnn(message = "id不能为空", dataValidType = CommonsValidatorAnn.DataValidType.OBJECT_IS_NOT_EMPTY)
     private Long id;
 
-    @Trans(type = TransType.ENUM , target = UserInfoVo.UserSexEnum.class,fields = {"type","desc"},ref="sexShow")
+    @Trans(type = TransType.ENUM , targetClassName = "com.xiongx9527.fw.plus.boot.mate.sample.dto.vo.UserInfoVo$UserSexEnum",fields = {"type","desc"},ref="sexShow")
     private Integer sex;
 
     private String sexShow;

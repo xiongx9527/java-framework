@@ -38,6 +38,12 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <!-- WeatherTools 使用 @Slf4j 生成日志字段，需显式声明注解处理器依赖 -->
         <dependency>
             <groupId>org.projectlombok</groupId>
