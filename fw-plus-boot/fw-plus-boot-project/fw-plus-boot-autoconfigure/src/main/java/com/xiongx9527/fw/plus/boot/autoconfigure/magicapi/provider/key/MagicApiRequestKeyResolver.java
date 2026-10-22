@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.key;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONWriter;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
@@ -94,7 +95,7 @@ public class MagicApiRequestKeyResolver {
 			context.setVariable("requestEntity", requestEntity);
 			return expressionParser.parseExpression(expression).getValue(context);
 		} catch (Exception e) {
-			throw new IllegalArgumentException("Magic-API Key SpEL 解析失败: " + configured, e);
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.magicapi.keySpelParseFailed", configured), e);
 		}
 	}
 

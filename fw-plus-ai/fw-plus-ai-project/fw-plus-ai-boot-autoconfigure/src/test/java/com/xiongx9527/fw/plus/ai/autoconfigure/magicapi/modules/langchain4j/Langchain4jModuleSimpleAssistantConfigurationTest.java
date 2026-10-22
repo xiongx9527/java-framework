@@ -7,6 +7,8 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.output.Response;
+import dev.langchain4j.store.memory.chat.ChatMemoryStore;
+import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -21,7 +23,8 @@ import static org.mockito.Mockito.when;
 
 /**
  * {@code simpleAssistant} 注入契约测试：按配置 key 从各类型 Module 一键装配 SimpleAssistant
- * bean、enabled 开关、专属 key 覆盖默认 key、模型 key 未配置时装配失败。
+ * bean、enabled 开关、专属 key 覆盖默认 key、模型 key 未配置时装配失败，以及
+ * {@code langchain4jModule} 暴露容器 {@code ChatMemoryStore} 给脚本。
  */
 class Langchain4jModuleSimpleAssistantConfigurationTest {
 
@@ -166,6 +169,33 @@ class Langchain4jModuleSimpleAssistantConfigurationTest {
 					// languageModel / streamingLanguageModel 插件缺席 → 对象为 null，方法提示
 					assertThatThrownBy(() -> module.languageAssistant())
 							.hasMessageContaining("language-model");
+				});
+	}
+
+	@Test
+	void exposesContainerMemoryStoreOnModuleBean() {
+		// 容器存在 ChatMemoryStore Bean → langchain4jModule.memoryStore() 暴露同一实例给脚本
+		InMemoryChatMemoryStore store = new InMemoryChatMemoryStore();
+
+		new ApplicationContextRunner()
+				.withConfiguration(AutoConfigurations.of(Langchain4jModuleConfiguration.class))
+				.withBean(ChatMemoryStore.class, () -> store)
+				.run(context -> {
+					assertThat(context).hasSingleBean(Langchain4jModule.class);
+					assertThat(context.getBean(Langchain4jModule.class).memoryStore()).isSameAs(store);
+				});
+	}
+
+	@Test
+	void failsFastOnMemoryStoreWhenNoBean() {
+		// 无 ChatMemoryStore Bean → memoryStore() 快速失败并提示注册方式
+		new ApplicationContextRunner()
+				.withConfiguration(AutoConfigurations.of(Langchain4jModuleConfiguration.class))
+				.run(context -> {
+					assertThat(context).hasSingleBean(Langchain4jModule.class);
+					assertThatThrownBy(() -> context.getBean(Langchain4jModule.class).memoryStore())
+							.isInstanceOf(IllegalArgumentException.class)
+							.hasMessageContaining("ChatMemoryStore");
 				});
 	}
 

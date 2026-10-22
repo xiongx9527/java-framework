@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.rag;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.dify.dataset.types.RetrievalModel;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -169,8 +170,8 @@ public class DifyRagProperties {
 			try {
 				builder.searchMethod(RetrievalModel.SearchMethod.valueOf(searchMethod.trim()));
 			} catch (IllegalArgumentException e) {
-				throw new IllegalStateException(PREFIX + ".search-method 取值非法: '" + searchMethod
-						+ "'，仅支持 semantic_search / hybrid_search / full_text_search / keyword_search");
+				throw new IllegalStateException(I18nMessageResolver.resolveKey(
+						"fw.ai.DifyRagProperties.searchMethodInvalid", PREFIX, searchMethod));
 			}
 		}
 		builder.scoreThreshold(scoreThreshold);
@@ -265,8 +266,8 @@ public class DifyRagProperties {
 			List<String> items = include == null ? Collections.<String>emptyList() : include;
 			for (String item : items) {
 				if (item == null || !allowed.contains(item.trim())) {
-					throw new IllegalStateException(PREFIX + ".meta-fields.include 取值非法: '" + item
-							+ "'，仅支持 tenant / app / agent / user");
+					throw new IllegalStateException(I18nMessageResolver.resolveKey(
+							"fw.ai.DifyRagProperties.metaFieldInvalid", PREFIX, item));
 				}
 			}
 		}

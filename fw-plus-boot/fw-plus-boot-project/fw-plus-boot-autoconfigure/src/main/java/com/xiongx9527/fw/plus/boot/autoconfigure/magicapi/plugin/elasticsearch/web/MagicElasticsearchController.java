@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.elasticsearch.
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.elasticsearch.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.elasticsearch.model.ElasticSearchDataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.elasticsearch.model.MagicDynamicElasticSearchDataSource;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.elasticsearch.client.Request;
@@ -49,7 +50,7 @@ public class MagicElasticsearchController extends MagicController implements Mag
             // 实际测试连接：发送一个简单的请求来验证连通性
             Response response = restClient.performRequest(new Request("GET", "/_cluster/health"));
             if (response.getStatusLine().getStatusCode() != 200) {
-                return new JsonBean<>("ElasticSearch连接失败");
+                return new JsonBean<>(I18nMessageResolver.resolveKey("fw.boot.magicapi.elasticsearch.connectFailed"));
             }
             return new JsonBean<>("ok");
         } catch (Exception e) {

@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.service;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.model.MagicDynamicRocketMqDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.model.RocketMqDataSourceInfo;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
@@ -137,7 +138,7 @@ public class RocketMqDataSourceMagicDynamicRegistry extends AbstractMagicDynamic
     public List<RocketMqDataSourceInfo> defaultMappings() {
         List<RocketMqDataSourceInfo> dataSourceInfoList = this.magicDynamicRocketMqDataSource.producerNodes().stream().filter(it -> it.getId() == null).map(it -> {
             RocketMqDataSourceInfo dataSourceInfo = new RocketMqDataSourceInfo();
-            dataSourceInfo.setName(StringUtils.defaultIfBlank(it.getName(), StringUtils.defaultIfBlank(it.getKey(), "默认数据源")));
+            dataSourceInfo.setName(StringUtils.defaultIfBlank(it.getName(), StringUtils.defaultIfBlank(it.getKey(), I18nMessageResolver.resolveKey("fw.boot.datasource.defaultName"))));
             dataSourceInfo.setKey(it.getKey());
             return dataSourceInfo;
         }).collect(Collectors.toList());
@@ -147,7 +148,7 @@ public class RocketMqDataSourceMagicDynamicRegistry extends AbstractMagicDynamic
             if (producer != null) {
                 RocketMqDataSourceInfo dataSourceInfo = new RocketMqDataSourceInfo();
                 dataSourceInfo.setKey("default");
-                dataSourceInfo.setName("默认数据源");
+                dataSourceInfo.setName(I18nMessageResolver.resolveKey("fw.boot.datasource.defaultName"));
                 dataSourceInfoList.add(dataSourceInfo);
             }
         } catch (Exception e) {

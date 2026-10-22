@@ -1,0 +1,506 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------< com.xiongx9527.fw.plus.ai:fw-plus-ai-boot-autoconfigure >-------
+[INFO] Building fw-plus-ai-boot-autoconfigure 0.1.1-SNAPSHOT
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- maven-resources-plugin:3.2.0:resources (default-resources) @ fw-plus-ai-boot-autoconfigure ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] Copying 0 resource
+[INFO] Copying 5 resources
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:flatten (flatten) @ fw-plus-ai-boot-autoconfigure ---
+[INFO] Generating flattened POM of project com.xiongx9527.fw.plus.ai:fw-plus-ai-boot-autoconfigure:jar:0.1.1-SNAPSHOT...
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.10.1:compile (default-compile) @ fw-plus-ai-boot-autoconfigure ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- maven-resources-plugin:3.2.0:testResources (default-testResources) @ fw-plus-ai-boot-autoconfigure ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] skip non existing resourceDirectory /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.10.1:testCompile (default-testCompile) @ fw-plus-ai-boot-autoconfigure ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 142 source files to /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/target/test-classes
+[INFO] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/support/envelope/InnerResultSemanticsTest.java: 某些输入文件使用或覆盖了已过时的 API。
+[INFO] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/support/envelope/InnerResultSemanticsTest.java: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+[INFO] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/mcp/server/McpCustomAuthProviderTest.java: 某些输入文件使用了未经检查或不安全的操作。
+[INFO] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/mcp/server/McpCustomAuthProviderTest.java: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.22.2:test (default-test) @ fw-plus-ai-boot-autoconfigure ---
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.McpCustomAuthProviderTest
+SLF4J: Class path contains multiple SLF4J bindings.
+SLF4J: Found binding in [jar:file:/Users/xiongxiao/.m2/repository/ch/qos/logback/logback-classic/1.2.12/logback-classic-1.2.12.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: Found binding in [jar:file:/Users/xiongxiao/.m2/repository/org/slf4j/slf4j-simple/1.7.36/slf4j-simple-1.7.36.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: Found binding in [jar:file:/Users/xiongxiao/.m2/repository/org/apache/logging/log4j/log4j-slf4j-impl/2.17.1/log4j-slf4j-impl-2.17.1.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: See http://www.slf4j.org/codes.html#multiple_bindings for an explanation.
+SLF4J: Actual binding is of type [ch.qos.logback.classic.util.ContextSelectorStaticBinder]
+18:41:07.951 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Refreshing org.springframework.context.annotation.AnnotationConfigApplicationContext@58d75e99
+18:41:07.968 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalConfigurationAnnotationProcessor'
+18:41:08.206 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerProcessor'
+18:41:08.208 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerFactory'
+18:41:08.210 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalAutowiredAnnotationProcessor'
+18:41:08.213 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalCommonAnnotationProcessor'
+18:41:08.221 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.ConfigurationPropertiesBindingPostProcessor'
+18:41:08.222 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinder'
+18:41:08.222 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinderFactory'
+18:41:08.235 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpAutoConfiguration'
+18:41:08.243 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'customAuthService'
+18:41:08.244 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'instanceAuthRegistry'
+18:41:08.276 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpRuntimeFactory'
+18:41:08.285 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerRuntimes'
+18:41:08.285 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:08.291 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.BoundConfigurationProperties'
+18:41:08.474 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:08.474 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'instanceAuthRegistry'
+18:41:08.474 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'mcpRuntimeFactory'
+18:41:08.515 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerInitializer'
+18:41:08.519 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'mcpServerRuntimes'
+18:41:08.520 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:08.520 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'org.springframework.context.annotation.AnnotationConfigApplicationContext@58d75e99'
+18:41:08.523 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.EnableConfigurationPropertiesRegistrar.methodValidationExcludeFilter'
+18:41:08.689 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Closing org.springframework.context.annotation.AnnotationConfigApplicationContext@58d75e99, started on Wed Oct 21 18:41:07 CST 2026
+18:41:08.708 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Refreshing org.springframework.context.annotation.AnnotationConfigApplicationContext@5241cf67
+18:41:08.708 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalConfigurationAnnotationProcessor'
+18:41:08.719 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerProcessor'
+18:41:08.719 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerFactory'
+18:41:08.720 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalAutowiredAnnotationProcessor'
+18:41:08.721 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalCommonAnnotationProcessor'
+18:41:08.722 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.ConfigurationPropertiesBindingPostProcessor'
+18:41:08.722 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinder'
+18:41:08.722 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinderFactory'
+18:41:08.723 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpAutoConfiguration'
+18:41:08.724 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'instanceAuthRegistry'
+18:41:08.725 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpRuntimeFactory'
+18:41:08.725 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerRuntimes'
+18:41:08.726 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:08.726 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.BoundConfigurationProperties'
+18:41:08.734 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:08.734 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'instanceAuthRegistry'
+18:41:08.734 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'mcpRuntimeFactory'
+18:41:08.735 [main] WARN org.springframework.context.annotation.AnnotationConfigApplicationContext - Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'mcpServerRuntimes' defined in com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.McpAutoConfiguration: Bean instantiation via factory method failed; nested exception is org.springframework.beans.BeanInstantiationException: Failed to instantiate [java.util.List]: Factory method 'mcpServerRuntimes' threw exception; nested exception is java.lang.IllegalArgumentException: Instance 'default' selects unsupported authentication provider 'my-company-oidc'
+18:41:08.751 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Refreshing org.springframework.context.annotation.AnnotationConfigApplicationContext@117e0fe5
+18:41:08.751 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalConfigurationAnnotationProcessor'
+18:41:08.761 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerProcessor'
+18:41:08.762 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerFactory'
+18:41:08.762 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalAutowiredAnnotationProcessor'
+18:41:08.764 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalCommonAnnotationProcessor'
+18:41:08.764 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.ConfigurationPropertiesBindingPostProcessor'
+18:41:08.765 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinder'
+18:41:08.765 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinderFactory'
+18:41:08.765 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpAutoConfiguration'
+18:41:08.767 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'customAuthService'
+18:41:08.767 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'instanceAuthRegistry'
+18:41:08.768 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpRuntimeFactory'
+18:41:08.769 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerRuntimes'
+18:41:08.769 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:08.770 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.BoundConfigurationProperties'
+18:41:08.795 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:08.795 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'instanceAuthRegistry'
+18:41:08.795 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'mcpRuntimeFactory'
+18:41:08.796 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerInitializer'
+18:41:08.797 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'mcpServerRuntimes'
+18:41:08.797 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:08.797 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'org.springframework.context.annotation.AnnotationConfigApplicationContext@117e0fe5'
+18:41:08.797 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.EnableConfigurationPropertiesRegistrar.methodValidationExcludeFilter'
+18:41:08.799 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Closing org.springframework.context.annotation.AnnotationConfigApplicationContext@117e0fe5, started on Wed Oct 21 18:41:08 CST 2026
+18:41:08.810 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Refreshing org.springframework.context.annotation.AnnotationConfigApplicationContext@495083a0
+18:41:08.811 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalConfigurationAnnotationProcessor'
+18:41:08.825 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerProcessor'
+18:41:08.826 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerFactory'
+18:41:08.826 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalAutowiredAnnotationProcessor'
+18:41:08.828 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalCommonAnnotationProcessor'
+18:41:08.829 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.ConfigurationPropertiesBindingPostProcessor'
+18:41:08.829 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinder'
+18:41:08.830 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinderFactory'
+18:41:08.832 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpAutoConfiguration'
+18:41:08.833 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'customAuthService'
+18:41:08.834 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'instanceAuthRegistry'
+18:41:08.836 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpRuntimeFactory'
+18:41:08.838 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerRuntimes'
+18:41:08.838 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:08.839 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.BoundConfigurationProperties'
+18:41:08.849 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:08.849 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'instanceAuthRegistry'
+18:41:08.849 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'mcpRuntimeFactory'
+18:41:08.850 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerInitializer'
+18:41:08.851 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'mcpServerRuntimes'
+18:41:08.851 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:08.851 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'org.springframework.context.annotation.AnnotationConfigApplicationContext@495083a0'
+18:41:08.852 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.EnableConfigurationPropertiesRegistrar.methodValidationExcludeFilter'
+18:41:08.853 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Closing org.springframework.context.annotation.AnnotationConfigApplicationContext@495083a0, started on Wed Oct 21 18:41:08 CST 2026
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.399 s - in com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.McpCustomAuthProviderTest
+[INFO] Running com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.McpAuthServiceRegistryTest
+18:41:08.888 [main] WARN com.xiongx9527.fw.plus.auth.core.InstanceAuthRegistry - Instance 'default' selects provider 'sa-token-jwt' but cn.dev33.satoken.jwt.SaJwtUtil is missing from classpath; requests of this instance will be rejected (fail-closed)
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s - in com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.auth.McpAuthServiceRegistryTest
+[INFO] Running com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.McpAutoConfigurationBeanSelectionTest
+18:41:08.928 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Refreshing org.springframework.context.annotation.AnnotationConfigApplicationContext@6bab2585
+18:41:08.929 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalConfigurationAnnotationProcessor'
+18:41:08.939 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerProcessor'
+18:41:08.940 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerFactory'
+18:41:08.940 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalAutowiredAnnotationProcessor'
+18:41:08.942 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalCommonAnnotationProcessor'
+18:41:08.942 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.ConfigurationPropertiesBindingPostProcessor'
+18:41:08.942 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinder'
+18:41:08.942 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinderFactory'
+18:41:08.943 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpAutoConfiguration'
+18:41:08.944 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'instanceAuthRegistry'
+18:41:08.946 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpRuntimeFactory'
+18:41:08.947 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerRuntimes'
+18:41:08.948 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:08.949 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.BoundConfigurationProperties'
+18:41:08.960 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:08.960 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'instanceAuthRegistry'
+18:41:08.960 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'mcpRuntimeFactory'
+18:41:08.960 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerInitializer'
+18:41:08.961 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'mcpServerRuntimes'
+18:41:08.961 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:08.961 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'org.springframework.context.annotation.AnnotationConfigApplicationContext@6bab2585'
+18:41:08.962 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.EnableConfigurationPropertiesRegistrar.methodValidationExcludeFilter'
+18:41:08.964 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Closing org.springframework.context.annotation.AnnotationConfigApplicationContext@6bab2585, started on Wed Oct 21 18:41:08 CST 2026
+18:41:08.984 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Refreshing org.springframework.context.annotation.AnnotationConfigApplicationContext@7ef2d7a6
+18:41:08.984 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalConfigurationAnnotationProcessor'
+18:41:08.993 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerProcessor'
+18:41:08.993 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerFactory'
+18:41:08.994 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalAutowiredAnnotationProcessor'
+18:41:08.995 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalCommonAnnotationProcessor'
+18:41:08.995 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.ConfigurationPropertiesBindingPostProcessor'
+18:41:08.996 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinder'
+18:41:08.996 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinderFactory'
+18:41:08.996 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpAutoConfiguration'
+18:41:08.997 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'instanceAuthRegistry'
+18:41:08.998 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpRuntimeFactory'
+18:41:09.001 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerRuntimes'
+18:41:09.001 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:09.002 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.BoundConfigurationProperties'
+18:41:09.009 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:09.009 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'instanceAuthRegistry'
+18:41:09.009 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'mcpRuntimeFactory'
+18:41:09.009 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerInitializer'
+18:41:09.010 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'mcpServerRuntimes'
+18:41:09.010 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:09.010 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'org.springframework.context.annotation.AnnotationConfigApplicationContext@7ef2d7a6'
+18:41:09.011 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.EnableConfigurationPropertiesRegistrar.methodValidationExcludeFilter'
+18:41:09.027 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Closing org.springframework.context.annotation.AnnotationConfigApplicationContext@7ef2d7a6, started on Wed Oct 21 18:41:08 CST 2026
+18:41:09.039 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Refreshing org.springframework.context.annotation.AnnotationConfigApplicationContext@70fab835
+18:41:09.040 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalConfigurationAnnotationProcessor'
+18:41:09.050 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerProcessor'
+18:41:09.051 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerFactory'
+18:41:09.051 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalAutowiredAnnotationProcessor'
+18:41:09.052 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalCommonAnnotationProcessor'
+18:41:09.053 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.ConfigurationPropertiesBindingPostProcessor'
+18:41:09.053 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinder'
+18:41:09.053 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinderFactory'
+18:41:09.053 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpAutoConfiguration'
+18:41:09.054 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'instanceAuthRegistry'
+18:41:09.055 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpRuntimeFactory'
+18:41:09.055 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerRuntimes'
+18:41:09.056 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:09.056 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.BoundConfigurationProperties'
+18:41:09.062 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:09.062 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'instanceAuthRegistry'
+18:41:09.062 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'mcpRuntimeFactory'
+18:41:09.063 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerInitializer'
+18:41:09.064 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'mcpServerRuntimes'
+18:41:09.065 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:09.065 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'org.springframework.context.annotation.AnnotationConfigApplicationContext@70fab835'
+18:41:09.066 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.EnableConfigurationPropertiesRegistrar.methodValidationExcludeFilter'
+18:41:09.080 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Closing org.springframework.context.annotation.AnnotationConfigApplicationContext@70fab835, started on Wed Oct 21 18:41:09 CST 2026
+18:41:09.091 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Refreshing org.springframework.context.annotation.AnnotationConfigApplicationContext@363f6148
+18:41:09.091 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalConfigurationAnnotationProcessor'
+18:41:09.102 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerProcessor'
+18:41:09.102 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerFactory'
+18:41:09.102 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalAutowiredAnnotationProcessor'
+18:41:09.106 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalCommonAnnotationProcessor'
+18:41:09.107 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.ConfigurationPropertiesBindingPostProcessor'
+18:41:09.107 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinder'
+18:41:09.108 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinderFactory'
+18:41:09.109 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpAutoConfiguration'
+18:41:09.109 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'unrelated'
+18:41:09.968 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'instanceAuthRegistry'
+18:41:09.969 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpRuntimeFactory'
+18:41:09.969 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerRuntimes'
+18:41:09.970 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:09.970 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.BoundConfigurationProperties'
+18:41:09.976 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:09.976 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'instanceAuthRegistry'
+18:41:09.976 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'mcpRuntimeFactory'
+18:41:09.977 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerInitializer'
+18:41:09.977 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'mcpServerRuntimes'
+18:41:09.977 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:09.977 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'org.springframework.context.annotation.AnnotationConfigApplicationContext@363f6148'
+18:41:09.977 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.EnableConfigurationPropertiesRegistrar.methodValidationExcludeFilter'
+18:41:09.979 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Closing org.springframework.context.annotation.AnnotationConfigApplicationContext@363f6148, started on Wed Oct 21 18:41:09 CST 2026
+18:41:09.986 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Refreshing org.springframework.context.annotation.AnnotationConfigApplicationContext@3b0ee03a
+18:41:09.987 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalConfigurationAnnotationProcessor'
+18:41:09.993 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerProcessor'
+18:41:09.994 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerFactory'
+18:41:09.994 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalAutowiredAnnotationProcessor'
+18:41:09.995 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalCommonAnnotationProcessor'
+18:41:09.996 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.ConfigurationPropertiesBindingPostProcessor'
+18:41:09.996 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinder'
+18:41:09.996 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinderFactory'
+18:41:09.996 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpAutoConfiguration'
+18:41:09.997 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'instanceAuthRegistry'
+18:41:09.998 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpRuntimeFactory'
+18:41:09.998 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerRuntimes'
+18:41:09.999 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:09.999 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.BoundConfigurationProperties'
+18:41:10.007 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:10.007 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'instanceAuthRegistry'
+18:41:10.007 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'mcpRuntimeFactory'
+18:41:10.008 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerInitializer'
+18:41:10.008 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'mcpServerRuntimes'
+18:41:10.008 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:10.008 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'org.springframework.context.annotation.AnnotationConfigApplicationContext@3b0ee03a'
+18:41:10.009 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.EnableConfigurationPropertiesRegistrar.methodValidationExcludeFilter'
+18:41:10.010 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Closing org.springframework.context.annotation.AnnotationConfigApplicationContext@3b0ee03a, started on Wed Oct 21 18:41:09 CST 2026
+18:41:10.020 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Refreshing org.springframework.context.annotation.AnnotationConfigApplicationContext@54562ea6
+18:41:10.020 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalConfigurationAnnotationProcessor'
+18:41:10.061 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerProcessor'
+18:41:10.061 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerFactory'
+18:41:10.062 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalAutowiredAnnotationProcessor'
+18:41:10.063 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalCommonAnnotationProcessor'
+18:41:10.063 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.ConfigurationPropertiesBindingPostProcessor'
+18:41:10.063 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinder'
+18:41:10.063 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinderFactory'
+18:41:10.064 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpAutoConfiguration'
+18:41:10.064 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'stringRedisTemplate'
+18:41:10.804 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.McpAutoConfiguration$RedisClusterConfiguration'
+18:41:10.805 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpRedisBroadcaster'
+18:41:10.805 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpRedisBroadcaster' via factory method to bean named 'stringRedisTemplate'
+18:41:11.150 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpRedisMessageConsumer'
+18:41:11.151 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerRuntimes'
+18:41:11.151 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:11.152 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.BoundConfigurationProperties'
+18:41:11.156 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'instanceAuthRegistry'
+18:41:11.157 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpRuntimeFactory'
+18:41:11.158 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:11.158 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'instanceAuthRegistry'
+18:41:11.158 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'mcpRuntimeFactory'
+18:41:11.159 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpRedisMessageConsumer' via factory method to bean named 'mcpServerRuntimes'
+18:41:11.160 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpRedisMessageConsumer' via factory method to bean named 'mcpRedisBroadcaster'
+18:41:11.161 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpRedisMessageListenerContainer'
+18:41:11.161 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpRedisMessageListenerContainer' via factory method to bean named 'stringRedisTemplate'
+18:41:11.161 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpRedisMessageListenerContainer' via factory method to bean named 'mcpRedisMessageConsumer'
+18:41:11.191 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerInitializer'
+18:41:11.192 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'mcpServerRuntimes'
+18:41:11.192 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:11.192 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'org.springframework.context.annotation.AnnotationConfigApplicationContext@54562ea6'
+18:41:11.192 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.EnableConfigurationPropertiesRegistrar.methodValidationExcludeFilter'
+18:41:11.197 [main] DEBUG org.springframework.context.support.DefaultLifecycleProcessor - Starting beans in phase 2147483647
+18:41:11.197 [main] DEBUG org.springframework.data.redis.listener.RedisMessageListenerContainer - Starting RedisMessageListenerContainer...
+18:41:11.201 [main] DEBUG org.springframework.data.redis.listener.RedisMessageListenerContainer - Subscribing to topics for RedisMessageListenerContainer.
+18:41:11.204 [mcpRedisMessageListenerContainer-1] DEBUG org.springframework.data.redis.listener.RedisMessageListenerContainer - RedisMessageListenerContainer listeners registered successfully.
+18:41:11.204 [main] DEBUG org.springframework.context.support.DefaultLifecycleProcessor - Successfully started bean 'mcpRedisMessageListenerContainer'
+18:41:11.205 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Closing org.springframework.context.annotation.AnnotationConfigApplicationContext@54562ea6, started on Wed Oct 21 18:41:10 CST 2026
+18:41:11.205 [main] DEBUG org.springframework.context.support.DefaultLifecycleProcessor - Stopping beans in phase 2147483647
+18:41:11.206 [main] DEBUG org.springframework.data.redis.listener.RedisMessageListenerContainer - Stopped listening.
+18:41:11.206 [main] DEBUG org.springframework.data.redis.listener.RedisMessageListenerContainer - Stopped RedisMessageListenerContainer.
+18:41:11.206 [main] DEBUG org.springframework.context.support.DefaultLifecycleProcessor - Bean 'mcpRedisMessageListenerContainer' completed its stop procedure
+18:41:11.217 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Refreshing org.springframework.context.annotation.AnnotationConfigApplicationContext@384fda47
+18:41:11.217 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalConfigurationAnnotationProcessor'
+18:41:11.225 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerProcessor'
+18:41:11.226 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerFactory'
+18:41:11.226 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalAutowiredAnnotationProcessor'
+18:41:11.227 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalCommonAnnotationProcessor'
+18:41:11.228 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.ConfigurationPropertiesBindingPostProcessor'
+18:41:11.228 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinder'
+18:41:11.228 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinderFactory'
+18:41:11.228 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpAutoConfiguration'
+18:41:11.229 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'stringRedisTemplate'
+18:41:11.232 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpRedisBroadcaster'
+18:41:11.232 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.McpAutoConfiguration$RedisClusterConfiguration'
+18:41:11.233 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpRedisMessageConsumer'
+18:41:11.233 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerRuntimes'
+18:41:11.234 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:11.234 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.BoundConfigurationProperties'
+18:41:11.240 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'instanceAuthRegistry'
+18:41:11.241 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpRuntimeFactory'
+18:41:11.241 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:11.241 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'instanceAuthRegistry'
+18:41:11.242 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'mcpRuntimeFactory'
+18:41:11.246 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpRedisMessageConsumer' via factory method to bean named 'mcpServerRuntimes'
+18:41:11.247 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpRedisMessageConsumer' via factory method to bean named 'mcpRedisBroadcaster'
+18:41:11.247 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpRedisMessageListenerContainer'
+18:41:11.248 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpRedisMessageListenerContainer' via factory method to bean named 'stringRedisTemplate'
+18:41:11.248 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpRedisMessageListenerContainer' via factory method to bean named 'mcpRedisMessageConsumer'
+18:41:11.248 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerInitializer'
+18:41:11.249 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'mcpServerRuntimes'
+18:41:11.249 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:11.249 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'org.springframework.context.annotation.AnnotationConfigApplicationContext@384fda47'
+18:41:11.250 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.EnableConfigurationPropertiesRegistrar.methodValidationExcludeFilter'
+18:41:11.251 [main] DEBUG org.springframework.context.support.DefaultLifecycleProcessor - Starting beans in phase 2147483647
+18:41:11.251 [main] DEBUG org.springframework.data.redis.listener.RedisMessageListenerContainer - Starting RedisMessageListenerContainer...
+18:41:11.252 [main] DEBUG org.springframework.data.redis.listener.RedisMessageListenerContainer - Subscribing to topics for RedisMessageListenerContainer.
+18:41:11.254 [mcpRedisMessageListenerContainer-1] DEBUG org.springframework.data.redis.listener.RedisMessageListenerContainer - RedisMessageListenerContainer listeners registered successfully.
+18:41:11.254 [main] DEBUG org.springframework.context.support.DefaultLifecycleProcessor - Successfully started bean 'mcpRedisMessageListenerContainer'
+18:41:11.255 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Closing org.springframework.context.annotation.AnnotationConfigApplicationContext@384fda47, started on Wed Oct 21 18:41:11 CST 2026
+18:41:11.255 [main] DEBUG org.springframework.context.support.DefaultLifecycleProcessor - Stopping beans in phase 2147483647
+18:41:11.255 [main] DEBUG org.springframework.data.redis.listener.RedisMessageListenerContainer - Stopped listening.
+18:41:11.255 [main] DEBUG org.springframework.data.redis.listener.RedisMessageListenerContainer - Stopped RedisMessageListenerContainer.
+18:41:11.255 [main] DEBUG org.springframework.context.support.DefaultLifecycleProcessor - Bean 'mcpRedisMessageListenerContainer' completed its stop procedure
+18:41:11.264 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Refreshing org.springframework.context.annotation.AnnotationConfigApplicationContext@3fde8f7c
+18:41:11.265 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalConfigurationAnnotationProcessor'
+18:41:11.272 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerProcessor'
+18:41:11.272 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerFactory'
+18:41:11.272 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalAutowiredAnnotationProcessor'
+18:41:11.274 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalCommonAnnotationProcessor'
+18:41:11.274 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.ConfigurationPropertiesBindingPostProcessor'
+18:41:11.274 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinder'
+18:41:11.274 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinderFactory'
+18:41:11.274 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpAutoConfiguration'
+18:41:11.275 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'instanceAuthRegistry'
+18:41:11.275 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpRuntimeFactory'
+18:41:11.276 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerRuntimes'
+18:41:11.276 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:11.276 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.BoundConfigurationProperties'
+18:41:11.281 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:11.281 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'instanceAuthRegistry'
+18:41:11.281 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'mcpRuntimeFactory'
+18:41:11.282 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerInitializer'
+18:41:11.282 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'mcpServerRuntimes'
+18:41:11.282 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:11.282 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'org.springframework.context.annotation.AnnotationConfigApplicationContext@3fde8f7c'
+18:41:11.283 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.EnableConfigurationPropertiesRegistrar.methodValidationExcludeFilter'
+18:41:11.284 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Closing org.springframework.context.annotation.AnnotationConfigApplicationContext@3fde8f7c, started on Wed Oct 21 18:41:11 CST 2026
+18:41:11.292 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Refreshing org.springframework.context.annotation.AnnotationConfigApplicationContext@51da32e5
+18:41:11.292 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalConfigurationAnnotationProcessor'
+18:41:11.297 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerProcessor'
+18:41:11.297 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerFactory'
+18:41:11.297 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalAutowiredAnnotationProcessor'
+18:41:11.299 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalCommonAnnotationProcessor'
+18:41:11.299 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.ConfigurationPropertiesBindingPostProcessor'
+18:41:11.299 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinder'
+18:41:11.299 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinderFactory'
+18:41:11.300 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpAutoConfiguration'
+18:41:11.300 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'instanceAuthRegistry'
+18:41:11.301 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpRuntimeFactory'
+18:41:11.301 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerRuntimes'
+18:41:11.302 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:11.302 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.BoundConfigurationProperties'
+18:41:11.306 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:11.306 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'instanceAuthRegistry'
+18:41:11.306 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'mcpRuntimeFactory'
+18:41:11.307 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerInitializer'
+18:41:11.307 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'mcpServerRuntimes'
+18:41:11.307 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:11.307 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'org.springframework.context.annotation.AnnotationConfigApplicationContext@51da32e5'
+18:41:11.308 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.EnableConfigurationPropertiesRegistrar.methodValidationExcludeFilter'
+18:41:11.309 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Closing org.springframework.context.annotation.AnnotationConfigApplicationContext@51da32e5, started on Wed Oct 21 18:41:11 CST 2026
+18:41:11.316 [main] DEBUG org.springframework.core.env.PropertySourcesPropertyResolver - Found key 'fw-plus.ai.mcp.enabled' in PropertySource 'configurationProperties' with value of type String
+18:41:11.316 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Refreshing org.springframework.context.annotation.AnnotationConfigApplicationContext@4f116ca2
+18:41:11.316 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalConfigurationAnnotationProcessor'
+18:41:11.317 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerProcessor'
+18:41:11.317 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerFactory'
+18:41:11.317 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalAutowiredAnnotationProcessor'
+18:41:11.318 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalCommonAnnotationProcessor'
+18:41:11.319 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Closing org.springframework.context.annotation.AnnotationConfigApplicationContext@4f116ca2, started on Wed Oct 21 18:41:11 CST 2026
+18:41:11.326 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Refreshing org.springframework.context.annotation.AnnotationConfigApplicationContext@3caafa67
+18:41:11.326 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalConfigurationAnnotationProcessor'
+18:41:11.333 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerProcessor'
+18:41:11.333 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerFactory'
+18:41:11.334 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalAutowiredAnnotationProcessor'
+18:41:11.335 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalCommonAnnotationProcessor'
+18:41:11.335 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.ConfigurationPropertiesBindingPostProcessor'
+18:41:11.335 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinder'
+18:41:11.335 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinderFactory'
+18:41:11.336 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpAutoConfiguration'
+18:41:11.336 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'stringRedisTemplate'
+18:41:11.339 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpRedisBroadcaster'
+18:41:11.339 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.McpAutoConfiguration$RedisClusterConfiguration'
+18:41:11.339 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpRedisMessageConsumer'
+18:41:11.340 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerRuntimes'
+18:41:11.341 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:11.342 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.BoundConfigurationProperties'
+18:41:11.346 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'instanceAuthRegistry'
+18:41:11.347 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpRuntimeFactory'
+18:41:11.347 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:11.347 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'instanceAuthRegistry'
+18:41:11.347 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'mcpRuntimeFactory'
+18:41:11.347 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpRedisMessageConsumer' via factory method to bean named 'mcpServerRuntimes'
+18:41:11.347 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpRedisMessageConsumer' via factory method to bean named 'mcpRedisBroadcaster'
+18:41:11.348 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpRedisMessageListenerContainer'
+18:41:11.348 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpRedisMessageListenerContainer' via factory method to bean named 'stringRedisTemplate'
+18:41:11.348 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpRedisMessageListenerContainer' via factory method to bean named 'mcpRedisMessageConsumer'
+18:41:11.348 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerInitializer'
+18:41:11.349 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'mcpServerRuntimes'
+18:41:11.349 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:11.349 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'org.springframework.context.annotation.AnnotationConfigApplicationContext@3caafa67'
+18:41:11.349 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.EnableConfigurationPropertiesRegistrar.methodValidationExcludeFilter'
+18:41:11.350 [main] DEBUG org.springframework.context.support.DefaultLifecycleProcessor - Starting beans in phase 2147483647
+18:41:11.350 [main] DEBUG org.springframework.data.redis.listener.RedisMessageListenerContainer - Starting RedisMessageListenerContainer...
+18:41:11.351 [main] DEBUG org.springframework.data.redis.listener.RedisMessageListenerContainer - Subscribing to topics for RedisMessageListenerContainer.
+18:41:11.352 [mcpRedisMessageListenerContainer-1] DEBUG org.springframework.data.redis.listener.RedisMessageListenerContainer - RedisMessageListenerContainer listeners registered successfully.
+18:41:11.352 [main] DEBUG org.springframework.context.support.DefaultLifecycleProcessor - Successfully started bean 'mcpRedisMessageListenerContainer'
+18:41:11.354 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Closing org.springframework.context.annotation.AnnotationConfigApplicationContext@3caafa67, started on Wed Oct 21 18:41:11 CST 2026
+18:41:11.354 [main] DEBUG org.springframework.context.support.DefaultLifecycleProcessor - Stopping beans in phase 2147483647
+18:41:11.354 [main] DEBUG org.springframework.data.redis.listener.RedisMessageListenerContainer - Stopped listening.
+18:41:11.354 [main] DEBUG org.springframework.data.redis.listener.RedisMessageListenerContainer - Stopped RedisMessageListenerContainer.
+18:41:11.354 [main] DEBUG org.springframework.context.support.DefaultLifecycleProcessor - Bean 'mcpRedisMessageListenerContainer' completed its stop procedure
+18:41:11.360 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Refreshing org.springframework.context.annotation.AnnotationConfigApplicationContext@6f25bf88
+18:41:11.360 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalConfigurationAnnotationProcessor'
+18:41:11.366 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerProcessor'
+18:41:11.366 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerFactory'
+18:41:11.367 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalAutowiredAnnotationProcessor'
+18:41:11.368 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalCommonAnnotationProcessor'
+18:41:11.369 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.ConfigurationPropertiesBindingPostProcessor'
+18:41:11.369 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinder'
+18:41:11.369 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinderFactory'
+18:41:11.369 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpAutoConfiguration'
+18:41:11.370 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'instanceAuthRegistry'
+18:41:11.370 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpRuntimeFactory'
+18:41:11.371 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerRuntimes'
+18:41:11.371 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:11.371 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.BoundConfigurationProperties'
+18:41:11.375 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:11.376 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'instanceAuthRegistry'
+18:41:11.376 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'mcpRuntimeFactory'
+18:41:11.376 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerInitializer'
+18:41:11.376 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'mcpServerRuntimes'
+18:41:11.376 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:11.376 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'org.springframework.context.annotation.AnnotationConfigApplicationContext@6f25bf88'
+18:41:11.377 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.EnableConfigurationPropertiesRegistrar.methodValidationExcludeFilter'
+18:41:11.378 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Closing org.springframework.context.annotation.AnnotationConfigApplicationContext@6f25bf88, started on Wed Oct 21 18:41:11 CST 2026
+18:41:11.385 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Refreshing org.springframework.context.annotation.AnnotationConfigApplicationContext@1b3ab4f9
+18:41:11.385 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalConfigurationAnnotationProcessor'
+18:41:11.390 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerProcessor'
+18:41:11.390 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.event.internalEventListenerFactory'
+18:41:11.390 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalAutowiredAnnotationProcessor'
+18:41:11.391 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalCommonAnnotationProcessor'
+18:41:11.392 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.ConfigurationPropertiesBindingPostProcessor'
+18:41:11.392 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinder'
+18:41:11.392 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.internalConfigurationPropertiesBinderFactory'
+18:41:11.392 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpAutoConfiguration'
+18:41:11.393 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'instanceAuthRegistry'
+18:41:11.394 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpRuntimeFactory'
+18:41:11.394 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerRuntimes'
+18:41:11.394 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:11.395 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.BoundConfigurationProperties'
+18:41:11.400 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:11.400 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'instanceAuthRegistry'
+18:41:11.400 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerRuntimes' via factory method to bean named 'mcpRuntimeFactory'
+18:41:11.400 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'mcpServerInitializer'
+18:41:11.401 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'mcpServerRuntimes'
+18:41:11.401 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'fw-plus.ai.mcp-com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpProperties'
+18:41:11.401 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Autowiring by type from bean name 'mcpServerInitializer' via factory method to bean named 'org.springframework.context.annotation.AnnotationConfigApplicationContext@1b3ab4f9'
+18:41:11.401 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.boot.context.properties.EnableConfigurationPropertiesRegistrar.methodValidationExcludeFilter'
+18:41:11.402 [main] DEBUG org.springframework.context.annotation.AnnotationConfigApplicationContext - Closing org.springframework.context.annotation.AnnotationConfigApplicationContext@1b3ab4f9, started on Wed Oct 21 18:41:11 CST 2026
+[INFO] Tests run: 13, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.474 s - in com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.McpAutoConfigurationBeanSelectionTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 22, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  20.950 s
+[INFO] Finished at: 2026-10-21T18:41:11+08:00
+[INFO] ------------------------------------------------------------------------

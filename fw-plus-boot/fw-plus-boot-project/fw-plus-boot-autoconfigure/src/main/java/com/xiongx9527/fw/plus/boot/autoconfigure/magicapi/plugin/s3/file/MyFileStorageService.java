@@ -8,6 +8,7 @@ import cn.hutool.http.HttpUtil;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.model.MagicDynamicS3DataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.model.S3DataSourceInfo;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -572,7 +573,7 @@ public class MyFileStorageService {
         FileStorageService tmpFileStorageService = this.getFileStorageServiceByPath(tmpPath);
         FileInfo fileInfo = tmpFileStorageService.getFileInfoByUrl(url);
         if (fileInfo == null) {
-            throw new FileStorageRuntimeException("无法获取临时文件信息，URL可能无效: " + url);
+            throw new FileStorageRuntimeException(I18nMessageResolver.resolveKey("fw.boot.s3.tempFileInfoUnavailable", url));
         }
         if (StringUtils.isBlank(newPath)) {
             newPath = fileInfo.getPath();
@@ -615,7 +616,7 @@ public class MyFileStorageService {
      */
     public FileInfo moveTmpToNormal(FileInfo fileInfo, String newPath,String newFilename) {
         if (fileInfo == null) {
-            throw new FileStorageRuntimeException("fileInfo不能为空");
+            throw new FileStorageRuntimeException(I18nMessageResolver.resolveKey("fw.boot.s3.fileInfoRequired"));
         }
         String tmpPath = this.s3DataSourceInfo.getTmpPath();
         tmpPath = MagicAPIConfigUtils.getS3Config(this.s3DataSourceInfo.getKey(), "tmpPath", tmpPath);

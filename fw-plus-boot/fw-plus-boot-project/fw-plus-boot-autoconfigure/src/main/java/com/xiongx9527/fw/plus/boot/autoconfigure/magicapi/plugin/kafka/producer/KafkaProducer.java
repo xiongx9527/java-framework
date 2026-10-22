@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.producer
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.model.KafkaDataSourceInfo;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -70,10 +71,10 @@ public class KafkaProducer {
     public KafkaProducer(KafkaTemplate producer) {
         this.dataSourceInfo = new KafkaDataSourceInfo();
         this.dataSourceInfo.setId("");
-        this.dataSourceInfo.setName("默认数据源");
+        this.dataSourceInfo.setName(I18nMessageResolver.resolveKey("fw.boot.datasource.defaultName"));
         this.dataSourceInfo.setKey("default");
         this.id = "";
-        this.name = "默认数据源";
+        this.name = I18nMessageResolver.resolveKey("fw.boot.datasource.defaultName");
         this.key = "default";
         this.producer = producer;
     }
@@ -181,7 +182,7 @@ public class KafkaProducer {
      */
     public boolean send(String topic, Integer partition, String key, Object msg, boolean async) {
         if (StringUtils.isBlank(topic)) {
-            throw new IllegalArgumentException("Topic 不能为空");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.kafka.topicRequired"));
         }
         ProducerRecord<Object, Object> record;
         if (partition == null && StringUtils.isBlank(key)) {

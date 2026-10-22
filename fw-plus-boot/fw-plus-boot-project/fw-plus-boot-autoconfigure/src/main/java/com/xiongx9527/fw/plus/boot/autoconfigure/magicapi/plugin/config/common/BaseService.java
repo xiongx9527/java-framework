@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.config.common;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicBaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.config.model.ConfigInfo;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.yaml.snakeyaml.Yaml;
@@ -42,7 +43,7 @@ public interface BaseService extends MagicBaseService {
                 this.flattenYamlMap(yaml.load(yamlStr));
             } catch (Exception e) {
                 // 如果解析失败，则抛出异常
-                throw new IllegalArgumentException("配置文件格式错误",e);
+                throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.config.fileFormatError"),e);
             }
         }
     }

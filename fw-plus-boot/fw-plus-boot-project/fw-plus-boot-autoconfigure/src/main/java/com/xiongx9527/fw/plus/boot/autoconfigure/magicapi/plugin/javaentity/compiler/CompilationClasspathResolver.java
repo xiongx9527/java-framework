@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.compiler;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -154,7 +155,7 @@ public class CompilationClasspathResolver {
     private static Path safeResolve(Path root, String relative) throws IOException {
         Path target = root.resolve(relative).normalize();
         if (!target.startsWith(root)) {
-            throw new IOException("Spring Boot archive 包含非法路径");
+            throw new IOException(I18nMessageResolver.resolveKey("fw.boot.javaentity.illegalArchivePath"));
         }
         return target;
     }

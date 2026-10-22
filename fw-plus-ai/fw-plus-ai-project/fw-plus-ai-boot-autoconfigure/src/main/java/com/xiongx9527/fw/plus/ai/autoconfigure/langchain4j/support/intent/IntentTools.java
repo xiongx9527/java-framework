@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import dev.langchain4j.service.tool.ToolProvider;
 
 import java.util.Arrays;
@@ -55,7 +56,8 @@ public final class IntentTools {
 	/** 以分类器为意图来源：每次装配工具现跑一遍分类。 */
 	public static <I extends Enum<I>> Builder<I> byIntent(IntentClassifier<I> classifier) {
 		if (classifier == null) {
-			throw new IllegalArgumentException("classifier 不能为 null");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.IntentTools.classifierRequired"));
 		}
 		return bySupplier(IntentSupplier.of(classifier));
 	}
@@ -83,7 +85,8 @@ public final class IntentTools {
 
 		private Builder(IntentSupplier<I> supplier) {
 			if (supplier == null) {
-				throw new IllegalArgumentException("意图来源不能为 null");
+				throw new IllegalArgumentException(
+						I18nMessageResolver.resolveKey("fw.ai.IntentTools.intentSourceRequired"));
 			}
 			this.supplier = supplier;
 		}
@@ -157,7 +160,8 @@ public final class IntentTools {
 
 		private static void require(Object intent) {
 			if (intent == null) {
-				throw new IllegalArgumentException("intent 不能为 null");
+				throw new IllegalArgumentException(
+						I18nMessageResolver.resolveKey("fw.ai.IntentTools.intentRequired"));
 			}
 		}
 

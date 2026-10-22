@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.service;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.model.MagicDynamicS3DataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.model.S3DataSourceInfo;
 import lombok.extern.slf4j.Slf4j;
@@ -160,7 +161,7 @@ public class S3DataSourceMagicDynamicRegistry extends AbstractMagicDynamicRegist
     public List<S3DataSourceInfo> defaultMappings() {
         return magicDynamicS3DataSource.datasourceNodes().stream().filter(it -> it.getId() == null).map(it -> {
             S3DataSourceInfo dataSourceInfo = new S3DataSourceInfo();
-            dataSourceInfo.setName(StringUtils.defaultIfBlank(it.getName(), StringUtils.defaultIfBlank(it.getKey(), "默认数据源")));
+            dataSourceInfo.setName(StringUtils.defaultIfBlank(it.getName(), StringUtils.defaultIfBlank(it.getKey(), I18nMessageResolver.resolveKey("fw.boot.datasource.defaultName"))));
             dataSourceInfo.setKey(it.getKey());
             return dataSourceInfo;
         }).collect(Collectors.toList());

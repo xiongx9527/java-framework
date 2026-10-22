@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "taskIds": [
+    "a3ba4c0e-ab7c-4525-80b4-0835f5893848",
+    "88c7a697-5a37-493c-968e-73933788384a",
+    "31497d5c-eb79-4046-86f3-cc88d40c70f6",
+    "f7a67e76-2e0b-4e59-ad88-24f79ef236a5",
+    "eac14b4e-9e71-4130-882f-eee70849bf61",
+    "2f9cd1f8-4471-4f40-b586-3d89bf9bad26",
+    "dd093cdf-263d-46f7-9506-747f6ad7b8d5",
+    "c603bb3e-2377-43fb-beed-c80a678409f7",
+    "491e3f5d-eae5-4dca-b4d7-193449eb792b",
+    "fdc9d35e-69a6-4168-a4da-c5f4287bdefa",
+    "b0ca761c-1da8-4a23-a06b-ebb49cb203a5",
+    "40ca75fb-5ad4-4793-b97c-7b82b54b9705",
+    "2e023087-fca5-4c65-a3cd-84209df62d9f",
+    "d4328723-6d1c-44d3-b50f-5a6e87706293",
+    "38637fa9-2928-40ca-9c69-d67e05bc9f5f",
+    "2e99e2c0-5897-45cb-b140-08241c31ca01"
+  ],
+  "revision": "42f3bd7294a4777cdae548f7b22048912fd9b5b009b3b383fc0dcbade55eda26",
+  "stage": "done",
+  "sessionId": "autonomous-main",
+  "evidence": [
+    "3.1+3.2（FactRetriever/FactTokens/FactRetrievers 四策略）：-Dtest=FactRetrieversTest → GREEN 13/13",
+    "3.3+3.4（FactContextProvider 注入与失败隔离）：-Dtest=FactContextProviderTest → GREEN 11/11",
+    "独立审查 B（覆盖 3.1–3.4，session ses_ebbed9b6effeXMPF0XHZaZE6J0）：第 1 轮 NEEDS-FIX（1 IMPORTANT + 2 SUGGESTION）→ 修复（FactContextProvider catch Throwable 含 Error 级隔离、render 增加 appended 标记防空标题块、补 ready() 守卫短路测试）→ 复查轮 APPROVE（独立复跑 53/53）",
+    "3.x 验证证据：定向回归 88/88、模块全量 977/977（Failures 0, Errors 0, Skipped 5 存量）",
+    "4.1 RED: -Dtest=FactMemoryAssemblerTest → 编译失败（找不到符号 FactMemoryAssembler）；GREEN 6/6；新增 FactMemoryConfigurationTest 4/4（关闭不注册 / enabled 无 base-url 启动快速失败 / enabled 注册 Mem0FactStore / 自定义 FactStore Bean 优先）",
+    "4.2: 新增 docs/openspec/changes/langchain4j-fact-memory/usage.md（前提/策略/无 LLM/回滚/模型解析）；FactMemoryUsageSampleConfigTest 1/1（文档同款 YAML 全字段绑定 + validate）",
+    "独立审查 C（覆盖 4.1–4.2，session ses_ebbd491b9ffePx8nQiW6k4llV5）：APPROVE（4 SUGGESTION；其中 2 条文档建议已采纳：FQCN 兜底口径、session.enabled 前提；另 2 条由 5.x 集成兜底/保持人工同步）",
+    "5.1–5.3: 新增 FactMemoryIntegrationTest 3/3（s1 沉淀→s2 跨会话召回命中；消息记忆隔离 + JSON 解编往返；事实关闭基线不变）；变异验证：s2 改无交集查询令召回断言 RED，恢复后复绿",
+    "模块全量回归（构建证据）：Tests run 991, Failures 0, Errors 0, Skipped 5 存量 — ./mvnw -o -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure test -Dmaven.test.skip=false"
+  ],
+  "unresolved": [],
+  "reviewRounds": 5
+}

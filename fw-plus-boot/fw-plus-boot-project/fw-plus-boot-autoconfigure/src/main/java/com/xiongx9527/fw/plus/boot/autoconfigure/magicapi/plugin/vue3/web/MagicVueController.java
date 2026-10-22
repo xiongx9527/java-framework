@@ -4,6 +4,7 @@ import com.alibaba.fastjson2.JSON;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.vue3.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.vue3.model.VueInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.vue3.modules.VueModule;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,11 +29,11 @@ public class MagicVueController extends MagicController implements MagicExceptio
     @ResponseBody
     public ResponseEntity<String> execute(String id){
         if (StringUtils.isBlank(id)) {
-            throw new IllegalArgumentException("非法的文件ID");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.vue.fileIdIllegal"));
         }
         VueInfo entity = MagicConfiguration.getMagicResourceService().file(id);
         if (StringUtils.isBlank(entity.getCompileJs())) {
-            throw new IllegalArgumentException("源码还未编译");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.vue.notCompiled"));
         }
         String name = entity.getName();
         String jsDependences = entity.getJsDependences();

@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common;
 
 import com.alibaba.fastjson2.JSONValidator;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.NetUtils;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -37,7 +38,7 @@ public interface MagicBaseService {
      */
     default void validateRequiredField(Object value, String fieldName) {
         if (ObjectUtils.isEmpty(value)) {
-            throw new IllegalArgumentException(fieldName + "不能为空");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.magicapi.fieldRequired", fieldName));
         }
     }
 
@@ -49,7 +50,7 @@ public interface MagicBaseService {
      */
     default void validatePort(int port) {
         if (port <= 0 || port > 65535) {
-            throw new IllegalArgumentException("数据库端口(port)必须是1-65535之间的有效端口号");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.magicapi.portInvalid"));
         }
     }
 
@@ -65,7 +66,7 @@ public interface MagicBaseService {
             JSONValidator jsonValidator = JSONValidator.from(value);
             // 验证JSON字符串有效性且必须为对象类型
             if (!jsonValidator.validate() || jsonValidator.getType() != JSONValidator.Type.Object) {
-                throw new IllegalArgumentException(fieldName + "不是有效的JSON");
+                throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.magicapi.fieldNotJson", fieldName));
             }
         }
     }

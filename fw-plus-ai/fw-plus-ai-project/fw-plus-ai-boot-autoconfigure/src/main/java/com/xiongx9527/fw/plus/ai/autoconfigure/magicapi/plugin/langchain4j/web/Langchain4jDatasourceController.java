@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.web;
 
 import com.alibaba.fastjson2.JSON;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.factory.Langchain4jModelFactoryRegistry;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jChatModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jEmbeddingModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jEmbeddingStoreInfo;
@@ -72,7 +73,7 @@ public class Langchain4jDatasourceController extends MagicController implements 
             EmbeddingModel embeddingModel = null;
             if (modelType == Langchain4jModelTypes.EMBEDDING_STORE) {
                 if (embeddingModels == null) {
-                    return new JsonBean<>("当前应用未装配 LangChain4j embedding-model，无法测试 embedding-store");
+                    return new JsonBean<>(I18nMessageResolver.resolveKey("fw.ai.magicapi.langchain4jDatasource.embeddingModelNotAssembled"));
                 }
                 embeddingModel = Langchain4jEmbeddingStoreMagicDynamicRegistry.requireEmbeddingModel(
                         (Langchain4jEmbeddingStoreInfo) info,
@@ -113,7 +114,8 @@ public class Langchain4jDatasourceController extends MagicController implements 
             case EMBEDDING_STORE:
                 return (T) JSON.parseObject(json, Langchain4jEmbeddingStoreInfo.class);
             default:
-                throw new IllegalArgumentException("不支持的资源类型: " + type);
+                throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                    "fw.ai.Langchain4jDatasourceController.unsupportedResourceType", type));
         }
     }
 

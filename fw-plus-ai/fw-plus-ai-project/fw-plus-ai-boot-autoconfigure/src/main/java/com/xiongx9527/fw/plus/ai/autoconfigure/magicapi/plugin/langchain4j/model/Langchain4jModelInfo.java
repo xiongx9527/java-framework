@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.ssssssss.magicapi.core.model.MagicEntity;
@@ -39,7 +40,8 @@ public abstract class Langchain4jModelInfo extends MagicEntity {
         try {
             info = getClass().getDeclaredConstructor().newInstance();
         } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException("创建 simple 实例失败: " + getClass().getName(), e);
+            throw new IllegalStateException(I18nMessageResolver.resolveKey(
+                    "fw.ai.Langchain4jModelInfo.simpleInstanceFailed", getClass().getName()), e);
         }
         super.simple(info);
         info.setKey(this.key);

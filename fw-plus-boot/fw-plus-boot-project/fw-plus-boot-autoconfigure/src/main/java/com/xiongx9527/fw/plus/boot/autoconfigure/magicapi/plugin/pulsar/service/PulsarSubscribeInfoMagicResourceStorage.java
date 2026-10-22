@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.service
 import com.alibaba.fastjson.JSONValidator;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.model.PulsarDataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.model.PulsarSubscribeInfo;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -84,7 +85,7 @@ public class PulsarSubscribeInfoMagicResourceStorage extends AbstractPathMagicRe
         PulsarDataSourceInfoMagicResourceStorage pulsarDataSourceInfoMagicResourceStorage = SpringUtils.getBean(PulsarDataSourceInfoMagicResourceStorage.class);
         Map<String, PulsarDataSourceInfo> pulsarDataSourceInfoMap = ListUtils.emptyIfNull(pulsarDataSourceInfoMagicResourceStorage.findAll()).stream().collect(Collectors.toMap(PulsarDataSourceInfo::getKey, val->val,(k1, k2)->k1));
         if (!pulsarDataSourceInfoMap.containsKey(entity.getKey())) {
-            throw new IllegalArgumentException(String.format("数据源key:%s 不存在", entity.getKey()));
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.pulsar.datasourceKeyNotExists", entity.getKey()));
         }
     }
 

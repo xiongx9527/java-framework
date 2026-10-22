@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.intent;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 
 import java.util.Collection;
@@ -61,7 +62,8 @@ public final class IntentRag {
 	/** 以分类器为意图来源：每次检索现跑一遍分类。 */
 	public static <I extends Enum<I>> Builder<I> byIntent(IntentClassifier<I> classifier) {
 		if (classifier == null) {
-			throw new IllegalArgumentException("classifier 不能为 null");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.IntentRag.classifierRequired"));
 		}
 		return bySupplier(IntentSupplier.of(classifier));
 	}
@@ -83,7 +85,8 @@ public final class IntentRag {
 
 		private Builder(IntentSupplier<I> supplier) {
 			if (supplier == null) {
-				throw new IllegalArgumentException("意图来源不能为 null");
+				throw new IllegalArgumentException(
+						I18nMessageResolver.resolveKey("fw.ai.IntentRag.intentSourceRequired"));
 			}
 			this.supplier = supplier;
 		}
@@ -91,10 +94,12 @@ public final class IntentRag {
 		/** 为某意图绑定专属检索器。 */
 		public Builder<I> route(I intent, ContentRetriever retriever) {
 			if (intent == null) {
-				throw new IllegalArgumentException("intent 不能为 null");
+				throw new IllegalArgumentException(
+						I18nMessageResolver.resolveKey("fw.ai.IntentRag.intentRequired"));
 			}
 			if (retriever == null) {
-				throw new IllegalArgumentException("retriever 不能为 null");
+				throw new IllegalArgumentException(
+						I18nMessageResolver.resolveKey("fw.ai.IntentRag.retrieverRequired"));
 			}
 			routes.put(intent, retriever);
 			noRoute.remove(intent);
@@ -104,7 +109,8 @@ public final class IntentRag {
 		/** 显式声明某意图「不检索」（如闲聊、澄清类意图无需外部知识）。 */
 		public Builder<I> routeNone(I intent) {
 			if (intent == null) {
-				throw new IllegalArgumentException("intent 不能为 null");
+				throw new IllegalArgumentException(
+						I18nMessageResolver.resolveKey("fw.ai.IntentRag.intentRequired"));
 			}
 			noRoute.add(intent);
 			routes.remove(intent);

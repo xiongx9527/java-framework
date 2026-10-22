@@ -1,0 +1,49 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] -------< com.xiongx9527.fw.plus.boot:fw-plus-boot-autoconfigure >-------
+[INFO] Building fw-plus-boot-autoconfigure 0.1.1-SNAPSHOT
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- maven-resources-plugin:3.2.0:resources (default-resources) @ fw-plus-boot-autoconfigure ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] Copying 0 resource
+[INFO] Copying 6 resources
+[INFO] 
+[INFO] --- flatten-maven-plugin:1.3.0:flatten (flatten) @ fw-plus-boot-autoconfigure ---
+[INFO] Generating flattened POM of project com.xiongx9527.fw.plus.boot:fw-plus-boot-autoconfigure:jar:0.1.1-SNAPSHOT...
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.10.1:compile (default-compile) @ fw-plus-boot-autoconfigure ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- maven-resources-plugin:3.2.0:testResources (default-testResources) @ fw-plus-boot-autoconfigure ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] skip non existing resourceDirectory /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.10.1:testCompile (default-testCompile) @ fw-plus-boot-autoconfigure ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 135 source files to /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/target/test-classes
+[INFO] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/mqtt/client/service/MqttClientDataSourceMagicDynamicRegistryTest.java: 某些输入文件使用了未经检查或不安全的操作。
+[INFO] /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/mqtt/client/service/MqttClientDataSourceMagicDynamicRegistryTest.java: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.22.2:test (default-test) @ fw-plus-boot-autoconfigure ---
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.xiongx9527.fw.plus.boot.autoconfigure.i18n.I18nAutoConfigurationContextTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.236 s - in com.xiongx9527.fw.plus.boot.autoconfigure.i18n.I18nAutoConfigurationContextTest
+[INFO] Running com.xiongx9527.fw.plus.boot.autoconfigure.i18n.BootAutoconfigureI18nTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0 s - in com.xiongx9527.fw.plus.boot.autoconfigure.i18n.BootAutoconfigureI18nTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  16.679 s
+[INFO] Finished at: 2026-10-21T17:18:27+08:00
+[INFO] ------------------------------------------------------------------------

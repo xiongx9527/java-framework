@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.entity.SwaggerEntity;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
@@ -8,7 +9,7 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty;
 @ConfigurationProperties(prefix = "magic-api.swagger")
 public class SwaggerConfig {
 
-    private String name = "MagicAPI接口";
+    private String name = I18nMessageResolver.resolveKey("fw.boot.swagger.defaultName");
 
     /**
      * 资源位置
@@ -23,7 +24,7 @@ public class SwaggerConfig {
     /**
      * 文档描述
      */
-    private String description = "MagicAPI 接口信息";
+    private String description = I18nMessageResolver.resolveKey("fw.boot.swagger.defaultDescription");
 
     @NestedConfigurationProperty
     private SwaggerEntity.Concat concat = new SwaggerEntity.Concat();

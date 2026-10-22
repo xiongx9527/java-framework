@@ -114,7 +114,9 @@ export default {
         validateExpression: '表达式验证',
 
         copySuccess: '复制{0}成功',
-        copyFailed: '复制{0}失败'
+        copyFailed: '复制{0}失败',
+
+        unsavedConfirm: '系统可能不会保存您所做的更改。'
     },
     plugin: {
         loading: '加载插件「{0}」',
@@ -187,7 +189,69 @@ export default {
             format: '代码格式化',
             recent: '最近打开'
         },
-        triggerSuggest: '触发代码提示'
+        triggerSuggest: '触发代码提示',
+        hover: {
+            returnType: '返回类型：`{0}`',
+            createObject: '创建对象：{0}',
+            accessVariable: '访问变量：{0}',
+            type: '类型：{0}',
+            defineVariable: '定义变量：{0}',
+            variableType: '变量类型：{0}',
+            convertToJson: '强制转换为`JSON`类型',
+            convertToJsonString: '转换为`JSON`字符串',
+            convertToSql: '等同于`new SqlParameterValue(java.sql.Types.{0},{1})`',
+            convertTo: '转换为`{0}`',
+            accessEnum: '访问枚举：`{0}.{1}`',
+            accessAttribute: '访问属性：`{0}.{1}`',
+            attributeType: '属性类型：`{0}`',
+            accessMapOrArray: '访问Map或数组',
+            linqQuery: 'linq查询',
+            unknow: 'unknow'
+        },
+        completion: {
+            returnType: '返回类型：`{0}`',
+            convertTo: '转换为{0}',
+            convertToJsonString: 'json字符串',
+            convertToSql: 'sql参数类型',
+            break: '跳出循环',
+            continue: '继续循环',
+            import: '导入',
+            importAs: '导入并设置别名',
+            if: '判断',
+            for: '循环集合',
+            exit: '退出',
+            logInfo: 'info日志',
+            logDebug: 'debug日志',
+            logError: 'error日志',
+            assert: '校验参数',
+            select: 'LINQ查询',
+            throw: '抛出异常'
+        },
+        parse: {
+            expectLambda: '=> 或 ->',
+            expectBoolean: 'true 或 false',
+            expectDouble: '一个 double 类型数值',
+            expectDecimal: '一个 BigDecimal 类型数值',
+            expectFloat: '一个 float 类型数值',
+            expectLong: '一个 long 类型数值',
+            expectInteger: '一个 int 类型数值',
+            expectShort: '一个 short 类型数值',
+            expectByte: '一个 byte 类型数据',
+            expectCharacter: '一个 char 类型数据',
+            expectRegexp: '一个 正则表达式',
+            expectString: '一个 字符串',
+            expectIdentifier: '标识符',
+            stringCannotWrap: '{0}定义的字符串不能换行',
+            stringNotClosed: '字符串没有结束符{0}',
+            tripleQuoteNotClosed: '```需要以```结尾',
+            tripleQuoteLanguageRequired: '```后需要标识语言类型',
+            keywordAsVariableName: '变量名不能定义为关键字',
+            tryOnlyAssignment: 'try 括号中只允许写赋值语句',
+            operatorOnlyInLinq: '{0} 只能在Linq中使用',
+            noAliasAfterAsterisk: '* 后边不能跟别名',
+            noAliasAfterExpression: '{0} 后边不能跟别名',
+            needAtLeastOneField: '至少要查询一个字段'
+        }
     },
     api: {
         title: '接口信息',
@@ -209,6 +273,10 @@ export default {
             option: '接口选项',
             description: '接口描述',
             groupOption: '分组选项'
+        },
+        global: {
+            parameter: '全局请求参数',
+            header: '全局请求Header'
         },
         validateType: '验证方式',
         expression: '表达式或正则表达式',
@@ -422,5 +490,25 @@ export default {
         confirmClearMessages: '确定要清理所有对话记录吗？',
         clearMessages: '清理消息',
         wsNotConnected: '（WebSocket未连接，请先连接服务）'
+    },
+    assistant: {
+        welcomeTitle: '代码助手',
+        welcomeDesc: '我可以帮你按照 magic-api 脚本语法生成代码，请描述你的需求。',
+        insertCode: '插入代码',
+        replaceCode: '替换代码',
+        copy: '复制',
+        carryContext: '携带当前代码上下文',
+        clear: '清空',
+        placeholder: '描述需求，Enter 发送，Shift+Enter 换行',
+        requestFailed: '请求失败，状态码: ',
+        emptyResponse: '助手返回了空内容，请检查配置。',
+        configError: '请求失败，请检查助手配置是否正确。',
+        connectionInterrupted: '连接中断',
+        insertSuccess: '代码已插入到编辑器',
+        replaceConfirm: '确定要替换当前编辑器中的全部内容吗？',
+        replaceSuccess: '代码已替换',
+        copySuccess: '代码已复制到剪贴板',
+        copyFailed: '复制失败，请手动复制',
+        tips: '提示'
     }
 }

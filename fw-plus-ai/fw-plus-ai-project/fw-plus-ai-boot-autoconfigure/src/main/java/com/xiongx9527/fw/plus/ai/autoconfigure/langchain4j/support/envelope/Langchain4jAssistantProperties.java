@@ -1,8 +1,15 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.envelope;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * 助手（信封 + 结构化 + 分类 + 会话）配置项，前缀 {@code fw.plus.ai.langchain4j.assistant}。
@@ -20,6 +27,21 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *     max-attempts: 1                    # 分类判定尝试次数（含首次），必须 >= 1（默认不重试）
  *   session:
  *     window-size: 20                    # 会话窗口条数（读快照/写回用），必须 >= 1
+ *     facts:
+ *       enabled: false                   # 跨会话事实通道开关（默认关）；开启时 base-url 必填、缺失即启动失败
+ *       base-url: http://localhost:8000  # 独立 mem0 实例（OSS 无 /v1 前缀；网关要求时自行带前缀）
+ *       api-key:                         # X-API-Key 认证（留空不发送）
+ *       connect-timeout: 5s              # mem0 HTTP 连接超时（默认 5s）
+ *       read-timeout: 10s                # mem0 HTTP 读取超时（默认 10s）
+ *       extractor: mem0                  # mem0 | llm | rule | hybrid
+ *       write-mode: per-turn             # per-turn | batched | session-end
+ *       batch-size: 5                    # batched 攒满轮数（>= 1）
+ *       retriever: semantic              # semantic | keyword | hybrid | rerank
+ *       top-k: 5                         # 召回条数上限（>= 1）
+ *       max-facts-tokens: 500            # 事实段 token 软上限（>= 1；4 字符/token 折算）
+ *       extract-async: true              # 抽取默认异步；false = 请求线程内联
+ *       extract-model:                   # llm / hybrid 抽取模型 key 或 ChatLanguageModel FQCN（缺省：llm 跳过、hybrid 纯规则）
+ *       rerank-model:                    # retriever=rerank 的重排模型 key 或 ScoringModel FQCN（缺省：本地关键词重叠重排）
  * }</pre>
  *
  * <p><b>非法配置的处置</b>：启动阶段（{@link #validate()}，由 {@link InitializingBean} 在绑定完成后自动调用）
@@ -73,9 +95,11 @@ public class Langchain4jAssistantProperties implements InitializingBean {
 
 	// -------------------------------------------------- 内部工具
 
-	/** 非法配置异常：带上完整配置项与取值 */
+	/** 非法配置异常：带上完整配置项与取值；reason 为国际化 key */
 	static IllegalStateException illegal(String key, Object value, String reason) {
-		return new IllegalStateException("非法配置 " + PREFIX + "." + key + "=" + value + "：" + reason);
+		return new IllegalStateException(I18nMessageResolver.resolveKey(
+				"fw.ai.langchain4jAssistant.illegalConfig", PREFIX + "." + key, value,
+				I18nMessageResolver.resolveKey(reason)));
 	}
 
 	/** 运行期非法值告警：沿用旧值，不中断服务 */
@@ -153,7 +177,7 @@ public class Langchain4jAssistantProperties implements InitializingBean {
 
 		public void validate() {
 			if (maxAttempts < 1) {
-				throw illegal("structured.max-attempts", maxAttempts, "结构化重试上限必须 >= 1（含首次）");
+				throw illegal("structured.max-attempts", maxAttempts, "fw.ai.langchain4jAssistant.reason.1");
 			}
 		}
 
@@ -214,10 +238,10 @@ public class Langchain4jAssistantProperties implements InitializingBean {
 
 		public void validate() {
 			if (historyUserMessages < 0) {
-				throw illegal("classifier.history-user-messages", historyUserMessages, "分类历史条数必须 >= 0（0 = 只看本轮）");
+				throw illegal("classifier.history-user-messages", historyUserMessages, "fw.ai.langchain4jAssistant.reason.2");
 			}
 			if (maxAttempts < 1) {
-				throw illegal("classifier.max-attempts", maxAttempts, "分类尝试次数必须 >= 1（含首次）");
+				throw illegal("classifier.max-attempts", maxAttempts, "fw.ai.langchain4jAssistant.reason.3");
 			}
 		}
 
@@ -284,6 +308,9 @@ public class Langchain4jAssistantProperties implements InitializingBean {
 		/** 一级会话摘要配置 */
 		private final Summary summary = new Summary();
 
+		/** 跨会话事实记忆配置（独立事实通道，默认关闭） */
+		private final Facts facts = new Facts();
+
 		public int getWindowSize() {
 			return windowSize;
 		}
@@ -328,14 +355,19 @@ public class Langchain4jAssistantProperties implements InitializingBean {
 			return summary;
 		}
 
+		public Facts getFacts() {
+			return facts;
+		}
+
 		public void validate() {
 			if (windowSize < 1) {
-				throw illegal("session.window-size", windowSize, "会话窗口条数必须 >= 1");
+				throw illegal("session.window-size", windowSize, "fw.ai.langchain4jAssistant.reason.4");
 			}
 			if (idleTimeoutMinutes < 1) {
-				throw illegal("session.idle-timeout-minutes", idleTimeoutMinutes, "空闲超时分钟数必须 >= 1");
+				throw illegal("session.idle-timeout-minutes", idleTimeoutMinutes, "fw.ai.langchain4jAssistant.reason.5");
 			}
 			summary.validate();
+			facts.validate();
 		}
 
 		/** 运行期热更新：非法值保留旧值并告警 */
@@ -458,16 +490,239 @@ public class Langchain4jAssistantProperties implements InitializingBean {
 
 			public void validate() {
 				if (triggerTokens < 1) {
-					throw illegal("session.summary.trigger-tokens", triggerTokens, "摘要触发阈值必须 >= 1");
+					throw illegal("session.summary.trigger-tokens", triggerTokens, "fw.ai.langchain4jAssistant.reason.6");
 				}
 				if (keepTokens < 1) {
-					throw illegal("session.summary.keep-tokens", keepTokens, "摘要压缩目标必须 >= 1");
+					throw illegal("session.summary.keep-tokens", keepTokens, "fw.ai.langchain4jAssistant.reason.7");
 				}
 				if (maxSummaryTokens < 1) {
-					throw illegal("session.summary.max-summary-tokens", maxSummaryTokens, "摘要正文上限必须 >= 1");
+					throw illegal("session.summary.max-summary-tokens", maxSummaryTokens, "fw.ai.langchain4jAssistant.reason.8");
 				}
 				if (rebuildEvery < 0) {
-					throw illegal("session.summary.rebuild-every", rebuildEvery, "全量重摘间隔必须 >= 0（0 = 不重摘）");
+					throw illegal("session.summary.rebuild-every", rebuildEvery, "fw.ai.langchain4jAssistant.reason.9");
+				}
+			}
+		}
+
+		// -------------------------------------------------- 跨会话事实记忆
+
+		/** 跨会话事实记忆配置（独立事实通道；默认关闭，开启需独立 mem0 服务端） */
+		public static class Facts {
+
+			/** 事实通道开关（默认 {@code false}：不注入、不写入，行为与会话记忆基线一致） */
+			private boolean enabled = false;
+
+			/** 独立 mem0 实例地址（OSS 无 {@code /v1} 前缀；{@code enabled=true} 时必填，缺失即启动失败） */
+			private String baseUrl;
+
+			/** API Key（以 {@code X-API-Key} 头发送；留空不发送） */
+			private String apiKey = "";
+
+			/** 连接超时（默认 {@value #DEFAULT_CONNECT_TIMEOUT_SECONDS} 秒，与消息通道一致） */
+			private Duration connectTimeout = Duration.ofSeconds(DEFAULT_CONNECT_TIMEOUT_SECONDS);
+
+			/** 读取超时（默认 {@value #DEFAULT_READ_TIMEOUT_SECONDS} 秒，与消息通道一致） */
+			private Duration readTimeout = Duration.ofSeconds(DEFAULT_READ_TIMEOUT_SECONDS);
+
+			/** 抽取策略（默认 {@value #DEFAULT_EXTRACTOR}）：{@code mem0} | {@code llm} | {@code rule} | {@code hybrid} */
+			private String extractor = DEFAULT_EXTRACTOR;
+
+			/** 写入模式（默认 {@value #DEFAULT_WRITE_MODE}）：{@code per-turn} | {@code batched} | {@code session-end} */
+			private String writeMode = DEFAULT_WRITE_MODE;
+
+			/** 批量写入阈值（默认 {@value #DEFAULT_BATCH_SIZE} 轮；仅 {@code batched} 模式使用） */
+			private int batchSize = DEFAULT_BATCH_SIZE;
+
+			/** 召回策略（默认 {@value #DEFAULT_RETRIEVER}）：{@code semantic} | {@code keyword} | {@code hybrid} | {@code rerank} */
+			private String retriever = DEFAULT_RETRIEVER;
+
+			/** 召回条数上限（默认 {@value #DEFAULT_TOP_K}） */
+			private int topK = DEFAULT_TOP_K;
+
+			/** 事实段 token 软上限（默认 {@value #DEFAULT_MAX_FACTS_TOKENS}；4 字符/token 折算） */
+			private int maxFactsTokens = DEFAULT_MAX_FACTS_TOKENS;
+
+			/** 抽取是否异步（默认 {@code true}：后台线程执行不阻塞本轮；{@code false} = 请求线程内联） */
+			private boolean extractAsync = true;
+
+			/** 抽取模型（{@code llm}/{@code hybrid} 用：模型 key 或 ChatLanguageModel FQCN；缺省时 llm 跳过、hybrid 退化为 rule） */
+			private String extractModel;
+
+			/** 重排模型（{@code rerank} 用：模型 key 或 ScoringModel FQCN；缺省时用本地关键词重叠重排） */
+			private String rerankModel;
+
+			/** 连接超时默认秒数 */
+			public static final int DEFAULT_CONNECT_TIMEOUT_SECONDS = 5;
+
+			/** 读取超时默认秒数 */
+			public static final int DEFAULT_READ_TIMEOUT_SECONDS = 10;
+
+			/** 抽取策略默认值 */
+			public static final String DEFAULT_EXTRACTOR = "mem0";
+
+			/** 写入模式默认值 */
+			public static final String DEFAULT_WRITE_MODE = "per-turn";
+
+			/** 批量写入阈值默认值 */
+			public static final int DEFAULT_BATCH_SIZE = 5;
+
+			/** 召回策略默认值 */
+			public static final String DEFAULT_RETRIEVER = "semantic";
+
+			/** 召回条数上限默认值 */
+			public static final int DEFAULT_TOP_K = 5;
+
+			/** 事实段 token 上限默认值 */
+			public static final int DEFAULT_MAX_FACTS_TOKENS = 500;
+
+			/** 受支持的抽取策略名 */
+			static final Set<String> SUPPORTED_EXTRACTORS = Collections.unmodifiableSet(
+					new HashSet<String>(Arrays.asList("mem0", "llm", "rule", "hybrid")));
+
+			/** 受支持的写入模式名 */
+			static final Set<String> SUPPORTED_WRITE_MODES = Collections.unmodifiableSet(
+					new HashSet<String>(Arrays.asList("per-turn", "batched", "session-end")));
+
+			/** 受支持的召回策略名 */
+			static final Set<String> SUPPORTED_RETRIEVERS = Collections.unmodifiableSet(
+					new HashSet<String>(Arrays.asList("semantic", "keyword", "hybrid", "rerank")));
+
+			public boolean isEnabled() {
+				return enabled;
+			}
+
+			public void setEnabled(boolean enabled) {
+				this.enabled = enabled;
+			}
+
+			public String getBaseUrl() {
+				return baseUrl;
+			}
+
+			public void setBaseUrl(String baseUrl) {
+				this.baseUrl = baseUrl;
+			}
+
+			public String getApiKey() {
+				return apiKey;
+			}
+
+			public void setApiKey(String apiKey) {
+				this.apiKey = apiKey;
+			}
+
+			public Duration getConnectTimeout() {
+				return connectTimeout;
+			}
+
+			public void setConnectTimeout(Duration connectTimeout) {
+				this.connectTimeout = connectTimeout;
+			}
+
+			public Duration getReadTimeout() {
+				return readTimeout;
+			}
+
+			public void setReadTimeout(Duration readTimeout) {
+				this.readTimeout = readTimeout;
+			}
+
+			public String getExtractor() {
+				return extractor;
+			}
+
+			public void setExtractor(String extractor) {
+				this.extractor = extractor;
+			}
+
+			public String getWriteMode() {
+				return writeMode;
+			}
+
+			public void setWriteMode(String writeMode) {
+				this.writeMode = writeMode;
+			}
+
+			public int getBatchSize() {
+				return batchSize;
+			}
+
+			public void setBatchSize(int batchSize) {
+				this.batchSize = batchSize;
+			}
+
+			public String getRetriever() {
+				return retriever;
+			}
+
+			public void setRetriever(String retriever) {
+				this.retriever = retriever;
+			}
+
+			public int getTopK() {
+				return topK;
+			}
+
+			public void setTopK(int topK) {
+				this.topK = topK;
+			}
+
+			public int getMaxFactsTokens() {
+				return maxFactsTokens;
+			}
+
+			public void setMaxFactsTokens(int maxFactsTokens) {
+				this.maxFactsTokens = maxFactsTokens;
+			}
+
+			public boolean isExtractAsync() {
+				return extractAsync;
+			}
+
+			public void setExtractAsync(boolean extractAsync) {
+				this.extractAsync = extractAsync;
+			}
+
+			public String getExtractModel() {
+				return extractModel;
+			}
+
+			public void setExtractModel(String extractModel) {
+				this.extractModel = extractModel;
+			}
+
+			public String getRerankModel() {
+				return rerankModel;
+			}
+
+			public void setRerankModel(String rerankModel) {
+				this.rerankModel = rerankModel;
+			}
+
+			public void validate() {
+				if (batchSize < 1) {
+					throw illegal("session.facts.batch-size", batchSize, "fw.ai.langchain4jAssistant.reason.10");
+				}
+				if (topK < 1) {
+					throw illegal("session.facts.top-k", topK, "fw.ai.langchain4jAssistant.reason.11");
+				}
+				if (maxFactsTokens < 1) {
+					throw illegal("session.facts.max-facts-tokens", maxFactsTokens, "fw.ai.langchain4jAssistant.reason.12");
+				}
+				if (!SUPPORTED_EXTRACTORS.contains(extractor)) {
+					throw illegal("session.facts.extractor", extractor, "fw.ai.langchain4jAssistant.reason.13");
+				}
+				if (!SUPPORTED_WRITE_MODES.contains(writeMode)) {
+					throw illegal("session.facts.write-mode", writeMode, "fw.ai.langchain4jAssistant.reason.14");
+				}
+				if (!SUPPORTED_RETRIEVERS.contains(retriever)) {
+					throw illegal("session.facts.retriever", retriever, "fw.ai.langchain4jAssistant.reason.15");
+				}
+				if (connectTimeout == null || connectTimeout.isZero() || connectTimeout.isNegative()) {
+					throw illegal("session.facts.connect-timeout", connectTimeout, "fw.ai.langchain4jAssistant.reason.16");
+				}
+				if (readTimeout == null || readTimeout.isZero() || readTimeout.isNegative()) {
+					throw illegal("session.facts.read-timeout", readTimeout, "fw.ai.langchain4jAssistant.reason.17");
 				}
 			}
 		}

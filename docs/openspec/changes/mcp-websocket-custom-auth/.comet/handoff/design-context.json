@@ -1,0 +1,15 @@
+{
+  "change": "mcp-websocket-custom-auth",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "task_hash_policy": "task-content-v1",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "a50bc502a57a36b5fd6c007aa90a43b9b8385692c9b8c99c8329c3b7ebb15faf",
+  "files": [
+    { "path": "docs/openspec/changes/mcp-websocket-custom-auth/proposal.md", "sha256": "e48673a676ffc5d7773a38180ca6f388833faed8d9d03e260f785b36da4fb76a" },
+    { "path": "docs/openspec/changes/mcp-websocket-custom-auth/design.md", "sha256": "79ee5f6aec3a5a43c3d11bff2d633f33935b3ba2786efe5724a5230f5a8d2588" },
+    { "path": "docs/openspec/changes/mcp-websocket-custom-auth/tasks.md", "sha256": "990a2cd1f28bd5bd1bc4bf0a6b525ad47895d3aff60a75477ef0afe94ffefa75" },
+    { "path": "docs/openspec/changes/mcp-websocket-custom-auth/specs/auth-customization/spec.md", "sha256": "477a6ef0cd132a08a7ca460219c9e0dac8083c5501239e7e38e709badb035efd" }
+  ]
+}

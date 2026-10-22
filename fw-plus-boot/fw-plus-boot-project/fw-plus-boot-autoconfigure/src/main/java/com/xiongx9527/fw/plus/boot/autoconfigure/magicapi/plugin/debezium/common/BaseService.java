@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.debezium.commo
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicBaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.debezium.model.DebeziumDataSourceInfo;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 
 public interface BaseService extends MagicBaseService  {
 
@@ -21,7 +22,7 @@ public interface BaseService extends MagicBaseService  {
         try {
             validatePort(Integer.parseInt(entity.getPort()));
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("数据库端口(port)必须是有效的整数");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.debezium.portInvalid"));
         }
         validateRequiredField(entity.getUsername(), "username");
         validateRequiredField(entity.getPassword(), "password");

@@ -7,6 +7,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.model.Kaf
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.module.KafkaModule;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.service.KafkaDataSourceInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.service.KafkaSubscribeInfoMagicResourceStorage;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.ListUtils;
@@ -456,7 +457,7 @@ public class MagicKafkaController extends MagicController implements MagicExcept
             String names = referenced.stream()
                     .map(it -> it.getName() + "(" + it.getTopic() + ")")
                     .collect(Collectors.joining("、"));
-            return new JsonBean<>("该数据源被以下订阅配置引用，无法删除：" + names);
+            return new JsonBean<>(I18nMessageResolver.resolveKey("fw.boot.magicapi.kafka.datasourceReferencedBySubscribe", names));
         }
         return new JsonBean<>("ok");
     }
@@ -471,7 +472,7 @@ public class MagicKafkaController extends MagicController implements MagicExcept
     @ResponseBody
     public JsonBean<Object> doDeleteSubscribe(@RequestBody KafkaSubscribeInfo properties) {
         if (properties.isEnabled()) {
-            return new JsonBean<>("该订阅「" + properties.getName() + "」已启用，请先停用后再删除");
+            return new JsonBean<>(I18nMessageResolver.resolveKey("fw.boot.magicapi.kafka.subscribeEnabledCannotDelete", properties.getName()));
         }
         return new JsonBean<>("ok");
     }
@@ -499,7 +500,7 @@ public class MagicKafkaController extends MagicController implements MagicExcept
             return new JsonBean<>("ok");
         } catch (Exception e) {
             log.error("Kafka连接测试失败", e);
-            return new JsonBean<>("连接失败: 系统内部错误");
+            return new JsonBean<>(I18nMessageResolver.resolveKey("fw.boot.magicapi.kafka.connectFailedInternalError"));
         }
     }
 

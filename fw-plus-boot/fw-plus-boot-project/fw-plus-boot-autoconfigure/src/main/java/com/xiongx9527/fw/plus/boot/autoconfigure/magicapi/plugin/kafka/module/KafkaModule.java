@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.module;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.model.MagicDynamicKafkaDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.producer.KafkaProducer;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -89,7 +90,7 @@ public class KafkaModule implements DynamicAttribute<KafkaModule, KafkaModule>, 
     private KafkaModule createForDataSource(String dataSourceKey) {
         KafkaProducer producer = this.magicDynamicKafkaDataSource.getProducer(dataSourceKey);
         if (producer == null) {
-            throw new IllegalArgumentException("Kafka数据源不存在: " + dataSourceKey);
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.kafka.datasourceNotExists", dataSourceKey));
         }
         KafkaModule module = new KafkaModule(this.magicDynamicKafkaDataSource, producer);
         module.key = dataSourceKey;
@@ -149,7 +150,7 @@ public class KafkaModule implements DynamicAttribute<KafkaModule, KafkaModule>, 
      */
     public boolean send(String topic, Integer partition, String key, Object msg, boolean async) {
         if (this.kafkaProducer == null) {
-            throw new IllegalStateException("KafkaModule producer 未初始化，请指定数据源或确保已配置默认 KafkaTemplate");
+            throw new IllegalStateException(I18nMessageResolver.resolveKey("fw.boot.kafka.producerNotInitialized"));
         }
         return this.kafkaProducer.send(topic, partition, key, msg, async);
     }
@@ -235,18 +236,18 @@ public class KafkaModule implements DynamicAttribute<KafkaModule, KafkaModule>, 
     public AdminClient getAdminClient() {
         if (this.key == null) {
             if (this.kafkaProducer == null) {
-                throw new RuntimeException("KafkaModule producer 未初始化，无法获取 AdminClient");
+                throw new RuntimeException(I18nMessageResolver.resolveKey("fw.boot.kafka.producerNotInitializedForAdmin"));
             }
             Map<String, Object> configs = this.kafkaProducer.getProducer().getProducerFactory().getConfigurationProperties();
             String servers = (String) configs.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG);
             if (StringUtils.isBlank(servers)) {
-                throw new RuntimeException("Kafka AdminClient bootstrap.servers 未配置");
+                throw new RuntimeException(I18nMessageResolver.resolveKey("fw.boot.kafka.adminBootstrapServersNotConfigured"));
             }
             this.magicDynamicKafkaDataSource.createDefaultAdminClient(servers);
             return this.magicDynamicKafkaDataSource.getDefaultAdminClient();
         }
         if (this.kafkaProducer == null) {
-            throw new RuntimeException("KafkaModule producer 未初始化，无法获取 AdminClient，key: " + this.key);
+            throw new RuntimeException(I18nMessageResolver.resolveKey("fw.boot.kafka.producerNotInitializedForAdminWithKey", this.key));
         }
         this.magicDynamicKafkaDataSource.putAdminClient(this.kafkaProducer.getDataSourceInfo());
         return this.magicDynamicKafkaDataSource.getAdminClient(this.key);
@@ -278,7 +279,7 @@ public class KafkaModule implements DynamicAttribute<KafkaModule, KafkaModule>, 
             Map<String, TopicDescription> topicsMap = adminClient.describeTopics(topicNames).all().get();
             TopicDescription topicDescription = topicsMap.get(topic);
             if (topicDescription == null) {
-                throw new RuntimeException("Topic 不存在: " + topic);
+                throw new RuntimeException(I18nMessageResolver.resolveKey("fw.boot.kafka.topicNotExists", topic));
             }
             List<TopicPartition> partitions = topicDescription.partitions().stream()
                     .map(p -> new TopicPartition(topic, p.partition()))
@@ -300,7 +301,7 @@ public class KafkaModule implements DynamicAttribute<KafkaModule, KafkaModule>, 
             adminClient.alterConsumerGroupOffsets(group, offsetsToCommit).all().get();
         } catch (InterruptedException | ExecutionException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("修改消费者组偏移量失败", e);
+            throw new RuntimeException(I18nMessageResolver.resolveKey("fw.boot.kafka.resetConsumerGroupOffsetFailed"), e);
         }
     }
 

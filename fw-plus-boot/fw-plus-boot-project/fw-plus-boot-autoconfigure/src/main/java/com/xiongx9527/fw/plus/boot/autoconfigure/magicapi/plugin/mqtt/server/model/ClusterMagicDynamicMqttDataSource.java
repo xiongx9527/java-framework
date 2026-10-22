@@ -6,6 +6,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.cluster.Redi
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.cluster.RedisMqttMessageStore;
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.enums.RedisKeys;
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.listener.RedisMessageListener;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import net.dreamlu.iot.mqtt.core.server.MqttServer;
 import net.dreamlu.iot.mqtt.core.server.auth.IMqttServerAuthHandler;
@@ -209,7 +210,7 @@ public class ClusterMagicDynamicMqttDataSource extends BaseMagicDynamicMqttDataS
         }
         // 如果未找到合适的RedisTemplate实例，则抛出运行时异常
         if (this.redisTemplate == null) {
-            throw new RuntimeException("未找到RedisTemplate实例");
+            throw new RuntimeException(I18nMessageResolver.resolveKey("fw.boot.task.redisTemplateNotFound"));
         }
     }
 

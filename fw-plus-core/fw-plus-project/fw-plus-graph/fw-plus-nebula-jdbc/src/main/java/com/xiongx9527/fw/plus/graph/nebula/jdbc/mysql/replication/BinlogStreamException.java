@@ -3,10 +3,14 @@ package com.xiongx9527.fw.plus.graph.nebula.jdbc.mysql.replication;
 import com.xiongx9527.fw.plus.common.exception.BizException;
 
 public class BinlogStreamException extends BizException {
+
+	/** 状态码 50009005（SERVER/DATABASE/005 MySQL binlog 流读取失败） */
+	public static final int CODE = 50_009_005;
+
 	private final BinlogStreamFailure failure;
 
 	private BinlogStreamException(BinlogStreamFailure failure, String message) {
-		super(message);
+		super(CODE, message);
 		this.failure = failure;
 	}
 

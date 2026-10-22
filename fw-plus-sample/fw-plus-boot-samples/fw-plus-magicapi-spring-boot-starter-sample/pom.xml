@@ -241,11 +241,6 @@
         </dependency>
 
         <dependency>
-            <groupId>com.xiongx9527.fw.plus.boot</groupId>
-            <artifactId>fw-plus-magicapi-plugin-word</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>cn.dev33</groupId>
             <artifactId>sa-token-spring-boot-starter</artifactId>
         </dependency>

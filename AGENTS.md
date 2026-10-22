@@ -104,7 +104,6 @@ fw-plus/                      # 根目录（聚合项目，根 pom.xml 聚合下
 │   │       │   ├── fw-plus-magicapi-plugin-swagger/       # Swagger API 文档
 │   │       │   ├── fw-plus-magicapi-plugin-task/          # 定时任务
 │   │       │   ├── fw-plus-magicapi-plugin-vue3/          # Vue3 前端资源
-│   │       │   ├── fw-plus-magicapi-plugin-word/          # Word 文档操作
 │   │       │   └── fw-plus-magicapi-plugin-ws/            # WebSocket
 │   │       ├── fw-plus-mate-spring-boot-starter/          # Mate 租户/数据权限
 │   │       ├── fw-plus-mp-spring-boot-starter/            # MyBatis-Plus 增强

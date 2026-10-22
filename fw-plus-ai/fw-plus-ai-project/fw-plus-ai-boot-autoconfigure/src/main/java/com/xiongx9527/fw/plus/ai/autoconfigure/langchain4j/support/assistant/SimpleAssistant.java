@@ -9,6 +9,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatst
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.session.DailySessionIdResolver;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.session.SessionContext;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.session.SessionIdResolver;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -206,8 +207,8 @@ public class SimpleAssistant {
 		if (sessionId != null) {
 			String trimmed = sessionId.trim();
 			if (trimmed.contains(ChatMemoryIds.SEPARATOR)) {
-				throw new IllegalArgumentException("SimpleAssistant.session: sessionId 不允许包含分隔符 '"
-						+ ChatMemoryIds.SEPARATOR + "': " + sessionId);
+				throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+						"fw.ai.SimpleAssistant.sessionIdSeparator", ChatMemoryIds.SEPARATOR, sessionId));
 			}
 			if (!trimmed.isEmpty()) {
 				this.sessionId = trimmed;
@@ -257,11 +258,12 @@ public class SimpleAssistant {
 
 	private static String requireDimension(String name, String value) {
 		if (value == null || value.trim().isEmpty()) {
-			throw new IllegalArgumentException("SimpleAssistant.dimensions: " + name + " 不能为空");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.SimpleAssistant.dimensionRequired", name));
 		}
 		if (value.contains(ChatMemoryIds.SEPARATOR)) {
-			throw new IllegalArgumentException("SimpleAssistant.dimensions: " + name
-					+ " 不允许包含分隔符 '" + ChatMemoryIds.SEPARATOR + "': " + value);
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.SimpleAssistant.dimensionSeparator", name, ChatMemoryIds.SEPARATOR, value));
 		}
 		return value.trim();
 	}
@@ -289,8 +291,7 @@ public class SimpleAssistant {
 	private RetrievalAugmentor retrievalAugmentor() {
 		if (retrievalAugmentor == null) {
 			throw new IllegalStateException(
-					"未配置检索增强：请用 contentRetriever(...) / retrievalAugmentor(...) 配置，"
-							+ "或使用 AssistantBuilder.retrievalOnly() 只检索模式构建");
+					I18nMessageResolver.resolveKey("fw.ai.SimpleAssistant.retrievalAugmentorNotConfigured"));
 		}
 		return retrievalAugmentor;
 	}
@@ -322,8 +323,7 @@ public class SimpleAssistant {
 	private FilterableRetriever filterableRetriever() {
 		if (filterableRetriever == null) {
 			throw new IllegalStateException(
-					"未注入显式过滤检索回调：仅构建时配置了支持元数据过滤的检索器"
-							+ "才支持带过滤参数的 retrieve / chatWithFilter / streamWithFilter");
+					I18nMessageResolver.resolveKey("fw.ai.SimpleAssistant.filterableRetrieverNotConfigured"));
 		}
 		return filterableRetriever;
 	}
@@ -358,7 +358,7 @@ public class SimpleAssistant {
 	public IntentResult<?> classifyIntent(String message) {
 		if (intentClassifier == null) {
 			throw new IllegalStateException(
-					"未配置意图分类器：请经 AssistantBuilder.intent(...) 挂载后使用 classifyIntent");
+					I18nMessageResolver.resolveKey("fw.ai.SimpleAssistant.intentClassifierNotConfigured"));
 		}
 		return intentClassifier.classify(IntentContext.of(message));
 	}
@@ -393,7 +393,7 @@ public class SimpleAssistant {
 	public TokenStream streamWithFilter(String memoryId, String metadataCondition, String message) {
 		if (streamingTextModel == null) {
 			throw new IllegalStateException(
-					"未配置流式对话模型：streamWithFilter 需构建时配置 streamingModel(...) / StreamingChatLanguageModel");
+					I18nMessageResolver.resolveKey("fw.ai.SimpleAssistant.streamingModelNotConfigured"));
 		}
 		List<Content> contents = retrieve(memoryId, metadataCondition, message);
 		return new DirectTokenStream(filteredPrompt(contents, message), contents);
@@ -523,7 +523,8 @@ public class SimpleAssistant {
 		try {
 			return com.alibaba.fastjson2.JSON.parseObject(metadataCondition);
 		} catch (Exception e) {
-			throw new IllegalArgumentException("metadataCondition 不是合法的 JSON 对象: " + e.getMessage());
+			throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+					"fw.ai.SimpleAssistant.metadataConditionInvalidJson", e.getMessage()));
 		}
 	}
 
@@ -644,7 +645,8 @@ public class SimpleAssistant {
 	private static List<dev.langchain4j.data.message.Content> requireContents(
 			List<dev.langchain4j.data.message.Content> contents) {
 		if (contents == null || contents.isEmpty()) {
-			throw new IllegalArgumentException("contents 不能为空：请至少提供一条内容（文本/图片/文档等）");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.SimpleAssistant.contentsRequired"));
 		}
 		return contents;
 	}
@@ -690,10 +692,12 @@ public class SimpleAssistant {
 			done.await();
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
-			throw new IllegalStateException("流式文本补全被中断", e);
+			throw new IllegalStateException(
+					I18nMessageResolver.resolveKey("fw.ai.SimpleAssistant.streamTextInterrupted"), e);
 		}
 		if (error.get() != null) {
-			throw new IllegalStateException("流式文本补全失败", error.get());
+			throw new IllegalStateException(
+					I18nMessageResolver.resolveKey("fw.ai.SimpleAssistant.streamTextFailed"), error.get());
 		}
 		return full.toString();
 	}
@@ -1095,28 +1099,32 @@ public class SimpleAssistant {
 
 	private Assistant requireAssistant() {
 		if (assistant == null) {
-			throw new IllegalStateException("未配置 Assistant：请用含 Assistant 参数的构造方法构建");
+			throw new IllegalStateException(
+					I18nMessageResolver.resolveKey("fw.ai.SimpleAssistant.assistantNotConfigured"));
 		}
 		return assistant;
 	}
 
 	private ChatLanguageModel chatModel() {
 		if (chatModel == null) {
-			throw new IllegalStateException("未配置 ChatLanguageModel：请用构造方法传入");
+			throw new IllegalStateException(
+					I18nMessageResolver.resolveKey("fw.ai.SimpleAssistant.chatModelNotConfigured"));
 		}
 		return chatModel;
 	}
 
 	private LanguageModel languageModel() {
 		if (languageModel == null) {
-			throw new IllegalStateException("未配置 LanguageModel：请用构造方法传入");
+			throw new IllegalStateException(
+					I18nMessageResolver.resolveKey("fw.ai.SimpleAssistant.languageModelNotConfigured"));
 		}
 		return languageModel;
 	}
 
 	private StreamingLanguageModel streamingLanguageModel() {
 		if (streamingLanguageModel == null) {
-			throw new IllegalStateException("未配置 StreamingLanguageModel：请用构造方法传入");
+			throw new IllegalStateException(
+					I18nMessageResolver.resolveKey("fw.ai.SimpleAssistant.streamingLanguageModelNotConfigured"));
 		}
 		return streamingLanguageModel;
 	}

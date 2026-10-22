@@ -18,6 +18,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.Length
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.chatstore.ChatMemoryIds;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.memory.PersistToolResultsAiPersistenceStrategy;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.session.SessionIdResolver;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.agent.tool.ToolSpecifications;
@@ -56,7 +57,7 @@ import java.util.function.Function;
  * {@link MultimodalAssistantBridge}（多模态桥接），对外仍表现为 {@link Assistant} 接口。
  *
  * <p>所有依赖都由调用方作为参数传入（不做 Spring 注入）：实例从各类型脚本模块取，
- * 如 {@code langchain4jChatModel['key']}、{@code langchain4jChatMemoryStore['key']}、
+ * 如 {@code langchain4jChatModel['key']}、{@code langchain4j.memoryStore()}、
  * {@code langchain4jToolProvider['key']}、{@code langchain4jContentRetriever['key']}、
  * {@code langchain4jContentInjector.get(path)}。</p>
  *
@@ -264,7 +265,8 @@ public class AssistantBuilder {
 		return this;
 	}
 
-	/** 记忆存储：{@code langchain4jChatMemoryStore['key']}（记忆由 magic-api 函数托管，可持久化） */
+	/** 记忆存储：脚本侧取 {@code langchain4j.memoryStore()}（容器 ChatMemoryStore Bean：mem0 /
+	 * 自定义实现）；不传则每次 {@code build()} 自带进程内 store，会话历史随脚本调用结束而丢失 */
 	public AssistantBuilder memoryStore(ChatMemoryStore store) {
 		this.memoryStore = store;
 		return this;
@@ -412,7 +414,8 @@ public class AssistantBuilder {
 	 */
 	public <I extends Enum<I>> IntentRouting<I> intent(IntentClassifier<I> classifier) {
 		if (classifier == null) {
-			throw new IllegalArgumentException("classifier 不能为 null");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.AssistantBuilder.classifierRequired"));
 		}
 		this.intentClassifier = classifier;
 		return new IntentRouting<I>(this, classifier);
@@ -609,9 +612,8 @@ public class AssistantBuilder {
 		if (chatModel == null && streamingModel == null) {
 			// 无对话模型时允许只装配直连补全/检索能力：AiServices 侧不参与
 			if (languageModel == null && streamingLanguageModel == null && retrievalAugmentor == null) {
-				throw new IllegalArgumentException("构建助手缺少模型：请至少调用 chatModel(...) 或 "
-						+ "streamingModel(...) 之一指定；仅补全/检索形态请调用 languageModel(...)、"
-						+ "streamingLanguageModel(...)、retrievalAugmentor(...) 或 contentRetriever(...)");
+				throw new IllegalArgumentException(
+						I18nMessageResolver.resolveKey("fw.ai.AssistantBuilder.missingModel"));
 			}
 			return null;
 		}
@@ -746,8 +748,8 @@ public class AssistantBuilder {
 			AiPersistenceStrategy resolved = AiPersistenceStrategy.Registry.tryResolve(aiPersistenceStrategyKey);
 			if (resolved == null) {
 				if (strictAiPersistenceStrategy) {
-					throw new IllegalArgumentException("未知的 AI 持久化策略：'" + aiPersistenceStrategyKey
-							+ "'（未在 AiPersistenceStrategy.Registry 注册，也无法作为 AiPersistenceStrategy 类实例化）");
+					throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+							"fw.ai.AssistantBuilder.unknownPersistenceStrategy", aiPersistenceStrategyKey));
 				}
 				resolved = AiPersistenceStrategy.PERSIST_NON_TOOL_FINAL_ANSWER;
 			}

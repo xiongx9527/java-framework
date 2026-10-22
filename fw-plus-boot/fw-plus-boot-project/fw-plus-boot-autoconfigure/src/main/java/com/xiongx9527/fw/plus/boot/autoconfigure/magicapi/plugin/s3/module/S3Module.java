@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.module;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.file.MyFileStorageService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.model.MagicDynamicS3DataSource;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import org.apache.commons.lang3.StringUtils;
 import org.ssssssss.magicapi.core.annotation.MagicModule;
 import org.ssssssss.magicapi.core.model.Options;
@@ -60,7 +61,7 @@ public class S3Module implements DynamicAttribute<S3Module, S3Module>, DynamicMo
         if (StringUtils.isEmpty(dataSourceKey)) return this;
         MyFileStorageService service = this.magicDynamicS3DataSource.getFileStorageService(dataSourceKey);
         if (service == null) {
-            throw new IllegalArgumentException("未找到key为 '" + dataSourceKey + "' 的S3文件存储服务");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.s3.serviceNotFoundByKey", dataSourceKey));
         }
         return new S3Module(this.magicDynamicS3DataSource, service);
     }
@@ -80,7 +81,7 @@ public class S3Module implements DynamicAttribute<S3Module, S3Module>, DynamicMo
         }
         MyFileStorageService service = this.magicDynamicS3DataSource.getFileStorageService(key);
         if (service == null) {
-            throw new IllegalArgumentException("未找到key为 '" + key + "' 的S3文件存储服务");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.s3.serviceNotFoundByKey", key));
         }
         return new S3Module(this.magicDynamicS3DataSource, service);
     }

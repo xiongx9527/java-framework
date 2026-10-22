@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.reso
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jModelTypes;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 import org.ssssssss.magicapi.core.resource.Resource;
 import org.ssssssss.magicapi.core.service.MagicResourceService;
@@ -72,20 +73,21 @@ public abstract class AbstractLangchain4jModelResourceStorage<T extends Langchai
     public void validate(T entity) {
         validateRequired(entity.getKey(), "key");
         if (!entity.getKey().matches("^[\\w.-]+$")) {
-            throw new IllegalArgumentException("key只能包含字母、数字、下划线、点与中划线");
+            throw new IllegalArgumentException(
+                I18nMessageResolver.resolveKey("fw.ai.AbstractLangchain4jModelResourceStorage.keyPatternInvalid"));
         }
         validateRequired(entity.getProvider(), "provider");
         if (!providers.contains(entity.getProvider())) {
-            throw new IllegalArgumentException(String.format(
-                "provider '%s' 不受支持，可用 provider: %s", entity.getProvider(), providers));
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                "fw.ai.AbstractLangchain4jModelResourceStorage.providerUnsupported", entity.getProvider(), providers));
         }
         validateKeyUnique(entity);
     }
 
     protected void validateRequired(String value, String field) {
         if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException(field + "不能为空");
-        }
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                "fw.ai.AbstractLangchain4jModelResourceStorage.fieldRequired", field));        }
     }
 
     private void validateKeyUnique(T entity) {
@@ -98,7 +100,8 @@ public abstract class AbstractLangchain4jModelResourceStorage<T extends Langchai
                 .filter(it -> !Objects.equals(it.getId(), entity.getId()))
                 .noneMatch(it -> Objects.equals(it.getKey(), entity.getKey()));
         if (!noneMatchKey) {
-            throw new IllegalArgumentException(String.format("key '%s' 已存在，请使用其他 key", entity.getKey()));
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                "fw.ai.AbstractLangchain4jModelResourceStorage.keyDuplicated", entity.getKey()));
         }
     }
 

@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.server.se
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.server.model.MqttDataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.server.model.MqttSubscribeInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.common.BaseService;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.ssssssss.magicapi.core.service.AbstractPathMagicResourceStorage;
@@ -65,14 +66,14 @@ public class MqttSubscribeInfoMagicResourceStorage extends AbstractPathMagicReso
         if (map.containsKey(entity.getKey())) {
             Map<String, MqttSubscribeInfo> kafkaDataSourceInfoMap = ListUtils.emptyIfNull(map.get(entity.getKey())).stream().collect(Collectors.toMap(MqttSubscribeInfo::getTopic, val -> val, (k1, k2) -> k1));
             if (kafkaDataSourceInfoMap.containsKey(entity.getTopic()) && !kafkaDataSourceInfoMap.get(entity.getTopic()).getId().equals(entity.getId())) {
-                throw new IllegalArgumentException(String.format("Topic:%s 已存在", entity.getTopic()));
+                throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.mqtt.topicExists", entity.getTopic()));
             }
         }
         // 验证数据源key是否存在
         MqttDataSourceInfoMagicResourceStorage kafkaDataSourceInfoMagicResourceStorage = SpringUtils.getBean(MqttDataSourceInfoMagicResourceStorage.class);
         Map<String, MqttDataSourceInfo> kafkaDataSourceInfoMap = ListUtils.emptyIfNull(kafkaDataSourceInfoMagicResourceStorage.findAll()).stream().collect(Collectors.toMap(MqttDataSourceInfo::getKey, val -> val, (k1, k2) -> k1));
         if (!kafkaDataSourceInfoMap.containsKey(entity.getKey())) {
-            throw new IllegalArgumentException(String.format("数据源key:%s 不存在", entity.getKey()));
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.mqtt.datasourceKeyNotExists", entity.getKey()));
         }
     }
 

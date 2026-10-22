@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.service;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.model.WsDataSourceInfo;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 import org.ssssssss.magicapi.core.resource.Resource;
 import org.ssssssss.magicapi.core.service.MagicResourceService;
@@ -117,7 +118,7 @@ public class WsDataSourceInfoMagicResourceStorage implements MagicResourceStorag
 			WsDataSourceInfo oldWsDataSourceInfo = magicResourceService.file(entity.getId());
 			if (null != oldWsDataSourceInfo) {
 				if (!oldWsDataSourceInfo.getKey().equals(entity.getKey())) {
-					throw new IllegalArgumentException("key不可修改");
+					throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.ws.keyImmutable"));
 				}
 			}
 		}
@@ -139,7 +140,7 @@ public class WsDataSourceInfoMagicResourceStorage implements MagicResourceStorag
 				.noneMatch(it -> Objects.equals(it.getKey(), key));
 
         if (!noneMatchKey) {
-            throw new IllegalArgumentException(String.format("数据源唯一标识(key) '%s' 已存在，请使用其他唯一标识", key));
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.ws.datasourceKeyExists", key));
         }
     }
 

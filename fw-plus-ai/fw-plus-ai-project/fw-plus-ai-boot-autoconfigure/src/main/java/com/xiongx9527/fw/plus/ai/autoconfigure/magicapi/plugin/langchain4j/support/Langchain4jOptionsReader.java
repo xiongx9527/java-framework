@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.support;
 
 import com.alibaba.fastjson2.JSON;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 
 import java.time.Duration;
@@ -38,7 +39,8 @@ public class Langchain4jOptionsReader {
     public String required(String name) {
         String value = string(name, null);
         if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException(path(name) + " 不能为空（请在 datasource options 或 JVM 参数 " + jvmKey(name) + " 中配置）");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                    "fw.ai.Langchain4jOptionsReader.required", path(name), jvmKey(name)));
         }
         return value;
     }
@@ -55,7 +57,8 @@ public class Langchain4jOptionsReader {
         }
         long parsed = toLong(name, value);
         if (parsed > Integer.MAX_VALUE || parsed < Integer.MIN_VALUE) {
-            throw new IllegalArgumentException(path(name) + " 超出 int 范围: " + parsed);
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                    "fw.ai.Langchain4jOptionsReader.intOutOfRange", path(name), parsed));
         }
         return (int) parsed;
     }
@@ -80,7 +83,8 @@ public class Langchain4jOptionsReader {
         try {
             return Double.valueOf(String.valueOf(value).trim());
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException(path(name) + " 不是合法数字: " + value);
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                    "fw.ai.Langchain4jOptionsReader.notNumber", path(name), value));
         }
     }
 
@@ -95,7 +99,8 @@ public class Langchain4jOptionsReader {
         try {
             return Float.parseFloat(String.valueOf(value).trim());
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException(path(name) + " 不是合法数字: " + value);
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                    "fw.ai.Langchain4jOptionsReader.notNumber", path(name), value));
         }
     }
 
@@ -111,7 +116,8 @@ public class Langchain4jOptionsReader {
         if ("true".equalsIgnoreCase(text) || "false".equalsIgnoreCase(text)) {
             return Boolean.parseBoolean(text);
         }
-        throw new IllegalArgumentException(path(name) + " 不是合法布尔值: " + value);
+        throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                "fw.ai.Langchain4jOptionsReader.notBoolean", path(name), value));
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -126,7 +132,8 @@ public class Langchain4jOptionsReader {
                 return constant;
             }
         }
-        throw new IllegalArgumentException(path(name) + " 不是合法枚举值，可选: " + Arrays.toString(type.getEnumConstants()));
+        throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                "fw.ai.Langchain4jOptionsReader.notEnum", path(name), Arrays.toString(type.getEnumConstants())));
     }
 
     public Duration duration(String name, Duration defaultValue) {
@@ -155,7 +162,8 @@ public class Langchain4jOptionsReader {
                 default: throw new NumberFormatException(text);
             }
         } catch (RuntimeException e) {
-            throw new IllegalArgumentException(path(name) + " 不是合法时长（支持 60s/2m/PT1M/毫秒）: " + value);
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                    "fw.ai.Langchain4jOptionsReader.notDuration", path(name), value));
         }
     }
 
@@ -201,7 +209,8 @@ public class Langchain4jOptionsReader {
         if (value instanceof String) {
             return parseStringMap(name, ((String) value).trim());
         }
-        throw new IllegalArgumentException(path(name) + " 不是合法键值表: " + value);
+        throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                "fw.ai.Langchain4jOptionsReader.notStringMap", path(name), value));
     }
 
     private Map<String, String> parseStringMap(String name, String text) {
@@ -215,7 +224,8 @@ public class Langchain4jOptionsReader {
                     result.put(entry.getKey(), entry.getValue() == null ? null : String.valueOf(entry.getValue()));
                 }
             } catch (RuntimeException e) {
-                throw new IllegalArgumentException(path(name) + " 不是合法键值表（JSON 对象解析失败）: " + text);
+                throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                        "fw.ai.Langchain4jOptionsReader.notStringMapJson", path(name), text));
             }
             return result;
         }
@@ -227,8 +237,8 @@ public class Langchain4jOptionsReader {
             }
             int index = item.indexOf('=');
             if (index <= 0) {
-                throw new IllegalArgumentException(
-                        path(name) + " 不是合法键值表（支持 JSON 对象或 k=v 逗号分隔）: " + text);
+                throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                        "fw.ai.Langchain4jOptionsReader.notStringMapFormat", path(name), text));
             }
             result.put(item.substring(0, index).trim(), item.substring(index + 1).trim());
         }
@@ -242,7 +252,8 @@ public class Langchain4jOptionsReader {
         try {
             return Long.parseLong(String.valueOf(value).trim());
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException(path(name) + " 不是合法整数: " + value);
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                    "fw.ai.Langchain4jOptionsReader.notInteger", path(name), value));
         }
     }
 

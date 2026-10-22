@@ -12,6 +12,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.config.McpHeaderNames;
 import com.xiongx9527.fw.plus.ai.autoconfigure.mcp.server.runtime.McpServerRuntime;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.model.MagicDynamicMcpServer;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.mcp.notify.MagicMcpNotifier;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.ssssssss.magicapi.core.config.MagicConfiguration;
@@ -88,7 +89,7 @@ public class MagicMcpDiagnosticController extends MagicController implements Mag
 			HttpServletRequest request, HttpServletResponse response) throws IOException {
 		String uri = body.get("uri");
 		if (uri == null || uri.trim().isEmpty()) {
-			return new JsonBean<>("uri 不能为空");
+			return new JsonBean<>(I18nMessageResolver.resolveKey("fw.ai.magicapi.mcpDiagnostic.uriRequired"));
 		}
 		String key = body.get("key");
 
@@ -103,14 +104,14 @@ public class MagicMcpDiagnosticController extends MagicController implements Mag
 		FeatureMgr featureMgr = runtime.getFeatureMgr();
 		ServerStoreResource resource = featureMgr.getResourceStore().get(uri);
 		if (resource == null) {
-			return new JsonBean<>("资源不存在: " + uri);
+			return new JsonBean<>(I18nMessageResolver.resolveKey("fw.ai.magicapi.mcpDiagnostic.resourceNotFound", uri));
 		}
 
 		try {
 			return new JsonBean<>(resource.getMethod().invoke(resource.getInstance()));
 		} catch (Exception e) {
 			log.warn("诊断执行 resources/read 失败，uri={}", uri, e);
-			return new JsonBean<>("读取失败: " + e.getMessage());
+			return new JsonBean<>(I18nMessageResolver.resolveKey("fw.ai.magicapi.mcpDiagnostic.readFailed", e.getMessage()));
 		}
 	}
 
@@ -123,7 +124,7 @@ public class MagicMcpDiagnosticController extends MagicController implements Mag
 			HttpServletRequest request, HttpServletResponse response) throws IOException {
 		String name = body.get("name");
 		if (name == null || name.trim().isEmpty()) {
-			return new JsonBean<>("name 不能为空");
+			return new JsonBean<>(I18nMessageResolver.resolveKey("fw.ai.magicapi.mcpDiagnostic.nameRequired"));
 		}
 
 		McpServerRuntime runtime = resolveRuntime(body.get("key"));
@@ -137,14 +138,14 @@ public class MagicMcpDiagnosticController extends MagicController implements Mag
 		FeatureMgr featureMgr = runtime.getFeatureMgr();
 		ServerStorePrompt prompt = featureMgr.getPromptStore().get(name);
 		if (prompt == null) {
-			return new JsonBean<>("提示词不存在: " + name);
+			return new JsonBean<>(I18nMessageResolver.resolveKey("fw.ai.magicapi.mcpDiagnostic.promptNotFound", name));
 		}
 
 		try {
 			return new JsonBean<>(prompt.getMethod().invoke(prompt.getInstance()));
 		} catch (Exception e) {
 			log.warn("诊断执行 prompts/get 失败，name={}", name, e);
-			return new JsonBean<>("读取失败: " + e.getMessage());
+			return new JsonBean<>(I18nMessageResolver.resolveKey("fw.ai.magicapi.mcpDiagnostic.readFailed", e.getMessage()));
 		}
 	}
 

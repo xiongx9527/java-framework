@@ -13,7 +13,9 @@ import dev.langchain4j.model.output.Response;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.injector.ContentInjector;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
+import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.ObjectProvider;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -200,6 +202,50 @@ class Langchain4jModuleTest {
         assertThatThrownBy(() -> assistant.chat("s-1", "", "你好"))
                 .as("0.35.0 只配流式模型时，同步 chat 会因缺少 chatLanguageModel 而失败")
                 .isInstanceOf(NullPointerException.class);
+    }
+
+    /** 容器 ChatMemoryStore 暴露给脚本：自建助手经 memoryStore(...) 复用同一份存储 */
+    @Test
+    void shouldExposeContainerMemoryStore() {
+        InMemoryChatMemoryStore store = new InMemoryChatMemoryStore();
+        Langchain4jModule moduleWithStore = new Langchain4jModule(null, null, null, null, null,
+                providerOf(store));
+
+        assertThat(moduleWithStore.memoryStore()).isSameAs(store);
+    }
+
+    /** 未装配 ChatMemoryStore 时 memoryStore() 快速失败并提示注册方式 */
+    @Test
+    void shouldFailFastWhenNoMemoryStore() {
+        assertThatThrownBy(() -> module.memoryStore())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("ChatMemoryStore")
+                .hasMessageContaining("mem0");
+    }
+
+    /** 单元素 ObjectProvider 替身 */
+    private static <T> ObjectProvider<T> providerOf(T instance) {
+        return new ObjectProvider<T>() {
+            @Override
+            public T getObject() {
+                return instance;
+            }
+
+            @Override
+            public T getObject(Object... args) {
+                return instance;
+            }
+
+            @Override
+            public T getIfAvailable() {
+                return instance;
+            }
+
+            @Override
+            public T getIfUnique() {
+                return instance;
+            }
+        };
     }
 
     /** 记录每次请求、按序回放的对话模型替身 */

@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant;
 
 import com.alibaba.fastjson2.JSON;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.Content;
@@ -183,14 +184,15 @@ class MultimodalAssistantBridge implements Assistant {
 		if (context instanceof Map) {
 			return JSON.toJSONString(context);
 		}
-		throw new IllegalArgumentException("context 仅接受 String 或 Map（Map 序列化为 JSON），实际类型："
-				+ context.getClass().getName());
+		throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+				"fw.ai.MultimodalAssistantBridge.contextTypeUnsupported", context.getClass().getName()));
 	}
 
 	/** contents 校验：null 或空列表视为调用错误 */
 	private static List<Content> checkedContents(List<Content> contents) {
 		if (contents == null || contents.isEmpty()) {
-			throw new IllegalArgumentException("contents 不能为空：请至少提供一条内容（文本/图片/文档等）");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.MultimodalAssistantBridge.contentsRequired"));
 		}
 		return contents;
 	}
@@ -276,13 +278,15 @@ class MultimodalAssistantBridge implements Assistant {
 
 	private void requireChatModel() {
 		if (chatModel == null) {
-			throw new IllegalStateException("多模态同步对话需配置 chatModel(...)：未找到 ChatLanguageModel");
+			throw new IllegalStateException(
+					I18nMessageResolver.resolveKey("fw.ai.MultimodalAssistantBridge.chatModelNotConfigured"));
 		}
 	}
 
 	private void requireStreamingModel() {
 		if (streamingModel == null) {
-			throw new IllegalStateException("多模态流式对话需配置 streamingModel(...)：未找到 StreamingChatLanguageModel");
+			throw new IllegalStateException(
+					I18nMessageResolver.resolveKey("fw.ai.MultimodalAssistantBridge.streamingModelNotConfigured"));
 		}
 	}
 

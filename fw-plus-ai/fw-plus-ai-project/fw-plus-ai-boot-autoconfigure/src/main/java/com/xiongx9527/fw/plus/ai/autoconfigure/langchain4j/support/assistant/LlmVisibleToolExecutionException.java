@@ -1,5 +1,8 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant;
 
+import com.xiongx9527.fw.plus.common.exception.BizException;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
+
 /**
  * 「抛出消息给 LLM」语义标记异常：工具方法内部抛出本异常时，其消息作为工具执行结果
  * 回传给 LLM，由 LLM 向用户解释并继续对话，而不是炸给业务调用方。
@@ -15,12 +18,15 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.assistant;
  * 无需适配。</li>
  * </ul>
  */
-public class LlmVisibleToolExecutionException extends RuntimeException {
+public class LlmVisibleToolExecutionException extends BizException {
 
 	private static final long serialVersionUID = 1L;
 
+	/** 状态码 50005001（SERVER/BUSINESS/001 工具业务异常回传 LLM） */
+	public static final int CODE = 50_005_001;
+
 	private LlmVisibleToolExecutionException(String message) {
-		super(message);
+		super(CODE, message);
 	}
 
 	/**
@@ -29,7 +35,8 @@ public class LlmVisibleToolExecutionException extends RuntimeException {
 	 */
 	public static LlmVisibleToolExecutionException from(String message) {
 		if (message == null || message.trim().isEmpty()) {
-			throw new IllegalArgumentException("回传给 LLM 的消息不能为空");
+			throw new IllegalArgumentException(
+					I18nMessageResolver.resolveKey("fw.ai.LlmVisibleToolExecutionException.messageBlank"));
 		}
 		return new LlmVisibleToolExecutionException(message);
 	}

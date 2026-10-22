@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.service;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.model.KafkaDataSourceInfo;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import org.ssssssss.magicapi.core.config.JsonCodeConstants;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 import org.ssssssss.magicapi.core.resource.Resource;
@@ -127,7 +128,7 @@ public class KafkaDataSourceInfoMagicResourceStorage implements MagicResourceSto
             KafkaDataSourceInfo oldKafkaDataSourceInfo =  magicResourceService.file(entity.getId());
             if (null != oldKafkaDataSourceInfo) {
                 if (!oldKafkaDataSourceInfo.getKey().equals(entity.getKey())) {
-                    throw new IllegalArgumentException("key不可修改");
+                    throw new IllegalArgumentException(I18nMessageResolver.resolveKey("fw.boot.kafka.keyImmutable"));
                 }
             }
         }

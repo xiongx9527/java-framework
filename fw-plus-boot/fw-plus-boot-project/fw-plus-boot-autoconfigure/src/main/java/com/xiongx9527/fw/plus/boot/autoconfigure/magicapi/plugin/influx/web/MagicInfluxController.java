@@ -4,6 +4,7 @@ import com.influxdb.client.InfluxDBClient;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.influx.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.influx.model.MagicDynamicInfluxDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.influx.model.InfluxDataSourceInfo;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -47,7 +48,7 @@ public class MagicInfluxController extends MagicController implements MagicExcep
             // 测试连接是否可用
             boolean isAvailable = influxDBClient.ping();
             if (!isAvailable) {
-                return new JsonBean<>("连接失败");
+                return new JsonBean<>(I18nMessageResolver.resolveKey("fw.boot.magicapi.influx.connectFailed"));
             }
             return new JsonBean<>("ok");
         } catch (Exception e) {

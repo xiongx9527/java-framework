@@ -8,6 +8,7 @@ import com.fhs.trans.controller.TransProxyController;
 import com.fhs.trans.service.impl.SimpleTransService;
 import com.fhs.trans.vo.BasicVO;
 import com.fhs.trans.vo.FindByIdsQueryPayload;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -60,11 +61,12 @@ public class MateEasyTransProxyController extends TransProxyController {
     @Override
     @PostMapping("/{targetClass}/findByIds")
     public List findByIds(@PathVariable("targetClass") String targetClass, @RequestBody FindByIdsQueryPayload payload) throws ClassNotFoundException {
-        Assert.notNull(targetClass, "targetClass 不可为空");
+        Assert.notNull(targetClass, I18nMessageResolver.resolveKey("fw.easytrans.proxy.targetClassRequired"));
         List<? extends Serializable> ids = payload.getIds();
         Class<? extends VO> poClazz =  (Class<? extends VO>) Class.forName(targetClass);
         if(customRpc && !poClazz.isAnnotationPresent(RpcTrans.class)){
-            throw new IllegalArgumentException(targetClass + "没有被标记@RpcTrans 注解");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                    "fw.easytrans.MateEasyTransProxyController.notMarkedRpcTrans", targetClass));
         }
         Class fieldType = getPkeyFieldType(poClazz);
         // 如果字段类型不是String，则转换
@@ -126,12 +128,13 @@ public class MateEasyTransProxyController extends TransProxyController {
     @Override
     @GetMapping("/{targetClass}/findById/{id}")
     public Object findById(@PathVariable("targetClass") String targetClass, @PathVariable("id") String id, @RequestParam("uniqueField")String uniqueField, @RequestParam("targetFields")String targetFields) throws ClassNotFoundException, IllegalAccessException {
-        Assert.notNull(targetClass, "targetClass 不可为空");
-        Assert.notNull(targetClass, "id 不可为空");
+        Assert.notNull(targetClass, I18nMessageResolver.resolveKey("fw.easytrans.proxy.targetClassRequired"));
+        Assert.notNull(targetClass, I18nMessageResolver.resolveKey("fw.easytrans.proxy.idRequired"));
         Serializable sid = id;
         Class<? extends VO> poClazz =  (Class<? extends VO>) Class.forName(targetClass);
         if(customRpc && !poClazz.isAnnotationPresent(RpcTrans.class)){
-            throw new IllegalArgumentException(targetClass + "没有被标记@RpcTrans 注解");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey(
+                    "fw.easytrans.MateEasyTransProxyController.notMarkedRpcTrans", targetClass));
         }
         Class fieldType = getPkeyFieldType(poClazz);
         // 如果字段类型不是String，则转换
