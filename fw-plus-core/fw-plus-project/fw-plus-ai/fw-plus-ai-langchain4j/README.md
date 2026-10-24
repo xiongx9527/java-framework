@@ -1,5 +1,7 @@
 # fw-plus-ai-langchain4j Java 8 兼容覆盖说明
 
+> 本文件主体是 `dev` 分支（LangChain4j `0.35` / Java 8）的覆盖清单。`springboot3` 分支（LangChain4j `1.22.0` / JDK 17）只保留 Nebula、Neo4j 两个模块，差异见「springboot3 分支（LangChain4j 1.22.0）现状」。
+
 ## 背景
 
 fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是兼顾功能和 Java 8 兼容性的较高可用版本；但本目录下部分扩展模块的 `0.35` 版本源码已经使用了 Java 8 不支持的类或方法。
@@ -43,6 +45,33 @@ fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是�
 - NebulaGraph 的 DDL 需要心跳同步，`CREATE TAG` 之后会轮询 `DESCRIBE TAG` 等待生效（超时 `awaitSchemaTimeout`，默认 60 秒）。
 - 文档 id 即点 vid，默认生成 32 位不带横线的 UUID，图空间的 `vid_type` 需要容纳该长度，例如 `FIXED_STRING(32)`。
 - Nebula 的 schema 归属于图空间，`withBasicAuth(...)` 必须同时指定 `spaceName`；`NebulaGraph` 只能采样数据推断边的起点/终点 tag。
+
+## springboot3 分支（LangChain4j 1.22.0）现状
+
+> 上文的覆盖清单描述的是 `dev` 分支（LangChain4j `0.35` / Java 8）的状态。本节说明 `springboot3` 分支（LangChain4j `1.22.0` / JDK 17）的差异。
+
+本目录在 `springboot3` 分支只剩两个模块：
+
+| 本地模块 | 状态 |
+| --- | --- |
+| `fw-plus-ai-langchain4j-nebula` | 保留：fw-plus 自研的 NebulaGraph 向量库扩展，社区无对应制品 |
+| `fw-plus-ai-langchain4j-neo4j` | 保留：只含 `Neo4jGraph`、`Neo4jException`、`Neo4jContentRetriever` |
+
+### 上游把 Redis / Neo4j 集成搬到了 community 坐标
+
+LangChain4j `1.x` 把多个集成从主仓搬到 `langchain4j-community`，老坐标随之停更，与 core `1.x` 不兼容：
+
+| 能力 | 老坐标（已停更） | community 坐标（可用） |
+| --- | --- | --- |
+| Redis | `dev.langchain4j:langchain4j-redis` 停在 `1.0.0-alpha1`（`findRelevant` 旧 API） | `langchain4j-community-redis:1.22.0-beta32`（core `1.22.0` + jedis `7.2.1`）：embedding store、chat memory store 全覆盖 |
+| Neo4j | `dev.langchain4j:langchain4j-neo4j` 停在 `1.0.0-beta2`（`Neo4jContentRetriever` 用 `ChatLanguageModel` 旧 API） | `langchain4j-community-neo4j:1.22.0-beta32`（core `1.22.0` + neo4j-java-driver `6.3.0`）：embedding store、ingestor、chat memory store；`langchain4j-community-neo4j-retriever:1.22.0-beta32`：`Neo4jGraph`、`Neo4jText2CypherRetriever`、`KnowledgeGraphWriter` |
+
+处理方式：
+
+- **Redis**：AI 层直接依赖 `langchain4j-community-redis`，`Langchain4jRedisModelFactory` 用社区版 `RedisEmbeddingStore`；本仓不再自研 Redis 覆盖模块。
+- **Neo4j**：`fw-plus-ai-boot-autoconfigure` 依赖 `langchain4j-community-neo4j`，`Langchain4jNeo4jModelFactory` 用社区版 `Neo4jEmbeddingStore`；本模块内已不含 `Neo4jEmbeddingStore` / `Neo4jEmbeddingUtils`（随 1.x 迁移移除）。
+- **保留 `fw-plus-ai-langchain4j-neo4j` 的原因**：社区版的类在 `dev.langchain4j.community.rag.content.retriever.neo4j` 包下、检索器类名为 `Neo4jText2CypherRetriever`（Text2Cypher，另带 `sample`/`maxRels` 与结构化 schema），与本模块的 `dev.langchain4j.store.graph.neo4j.Neo4jGraph`、`dev.langchain4j.rag.content.retriever.neo4j.Neo4jContentRetriever` 包名和类名都不同；本模块已适配到 1.x API（`ChatModel`、`rag.query.Query`、`rag.content.Content`），保留可维持对外 API 稳定。
+- 若将来决定下掉本模块、改用 community 制品，需同步处理：`fw-plus-dependencies` 的 `dependencyManagement`、`fw-plus-ai-boot-autoconfigure` 与 `fw-plus-ai-magicapi-sample` 的依赖声明、聚合 `pom.xml` 的 module 行，以及本节说明。
 
 ## Java 8 / Java 17 依赖版本对照
 
