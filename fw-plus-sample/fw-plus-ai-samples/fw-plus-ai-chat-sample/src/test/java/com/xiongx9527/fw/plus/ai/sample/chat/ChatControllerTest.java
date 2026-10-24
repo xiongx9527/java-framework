@@ -6,9 +6,9 @@ import dev.langchain4j.data.message.Content;
 import dev.langchain4j.data.message.TextContent;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -30,7 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * 控制器层测试：同步接口与 SSE 流式接口的契约。
  *
- * <p>测试不连 Ollama，用 {@link MockBean} 替换 Assistant；未配置知识库 base-url，
+ * <p>测试不连 Ollama，用 {@link MockitoBean} 替换 Assistant；未配置知识库 base-url，
  * RAG Bean 不装配，同时覆盖降级路径。</p>
  */
 @SpringBootTest
@@ -48,7 +48,7 @@ class ChatControllerTest {
 	@Autowired
 	private MockMvc mockMvc;
 
-	@MockBean
+	@MockitoBean
 	private Assistant assistant;
 
 	@Autowired

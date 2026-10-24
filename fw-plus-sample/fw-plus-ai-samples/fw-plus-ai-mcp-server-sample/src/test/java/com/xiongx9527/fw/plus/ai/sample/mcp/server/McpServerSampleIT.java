@@ -6,7 +6,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -131,7 +131,7 @@ public class McpServerSampleIT {
         ResponseEntity<String> initialized = restTemplate.exchange(
                 path, HttpMethod.POST,
                 new HttpEntity<>(rpc(null, "notifications/initialized", null), sessionHeaders(sessionId)), String.class);
-        assertThat(initialized.getStatusCodeValue()).isEqualTo(202);
+        assertThat(initialized.getStatusCode().value()).isEqualTo(202);
 
         return sessionId;
     }

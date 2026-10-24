@@ -2,9 +2,9 @@ package com.xiongx9527.fw.plus.ai.sample.chat.springai;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -28,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 配置了 api-key 时的 alibaba 链路契约：配置生效（服务 Bean 装配）、
  * 入参校验、sessionId 透传与兜底、出参结构、SSE 事件协议——与 Ollama 链路一致。
  *
- * <p>用假 key 启动，服务层以 {@link MockBean} 替换（不发真实网络请求）；
+ * <p>用假 key 启动，服务层以 {@link MockitoBean} 替换（不发真实网络请求）；
  * api-key 仅用于通过装配条件。</p>
  */
 @SpringBootTest
@@ -42,7 +42,7 @@ class SpringAiAlibabaChatConfiguredControllerTest {
 	@Autowired
 	private MockMvc mockMvc;
 
-	@MockBean(name = "springAiDashScopeChatService")
+	@MockitoBean(name = "springAiDashScopeChatService")
 	private SpringAiChatService chatService;
 
 	@Test

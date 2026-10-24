@@ -159,7 +159,8 @@ public class McpRoutingRegistrar implements SmartInitializingSingleton {
 		RequestMappingInfo.BuilderConfiguration builderConfiguration = new RequestMappingInfo.BuilderConfiguration();
 		builderConfiguration.setUrlPathHelper(handlerMapping.getUrlPathHelper());
 		builderConfiguration.setPathMatcher(handlerMapping.getPathMatcher());
-		builderConfiguration.setTrailingSlashMatch(handlerMapping.useTrailingSlashMatch());
+		// Spring Framework 7 移除了 RequestMappingHandlerMapping#useTrailingSlashMatch()，
+		// 尾斜杠匹配不再可配置（PathPatternParser 默认不匹配尾斜杠）。
 		// 主 handlerMapping 默认使用 PathPatternParser（Spring Boot 2.6+），其 initLookupPath
 		// 会移除 UrlPathHelper.PATH 属性并改用 PathContainer；若此处构建 ant 条件将导致匹配异常，
 		// 因此将 patternParser 一并传入，让 build 按需生成与 handlerMapping 一致的匹配条件。

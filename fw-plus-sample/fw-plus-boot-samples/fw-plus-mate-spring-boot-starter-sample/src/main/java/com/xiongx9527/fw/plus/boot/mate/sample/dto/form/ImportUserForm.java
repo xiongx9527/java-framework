@@ -21,7 +21,7 @@ public class ImportUserForm extends MateEasyTransDTO implements IExcelModel , IE
     @Excel(name = "姓名")
     private String userName;
 
-    @Trans(type = TransType.ENUM , target = UserInfoVo.UserSexEnum.class,fields = {"desc","type"},ref="sex")
+    @Trans(type = TransType.ENUM , targetClassName = "com.xiongx9527.fw.plus.boot.mate.sample.dto.vo.UserInfoVo$UserSexEnum",fields = {"desc","type"},ref="sex")
     @Excel(name = "性别")
     private String sexName;
     

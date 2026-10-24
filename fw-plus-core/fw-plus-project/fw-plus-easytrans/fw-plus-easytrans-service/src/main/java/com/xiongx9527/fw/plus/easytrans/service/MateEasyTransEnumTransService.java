@@ -185,6 +185,28 @@ public class MateEasyTransEnumTransService extends EnumTransService implements I
     }
 
     /**
+     * 解析枚举类型。
+     *
+     * <p>easy-trans 4.x 的 {@link Trans#target()} 仅接受 {@code Class<? extends VO>}，
+     * 枚举类无法直接声明；枚举翻译统一改用 {@link Trans#targetClassName()} 指定全限定类名
+     * （内部类使用 {@code $} 分隔），解析失败或未声明时回退到 {@link Trans#target()}。</p>
+     *
+     * @param trans 字段上的 {@link Trans} 注解
+     * @return 枚举类型；无法解析时返回注解上的 target（调用方会做 isEnum 校验）
+     */
+    private Class<?> resolveEnumClass(Trans trans) {
+        String targetClassName = trans.targetClassName();
+        if (StringUtils.isNotEmpty(targetClassName)) {
+            try {
+                return Class.forName(targetClassName);
+            } catch (Throwable e) {
+                log.error("TransType.ENUM targetClassName not found: " + targetClassName, e);
+            }
+        }
+        return trans.target();
+    }
+
+    /**
      * 将枚举值转换为相应的标签或值
      *
      * @param obj 要进行转换的值对象
@@ -222,7 +244,7 @@ public class MateEasyTransEnumTransService extends EnumTransService implements I
                     continue;
                 }
                 //获取枚举转换的唯一标识和字段数组
-                enumClass = tempTrans.target();
+                enumClass = resolveEnumClass(tempTrans);
                 fields = tempTrans.fields();
                 if (ObjectUtils.isEmpty(enumClass) || !enumClass.isEnum() || null == fields || fields.length != 2) {
                     continue;

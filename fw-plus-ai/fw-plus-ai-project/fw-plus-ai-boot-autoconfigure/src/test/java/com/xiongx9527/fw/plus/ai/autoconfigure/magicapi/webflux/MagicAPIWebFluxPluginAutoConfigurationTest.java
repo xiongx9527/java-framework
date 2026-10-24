@@ -81,7 +81,7 @@ class MagicAPIWebFluxPluginAutoConfigurationTest {
 	 * {@code @ConditionalOnBean} 评估（等价于生产环境经 {@code @AutoConfigureAfter} 达成的排序）。
 	 */
 	@Configuration(proxyBeanMethods = false)
-	@Import({org.springframework.boot.autoconfigure.web.reactive.WebFluxAutoConfiguration.class,
+	@Import({org.springframework.boot.webflux.autoconfigure.WebFluxAutoConfiguration.class,
 			MagicAPIWebFluxAutoConfiguration.class, MagicAPIBaseAutoConfiguration.class})
 	static class ReactiveTestRoot {
 	}

@@ -18,17 +18,17 @@ public class SpringBoot3DependencyBaselineTest {
 
     @Test
     public void shouldKeepSpringBoot3DependencyBaseline() throws Exception {
-        assertProperty(coreBom(), "spring-boot-dependencies.version", "3.5.8");
-        assertProperty(coreBom(), "spring-cloud-dependencies.version", "2025.0.0");
-        assertProperty(coreBom(), "spring-cloud-alibaba-dependencies.version", "2025.0.0.0");
+        assertProperty(coreBom(), "spring-boot-dependencies.version", "4.1.1");
+        assertProperty(coreBom(), "spring-cloud-dependencies.version", "2025.1.3");
+        assertProperty(coreBom(), "spring-cloud-alibaba-dependencies.version", "2025.1.0.0");
         assertProperty(coreBom(), "magic-api.version", "2.2.2");
         assertProperty(coreBom(), "magic-script.version", "1.9.0");
-        assertProperty(coreBom(), "mybatis-plus.version", "3.5.16");
+        assertProperty(coreBom(), "mybatis-plus.version", "3.5.17");
         assertProperty(coreBom(), "langchain4j.version", "1.22.0");
-        assertProperty(coreBom(), "langchain4j-community.version", "1.21.0-beta31");
-        assertProperty(coreBom(), "spring-ai.version", "1.1.8");
-        assertProperty(coreBom(), "spring-ai-alibaba.version", "1.1.2.4-security-fix");
-        assertProperty(coreBom(), "spring-ai-alibaba-extensions.version", "1.1.2.4-security-fix");
+        assertProperty(coreBom(), "langchain4j-community.version", "1.22.0-beta32");
+        assertProperty(coreBom(), "spring-ai.version", "2.0.1");
+        assertProperty(coreBom(), "spring-ai-alibaba.version", "2.0.0-M1.1");
+        assertProperty(coreBom(), "spring-ai-alibaba-extensions.version", "2.0.0-M1.1");
         assertCoreLangChain4jManagement();
         assertImportedBom(aiBom(), "com.xiongx9527.fw.plus", "fw-plus-dependencies", "${project.version}");
         assertNoDirectLangChain4jManagement(aiBom());

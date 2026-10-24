@@ -22,7 +22,7 @@ import java.util.*;
 
 @ConditionalOnProperty(prefix = "fw.plus.magicapi", name = "enabled", havingValue = "true", matchIfMissing = true)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-@ConditionalOnClass(name={"org.springframework.boot.web.client.RestTemplateBuilder",
+@ConditionalOnClass(name={"org.springframework.boot.restclient.RestTemplateBuilder",
         "org.springframework.cloud.client.loadbalancer.LoadBalancerClient",
         "org.ssssssss.magicapi.spring.boot.starter.MagicAPIAutoConfiguration"})
 @AutoConfigureAfter(name = {
@@ -44,7 +44,7 @@ public class MagicAPIBaseAutoConfiguration {
      * @return 配置完成的MyHttpModule实例
      */
     @Bean
-    public MyHttpModule httpModule(org.springframework.boot.web.client.RestTemplateBuilder restTemplateBuilder,
+    public MyHttpModule httpModule(org.springframework.boot.restclient.RestTemplateBuilder restTemplateBuilder,
                                    Map<String, ClientHttpRequestInterceptor> interceptorMap,
                                    org.springframework.cloud.client.loadbalancer.LoadBalancerClient loadBalancerClient) {
         // 创建RestTemplate实例用于HTTP请求

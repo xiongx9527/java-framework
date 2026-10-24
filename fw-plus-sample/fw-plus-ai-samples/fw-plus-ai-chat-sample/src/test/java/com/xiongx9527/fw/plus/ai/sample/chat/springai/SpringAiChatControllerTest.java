@@ -3,9 +3,9 @@ package com.xiongx9527.fw.plus.ai.sample.chat.springai;
 import com.xiongx9527.fw.plus.ai.sample.chat.ai.WeatherTools;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -28,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Spring AI（Ollama）控制器契约测试：与 LangChain4j 的 {@code ChatControllerTest} 同构。
  *
- * <p>服务层用 {@link MockBean} 替换（不连 Ollama），验证入参校验、sessionId 透传与
+ * <p>服务层用 {@link MockitoBean} 替换（不连 Ollama），验证入参校验、sessionId 透传与
  * 兜底、出参结构、SSE 事件协议。为防本机环境变量 AI_DASHSCOPE_API_KEY 干扰，
  * 强制置空 api-key（alibaba 链路不装配，与 CI 环境一致）。</p>
  */
@@ -46,7 +46,7 @@ class SpringAiChatControllerTest {
 	@Autowired
 	private WeatherTools weatherTools;
 
-	@MockBean(name = "springAiOllamaChatService")
+	@MockitoBean(name = "springAiOllamaChatService")
 	private SpringAiChatService chatService;
 
 	@Test
