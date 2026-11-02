@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.askdata.capability;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.xiongx9527.fw.plus.ai.askdata.llm.LlmChatPort;
@@ -25,7 +26,7 @@ public class SqlValidationComboTest {
     }
 
     @Test
-    void llmValidationFailureLowersConfidence() {
+    void llmValidationFailureLowersConfidenceWhenOpen() {
         LlmChatPort port = new StaticLlmChatPort(p -> {
             if (p.contains("待校验")) {
                 return "NO\n该 SQL 关联了错误表";
@@ -35,9 +36,26 @@ public class SqlValidationComboTest {
         SqlGenerationCapability cap = SqlGenerationCapabilityBuilder.builder()
                 .llm(port)
                 .repairPolicy(SqlRepairPolicy.builder().enabled(false).build())
+                .failClosed(false)
                 .build();
         SqlGenResult r = cap.generate(input());
         assertTrue(r.getConfidence() < 0.5, "validation failed should lower confidence");
+    }
+
+    @Test
+    void llmValidationFailureClosesWhenRepairCannotFix() {
+        LlmChatPort port = new StaticLlmChatPort(p -> {
+            if (p.contains("待校验")) {
+                return "NO\n该 SQL 关联了错误表";
+            }
+            return F + "sql\nSELECT id FROM orders\n" + F;
+        });
+        SqlGenerationCapability cap = SqlGenerationCapabilityBuilder.builder()
+                .llm(port)
+                .repairPolicy(SqlRepairPolicy.builder().enabled(false).build())
+                .failClosed(true)
+                .build();
+        assertThrows(SqlGenerationException.class, () -> cap.generate(input()));
     }
 
     @Test

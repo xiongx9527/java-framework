@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.askdata.execution;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import lombok.Builder;
@@ -23,6 +24,10 @@ public class QueryResult {
     @Builder.Default
     private final long elapsedMillis = 0L;
 
+    /** 结果自检（VERIFY）发现的可疑项提示（不影响结果本身，供上游告警 / 反问）。 */
+    @Builder.Default
+    private final List<String> warnings = Collections.emptyList();
+
     public int rowCount() {
         return rows == null ? 0 : rows.size();
     }
@@ -30,4 +35,18 @@ public class QueryResult {
     public int columnCount() {
         return columns == null ? 0 : columns.size();
     }
+
+    /** 返回带上附加自检告警的新结果（原对象不变）。 */
+    public QueryResult withWarnings(List<String> extra) {
+        if (extra == null || extra.isEmpty()) {
+            return this;
+        }
+        List<String> merged = new ArrayList<>(warnings);
+        merged.addAll(extra);
+        return QueryResult.builder()
+                .columns(columns).rows(rows)
+                .truncated(truncated).elapsedMillis(elapsedMillis)
+                .warnings(merged).build();
+    }
 }
+

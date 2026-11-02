@@ -25,6 +25,14 @@ public class SqlExecInput {
     @Builder.Default
     private final boolean readOnly = true;
 
+    /** 执行后是否做结果自检 VERIFY（§6.20.5 / P1 #18）。 */
+    @Builder.Default
+    private final boolean selfCheck = true;
+
+    /** 用于主键重复自检的列下标（0-based）；为 null 时跳过重复检查。 */
+    @Builder.Default
+    private final Integer duplicateKeyColumn = null;
+
     public void validate() {
         if (sql == null || sql.trim().isEmpty()) {
             throw new SqlExecutionException("sql 不可为空");
@@ -36,6 +44,9 @@ public class SqlExecInput {
                 .maxRows(maxRows)
                 .queryTimeoutSeconds(queryTimeoutSeconds)
                 .readOnly(readOnly)
+                .selfCheck(selfCheck)
+                .duplicateKeyColumn(duplicateKeyColumn)
                 .build();
     }
 }
+

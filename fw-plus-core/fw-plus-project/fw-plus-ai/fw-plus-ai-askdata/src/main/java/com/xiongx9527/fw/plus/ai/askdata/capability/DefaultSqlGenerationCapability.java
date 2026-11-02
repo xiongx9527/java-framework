@@ -8,19 +8,17 @@ import com.xiongx9527.fw.plus.ai.askdata.postprocess.ValidationResult;
 import com.xiongx9527.fw.plus.ai.askdata.prompt.SqlPrompt;
 import com.xiongx9527.fw.plus.ai.askdata.prompt.SqlPromptBuilder;
 import java.util.StringJoiner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * 默认 {@link SqlGenerationCapability} 实现（§6.38）：构造提示词 → 调用 LLM → 提取 SQL →
  * （本地优先 + LLM 语义）校验 →（可选）自我修复 → 估置信度。
  *
  * <p>校验为本地优先的两层组合：本地规则（DML 禁用 / 表名可见 / 括号平衡）先过，通过后再跑
- * 可选的 LLM 语义校验；任一层不过即进入修复环（§6.17 SQL 修复环），由 LLM 带着失败原因重出 SQL。</p>
+ * 可选的 LLM 语义校验；任一层不过即进入修复环（§6.17 SQL 修复环），由 LLM 带着失败原因重出 SQL。
+ * 修复环默认 fail-closed（§6.20 / P0 #6）：修复后仍不通过则抛 {@link SqlGenerationException}，
+ * 不把可能错误的 SQL 交给下游执行。</p>
  */
 public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
-
-    private static final Logger log = LoggerFactory.getLogger(DefaultSqlGenerationCapability.class);
 
     private final LlmChatPort llm;
     private final SqlPromptBuilder promptBuilder;
@@ -28,17 +26,18 @@ public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
     private final SqlValidationStrategy llmValidation;
     private final ConfidenceEstimator confidenceEstimator;
     private final SqlRepairPolicy repairPolicy;
+    private final boolean failClosed;
 
     public DefaultSqlGenerationCapability(LlmChatPort llm) {
         this(llm, new SqlPromptBuilder(), new LocalSqlValidationStrategy(), null,
-                new ConfidenceEstimator(), SqlRepairPolicy.builder().build());
+                new ConfidenceEstimator(), SqlRepairPolicy.builder().build(), true);
     }
 
     public DefaultSqlGenerationCapability(LlmChatPort llm, SqlPromptBuilder promptBuilder,
                                          SqlValidationStrategy localValidation,
                                          SqlValidationStrategy llmValidation,
                                          ConfidenceEstimator confidenceEstimator,
-                                         SqlRepairPolicy repairPolicy) {
+                                         SqlRepairPolicy repairPolicy, boolean failClosed) {
         if (llm == null) {
             throw new IllegalArgumentException("llm is required");
         }
@@ -47,7 +46,8 @@ public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
         this.localValidation = localValidation == null ? new LocalSqlValidationStrategy() : localValidation;
         this.llmValidation = llmValidation;
         this.confidenceEstimator = confidenceEstimator == null ? new ConfidenceEstimator() : confidenceEstimator;
-        this.repairPolicy = repairPolicy == null ? SqlRepairPolicy.builder().build() : repairPolicy;
+        this.repairPolicy = repairPolicy;
+        this.failClosed = failClosed;
     }
 
     @Override
@@ -56,7 +56,6 @@ public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
             throw new SqlGenerationException("input is null");
         }
         input.validate();
-        log.debug("sql-generation questionLen={}", input.getQuestion() != null ? input.getQuestion().length() : 0);
         SqlPrompt prompt = promptBuilder.build(input);
         String raw = safeComplete(prompt);
         String sql = SqlExtractor.extract(raw);
@@ -74,16 +73,17 @@ public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
                 repaired = true;
             }
         }
+        if (!vr.isOk() && failClosed) {
+            throw new SqlGenerationException("SQL 校验未通过且修复失败：" + joinIssues(vr));
+        }
         double confidence = confidenceEstimator.estimate(vr, repaired);
         String explanation = SqlExtractor.extractExplanation(raw);
-        // §6.37 全链路日志：只记校验结论与置信度，不记 SQL 原文 / 业务 schema，避免泄露。
-        log.info("sql-generation ok={} issues={} repaired={} confidence={}",
-                vr.isOk(), vr.getIssues().size(), repaired, confidence);
         return SqlGenResult.builder()
                 .sql(sql)
                 .explanation(explanation)
                 .referencedTables(vr.getReferencedTables())
                 .confidence(confidence)
+                .valid(vr.isOk())
                 .build();
     }
 

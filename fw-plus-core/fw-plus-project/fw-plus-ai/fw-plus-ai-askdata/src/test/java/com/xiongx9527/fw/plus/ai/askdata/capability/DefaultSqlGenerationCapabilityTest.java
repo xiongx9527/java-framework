@@ -37,6 +37,7 @@ public class DefaultSqlGenerationCapabilityTest {
         SqlGenResult r = cap.generate(input("统计订单数"));
         assertEquals("SELECT id FROM orders", r.getSql());
         assertTrue(r.getConfidence() > 0);
+        assertTrue(r.isValid());
     }
 
     @Test
@@ -65,5 +66,15 @@ public class DefaultSqlGenerationCapabilityTest {
                 .build();
         SqlGenResult r = cap.generate(input("统计订单数"));
         assertEquals("SELECT id FROM orders", r.getSql());
+    }
+
+    @Test
+    void failClosedThrowsWhenValidationFails() {
+        LlmChatPort port = new StaticLlmChatPort("SELECT id FROM missing_table");
+        SqlGenerationCapability cap = SqlGenerationCapabilityBuilder.builder()
+                .llm(port)
+                .repairPolicy(SqlRepairPolicy.builder().failClosed(true).enabled(false).build())
+                .build();
+        assertThrows(SqlGenerationException.class, () -> cap.generate(input("统计订单数")));
     }
 }

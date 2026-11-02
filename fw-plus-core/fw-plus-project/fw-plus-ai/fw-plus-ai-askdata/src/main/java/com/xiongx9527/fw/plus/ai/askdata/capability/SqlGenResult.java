@@ -28,4 +28,9 @@ public class SqlGenResult {
     /** 漂离时的可选 SQL。 */
     @Builder.Default
     private final List<String> alternatives = Collections.emptyList();
+
+    /** 最终校验是否通过；false 表示 SQL 未通过本地 / LLM 校验，调用方不应直接执行。 */
+    @Builder.Default
+    private final boolean valid = false;
 }
+

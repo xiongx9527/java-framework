@@ -16,6 +16,7 @@ public class SqlGenerationCapabilityBuilder {
     private SqlValidationStrategy llmValidation;
     private ConfidenceEstimator confidenceEstimator;
     private SqlRepairPolicy repairPolicy;
+    private boolean failClosed = true;
 
     public static SqlGenerationCapabilityBuilder builder() {
         return new SqlGenerationCapabilityBuilder();
@@ -51,6 +52,11 @@ public class SqlGenerationCapabilityBuilder {
         return this;
     }
 
+    public SqlGenerationCapabilityBuilder failClosed(boolean v) {
+        this.failClosed = v;
+        return this;
+    }
+
     public SqlGenerationCapability build() {
         if (llm == null) {
             throw new IllegalStateException("llm is required to build SqlGenerationCapability");
@@ -60,6 +66,7 @@ public class SqlGenerationCapabilityBuilder {
         if (llmV == null) {
             llmV = new LlmSqlValidationStrategy(llm, local);
         }
-        return new DefaultSqlGenerationCapability(llm, promptBuilder, local, llmV, confidenceEstimator, repairPolicy);
+        return new DefaultSqlGenerationCapability(llm, promptBuilder, local, llmV,
+                confidenceEstimator, repairPolicy, failClosed);
     }
 }

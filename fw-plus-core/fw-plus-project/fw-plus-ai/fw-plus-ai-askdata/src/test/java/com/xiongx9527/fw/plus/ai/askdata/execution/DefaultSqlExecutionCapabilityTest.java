@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.ai.askdata.execution;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.SqlValidator;
 import java.util.Collections;
@@ -43,4 +44,21 @@ public class DefaultSqlExecutionCapabilityTest {
         assertThrows(SqlExecutionException.class,
                 () -> cap.execute(SqlExecInput.builder().sql("  ").build()));
     }
+
+    @Test
+    void selfCheckFlagsEmptyResult() {
+        SqlExecutorPort port = (sql, settings) -> QueryResult.builder().build();
+        SqlExecutionCapability cap = new DefaultSqlExecutionCapability(port, new SqlValidator());
+        QueryResult r = cap.execute(SqlExecInput.builder().sql("SELECT id FROM t").build());
+        assertTrue(r.getWarnings().stream().anyMatch(w -> w.contains("empty")));
+    }
+
+    @Test
+    void selfCheckDisabledSkipsWarnings() {
+        SqlExecutorPort port = (sql, settings) -> QueryResult.builder().build();
+        SqlExecutionCapability cap = new DefaultSqlExecutionCapability(port, new SqlValidator());
+        QueryResult r = cap.execute(SqlExecInput.builder().sql("SELECT id FROM t").selfCheck(false).build());
+        assertTrue(r.getWarnings().isEmpty());
+    }
 }
+
