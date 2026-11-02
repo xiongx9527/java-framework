@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.xiongx9527.fw.plus</groupId>
+        <artifactId>fw-plus-ai</artifactId>
+        <version>${revision}</version>
+    </parent>
+    <artifactId>fw-plus-ai-agentscope</artifactId>
+    <packaging>pom</packaging>
+    <description>AgentScope 后端：实现 support 的编排契约（WorkflowPort / AgenticServices），子模块划分对齐 AgentScope 自身能力域（core + a2a）；Java 17 / SB4 分支，默认关闭</description>
+    <modules>
+        <module>fw-plus-ai-agentscope-core</module>
+        <module>fw-plus-ai-agentscope-a2a</module>
+    </modules>
+    <properties>
+        <main.basedir>${basedir}/../../..</main.basedir>
+    </properties>
+
+</project>
