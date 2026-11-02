@@ -28,12 +28,9 @@ public class SqlValidationComboTest {
     void llmValidationFailureLowersConfidence() {
         LlmChatPort port = new StaticLlmChatPort(p -> {
             if (p.contains("待校验")) {
-                return "NO
-该 SQL 关联了错误表";
+                return "NO\n该 SQL 关联了错误表";
             }
-            return F + "sql
-SELECT id FROM orders
-" + F;
+            return F + "sql\nSELECT id FROM orders\n" + F;
         });
         SqlGenerationCapability cap = SqlGenerationCapabilityBuilder.builder()
                 .llm(port)
@@ -49,9 +46,7 @@ SELECT id FROM orders
             if (p.contains("待校验")) {
                 return "YES";
             }
-            return F + "sql
-SELECT id FROM orders
-" + F;
+            return F + "sql\nSELECT id FROM orders\n" + F;
         });
         SqlGenerationCapability cap = SqlGenerationCapabilityBuilder.builder()
                 .llm(port)

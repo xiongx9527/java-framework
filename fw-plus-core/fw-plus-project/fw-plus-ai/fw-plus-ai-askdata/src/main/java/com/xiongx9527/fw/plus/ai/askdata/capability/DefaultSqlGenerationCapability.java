@@ -8,6 +8,8 @@ import com.xiongx9527.fw.plus.ai.askdata.postprocess.ValidationResult;
 import com.xiongx9527.fw.plus.ai.askdata.prompt.SqlPrompt;
 import com.xiongx9527.fw.plus.ai.askdata.prompt.SqlPromptBuilder;
 import java.util.StringJoiner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 默认 {@link SqlGenerationCapability} 实现（§6.38）：构造提示词 → 调用 LLM → 提取 SQL →
@@ -18,6 +20,8 @@ import java.util.StringJoiner;
  */
 public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
 
+    private static final Logger log = LoggerFactory.getLogger(DefaultSqlGenerationCapability.class);
+
     private final LlmChatPort llm;
     private final SqlPromptBuilder promptBuilder;
     private final SqlValidationStrategy localValidation;
@@ -27,7 +31,7 @@ public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
 
     public DefaultSqlGenerationCapability(LlmChatPort llm) {
         this(llm, new SqlPromptBuilder(), new LocalSqlValidationStrategy(), null,
-                new ConfidenceEstimator(), new SqlRepairPolicy());
+                new ConfidenceEstimator(), SqlRepairPolicy.builder().build());
     }
 
     public DefaultSqlGenerationCapability(LlmChatPort llm, SqlPromptBuilder promptBuilder,
@@ -43,7 +47,7 @@ public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
         this.localValidation = localValidation == null ? new LocalSqlValidationStrategy() : localValidation;
         this.llmValidation = llmValidation;
         this.confidenceEstimator = confidenceEstimator == null ? new ConfidenceEstimator() : confidenceEstimator;
-        this.repairPolicy = repairPolicy;
+        this.repairPolicy = repairPolicy == null ? SqlRepairPolicy.builder().build() : repairPolicy;
     }
 
     @Override
@@ -52,6 +56,7 @@ public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
             throw new SqlGenerationException("input is null");
         }
         input.validate();
+        log.debug("sql-generation questionLen={}", input.getQuestion() != null ? input.getQuestion().length() : 0);
         SqlPrompt prompt = promptBuilder.build(input);
         String raw = safeComplete(prompt);
         String sql = SqlExtractor.extract(raw);
@@ -71,6 +76,9 @@ public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
         }
         double confidence = confidenceEstimator.estimate(vr, repaired);
         String explanation = SqlExtractor.extractExplanation(raw);
+        // §6.37 全链路日志：只记校验结论与置信度，不记 SQL 原文 / 业务 schema，避免泄露。
+        log.info("sql-generation ok={} issues={} repaired={} confidence={}",
+                vr.isOk(), vr.getIssues().size(), repaired, confidence);
         return SqlGenResult.builder()
                 .sql(sql)
                 .explanation(explanation)

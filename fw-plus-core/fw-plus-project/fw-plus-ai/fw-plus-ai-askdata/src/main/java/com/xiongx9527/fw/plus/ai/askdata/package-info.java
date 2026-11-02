@@ -7,12 +7,26 @@
  * <p>已封装能力：
  * <ul>
  *   <li>{@code capability.SqlGenerationCapability}（§6.38）：NL2SQL 纯函数 + 显式输入，
- *       本地规则校验 + LLM 修复环；</li>
+ *       本地优先校验 + LLM 语义校验 + 修复环；</li>
  *   <li>{@code execution.SqlExecutionCapability}（§6.20 EXECUTE）：后端无关只读执行，
  *       落实限行 / 超时 / 只读守卫，JdbcSqlExecutor 适配任意 javax.sql.DataSource；</li>
  *   <li>{@code chart.ChartGenerationCapability}（§6.20 CHART）：给定数据集与问题产出
  *       ECharts 风格可视化配置，缺模型时走启发式，失败时降级为表格。</li>
  * </ul>
+ *
+ * <p>对 docs/ai-layer 已提出问题（产品代码不动，仅在本 DomainPack 内防御性闭环）：
+ * <ul>
+ *   <li>§6.14 L1 护栏：本地规则（禁写 DML / 表名可见 / 括号平衡）先过，通过后再跑可选 LLM 语义校验；</li>
+ *   <li>§6.36 质量基线“可执行”层：本地结构校验 + 真实 JDBC 执行能力（JdbcSqlExecutor）作为可执行性门禁；</li>
+ *   <li>§6.37 全链路日志：三个能力只记元数据（行数 / 耗时 / 校验结论 / 置信度 / 图表类型），
+ *       不记 SQL 原文、行数据或模型原文，避免泄露业务数据；</li>
+ *   <li>风险 A.2.1（SSR 重新猜类型丢弃模型配置）：preferredType 优先级最高，仅在其缺失时回退 LLM / 启发式；</li>
+ *   <li>风险 A.2.2（模型幻觉不存在的列名画空图）：新增字段存在性校验，引用列不在数据集中即降级为表格；</li>
+ *   <li>风险 A.1.2（图表实际绘制未截断）：ChartDataset.MAX_CHART_ROWS 截断注入图表的数据集。</li>
+ * </ul>
+ *
+ * <p>不在本模块范围（属产品侧接线 / 前端 / SSR，记录备查）：免登录图表图片与 TTL 跨租户、
+ * title 未转义（v-html XSS）、SQL 外层 SELECT * 包裹丢失 ORDER BY、模型原文日志含业务数据等。</p>
  *
  * <p>设计约束：
  * <ul>
@@ -24,3 +38,4 @@
  * </ul>
  */
 package com.xiongx9527.fw.plus.ai.askdata;
+

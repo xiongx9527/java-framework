@@ -1,9 +1,19 @@
 package com.xiongx9527.fw.plus.ai.askdata.chart;
 
+import com.xiongx9527.fw.plus.ai.askdata.chart.data.ChartColumn;
+import com.xiongx9527.fw.plus.ai.askdata.chart.data.ChartDataset;
 import java.util.List;
 import java.util.Map;
 
-/** 图表配置校验（§6.14 L1）。类型未知或轴 / 数据长度不一致时判为无效，触发降级为表格。 */
+/**
+ * 图表配置校验（L1 护栏）。两层：
+ * <ol>
+ *   <li>配置形态：类型合法、轴 / 数据长度一致（isValid(Map)）；</li>
+ *   <li>字段存在性：建议引用的分类 / 数值字段必须真实存在于数据集列中（isValid(ChartSuggestion, ChartDataset)）。</li>
+ * </ol>
+ * 第二层直接封堵风险登记 A.2.2：模型幻觉不存在的列名会让前端 / SSR 画空图，
+ * 且 chart 不为空导致既不降级也不告警。这里把字段不在数据集中判为无效，触发降级为表格。
+ */
 public class ChartConfigValidator {
 
     @SuppressWarnings("unchecked")
@@ -45,5 +55,48 @@ public class ChartConfigValidator {
             }
         }
         return true;
+    }
+
+    /** 校验建议引用的字段是否真实存在于数据集（封堵 A.2.2 幻觉列名）。TABLE / UNKNOWN 视为无需校验。 */
+    public boolean isValid(ChartSuggestion suggestion, ChartDataset ds) {
+        if (suggestion == null || suggestion.getType() == null) {
+            return false;
+        }
+        ChartType type = suggestion.getType();
+        if (type == ChartType.UNKNOWN || type == ChartType.TABLE) {
+            return true;
+        }
+        if (ds == null || ds.columnCount() == 0) {
+            return false;
+        }
+        ChartAxes axes = suggestion.getAxes();
+        if (axes == null) {
+            return false;
+        }
+        if (!hasField(ds, axes.getCategoryField())) {
+            return false;
+        }
+        List<String> vfs = axes.getValueFields();
+        if (vfs == null || vfs.isEmpty()) {
+            return false;
+        }
+        for (String f : vfs) {
+            if (!hasField(ds, f)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean hasField(ChartDataset ds, String name) {
+        if (name == null || name.trim().isEmpty() || ds.getColumns() == null) {
+            return false;
+        }
+        for (ChartColumn c : ds.getColumns()) {
+            if (name.equals(c.getName())) {
+                return true;
+            }
+        }
+        return false;
     }
 }

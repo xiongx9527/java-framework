@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.askdata.capability;
 
 import com.xiongx9527.fw.plus.ai.askdata.llm.LlmChatPort;
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.ValidationResult;
+import com.xiongx9527.fw.plus.ai.askdata.prompt.SqlPromptTemplates;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -54,20 +55,18 @@ public class LlmSqlValidationStrategy implements SqlValidationStrategy {
             return ValidationResult.ok(Collections.emptyList());
         }
         String head = resp.trim();
-        if (head.toUpperCase().startsWith("NO")) {
-            int nl = head.indexOf(System.lineSeparator());
-            if (nl < 0) {
-                nl = head.indexOf("
-");
-            }
-            String reason = nl > 0 ? head.substring(nl).trim() : "llm flagged sql as invalid";
-            if (reason.isEmpty()) {
-                reason = "llm flagged sql as invalid";
-            }
-            List<String> issues = new ArrayList<>();
-            issues.add("llm: " + reason);
-            return ValidationResult.fail(issues, Collections.emptyList());
+        if (!head.toUpperCase().startsWith("NO")) {
+            return ValidationResult.ok(Collections.emptyList());
         }
-        return ValidationResult.ok(Collections.emptyList());
+        String reason = head.length() > 2 ? head.substring(2).trim() : "";
+        while (!reason.isEmpty() && !Character.isLetterOrDigit(reason.charAt(0))) {
+            reason = reason.substring(1);
+        }
+        if (reason.isEmpty()) {
+            reason = "llm flagged sql as invalid";
+        }
+        List<String> issues = new ArrayList<>();
+        issues.add("llm: " + reason);
+        return ValidationResult.fail(issues, Collections.emptyList());
     }
 }

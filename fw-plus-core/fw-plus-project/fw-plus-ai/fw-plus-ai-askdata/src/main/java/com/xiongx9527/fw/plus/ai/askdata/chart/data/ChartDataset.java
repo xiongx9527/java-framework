@@ -21,12 +21,27 @@ public class ChartDataset {
     @Builder.Default
     private final List<List<Object>> rows = Collections.emptyList();
 
+    /** 图表渲染的安全行上限（风险登记 A.1.2：MAX_RENDER_ROWS 只限制推断、未限制实际绘制）。
+     * 超过则 {@link #limit(int)} 截断，避免把全量结果集喂给图表。 */
+    public static final int MAX_CHART_ROWS = 2000;
+
     public int columnCount() {
         return columns == null ? 0 : columns.size();
     }
 
     public int rowCount() {
         return rows == null ? 0 : rows.size();
+    }
+
+    /** 返回最多 maxRows 行的新数据集（超出截断），不修改原对象。 */
+    public ChartDataset limit(int maxRows) {
+        if (maxRows <= 0 || rows == null || rows.size() <= maxRows) {
+            return this;
+        }
+        return ChartDataset.builder()
+                .columns(columns)
+                .rows(new ArrayList<List<Object>>(rows.subList(0, maxRows)))
+                .build();
     }
 
     public boolean isNumericColumn(int i) {
