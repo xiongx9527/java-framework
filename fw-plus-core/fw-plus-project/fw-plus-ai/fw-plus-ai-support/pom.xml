@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.xiongx9527.fw.plus</groupId>
+        <artifactId>fw-plus-ai</artifactId>
+        <version>${revision}</version>
+    </parent>
+    <artifactId>fw-plus-ai-support</artifactId>
+    <description>base 的增强抽象层：编排（workflow / agentic）与横切能力（上下文 / 韧性 / 配额 / 成本 / 缓存 / 幂等 / 出站校验 / 边界 IO / 远程技能），由各后端 adapter 实现</description>
+    <properties>
+        <main.basedir>${basedir}/../../..</main.basedir>
+    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-base</artifactId>
+            <version>${revision}</version>
+        </dependency>
+    </dependencies>
+
+</project>
