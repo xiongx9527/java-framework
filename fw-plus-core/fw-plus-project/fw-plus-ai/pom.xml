@@ -12,8 +12,12 @@
     <packaging>pom</packaging>
     <modules>
         <module>fw-plus-ai-base</module>
+        <module>fw-plus-ai-support</module>
         <module>fw-plus-ai-mcp-server</module>
         <module>fw-plus-ai-langchain4j</module>
+        <module>fw-plus-ai-spring-ai</module>
+        <module>fw-plus-ai-agentscope</module>
+        <module>fw-plus-ai-native</module>
     </modules>
     <artifactId>fw-plus-ai</artifactId>
     <properties>
