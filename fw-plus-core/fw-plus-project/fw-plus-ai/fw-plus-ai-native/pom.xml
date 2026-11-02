@@ -15,17 +15,6 @@
     <packaging>pom</packaging>
     <description>native 后端：不依赖 langchain4j / Spring AI，直连厂商 API；实现 base 与 support 的契约。按能力域建父工程：core / model / store / retrieval / document / tool / mcp / skill / agentic / bridge / adapter</description>
     <modules>
-        <module>fw-plus-ai-native-core</module>
-        <module>fw-plus-ai-native-model</module>
-        <module>fw-plus-ai-native-store</module>
-        <module>fw-plus-ai-native-retrieval</module>
-        <module>fw-plus-ai-native-document</module>
-        <module>fw-plus-ai-native-tool</module>
-        <module>fw-plus-ai-native-mcp</module>
-        <module>fw-plus-ai-native-skill</module>
-        <module>fw-plus-ai-native-agentic</module>
-        <module>fw-plus-ai-native-bridge</module>
-        <module>fw-plus-ai-native-adapter</module>
     </modules>
     <properties>
         <main.basedir>${basedir}/../../..</main.basedir>
