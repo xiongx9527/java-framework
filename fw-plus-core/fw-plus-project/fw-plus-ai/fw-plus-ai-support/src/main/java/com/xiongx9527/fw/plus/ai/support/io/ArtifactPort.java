@@ -1,4 +1,4 @@
-package com.xiongxiao.fw.plus.ai.support.io;
+package com.xiongx9527.fw.plus.ai.support.io;
 
 import java.io.InputStream;
 import java.net.URI;

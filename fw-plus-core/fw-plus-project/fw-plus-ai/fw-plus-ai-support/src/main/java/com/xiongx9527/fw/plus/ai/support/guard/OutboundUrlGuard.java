@@ -1,4 +1,4 @@
-package com.xiongxiao.fw.plus.ai.support.guard;
+package com.xiongx9527.fw.plus.ai.support.guard;
 
 /**
  * 出站地址校验：模型 / 数据源地址由用户配置时，防止 SSRF。
