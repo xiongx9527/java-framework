@@ -10,7 +10,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,7 +24,8 @@ import org.springframework.context.annotation.Import;
  *   <li>默认使用 Spring Cache 后端；存在 Redis 占位实现时默认优先 Redis（跨实例）；</li>
  *   <li>业务侧可提供 {@link DebounceBackendResolver} 覆盖「何时用 Redis」；</li>
  *   <li>业务侧可提供 {@link DebounceUserResolver} 提供当前用户；缺省按匿名处理；</li>
- *   <li>所有 bean 均 {@code @ConditionalOnMissingBean}，业务侧可完全接管其中任一组件。</li>
+ *   <li>所有 bean 均 {@code @ConditionalOnMissingBean}，业务侧可完全接管其中任一组件；</li>
+ *   <li>仅在 {@code fw.plus.debounce.enabled=true} 时装配（缺省关闭，不注册切面）。</li>
  * </ul>
  */
 @Configuration(proxyBeanMethods = false)
@@ -33,7 +34,7 @@ import org.springframework.context.annotation.Import;
         "org.springframework.cache.CacheManager",
         "com.fasterxml.jackson.databind.ObjectMapper"
 })
-@EnableConfigurationProperties(DebounceProperties.class)
+@ConditionalOnProperty(prefix = DebounceProperties.PREFIX, name = "enabled", havingValue = "true")
 @Import(RedisDebounceConfiguration.class)
 public class DebounceAutoConfiguration {
 

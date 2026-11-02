@@ -17,6 +17,7 @@ org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
   com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.MagicSwaggerConfiguration,\
   com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.config.starter.MagicApiConfPluginAutoConfiguration,\
   com.xiongx9527.fw.plus.boot.autoconfigure.web.ws.starter.WsAutoConfiguration,\
+  com.xiongx9527.fw.plus.boot.autoconfigure.debounce.DebouncePropertiesConfiguration,\
   com.xiongx9527.fw.plus.boot.autoconfigure.debounce.DebounceAutoConfiguration
 
 org.springframework.boot.autoconfigure.AutoConfigurationImportFilter=\
