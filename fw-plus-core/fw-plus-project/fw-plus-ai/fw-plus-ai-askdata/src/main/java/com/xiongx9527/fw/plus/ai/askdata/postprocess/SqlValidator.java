@@ -45,6 +45,14 @@ public class SqlValidator {
         return issues.isEmpty() ? ValidationResult.ok(referenced) : ValidationResult.fail(issues, referenced);
     }
 
+    /** 仅判断 SQL 是否包含写入型 DML（供执行期只读守卫复用，§6.38）。 */
+    public boolean containsWriteDml(String sql) {
+        if (sql == null || sql.trim().isEmpty()) {
+            return false;
+        }
+        return WRITE_DML.matcher(sql.toUpperCase()).find();
+    }
+
     private static String stripQuotes(String s) {
         return s.replace(String.valueOf('`'), "").replace(String.valueOf('"'), "").replace("[", "").replace("]", "").trim();
     }
