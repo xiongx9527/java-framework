@@ -32,6 +32,13 @@
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
+        <!--接口防抖 Redis 原子占位（未引入 spring-data-redis 时自动降级为 Cache 后端）-->
+        <dependency>
+            <groupId>org.springframework.data</groupId>
+            <artifactId>spring-data-redis</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
         <dependency>
             <groupId>com.ctrip.framework.apollo</groupId>
             <artifactId>apollo-client</artifactId>
