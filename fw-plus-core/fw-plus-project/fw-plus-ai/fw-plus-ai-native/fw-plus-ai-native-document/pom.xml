@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.xiongx9527.fw.plus</groupId>
+        <artifactId>fw-plus-ai-native</artifactId>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>fw-plus-ai-native-document</artifactId>
+    <packaging>pom</packaging>
+    <description>文档：同族组件的父工程（文档解析：PDF / Office / 通用格式 → Document）</description>
+
+    <modules>
+        <module>fw-plus-ai-native-document-parser-apache-pdfbox</module>
+        <module>fw-plus-ai-native-document-parser-apache-poi</module>
+        <module>fw-plus-ai-native-document-parser-apache-tika</module>
+    </modules>
+
+    <properties>
+        <main.basedir>${basedir}/../../../..</main.basedir>
+    </properties>
+
+</project>

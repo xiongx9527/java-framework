@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.xiongx9527.fw.plus</groupId>
+        <artifactId>fw-plus-ai-native</artifactId>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>fw-plus-ai-native-retrieval</artifactId>
+    <packaging>pom</packaging>
+    <description>检索：同族组件的父工程（检索与召回：Web 搜索等 ContentRetriever 实现）</description>
+
+    <modules>
+        <module>fw-plus-ai-native-retrieval-web-search-engine-duckduckgo</module>
+        <module>fw-plus-ai-native-retrieval-web-search-engine-google-custom</module>
+        <module>fw-plus-ai-native-retrieval-web-search-engine-searchapi</module>
+        <module>fw-plus-ai-native-retrieval-web-search-engine-tavily</module>
+    </modules>
+
+    <properties>
+        <main.basedir>${basedir}/../../../..</main.basedir>
+    </properties>
+
+</project>

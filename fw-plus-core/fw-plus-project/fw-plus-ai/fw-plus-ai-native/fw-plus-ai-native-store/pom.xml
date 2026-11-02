@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.xiongx9527.fw.plus</groupId>
+        <artifactId>fw-plus-ai-native</artifactId>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>fw-plus-ai-native-store</artifactId>
+    <packaging>pom</packaging>
+    <description>（向量 / 图）存储：同族组件的父工程（向量库、图库直连封装，实现 EmbeddingStore）</description>
+
+    <modules>
+        <module>fw-plus-ai-native-store-azure-ai-search</module>
+        <module>fw-plus-ai-native-store-azure-cosmos-mongo-vcore</module>
+        <module>fw-plus-ai-native-store-azure-cosmos-nosql</module>
+        <module>fw-plus-ai-native-store-elasticsearch</module>
+        <module>fw-plus-ai-native-store-opensearch</module>
+        <module>fw-plus-ai-native-store-redis</module>
+        <module>fw-plus-ai-native-store-valkey</module>
+        <module>fw-plus-ai-native-store-milvus</module>
+        <module>fw-plus-ai-native-store-qdrant</module>
+        <module>fw-plus-ai-native-store-weaviate</module>
+        <module>fw-plus-ai-native-store-pinecone</module>
+        <module>fw-plus-ai-native-store-pgvector</module>
+        <module>fw-plus-ai-native-store-mariadb</module>
+        <module>fw-plus-ai-native-store-oracle</module>
+        <module>fw-plus-ai-native-store-sqlserver</module>
+        <module>fw-plus-ai-native-store-clickhouse</module>
+        <module>fw-plus-ai-native-store-oceanbase</module>
+        <module>fw-plus-ai-native-store-cassandra</module>
+        <module>fw-plus-ai-native-store-infinispan</module>
+        <module>fw-plus-ai-native-store-chroma</module>
+        <module>fw-plus-ai-native-store-couchbase</module>
+        <module>fw-plus-ai-native-store-mongodb-atlas</module>
+        <module>fw-plus-ai-native-store-dynamodb</module>
+        <module>fw-plus-ai-native-store-s3-vectors</module>
+        <module>fw-plus-ai-native-store-memfile</module>
+        <module>fw-plus-ai-native-store-tablestore</module>
+        <module>fw-plus-ai-native-store-vearch</module>
+        <module>fw-plus-ai-native-store-vespa</module>
+        <module>fw-plus-ai-native-store-neo4j</module>
+        <module>fw-plus-ai-native-store-nebula</module>
+    </modules>
+
+    <properties>
+        <main.basedir>${basedir}/../../../..</main.basedir>
+    </properties>
+
+</project>

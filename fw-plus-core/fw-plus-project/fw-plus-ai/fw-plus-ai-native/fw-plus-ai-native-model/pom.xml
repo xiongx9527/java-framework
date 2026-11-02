@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.xiongx9527.fw.plus</groupId>
+        <artifactId>fw-plus-ai-native</artifactId>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>fw-plus-ai-native-model</artifactId>
+    <packaging>pom</packaging>
+    <description>模型：同族组件的父工程（chat / embedding / 多模态模型提供方直连封装）</description>
+
+    <modules>
+        <module>fw-plus-ai-native-model-openai</module>
+        <module>fw-plus-ai-native-model-open-ai-official</module>
+        <module>fw-plus-ai-native-model-anthropic</module>
+        <module>fw-plus-ai-native-model-ollama</module>
+        <module>fw-plus-ai-native-model-azure-open-ai</module>
+        <module>fw-plus-ai-native-model-dashscope</module>
+        <module>fw-plus-ai-native-model-qianfan</module>
+        <module>fw-plus-ai-native-model-mistral-ai</module>
+        <module>fw-plus-ai-native-model-google-ai-gemini</module>
+        <module>fw-plus-ai-native-model-google-genai</module>
+        <module>fw-plus-ai-native-model-vertex-ai-gemini</module>
+        <module>fw-plus-ai-native-model-github-models</module>
+        <module>fw-plus-ai-native-model-voyage-ai</module>
+        <module>fw-plus-ai-native-model-jina</module>
+        <module>fw-plus-ai-native-model-nomic</module>
+        <module>fw-plus-ai-native-model-cohere</module>
+        <module>fw-plus-ai-native-model-hugging-face</module>
+        <module>fw-plus-ai-native-model-local-ai</module>
+        <module>fw-plus-ai-native-model-workers-ai</module>
+        <module>fw-plus-ai-native-model-watsonx</module>
+        <module>fw-plus-ai-native-model-ovh-ai</module>
+        <module>fw-plus-ai-native-model-zhipu-ai</module>
+        <module>fw-plus-ai-native-model-bedrock</module>
+        <module>fw-plus-ai-native-model-chatglm</module>
+        <module>fw-plus-ai-native-model-xinference</module>
+        <module>fw-plus-ai-native-model-oci-genai</module>
+    </modules>
+
+    <properties>
+        <main.basedir>${basedir}/../../../..</main.basedir>
+    </properties>
+
+</project>

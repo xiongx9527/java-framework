@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.xiongx9527.fw.plus</groupId>
+        <artifactId>fw-plus-ai-native</artifactId>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>fw-plus-ai-native-agentic</artifactId>
+    <packaging>pom</packaging>
+    <description>编排：同族组件的父工程（agentic 编排实现：workflow / supervisor / planner / a2a）</description>
+
+    <modules>
+        <module>fw-plus-ai-native-agentic-workflow</module>
+        <module>fw-plus-ai-native-agentic-supervisor</module>
+        <module>fw-plus-ai-native-agentic-planner</module>
+        <module>fw-plus-ai-native-agentic-a2a</module>
+    </modules>
+
+    <properties>
+        <main.basedir>${basedir}/../../../..</main.basedir>
+    </properties>
+
+</project>
