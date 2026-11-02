@@ -3,17 +3,17 @@ package com.xiongx9527.fw.plus.ai.askdata.capability;
 import com.xiongx9527.fw.plus.ai.askdata.llm.LlmChatPort;
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.ConfidenceEstimator;
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.SqlRepairPolicy;
-import com.xiongx9527.fw.plus.ai.askdata.postprocess.SqlValidator;
 import com.xiongx9527.fw.plus.ai.askdata.prompt.SqlPromptBuilder;
 
 /**
- * {@link SqlGenerationCapability} 的流式构建器。至少提供 {@link LlmChatPort}，其余使用默认实现。
+ * {@link SqlGenerationCapability} 的流式构建器。至少提供 {@link LlmChatPort}；
+ * LLM 语义校验默认开启（本地优先 + LLM 组合），可用 {@link #llmValidation} 覆盖或关闭。
  */
 public class SqlGenerationCapabilityBuilder {
-
     private LlmChatPort llm;
     private SqlPromptBuilder promptBuilder;
-    private SqlValidator validator;
+    private SqlValidationStrategy localValidation;
+    private SqlValidationStrategy llmValidation;
     private ConfidenceEstimator confidenceEstimator;
     private SqlRepairPolicy repairPolicy;
 
@@ -31,8 +31,13 @@ public class SqlGenerationCapabilityBuilder {
         return this;
     }
 
-    public SqlGenerationCapabilityBuilder validator(SqlValidator v) {
-        this.validator = v;
+    public SqlGenerationCapabilityBuilder localValidation(SqlValidationStrategy v) {
+        this.localValidation = v;
+        return this;
+    }
+
+    public SqlGenerationCapabilityBuilder llmValidation(SqlValidationStrategy v) {
+        this.llmValidation = v;
         return this;
     }
 
@@ -50,6 +55,11 @@ public class SqlGenerationCapabilityBuilder {
         if (llm == null) {
             throw new IllegalStateException("llm is required to build SqlGenerationCapability");
         }
-        return new DefaultSqlGenerationCapability(llm, promptBuilder, validator, confidenceEstimator, repairPolicy);
+        SqlValidationStrategy local = localValidation == null ? new LocalSqlValidationStrategy() : localValidation;
+        SqlValidationStrategy llmV = llmValidation;
+        if (llmV == null) {
+            llmV = new LlmSqlValidationStrategy(llm, local);
+        }
+        return new DefaultSqlGenerationCapability(llm, promptBuilder, local, llmV, confidenceEstimator, repairPolicy);
     }
 }

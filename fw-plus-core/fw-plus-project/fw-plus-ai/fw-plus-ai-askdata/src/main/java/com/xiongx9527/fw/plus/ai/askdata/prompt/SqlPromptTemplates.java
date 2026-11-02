@@ -28,4 +28,7 @@ public final class SqlPromptTemplates {
             + "{refBlock}"
             + "问题：{question}\n"
             + "请生成满足该问题的 SQL。";
+
+    public static final String VALIDATION_SYSTEM = "你是一个严谨的 SQL 评审助手。任务：判断给定 SQL 是否语义正确、能否回答用户问题。"
+            + "只依据可见表结构与问题本身评判，不臆造表字段，不把权限/可见范围之外的内容当作错误。";
 }
