@@ -30,10 +30,7 @@ public class DefaultJsonOutputPort implements JsonOutputPort {
     /**
      * 默认 JSON 指令：要求模型只输出一个 JSON 对象或数组，不得夹带散文或 markdown 围栏。
      */
-    public static final String DEFAULT_INSTRUCTION =
-            "You MUST output ONLY valid JSON. Output exactly one JSON object or array.\n"
-            + "Do NOT include any explanation, commentary, or markdown code fences (```).\n"
-            + "Do NOT output text outside the JSON. The response must be parseable as JSON directly.";
+    public static final String DEFAULT_INSTRUCTION = JsonOutputPort.DEFAULT_INSTRUCTION;
 
     private static final int MAX_SNIPPET = 500;
 
@@ -65,6 +62,11 @@ public class DefaultJsonOutputPort implements JsonOutputPort {
 
     public static Builder builder(LlmPort llmPort) {
         return new Builder(llmPort);
+    }
+
+    /** 当前生效的 JSON 指令文本。 */
+    public String instruction() {
+        return instruction;
     }
 
     @Override

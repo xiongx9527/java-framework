@@ -16,7 +16,8 @@ import java.lang.annotation.Target;
  *       结果通过传入的 {@code LlmStreamHandler} 透传。</li>
  * </ul>
  *
- * <p>仅对「无工具调用」的方法生效；以工具调用为主的方法会忽略该标注（工具循环路径优先）。</p>
+ * <p>对「无工具」与「带工具」的方法均生效：带工具时会在工具循环结束后从最终回答中稳定提取 JSON；
+ * 若方法以流式返回，则增量透传 JSON 主体（剥离前导散文 / markdown 围栏）。</p>
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)

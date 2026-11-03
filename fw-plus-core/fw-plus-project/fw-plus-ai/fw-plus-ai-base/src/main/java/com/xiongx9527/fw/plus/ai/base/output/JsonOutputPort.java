@@ -21,6 +21,16 @@ import java.util.function.Function;
  */
 public interface JsonOutputPort {
 
+    /** 默认 JSON 指令：要求模型只输出一个 JSON 对象或数组，不得夹带散文或 markdown 围栏。 */
+    String DEFAULT_INSTRUCTION = "You MUST output ONLY valid JSON. Output exactly one JSON object or array.\n"
+            + "Do NOT include any explanation, commentary, or markdown code fences (```).\\n"
+            + "Do NOT output text outside the JSON. The response must be parseable as JSON directly.";
+
+    /** 用于约束模型只输出 JSON 的指令文本（默认 {@link #DEFAULT_INSTRUCTION}，可被实现覆盖）。 */
+    default String instruction() {
+        return DEFAULT_INSTRUCTION;
+    }
+
     /**
      * 强制模型只输出 JSON：注入指令、必要时下发 JSON 模式参数、聚合并用 {@link JsonSupport} 提取。
      *

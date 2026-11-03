@@ -29,6 +29,10 @@ public final class McpClientConfig {
 
     private final Map<String, String> headers;
 
+    private final Map<String, String> query;
+
+    private final String body;
+
     private final long timeoutMs;
 
     private McpClientConfig(Builder builder) {
@@ -39,6 +43,8 @@ public final class McpClientConfig {
         this.env = Collections.unmodifiableMap(new LinkedHashMap<String, String>(builder.env));
         this.headers = Collections.unmodifiableMap(new LinkedHashMap<String, String>(builder.headers));
         this.url = builder.url;
+        this.query = Collections.unmodifiableMap(new LinkedHashMap<String, String>(builder.query));
+        this.body = builder.body;
         this.timeoutMs = builder.timeoutMs;
     }
 
@@ -75,6 +81,16 @@ public final class McpClientConfig {
         return headers;
     }
 
+    /** URL 查询参数（HTTP / SSE / Streamable HTTP 传输下附加到请求地址）。 */
+    public Map<String, String> getQuery() {
+        return query;
+    }
+
+    /** 请求体（Streamable HTTP 等需要 POST body 的传输下使用；STDIO 忽略）。 */
+    public String getBody() {
+        return body;
+    }
+
     public long getTimeoutMs() {
         return timeoutMs;
     }
@@ -86,6 +102,10 @@ public final class McpClientConfig {
         private final Map<String, String> env = new LinkedHashMap<String, String>();
 
         private final Map<String, String> headers = new LinkedHashMap<String, String>();
+
+        private final Map<String, String> query = new LinkedHashMap<String, String>();
+
+        private String body;
 
         private String name;
 
@@ -139,6 +159,25 @@ public final class McpClientConfig {
             if (key != null) {
                 this.headers.put(key, value);
             }
+            return this;
+        }
+
+        public Builder query(String key, String value) {
+            if (key != null) {
+                this.query.put(key, value);
+            }
+            return this;
+        }
+
+        public Builder query(Map<String, String> value) {
+            if (value != null) {
+                this.query.putAll(value);
+            }
+            return this;
+        }
+
+        public Builder body(String value) {
+            this.body = value;
             return this;
         }
 

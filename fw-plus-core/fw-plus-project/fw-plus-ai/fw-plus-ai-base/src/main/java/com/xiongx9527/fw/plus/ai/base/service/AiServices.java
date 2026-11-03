@@ -16,11 +16,17 @@ import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
 import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmResponse;
 import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
+import com.xiongx9527.fw.plus.ai.base.model.ChatRole;
+import com.xiongx9527.fw.plus.ai.base.output.JsonOutputException;
+import com.xiongx9527.fw.plus.ai.base.output.JsonSupport;
 import com.xiongx9527.fw.plus.ai.base.model.moderation.ModerationException;
 import com.xiongx9527.fw.plus.ai.base.model.moderation.ModerationListener;
 import com.xiongx9527.fw.plus.ai.base.model.moderation.ModerationModel;
 import com.xiongx9527.fw.plus.ai.base.model.moderation.ModerationResult;
 import com.xiongx9527.fw.plus.ai.base.output.JsonOutputPort;
+import com.xiongx9527.fw.plus.ai.base.mcp.McpClient;
+import com.xiongx9527.fw.plus.ai.base.mcp.McpToolProvider;
+import com.xiongx9527.fw.plus.ai.base.tool.ToolArgumentCodec;
 import com.xiongx9527.fw.plus.ai.base.retrieval.ChainedRetrievalAugmentor;
 import com.xiongx9527.fw.plus.ai.base.retrieval.DefaultRetrievalAugmentor;
 import com.xiongx9527.fw.plus.ai.base.retrieval.RetrievalAugmentor;
@@ -128,6 +134,23 @@ public final class AiServices {
          */
         public Builder<T> tools(ToolProvider... values) {
             return toolProviders(values);
+        }
+
+        /**
+         * 批量接入 MCP 客户端（数组）：每个 {@link McpClient} 包成 {@link McpToolProvider} 后作为全局工具。
+         *
+         * <p>对上层而言 MCP 工具与本地 {@code @Tool} 没有区别；{@code codec} 负责工具参数的
+         * 序列化（base 不绑定 JSON 库，由调用方注入 Jackson / fastjson 等实现）。</p>
+         */
+        public Builder<T> mcpClients(ToolArgumentCodec codec, McpClient... clients) {
+            if (codec != null && clients != null) {
+                for (McpClient client : clients) {
+                    if (client != null) {
+                        this.toolProviderScopes.add(IntentScoped.global(new McpToolProvider(client, codec)));
+                    }
+                }
+            }
+            return this;
         }
 
         public Builder<T> toolProviderOn(ToolProvider value, String... intents) {
@@ -392,15 +415,28 @@ public final class AiServices {
                 return json;
             }
             if (tools != null) {
+                boolean jsonResult = context.getJsonOutput() != null
+                        && method.isAnnotationPresent(JsonResult.class);
+                List<ChatMessage> toolMessages = request.getMessages();
+                if (jsonResult) {
+                    toolMessages = withJsonInstruction(toolMessages, context.getJsonOutput().instruction());
+                }
                 ToolCallingLoop loop = new ToolCallingLoop(llm, tools);
                 ToolCallingRequest tcRequest = ToolCallingRequest.builder()
-                        .messages(request.getMessages())
+                        .messages(toolMessages)
                         .model(request.getModel())
                         .build();
                 ToolCallingSink sink = streamHandler == null ? null
                         : new LlmStreamHandlerSink(streamHandler);
                 ToolCallingResult callResult = loop.call(tcRequest, sink);
                 String answer = callResult.getAnswer();
+                if (jsonResult) {
+                    String json = JsonSupport.repairJson(answer);
+                    if (json == null) {
+                        throw new JsonOutputException("no parseable JSON in tool-calling result");
+                    }
+                    answer = json;
+                }
                 if (returnType == LlmResponse.class) {
                     return LlmResponse.builder().content(answer).usage(callResult.getUsage()).build();
                 }
@@ -511,6 +547,24 @@ public final class AiServices {
             for (AiObservationListener listener : context.getObservationListeners()) {
                 listener.onError(observation);
             }
+        }
+
+        /** 把 JSON 指令注入 system 消息（已有则追加，否则前置），不破坏原有提示。 */
+        private static List<ChatMessage> withJsonInstruction(List<ChatMessage> messages, String instruction) {
+            List<ChatMessage> out = new ArrayList<ChatMessage>(messages);
+            boolean injected = false;
+            for (int i = 0; i < out.size(); i++) {
+                if (out.get(i).getRole() == ChatRole.SYSTEM) {
+                    String text = out.get(i).getContent();
+                    out.set(i, ChatMessage.system((text == null ? "" : text + "\n\n") + instruction));
+                    injected = true;
+                    break;
+                }
+            }
+            if (!injected) {
+                out.add(0, ChatMessage.system(instruction));
+            }
+            return out;
         }
 
         private ToolProvider resolveTools(String intentRef) {
