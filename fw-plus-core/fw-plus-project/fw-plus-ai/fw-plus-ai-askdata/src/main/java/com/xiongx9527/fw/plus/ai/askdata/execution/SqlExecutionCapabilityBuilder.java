@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.askdata.execution;
 
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.SqlValidator;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 
 /** {@link SqlExecutionCapability} 的流式构建器。至少提供执行端口。 */
 public class SqlExecutionCapabilityBuilder {
@@ -24,7 +25,7 @@ public class SqlExecutionCapabilityBuilder {
 
     public SqlExecutionCapability build() {
         if (executor == null) {
-            throw new IllegalStateException("executor is required to build SqlExecutionCapability");
+            throw new IllegalStateException(I18nMessageResolver.resolveKey("askdata.contract.build_executor"));
         }
         return new DefaultSqlExecutionCapability(executor, validator);
     }

@@ -4,10 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.xiongx9527.fw.plus.ai.askdata.dialect.SqlDialect;
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.ValidationResult;
 import com.xiongx9527.fw.plus.ai.askdata.schema.SchemaContext;
 import com.xiongx9527.fw.plus.ai.askdata.schema.TableSchema;
 import java.util.Collections;
+
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import org.junit.jupiter.api.Test;
 
 public class LocalSqlValidationStrategyTest {
@@ -36,7 +39,7 @@ public class LocalSqlValidationStrategyTest {
         ValidationResult vr = s.validate("SELECT id FROM missing_table", input());
         assertFalse(vr.isOk());
         boolean found = vr.getIssues().stream()
-                .anyMatch(i -> i.contains("missing_table") && i.contains("visible schema"));
+                .anyMatch(i -> i.equals(I18nMessageResolver.resolveKey("askdata.validate.table_not_in_schema", "missing_table")));
         assertTrue(found, "should flag missing_table: " + vr.getIssues());
     }
 
@@ -45,7 +48,7 @@ public class LocalSqlValidationStrategyTest {
         LocalSqlValidationStrategy s = new LocalSqlValidationStrategy();
         ValidationResult vr = s.validate("DELETE FROM orders", input());
         assertFalse(vr.isOk());
-        assertTrue(vr.getIssues().stream().anyMatch(i -> i.contains("write DML")));
+        assertTrue(vr.getIssues().stream().anyMatch(i -> i.equals(I18nMessageResolver.resolveKey("askdata.validate.write_dml", "DELETE"))));
     }
 
     @Test
@@ -53,7 +56,7 @@ public class LocalSqlValidationStrategyTest {
         LocalSqlValidationStrategy s = new LocalSqlValidationStrategy();
         ValidationResult vr = s.validate("SELECT id FROM orders WHERE (id > 1", input());
         assertFalse(vr.isOk());
-        assertTrue(vr.getIssues().stream().anyMatch(i -> i.contains("unbalanced parentheses")));
+        assertTrue(vr.getIssues().stream().anyMatch(i -> i.equals(I18nMessageResolver.resolveKey("askdata.validate.unbalanced_paren", 1, 0))));
     }
 
     @Test
@@ -70,7 +73,7 @@ public class LocalSqlValidationStrategyTest {
                 .dialectHint("pg").build();
         ValidationResult vr = s.validate("SELECT `id` FROM orders", in);
         assertFalse(vr.isOk());
-        assertTrue(vr.getIssues().stream().anyMatch(i -> i.contains("backtick")),
+        assertTrue(vr.getIssues().stream().anyMatch(i -> i.equals(I18nMessageResolver.resolveKey("askdata.dialect.backtick", SqlDialect.POSTGRESQL))),
                 "should flag backtick in pg: " + vr.getIssues());
     }
 
@@ -90,7 +93,7 @@ public class LocalSqlValidationStrategyTest {
                 .dialectHint("oracle").build();
         ValidationResult vr = s.validate("SELECT id FROM orders LIMIT 10", in);
         assertFalse(vr.isOk());
-        assertTrue(vr.getIssues().stream().anyMatch(i -> i.contains("does not support LIMIT")),
+        assertTrue(vr.getIssues().stream().anyMatch(i -> i.equals(I18nMessageResolver.resolveKey("askdata.dialect.limit", SqlDialect.ORACLE))),
                 "should flag LIMIT in oracle: " + vr.getIssues());
     }
 

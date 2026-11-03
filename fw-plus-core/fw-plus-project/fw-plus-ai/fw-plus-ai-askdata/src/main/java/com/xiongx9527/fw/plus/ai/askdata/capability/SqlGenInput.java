@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.askdata.capability;
 
 import com.xiongx9527.fw.plus.ai.askdata.schema.SchemaContext;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import java.util.Collections;
 import java.util.List;
 import lombok.Builder;
@@ -34,10 +35,10 @@ public class SqlGenInput {
     /** 输入合法性自检：问题与可见 schema 均不可缺。 */
     public void validate() {
         if (question == null || question.trim().isEmpty()) {
-            throw new MissingInputException("question 不可为空");
+            throw new MissingInputException(50005804, I18nMessageResolver.resolveKey("askdata.input.question_required"));
         }
         if (schemaContext == null || schemaContext.isEmpty()) {
-            throw new MissingInputException("schemaContext 不可为空（SQL 生成依赖可见 schema，不依赖隐式全局状态）");
+            throw new MissingInputException(50005804, I18nMessageResolver.resolveKey("askdata.input.schema_required"));
         }
     }
 }

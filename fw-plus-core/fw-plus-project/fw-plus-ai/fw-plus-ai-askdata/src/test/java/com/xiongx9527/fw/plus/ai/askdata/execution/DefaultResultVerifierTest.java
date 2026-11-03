@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collections;
 import java.util.List;
+
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import org.junit.jupiter.api.Test;
 
 public class DefaultResultVerifierTest {
@@ -31,7 +33,7 @@ public class DefaultResultVerifierTest {
         DefaultResultVerifier v = new DefaultResultVerifier();
         List<String> issues = v.verify(QueryResult.builder().build(), ExecutionSettings.builder().build());
         assertFalse(issues.isEmpty());
-        assertTrue(issues.get(0).contains("empty"));
+        assertEquals(I18nMessageResolver.resolveKey("askdata.verify.empty_result"), issues.get(0));
     }
 
     @Test
@@ -39,7 +41,7 @@ public class DefaultResultVerifierTest {
         DefaultResultVerifier v = new DefaultResultVerifier();
         List<List<Object>> rows = Collections.singletonList(Collections.singletonList(1L));
         List<String> issues = v.verify(withRows(rows, true), ExecutionSettings.builder().build());
-        assertTrue(issues.stream().anyMatch(i -> i.contains("truncated")));
+        assertTrue(issues.stream().anyMatch(i -> i.equals(I18nMessageResolver.resolveKey("askdata.verify.truncated"))));
     }
 
     @Test
@@ -48,7 +50,7 @@ public class DefaultResultVerifierTest {
         List<List<Object>> rows = List.of(List.of(1L), List.of(1L), List.of(2L));
         ExecutionSettings settings = ExecutionSettings.builder().duplicateKeyColumn(0).build();
         List<String> issues = v.verify(withRows(rows, false), settings);
-        assertTrue(issues.stream().anyMatch(i -> i.contains("duplicate key")));
+        assertTrue(issues.stream().anyMatch(i -> i.equals(I18nMessageResolver.resolveKey("askdata.verify.dup_key", 0))));
     }
 
     @Test
@@ -57,7 +59,7 @@ public class DefaultResultVerifierTest {
         List<List<Object>> rows = List.of(List.of(1L, "a"), List.of(1L, "b"), List.of(2L, "c"));
         ExecutionSettings settings = ExecutionSettings.builder().primaryKeyColumn("id").build();
         List<String> issues = v.verify(withTwoColumns(rows), settings);
-        assertTrue(issues.stream().anyMatch(i -> i.contains("duplicate key")));
+        assertTrue(issues.stream().anyMatch(i -> i.equals(I18nMessageResolver.resolveKey("askdata.verify.dup_key", 0))));
     }
 
     @Test
@@ -66,7 +68,7 @@ public class DefaultResultVerifierTest {
         List<List<Object>> rows = List.of(List.of(1L, "a"), List.of(1L, "b"), List.of(2L, "c"));
         ExecutionSettings settings = ExecutionSettings.builder().primaryKeyColumn("ghost").build();
         List<String> issues = v.verify(withTwoColumns(rows), settings);
-        assertTrue(issues.stream().noneMatch(i -> i.contains("duplicate key")));
+        assertTrue(issues.stream().noneMatch(i -> i.contains("主键")));
     }
 
     @Test

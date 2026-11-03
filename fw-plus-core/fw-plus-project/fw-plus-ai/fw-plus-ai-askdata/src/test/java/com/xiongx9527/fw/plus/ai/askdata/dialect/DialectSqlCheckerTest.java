@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import org.junit.jupiter.api.Test;
 
 public class DialectSqlCheckerTest {
@@ -13,7 +15,7 @@ public class DialectSqlCheckerTest {
     void flagsBacktickInDoubleQuoteDialect() {
         List<String> issues = DialectSqlChecker.check("SELECT `id` FROM orders", SqlDialect.POSTGRESQL);
         assertFalse(issues.isEmpty());
-        assertTrue(issues.get(0).contains("backtick"));
+        assertEquals(I18nMessageResolver.resolveKey("askdata.dialect.backtick", SqlDialect.POSTGRESQL), issues.get(0));
     }
 
     @Test
@@ -26,7 +28,7 @@ public class DialectSqlCheckerTest {
     void flagsLimitInOracle() {
         List<String> issues = DialectSqlChecker.check("SELECT id FROM orders LIMIT 10", SqlDialect.ORACLE);
         assertFalse(issues.isEmpty());
-        assertTrue(issues.get(0).contains("does not support LIMIT"));
+        assertEquals(I18nMessageResolver.resolveKey("askdata.dialect.limit", SqlDialect.ORACLE), issues.get(0));
     }
 
     @Test
@@ -39,7 +41,7 @@ public class DialectSqlCheckerTest {
     void flagsTopInPostgresql() {
         List<String> issues = DialectSqlChecker.check("SELECT TOP 10 id FROM orders", SqlDialect.POSTGRESQL);
         assertFalse(issues.isEmpty());
-        assertTrue(issues.get(0).contains("does not support TOP"));
+        assertEquals(I18nMessageResolver.resolveKey("askdata.dialect.top", SqlDialect.POSTGRESQL), issues.get(0));
     }
 
     @Test

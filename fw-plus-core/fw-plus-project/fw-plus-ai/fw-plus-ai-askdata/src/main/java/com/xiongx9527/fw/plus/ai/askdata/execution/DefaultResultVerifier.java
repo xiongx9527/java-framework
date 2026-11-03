@@ -5,6 +5,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
+
 /** 默认 {@link ResultVerifier}：空结果 / 截断 / 主键重复三项自检。 */
 public class DefaultResultVerifier implements ResultVerifier {
 
@@ -12,16 +14,16 @@ public class DefaultResultVerifier implements ResultVerifier {
     public List<String> verify(QueryResult result, ExecutionSettings settings) {
         List<String> issues = new ArrayList<>();
         if (result == null || result.rowCount() == 0) {
-            issues.add("empty result: no rows returned");
+            issues.add(I18nMessageResolver.resolveKey("askdata.verify.empty_result"));
             return issues;
         }
         if (result.isTruncated()) {
-            issues.add("result truncated: exceeds maxRows, possibly incomplete");
+            issues.add(I18nMessageResolver.resolveKey("askdata.verify.truncated"));
         }
         Integer keyIdx = resolveKeyIndex(result, settings);
         if (keyIdx != null) {
             if (keyIdx < 0 || keyIdx >= result.columnCount()) {
-                issues.add("duplicateKeyColumn out of range: " + keyIdx);
+                issues.add(I18nMessageResolver.resolveKey("askdata.verify.dup_key_out_of_range", keyIdx));
             } else {
                 Set<Object> seen = new HashSet<>();
                 boolean dup = false;
@@ -33,7 +35,7 @@ public class DefaultResultVerifier implements ResultVerifier {
                     }
                 }
                 if (dup) {
-                    issues.add("duplicate key detected in column index " + keyIdx);
+                    issues.add(I18nMessageResolver.resolveKey("askdata.verify.dup_key", keyIdx));
                 }
             }
         }

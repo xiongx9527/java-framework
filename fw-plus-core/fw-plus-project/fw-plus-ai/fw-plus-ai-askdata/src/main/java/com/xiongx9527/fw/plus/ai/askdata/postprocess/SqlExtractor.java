@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.askdata.postprocess;
 
 import com.xiongx9527.fw.plus.ai.askdata.capability.SqlGenerationException;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import java.util.regex.Pattern;
 
 /**
@@ -21,7 +22,7 @@ public final class SqlExtractor {
 
     public static String extract(String modelOutput) {
         if (modelOutput == null || modelOutput.trim().isEmpty()) {
-            throw new SqlGenerationException("model output is null or empty");
+            throw new SqlGenerationException(50005801, I18nMessageResolver.resolveKey("askdata.extract.empty_output"));
         }
         String out = modelOutput;
         int fStart = out.indexOf(FENCE);
@@ -58,7 +59,7 @@ public final class SqlExtractor {
             }
             return clean(sql);
         }
-        throw new SqlGenerationException("no SQL found in model output");
+        throw new SqlGenerationException(50005801, I18nMessageResolver.resolveKey("askdata.extract.no_sql"));
     }
 
     public static String extractExplanation(String modelOutput) {

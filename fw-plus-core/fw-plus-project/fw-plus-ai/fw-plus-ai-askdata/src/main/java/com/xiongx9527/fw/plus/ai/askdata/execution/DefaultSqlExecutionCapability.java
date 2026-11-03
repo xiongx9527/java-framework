@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.askdata.execution;
 
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.SqlValidator;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +28,7 @@ public class DefaultSqlExecutionCapability implements SqlExecutionCapability {
 
     public DefaultSqlExecutionCapability(SqlExecutorPort executor, SqlValidator validator, ResultVerifier verifier) {
         if (executor == null) {
-            throw new IllegalArgumentException("executor is required");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("askdata.contract.executor_required"));
         }
         this.executor = executor;
         this.validator = validator == null ? new SqlValidator() : validator;
@@ -37,12 +38,12 @@ public class DefaultSqlExecutionCapability implements SqlExecutionCapability {
     @Override
     public QueryResult execute(SqlExecInput input) {
         if (input == null) {
-            throw new SqlExecutionException("input is null");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("askdata.contract.input_null"));
         }
         input.validate();
         ExecutionSettings settings = input.toSettings();
         if (settings.isReadOnly() && validator.containsWriteDml(input.getSql())) {
-            throw new SqlExecutionException("只读执行模式禁止写入型语句: " + input.getSql());
+            throw new SqlExecutionException(50005807, input.getSql());
         }
         long start = System.currentTimeMillis();
         QueryResult result = executor.execute(input.getSql(), settings);

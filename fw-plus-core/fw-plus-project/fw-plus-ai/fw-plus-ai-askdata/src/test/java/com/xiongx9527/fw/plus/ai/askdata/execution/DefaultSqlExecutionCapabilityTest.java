@@ -8,6 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.SqlValidator;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import org.junit.jupiter.api.Test;
 
 public class DefaultSqlExecutionCapabilityTest {
@@ -50,7 +52,7 @@ public class DefaultSqlExecutionCapabilityTest {
         SqlExecutorPort port = (sql, settings) -> QueryResult.builder().build();
         SqlExecutionCapability cap = new DefaultSqlExecutionCapability(port, new SqlValidator());
         QueryResult r = cap.execute(SqlExecInput.builder().sql("SELECT id FROM t").build());
-        assertTrue(r.getWarnings().stream().anyMatch(w -> w.contains("empty")));
+        assertTrue(r.getWarnings().stream().anyMatch(w -> w.equals(I18nMessageResolver.resolveKey("askdata.verify.empty_result"))));
     }
 
     @Test

@@ -7,6 +7,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import javax.sql.DataSource;
 
 /**
@@ -20,7 +21,7 @@ public class JdbcSqlExecutor implements SqlExecutorPort {
 
     public JdbcSqlExecutor(DataSource dataSource) {
         if (dataSource == null) {
-            throw new IllegalArgumentException("dataSource is required");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("askdata.contract.datasource_required"));
         }
         this.dataSource = dataSource;
     }
@@ -28,7 +29,7 @@ public class JdbcSqlExecutor implements SqlExecutorPort {
     @Override
     public QueryResult execute(String sql, ExecutionSettings settings) {
         if (sql == null || sql.trim().isEmpty()) {
-            throw new SqlExecutionException("sql is empty");
+            throw new SqlExecutionException(50005802, I18nMessageResolver.resolveKey("askdata.exec.sql_empty"));
         }
         ExecutionSettings s = settings == null ? ExecutionSettings.builder().build() : settings;
         long start = System.currentTimeMillis();
@@ -63,7 +64,7 @@ public class JdbcSqlExecutor implements SqlExecutorPort {
                         .build();
             }
         } catch (SQLException e) {
-            throw new SqlExecutionException("sql execution failed: " + e.getMessage(), e);
+            throw new SqlExecutionException(50005802, I18nMessageResolver.resolveKey("askdata.exec.failed"), e);
         }
     }
 

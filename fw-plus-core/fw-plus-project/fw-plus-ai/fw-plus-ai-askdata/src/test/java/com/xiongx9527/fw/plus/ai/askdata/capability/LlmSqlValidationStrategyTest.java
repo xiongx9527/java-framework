@@ -9,6 +9,8 @@ import com.xiongx9527.fw.plus.ai.askdata.postprocess.ValidationResult;
 import com.xiongx9527.fw.plus.ai.askdata.schema.SchemaContext;
 import com.xiongx9527.fw.plus.ai.askdata.schema.TableSchema;
 import java.util.Collections;
+
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import org.junit.jupiter.api.Test;
 
 public class LlmSqlValidationStrategyTest {
@@ -34,7 +36,7 @@ public class LlmSqlValidationStrategyTest {
         LlmSqlValidationStrategy s = new LlmSqlValidationStrategy(port);
         ValidationResult vr = s.validate("SELECT x FROM orders", input());
         assertFalse(vr.isOk());
-        assertTrue(vr.getIssues().stream().anyMatch(i -> i.startsWith("llm: ")));
+        assertTrue(vr.getIssues().stream().anyMatch(i -> i.startsWith(I18nMessageResolver.resolveKey("askdata.llm.invalid", ""))));
     }
 
     @Test
@@ -45,6 +47,6 @@ public class LlmSqlValidationStrategyTest {
         LlmSqlValidationStrategy s = new LlmSqlValidationStrategy(port);
         ValidationResult vr = s.validate("SELECT id FROM missing_table", input());
         assertFalse(vr.isOk());
-        assertTrue(vr.getIssues().stream().anyMatch(i -> i.contains("visible schema")));
+        assertTrue(vr.getIssues().stream().anyMatch(i -> i.equals(I18nMessageResolver.resolveKey("askdata.validate.table_not_in_schema", "missing_table"))));
     }
 }

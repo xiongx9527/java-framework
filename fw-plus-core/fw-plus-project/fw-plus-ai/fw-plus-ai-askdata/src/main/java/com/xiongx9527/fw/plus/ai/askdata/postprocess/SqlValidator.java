@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.askdata.postprocess;
 
 import com.xiongx9527.fw.plus.ai.askdata.schema.SchemaContext;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -20,12 +21,12 @@ public class SqlValidator {
         List<String> issues = new ArrayList<>();
         List<String> referenced = new ArrayList<>();
         if (sql == null || sql.trim().isEmpty()) {
-            return ValidationResult.fail(Collections.singletonList("empty sql"), referenced);
+            return ValidationResult.fail(Collections.singletonList(I18nMessageResolver.resolveKey("askdata.validate.empty_sql")), referenced);
         }
         String upper = sql.toUpperCase();
         Matcher dml = WRITE_DML.matcher(upper);
         while (dml.find()) {
-            issues.add("contains write DML: " + dml.group(1));
+            issues.add(I18nMessageResolver.resolveKey("askdata.validate.write_dml", dml.group(1)));
         }
         Matcher tbl = TABLE_REF.matcher(sql);
         while (tbl.find()) {
@@ -34,13 +35,13 @@ public class SqlValidator {
                 referenced.add(name);
             }
             if (schema != null && !schema.containsTable(name)) {
-                issues.add("references table not in visible schema: " + name);
+                issues.add(I18nMessageResolver.resolveKey("askdata.validate.table_not_in_schema", name));
             }
         }
         int open = count(sql, '(');
         int close = count(sql, ')');
         if (open != close) {
-            issues.add("unbalanced parentheses: " + open + " open vs " + close + " close");
+            issues.add(I18nMessageResolver.resolveKey("askdata.validate.unbalanced_paren", open, close));
         }
         return issues.isEmpty() ? ValidationResult.ok(referenced) : ValidationResult.fail(issues, referenced);
     }

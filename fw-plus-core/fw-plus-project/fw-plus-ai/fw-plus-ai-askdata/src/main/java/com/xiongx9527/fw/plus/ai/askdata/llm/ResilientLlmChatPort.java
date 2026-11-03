@@ -6,6 +6,7 @@ import java.net.SocketTimeoutException;
 import java.util.Locale;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import lombok.Builder;
 import lombok.Getter;
 import org.slf4j.Logger;
@@ -107,7 +108,7 @@ public class ResilientLlmChatPort implements LlmChatPort {
 
     public ResilientLlmChatPort(LlmChatPort delegate, ResilienceConfig config) {
         if (delegate == null) {
-            throw new IllegalArgumentException("delegate is required");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("askdata.contract.delegate_required"));
         }
         this.delegate = delegate;
         this.config = config == null ? ResilienceConfig.builder().build() : config;
@@ -128,7 +129,7 @@ public class ResilientLlmChatPort implements LlmChatPort {
         Throwable last = null;
         for (int attempt = 0; attempt < maxAttempts; attempt++) {
             if (!allowRequest()) {
-                throw new LlmResilienceException("LLM 熔断器已打开，请求被拒绝（冷却中）");
+                throw new LlmResilienceException(I18nMessageResolver.resolveKey("askdata.llm.breaker_open"));
             }
             try {
                 String result = delegate.complete(systemPrompt, userPrompt);
@@ -146,7 +147,7 @@ public class ResilientLlmChatPort implements LlmChatPort {
                             Thread.sleep(delay);
                         } catch (InterruptedException ie) {
                             Thread.currentThread().interrupt();
-                            throw new LlmResilienceException("LLM 重试被中断", ie);
+                            throw new LlmResilienceException(I18nMessageResolver.resolveKey("askdata.llm.retry_interrupted"), ie);
                         }
                     }
                     if (log.isDebugEnabled()) {
@@ -157,8 +158,8 @@ public class ResilientLlmChatPort implements LlmChatPort {
                 break;
             }
         }
-        throw new LlmResilienceException("LLM 调用重试后仍失败: "
-                + (last == null ? "unknown" : last.getMessage()), last);
+        throw new LlmResilienceException(I18nMessageResolver.resolveKey("askdata.llm.retry_exhausted",
+                last == null ? "unknown" : last.getMessage()), last);
     }
 
     private long backoff(int attempt) {

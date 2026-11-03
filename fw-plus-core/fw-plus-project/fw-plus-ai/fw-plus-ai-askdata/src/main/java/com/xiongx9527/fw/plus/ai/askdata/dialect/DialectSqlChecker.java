@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
+
 /**
  * 方言感知 SQL 静态检查（§6.38.4 / P0 防御）：仅“标记”方言不一致，不重写不可信 SQL，
  * 交由既有修复环（§6.17）让模型按提示与失败原因重出。
@@ -40,13 +42,13 @@ public final class DialectSqlChecker {
             return issues;
         }
         if (usesDoubleQuote(dialect) && BACKTICK_QUOTED.matcher(sql).find()) {
-            issues.add("dialect " + dialect + " uses double-quote identifiers; found backtick-quoted identifier");
+            issues.add(I18nMessageResolver.resolveKey("askdata.dialect.backtick", dialect));
         }
         if (!supportsLimit(dialect) && LIMIT_CLAUSE.matcher(sql).find()) {
-            issues.add("dialect " + dialect + " does not support LIMIT; use OFFSET/FETCH or ROWNUM");
+            issues.add(I18nMessageResolver.resolveKey("askdata.dialect.limit", dialect));
         }
         if (dialect != SqlDialect.SQLSERVER && TOP_CLAUSE.matcher(sql).find()) {
-            issues.add("dialect " + dialect + " does not support TOP; use LIMIT/OFFSET or FETCH");
+            issues.add(I18nMessageResolver.resolveKey("askdata.dialect.top", dialect));
         }
         return issues;
     }

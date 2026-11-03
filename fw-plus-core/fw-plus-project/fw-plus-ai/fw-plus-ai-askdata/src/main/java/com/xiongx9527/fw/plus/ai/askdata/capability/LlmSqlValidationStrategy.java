@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.ai.askdata.capability;
 import com.xiongx9527.fw.plus.ai.askdata.llm.LlmChatPort;
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.ValidationResult;
 import com.xiongx9527.fw.plus.ai.askdata.prompt.SqlPromptTemplates;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -21,7 +22,7 @@ public class LlmSqlValidationStrategy implements SqlValidationStrategy {
 
     public LlmSqlValidationStrategy(LlmChatPort llm, SqlValidationStrategy fallback) {
         if (llm == null) {
-            throw new IllegalArgumentException("llm is required");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("askdata.contract.llm_required"));
         }
         this.llm = llm;
         this.fallback = fallback == null ? new LocalSqlValidationStrategy() : fallback;
@@ -63,10 +64,10 @@ public class LlmSqlValidationStrategy implements SqlValidationStrategy {
             reason = reason.substring(1);
         }
         if (reason.isEmpty()) {
-            reason = "llm flagged sql as invalid";
+            reason = I18nMessageResolver.resolveKey("askdata.llm.flagged_invalid");
         }
         List<String> issues = new ArrayList<>();
-        issues.add("llm: " + reason);
+        issues.add(I18nMessageResolver.resolveKey("askdata.llm.invalid", reason));
         return ValidationResult.fail(issues, Collections.emptyList());
     }
 }

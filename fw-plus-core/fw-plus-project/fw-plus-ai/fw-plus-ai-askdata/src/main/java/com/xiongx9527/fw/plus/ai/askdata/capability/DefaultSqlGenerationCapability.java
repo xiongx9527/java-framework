@@ -7,6 +7,7 @@ import com.xiongx9527.fw.plus.ai.askdata.postprocess.SqlRepairPolicy;
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.ValidationResult;
 import com.xiongx9527.fw.plus.ai.askdata.prompt.SqlPrompt;
 import com.xiongx9527.fw.plus.ai.askdata.prompt.SqlPromptBuilder;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import java.util.StringJoiner;
 
 /**
@@ -41,7 +42,7 @@ public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
                                          SqlRepairPolicy repairPolicy, boolean failClosed,
                                          boolean normalizeInput) {
         if (llm == null) {
-            throw new IllegalArgumentException("llm is required");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("askdata.contract.llm_required"));
         }
         this.llm = llm;
         this.promptBuilder = promptBuilder == null ? new SqlPromptBuilder() : promptBuilder;
@@ -56,7 +57,7 @@ public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
     @Override
     public SqlGenResult generate(SqlGenInput input) {
         if (input == null) {
-            throw new SqlGenerationException("input is null");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("askdata.contract.input_null"));
         }
         if (normalizeInput) {
             input = SqlGenInputNormalizer.normalize(input);
@@ -80,7 +81,7 @@ public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
             }
         }
         if (!vr.isOk() && failClosed) {
-            throw new SqlGenerationException("SQL 校验未通过且修复失败：" + joinIssues(vr));
+            throw new SqlGenerationException(50005806, joinIssues(vr));
         }
         double confidence = confidenceEstimator.estimate(vr, repaired);
         String explanation = SqlExtractor.extractExplanation(raw);
@@ -112,7 +113,7 @@ public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
         try {
             return llm.complete(p.getSystemPrompt(), p.getUserPrompt());
         } catch (Exception e) {
-            throw new SqlGenerationException("llm call failed", e);
+            throw new SqlGenerationException(50005801, I18nMessageResolver.resolveKey("askdata.gen.llm_failed"), e);
         }
     }
 

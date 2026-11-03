@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.askdata.chart;
 
 import com.xiongx9527.fw.plus.ai.askdata.chart.data.ChartDataset;
 import com.xiongx9527.fw.plus.ai.askdata.llm.LlmChatPort;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +46,7 @@ public class DefaultChartGenerationCapability implements ChartGenerationCapabili
     @Override
     public ChartGenResult generate(ChartGenInput input) {
         if (input == null) {
-            throw new ChartGenerationException("input is null");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("askdata.contract.input_null"));
         }
         input.validate();
         ChartDataset ds = input.getData();

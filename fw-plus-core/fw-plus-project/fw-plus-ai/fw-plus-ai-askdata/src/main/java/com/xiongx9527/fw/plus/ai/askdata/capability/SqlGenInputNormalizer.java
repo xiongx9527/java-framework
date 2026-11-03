@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.askdata.capability;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import java.util.function.Function;
 
 /**
@@ -36,7 +37,7 @@ public final class SqlGenInputNormalizer {
     public static SqlGenInput normalize(SqlGenInput input, int maxQuestionLength,
                                         Function<String, String> preprocessor) {
         if (input == null) {
-            throw new IllegalArgumentException("input is null");
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("askdata.contract.input_null"));
         }
         String q = input.getQuestion();
         if (q == null) {
@@ -49,8 +50,8 @@ public final class SqlGenInputNormalizer {
             q = q.replaceAll("\\s+", " ").trim();
         }
         if (maxQuestionLength > 0 && q != null && q.length() > maxQuestionLength) {
-            throw new IllegalArgumentException("question 超过长度上限 " + maxQuestionLength
-                    + "，当前 " + q.length() + " 字符");
+            throw new IllegalArgumentException(
+                    I18nMessageResolver.resolve(50005805, String.valueOf(q.length()), String.valueOf(maxQuestionLength)));
         }
         return SqlGenInput.builder()
                 .question(q)

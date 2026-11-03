@@ -4,6 +4,7 @@ import com.xiongx9527.fw.plus.ai.askdata.llm.LlmChatPort;
 import com.xiongx9527.fw.plus.ai.askdata.llm.ResilientLlmChatPort;
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.ConfidenceEstimator;
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.SqlRepairPolicy;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.ai.askdata.prompt.SqlPromptBuilder;
 
 /**
@@ -75,7 +76,7 @@ public class SqlGenerationCapabilityBuilder {
 
     public SqlGenerationCapability build() {
         if (llm == null) {
-            throw new IllegalStateException("llm is required to build SqlGenerationCapability");
+            throw new IllegalStateException(I18nMessageResolver.resolveKey("askdata.contract.build_llm"));
         }
         LlmChatPort effectiveLlm = llm;
         if (resilienceConfig != null) {

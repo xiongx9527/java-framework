@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.askdata.execution;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -40,7 +41,7 @@ public class SqlExecInput {
 
     public void validate() {
         if (sql == null || sql.trim().isEmpty()) {
-            throw new SqlExecutionException("sql 不可为空");
+            throw new SqlExecutionException(50005802, I18nMessageResolver.resolveKey("askdata.exec.sql_required"));
         }
     }
 

@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.askdata.chart;
 
 import com.xiongx9527.fw.plus.ai.askdata.chart.data.ChartDataset;
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import java.util.Collections;
 import java.util.List;
 import lombok.Builder;
@@ -25,10 +26,10 @@ public class ChartGenInput {
 
     public void validate() {
         if (question == null || question.trim().isEmpty()) {
-            throw new ChartGenerationException("question 不可为空");
+            throw new ChartGenerationException(50005803, I18nMessageResolver.resolveKey("askdata.input.question_required"));
         }
         if (data == null || data.rowCount() == 0) {
-            throw new ChartGenerationException("data 不可为空（图表生成依赖已执行的数据集）");
+            throw new ChartGenerationException(50005803, I18nMessageResolver.resolveKey("askdata.input.chart_data_required"));
         }
     }
 }
