@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.base.output;
 
 import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
+import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
 import java.util.function.Function;
 
 /**
@@ -37,6 +38,15 @@ public interface JsonOutputPort {
         }
         return parser.apply(json);
     }
+
+    /**
+     * 流式场景的「稳定 JSON 输出」：注入 JSON 指令后流式转发，仅把 JSON 主体透传给
+     * {@code handler}（剥离前导散文 / markdown 围栏），并在 JSON 闭合后停止转发。
+     *
+     * <p>不保证「解析兜底 / 重试」——流式无法回退，因此依赖模型一次产出合法 JSON；
+     * 若需要强一致，请使用非流式的 {@link #completeJson(LlmRequest)}。</p>
+     */
+    void streamJson(LlmRequest request, LlmStreamHandler handler);
 
     /** 单轮 system + user 的快捷方式。 */
     default String completeJson(String systemPrompt, String userPrompt) {

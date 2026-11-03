@@ -65,4 +65,19 @@ class JsonSupportTest {
         String input = "x {\"a\":1} y [2,3] z";
         assertEquals("{\"a\":1}", JsonSupport.extractJson(input));
     }
+
+    @Test
+    void repairFixesTrailingComma() {
+        assertEquals("{\"a\":1}", JsonSupport.repairJson("{\"a\":1,}"));
+    }
+
+    @Test
+    void repairFixesTruncatedObject() {
+        assertEquals("{\"a\":1,\"b\":2}", JsonSupport.repairJson("{\"a\":1,\"b\":2"));
+    }
+
+    @Test
+    void repairReturnsNullWhenUnrecoverable() {
+        assertNull(JsonSupport.repairJson("no json at all"));
+    }
 }

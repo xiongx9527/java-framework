@@ -2,7 +2,6 @@ package com.xiongx9527.fw.plus.ai.base.output;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 /**
  * 稳定提取 JSON：从模型输出（常夹杂 markdown 围栏或散文）中，可靠地取出首个 JSON 子串。
@@ -42,7 +41,7 @@ public final class JsonSupport {
         return substring(stripped, start);
     }
 
-    /** 仅提取 JSON 对象子串（以 {@code {} 起）。 */
+    /** 仅提取 JSON 对象子串（以 {@code {}} 起）。 */
     public static String extractJsonObject(String text) {
         String stripped = stripFence(text);
         int obj = indexOfBalanced(stripped, '{', '}');
@@ -63,10 +62,10 @@ public final class JsonSupport {
     /**
      * 解析兜底：在 {@link #extractJson(String)} 失败时对文本做「尽力修复」再提取。
      *
-     * <p>修复手段（保守、不依赖 JSON 库）：</p>
+     * <p>修复手段（保守、不依赖 JSON 库、不依赖正则）：</p>
      * <ol>
      *   <li>剥离 markdown 围栏与首尾空白；</li>
-     *   <li>去掉键值/数组元素后的多余逗号（如 {@code {\"a\":1,}}）；</li>
+     *   <li>去掉 } ] 之前紧邻的多余逗号（尊重字符串字面量）；</li>
      *   <li>按括号深度补上缺失的闭合括号（处理被截断的输出）；</li>
      *   <li>再次尝试 {@link #extractJson(String)}。</li>
      * </ol>
@@ -81,12 +80,46 @@ public final class JsonSupport {
         if (s.isEmpty()) {
             return null;
         }
-        // 1) 去掉尾部多余逗号：, 后面紧跟 } 或 ]
-        s = s.replaceAll(",(\\s*[\]}])', "$1");
-        // 2) 补上缺失的闭合括号（处理截断）
+        s = stripTrailingCommas(s);
         s = closeBrackets(s);
-        // 3) 再尝试提取
         return extractJson(s);
+    }
+
+    /** 去掉 } 或 ] 之前紧邻的多余逗号（尊重字符串字面量）。 */
+    private static String stripTrailingCommas(String text) {
+        StringBuilder sb = new StringBuilder();
+        boolean inString = false;
+        boolean escaped = false;
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (inString) {
+                sb.append(c);
+                if (escaped) {
+                    escaped = false;
+                } else if (c == '\\') {
+                    escaped = true;
+                } else if (c == '"') {
+                    inString = false;
+                }
+                continue;
+            }
+            if (c == '"') {
+                inString = true;
+                sb.append(c);
+                continue;
+            }
+            if (c == ',') {
+                int j = i + 1;
+                while (j < text.length() && Character.isWhitespace(text.charAt(j))) {
+                    j++;
+                }
+                if (j < text.length() && (text.charAt(j) == '}' || text.charAt(j) == ']')) {
+                    continue; // 丢弃这个多余逗号
+                }
+            }
+            sb.append(c);
+        }
+        return sb.toString();
     }
 
     /** 跟踪 { [ 的深度，在结尾补上缺失的 } ]（尊重字符串字面量）。 */

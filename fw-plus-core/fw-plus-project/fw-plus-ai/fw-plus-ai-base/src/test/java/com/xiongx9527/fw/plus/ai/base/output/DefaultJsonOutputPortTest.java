@@ -110,4 +110,31 @@ class DefaultJsonOutputPortTest {
                 () -> DefaultJsonOutputPort.builder(port).maxRetries(1).build()
                         .completeJson(LlmRequest.systemUser("s", "u")));
     }
+
+    @Test
+    void repairFallbackFixesTruncatedOutput() {
+        // 一次返回被截断的 JSON，重试仍失败，兜底修复补上缺失括号
+        ScriptedPort port = new ScriptedPort("{\"a\":1,\"b\":2");
+        String json = DefaultJsonOutputPort.builder(port).maxRetries(0).build()
+                .completeJson(LlmRequest.systemUser("s", "u"));
+        assertEquals("{\"a\":1,\"b\":2}", json);
+    }
+
+    @Test
+    void fallbackHookReturnsCustomWhenRepairFails() {
+        ScriptedPort port = new ScriptedPort("not json");
+        String json = DefaultJsonOutputPort.builder(port)
+                .maxRetries(0)
+                .fallback(request -> "{\"fallback\":true}")
+                .build()
+                .completeJson(LlmRequest.systemUser("s", "u"));
+        assertEquals("{\"fallback\":true}", json);
+    }
+
+    @Test
+    void enforcesRetryUpperBound() {
+        ScriptedPort port = new ScriptedPort("x");
+        assertThrows(IllegalArgumentException.class,
+                () -> DefaultJsonOutputPort.builder(port).maxRetries(DefaultJsonOutputPort.MAX_RETRIES + 1));
+    }
 }

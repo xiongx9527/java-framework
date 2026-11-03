@@ -5,10 +5,12 @@ import com.xiongx9527.fw.plus.ai.base.model.ChatRole;
 import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
 import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmResponse;
+import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * {@link JsonOutputPort} 的默认实现：包一个 {@link LlmPort}，在请求侧做指令 / 协议约束，
@@ -35,6 +37,9 @@ public class DefaultJsonOutputPort implements JsonOutputPort {
 
     private static final int MAX_SNIPPET = 500;
 
+    /** 纠错重试次数的硬上限，防止 runaway 重试。 */
+    public static final int MAX_RETRIES = 5;
+
     private final LlmPort llmPort;
 
     private final String instruction;
@@ -43,15 +48,30 @@ public class DefaultJsonOutputPort implements JsonOutputPort {
 
     private final int maxRetries;
 
+    /** 全部重试后仍无法提取时，是否再用 {@link JsonSupport#repairJson(String)} 做兜底修复（默认开启）。 */
+    private final boolean repair;
+
+    /** 兜底仍失败时的最终回退：返回其结果的文本，不抛异常（为 null 则抛 {@link JsonOutputException}）。 */
+    private final Function<LlmRequest, String> fallback;
+
     private DefaultJsonOutputPort(Builder builder) {
         this.llmPort = builder.llmPort;
         this.instruction = builder.instruction == null ? DEFAULT_INSTRUCTION : builder.instruction;
         this.jsonModeParams = builder.jsonModeParams;
         this.maxRetries = builder.maxRetries;
+        this.repair = builder.repair;
+        this.fallback = builder.fallback;
     }
 
     public static Builder builder(LlmPort llmPort) {
         return new Builder(llmPort);
+    }
+
+    @Override
+    public void streamJson(LlmRequest request, LlmStreamHandler handler) {
+        LlmRequest enforced = enforce(request);
+        LlmStreamHandler wrapped = handler == null ? null : new StreamingJsonHandler(handler);
+        llmPort.stream(enforced, wrapped);
     }
 
     @Override
@@ -68,6 +88,16 @@ public class DefaultJsonOutputPort implements JsonOutputPort {
             if (attempt < maxRetries) {
                 enforced = buildRequest(appendCorrection(enforced.getMessages(), lastText), enforced);
             }
+        }
+        // 重试仍失败：先用解析兜底（修复截断 / 多余逗号），再退回业务自定义 fallback
+        if (repair) {
+            String repaired = JsonSupport.repairJson(lastText);
+            if (repaired != null) {
+                return repaired;
+            }
+        }
+        if (fallback != null) {
+            return fallback.apply(request);
         }
         throw new JsonOutputException(
                 "no parseable JSON in model output after " + (maxRetries + 1) + " attempt(s)");
@@ -143,6 +173,88 @@ public class DefaultJsonOutputPort implements JsonOutputPort {
     }
 
     /**
+     * 流式 JSON 转发：剥离前导散文/围栏，仅透传 JSON 主体，闭合后停止。
+     */
+    private static final class StreamingJsonHandler implements LlmStreamHandler {
+
+        private final LlmStreamHandler delegate;
+
+        private boolean started;
+
+        private boolean closed;
+
+        private int depth;
+
+        private boolean inString;
+
+        private boolean escaped;
+
+        StreamingJsonHandler(LlmStreamHandler delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void onToken(String delta, String reasoningDelta) {
+            if (delta == null || closed) {
+                return;
+            }
+            StringBuilder out = new StringBuilder();
+            for (int i = 0; i < delta.length(); i++) {
+                char c = delta.charAt(i);
+                if (!started) {
+                    if (c == '{' || c == '[') {
+                        started = true;
+                        depth = 1;
+                        out.append(c);
+                    }
+                    // 跳过前导散文 / markdown 围栏，直到遇到首个括号
+                    continue;
+                }
+                if (inString) {
+                    out.append(c);
+                    if (escaped) {
+                        escaped = false;
+                    } else if (c == '\\') {
+                        escaped = true;
+                    } else if (c == '"') {
+                        inString = false;
+                    }
+                    continue;
+                }
+                if (c == '"') {
+                    inString = true;
+                    out.append(c);
+                } else if (c == '{' || c == '[') {
+                    depth++;
+                    out.append(c);
+                } else if (c == '}' || c == ']') {
+                    depth--;
+                    out.append(c);
+                    if (depth == 0) {
+                        closed = true;
+                        break;
+                    }
+                } else {
+                    out.append(c);
+                }
+            }
+            if (out.length() > 0) {
+                delegate.onToken(out.toString(), null);
+            }
+        }
+
+        @Override
+        public void onComplete() {
+            delegate.onComplete();
+        }
+
+        @Override
+        public void onError(String message) {
+            delegate.onError(message);
+        }
+    }
+
+    /**
      * 构造器：配置指令文本、后端 JSON 模式私有参数与纠错重试次数。
      */
     public static final class Builder {
@@ -154,6 +266,10 @@ public class DefaultJsonOutputPort implements JsonOutputPort {
         private final Map<String, Object> jsonModeParams = new LinkedHashMap<String, Object>();
 
         private int maxRetries = 1;
+
+        private boolean repair = true;
+
+        private Function<LlmRequest, String> fallback;
 
         private Builder(LlmPort llmPort) {
             if (llmPort == null) {
@@ -184,12 +300,24 @@ public class DefaultJsonOutputPort implements JsonOutputPort {
             return this;
         }
 
-        /** 提取失败时的最大纠错重试次数（默认 1，即最多尝试 2 次）。 */
+        /** 提取失败时的最大纠错重试次数（默认 1，硬上限 {@link #MAX_RETRIES}）。 */
         public Builder maxRetries(int value) {
-            if (value < 0) {
-                throw new IllegalArgumentException("maxRetries must be >= 0");
+            if (value < 0 || value > MAX_RETRIES) {
+                throw new IllegalArgumentException("maxRetries must be in [0, " + MAX_RETRIES + "]");
             }
             this.maxRetries = value;
+            return this;
+        }
+
+        /** 重试后仍提取失败时是否启用解析兜底（修复截断/多余逗号），默认开启。 */
+        public Builder repair(boolean value) {
+            this.repair = value;
+            return this;
+        }
+
+        /** 兜底仍失败时的最终回退（不抛异常）；不设置则抛 {@link JsonOutputException}。 */
+        public Builder fallback(Function<LlmRequest, String> value) {
+            this.fallback = value;
             return this;
         }
 

@@ -16,6 +16,11 @@ import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
 import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmResponse;
 import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
+import com.xiongx9527.fw.plus.ai.base.model.moderation.ModerationException;
+import com.xiongx9527.fw.plus.ai.base.model.moderation.ModerationListener;
+import com.xiongx9527.fw.plus.ai.base.model.moderation.ModerationModel;
+import com.xiongx9527.fw.plus.ai.base.model.moderation.ModerationResult;
+import com.xiongx9527.fw.plus.ai.base.output.JsonOutputPort;
 import com.xiongx9527.fw.plus.ai.base.retrieval.ChainedRetrievalAugmentor;
 import com.xiongx9527.fw.plus.ai.base.retrieval.DefaultRetrievalAugmentor;
 import com.xiongx9527.fw.plus.ai.base.retrieval.RetrievalAugmentor;
@@ -69,6 +74,11 @@ public final class AiServices {
         private List<LlmListener> listeners;
         private boolean emitLifecycleEvents = true;
         private boolean skipToolsWhenRetrievalHit = false;
+
+        private ModerationModel moderationModel;
+        private final List<ModerationListener> moderationListeners = new ArrayList<ModerationListener>();
+        private JsonOutputPort jsonOutput;
+        private final List<AiObservationListener> observationListeners = new ArrayList<AiObservationListener>();
 
         private Builder(Class<T> serviceType) {
             if (serviceType == null || !serviceType.isInterface()) {
@@ -199,6 +209,29 @@ public final class AiServices {
             return this;
         }
 
+        /** 接入内容审核：调用模型前审核用户输入、调用后审核输出，命中即抛 {@link ModerationException}。 */
+        public Builder<T> moderation(ModerationModel model, ModerationListener... listeners) {
+            this.moderationModel = model;
+            if (listeners != null) {
+                Collections.addAll(this.moderationListeners, listeners);
+            }
+            return this;
+        }
+
+        /** 接入稳定 JSON 输出端口：配合方法上的 {@link JsonResult} 注解强制并兜底提取 JSON。 */
+        public Builder<T> jsonOutput(JsonOutputPort value) {
+            this.jsonOutput = value;
+            return this;
+        }
+
+        /** 接入调用级观测监听（Langfuse / Langsmith 等），用于 trace / 监控。 */
+        public Builder<T> observation(AiObservationListener... listeners) {
+            if (listeners != null) {
+                Collections.addAll(this.observationListeners, listeners);
+            }
+            return this;
+        }
+
         public T build() {
             if (llm == null) {
                 throw new IllegalStateException("llm port is required");
@@ -208,7 +241,8 @@ public final class AiServices {
                     new AiServiceInvocationHandler(new AiServiceContext(
                             serviceType, llm, chatMemoryProvider, intentClassifier,
                             toolProviderScopes, retrievalScopes, skillScopes, listeners,
-                            emitLifecycleEvents, skipToolsWhenRetrievalHit))));
+                            emitLifecycleEvents, skipToolsWhenRetrievalHit,
+                            moderationModel, moderationListeners, jsonOutput, observationListeners))));
         }
     }
 
@@ -231,6 +265,13 @@ public final class AiServices {
             boolean emit = context.isEmitLifecycleEvents() && streamHandler != null;
 
             String userText = userPrompt(method, variables);
+            moderateInput(userText);
+            long startNanos = System.nanoTime();
+            AiCallObservation.Builder observation = AiCallObservation.builder()
+                    .serviceType(context.getServiceType())
+                    .method(method)
+                    .userText(userText);
+            notifyObservationStart(observation);
             ChatMessage userMessage = ChatMessage.user(userText);
 
             String intentRef = classify(userText, emit, streamHandler);
@@ -305,11 +346,31 @@ public final class AiServices {
                     .listeners(context.getListeners())
                     .build();
 
-            Object result = invokeModel(request, tools, streamHandler, method);
+            Object result;
+            try {
+                result = invokeModel(request, tools, streamHandler, method);
+            } catch (Throwable t) {
+                notifyObservationError(observation.intentRef(intentRef)
+                        .retrievalInjected(retrievalInjected)
+                        .latencyMillis((System.nanoTime() - startNanos) / 1000000L)
+                        .error(t.getMessage())
+                        .build());
+                throw t;
+            }
+
+            // 输出审核（结构化 JSON 结果不视为自然语言，跳过）
+            if (result instanceof String && !method.isAnnotationPresent(JsonResult.class)) {
+                moderateOutput((String) result);
+            }
 
             if (memory != null && result instanceof String) {
                 memory.add(ChatMessage.assistant((String) result));
             }
+
+            notifyObservationEnd(observation.intentRef(intentRef)
+                    .retrievalInjected(retrievalInjected)
+                    .answer(result instanceof String ? (String) result : null)
+                    .latencyMillis((System.nanoTime() - startNanos) / 1000000L));
             return result;
         }
 
@@ -317,6 +378,19 @@ public final class AiServices {
                                    LlmStreamHandler streamHandler, Method method) {
             LlmPort llm = context.getLlm();
             Class<?> returnType = method.getReturnType();
+            // 标注 @JsonResult 且无工具：走稳定 JSON 输出端口（流式 / 非流式分别处理）
+            if (context.getJsonOutput() != null && method.isAnnotationPresent(JsonResult.class)
+                    && tools == null) {
+                if (streamHandler != null) {
+                    context.getJsonOutput().streamJson(request, streamHandler);
+                    return null;
+                }
+                String json = context.getJsonOutput().completeJson(request);
+                if (returnType == LlmResponse.class) {
+                    return LlmResponse.builder().content(json).build();
+                }
+                return json;
+            }
             if (tools != null) {
                 ToolCallingLoop loop = new ToolCallingLoop(llm, tools);
                 ToolCallingRequest tcRequest = ToolCallingRequest.builder()
@@ -382,6 +456,61 @@ public final class AiServices {
                 intents.add(Intent.of(ref, ref));
             }
             return intents;
+        }
+
+        private void moderateInput(String text) {
+            ModerationModel model = context.getModerationModel();
+            if (model == null || text == null) {
+                return;
+            }
+            for (ModerationListener listener : context.getModerationListeners()) {
+                listener.onRequest(text);
+            }
+            ModerationResult result = model.moderate(text);
+            for (ModerationListener listener : context.getModerationListeners()) {
+                listener.onResponse(result);
+            }
+            if (result.isFlagged()) {
+                for (ModerationListener listener : context.getModerationListeners()) {
+                    listener.onFlagged(result);
+                }
+                throw new ModerationException(result);
+            }
+        }
+
+        private void moderateOutput(String text) {
+            ModerationModel model = context.getModerationModel();
+            if (model == null || text == null) {
+                return;
+            }
+            ModerationResult result = model.moderate(text);
+            for (ModerationListener listener : context.getModerationListeners()) {
+                listener.onResponse(result);
+            }
+            if (result.isFlagged()) {
+                for (ModerationListener listener : context.getModerationListeners()) {
+                    listener.onFlagged(result);
+                }
+                throw new ModerationException(result);
+            }
+        }
+
+        private void notifyObservationStart(AiCallObservation.Builder observation) {
+            for (AiObservationListener listener : context.getObservationListeners()) {
+                listener.onStart(observation.build());
+            }
+        }
+
+        private void notifyObservationEnd(AiCallObservation.Builder observation) {
+            for (AiObservationListener listener : context.getObservationListeners()) {
+                listener.onEnd(observation.build());
+            }
+        }
+
+        private void notifyObservationError(AiCallObservation observation) {
+            for (AiObservationListener listener : context.getObservationListeners()) {
+                listener.onError(observation);
+            }
         }
 
         private ToolProvider resolveTools(String intentRef) {

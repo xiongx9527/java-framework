@@ -5,6 +5,12 @@ import com.xiongx9527.fw.plus.ai.base.intent.IntentScoped;
 import com.xiongx9527.fw.plus.ai.base.memory.ChatMemoryProvider;
 import com.xiongx9527.fw.plus.ai.base.model.LlmListener;
 import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
+import com.xiongx9527.fw.plus.ai.base.model.moderation.ModerationListener;
+import com.xiongx9527.fw.plus.ai.base.model.moderation.ModerationModel;
+import com.xiongx9527.fw.plus.ai.base.output.JsonOutputPort;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import com.xiongx9527.fw.plus.ai.base.retrieval.RetrievalAugmentor;
 import com.xiongx9527.fw.plus.ai.base.skill.SkillBox;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolProvider;
@@ -40,13 +46,23 @@ public final class AiServiceContext {
 
     private final boolean skipToolsWhenRetrievalHit;
 
+    private final ModerationModel moderationModel;
+
+    private final List<ModerationListener> moderationListeners;
+
+    private final JsonOutputPort jsonOutput;
+
+    private final List<AiObservationListener> observationListeners;
+
     AiServiceContext(Class<?> serviceType, LlmPort llm, ChatMemoryProvider chatMemoryProvider,
                      IntentPort intentClassifier,
                      List<IntentScoped<ToolProvider>> toolProviderScopes,
                      List<IntentScoped<RetrievalAugmentor>> retrievalScopes,
                      List<IntentScoped<SkillBox>> skillScopes,
                      List<LlmListener> listeners,
-                     boolean emitLifecycleEvents, boolean skipToolsWhenRetrievalHit) {
+                     boolean emitLifecycleEvents, boolean skipToolsWhenRetrievalHit,
+                     ModerationModel moderationModel, List<ModerationListener> moderationListeners,
+                     JsonOutputPort jsonOutput, List<AiObservationListener> observationListeners) {
         this.serviceType = serviceType;
         this.llm = llm;
         this.chatMemoryProvider = chatMemoryProvider;
@@ -61,6 +77,12 @@ public final class AiServiceContext {
                 : Collections.unmodifiableList(new ArrayList<LlmListener>(listeners));
         this.emitLifecycleEvents = emitLifecycleEvents;
         this.skipToolsWhenRetrievalHit = skipToolsWhenRetrievalHit;
+        this.moderationModel = moderationModel;
+        this.moderationListeners = moderationListeners == null ? Collections.<ModerationListener>emptyList()
+                : Collections.unmodifiableList(new ArrayList<ModerationListener>(moderationListeners));
+        this.jsonOutput = jsonOutput;
+        this.observationListeners = observationListeners == null ? Collections.<AiObservationListener>emptyList()
+                : Collections.unmodifiableList(new ArrayList<AiObservationListener>(observationListeners));
     }
 
     public Class<?> getServiceType() {
@@ -103,5 +125,25 @@ public final class AiServiceContext {
     /** 检索已命中上下文时是否跳过工具调用（对齐 langchain4j 的“检索优先、命中即答”行为）。 */
     public boolean isSkipToolsWhenRetrievalHit() {
         return skipToolsWhenRetrievalHit;
+    }
+
+    /** 内容审核模型；为 {@code null} 表示不开启审核。 */
+    public ModerationModel getModerationModel() {
+        return moderationModel;
+    }
+
+    /** 审核事件监听。 */
+    public List<ModerationListener> getModerationListeners() {
+        return moderationListeners;
+    }
+
+    /** 稳定 JSON 输出端口；为 {@code null} 表示不在 AI 服务层强制 JSON。 */
+    public JsonOutputPort getJsonOutput() {
+        return jsonOutput;
+    }
+
+    /** 调用级观测监听（用于 Langfuse / Langsmith 等）。 */
+    public List<AiObservationListener> getObservationListeners() {
+        return observationListeners;
     }
 }
