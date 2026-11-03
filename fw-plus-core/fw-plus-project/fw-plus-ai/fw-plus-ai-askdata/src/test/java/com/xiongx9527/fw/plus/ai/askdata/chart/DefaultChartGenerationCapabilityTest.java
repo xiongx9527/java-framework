@@ -73,11 +73,27 @@ public class DefaultChartGenerationCapabilityTest {
 
     @Test
     void degradesWhenLlmHallucinatesField() {
-        // 风险 A.2.2：模型幻觉不存在的列名，应在字段存在性校验阶段降级为表格而非画空图。
         LlmChatPort port = new StaticLlmChatPort(
                 "{\"chartType\":\"bar\",\"categoryField\":\"ghost\",\"valueFields\":[\"amount\"]}");
         ChartGenerationCapability cap = ChartGenerationCapabilityBuilder.builder().llm(port).build();
         ChartGenResult r = cap.generate(ChartGenInput.builder().question("q").data(ds()).build());
+        assertEquals(ChartType.TABLE, r.getChartType());
+        assertTrue(r.isDegraded());
+    }
+
+    @Test
+    void degradesToTableOnRaggedDataset() {
+        // 扩展 VERIFY：非矩形（残缺行）数据集会让 x 轴 / 系列长度不一致，必须降级为表格。
+        List<List<Object>> rows = new ArrayList<>();
+        rows.add(Arrays.asList("east", 10.0));
+        rows.add(Arrays.asList("west"));
+        ChartDataset ragged = ChartDataset.builder()
+                .columns(Arrays.asList(new ChartColumn("region", "VARCHAR"),
+                        new ChartColumn("amount", "DOUBLE")))
+                .rows(rows)
+                .build();
+        ChartGenerationCapability cap = ChartGenerationCapabilityBuilder.builder().build();
+        ChartGenResult r = cap.generate(ChartGenInput.builder().question("q").data(ragged).build());
         assertEquals(ChartType.TABLE, r.getChartType());
         assertTrue(r.isDegraded());
     }

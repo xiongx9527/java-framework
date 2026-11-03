@@ -30,6 +30,9 @@
  *       跨供应商故障转移仍属产品策略（§6.26.13），不由本装饰器承担。</li>
  *   <li>§6.22 输入归一（SqlGenInputNormalizer + SqlGenerationCapabilityBuilder.normalizeInput）：
  *       空白折叠 + 长度上限（fail-fast 不静默截断）+ 可注入的相对时间锚定前置改写，模块不内置语言相关日期解析。</li>
+ *   <li>扩展 VERIFY（DefaultResultVerifier.primaryKeyColumn + ChartConfigValidator.isDatasetConsistent）：
+ *       执行期按主键列名检测重复（列名来自 SchemaContext.primaryKeyColumn，§6.38.2），
+ *       图表侧校验数据集矩形 / x 轴系列长度一致，非矩形即降级表格。</li>
  * </ul>
  *
  * <p>不在本模块范围（属产品侧接线 / 前端 / SSR，记录备查）：免登录图表图片与 TTL 跨租户、

@@ -18,27 +18,52 @@ public class DefaultResultVerifier implements ResultVerifier {
         if (result.isTruncated()) {
             issues.add("result truncated: exceeds maxRows, possibly incomplete");
         }
-        Integer keyIdx = settings.getDuplicateKeyColumn();
+        Integer keyIdx = resolveKeyIndex(result, settings);
         if (keyIdx != null) {
-            int idx = keyIdx;
-            if (idx < 0 || idx >= result.columnCount()) {
-                issues.add("duplicateKeyColumn out of range: " + idx);
+            if (keyIdx < 0 || keyIdx >= result.columnCount()) {
+                issues.add("duplicateKeyColumn out of range: " + keyIdx);
             } else {
                 Set<Object> seen = new HashSet<>();
                 boolean dup = false;
                 for (List<Object> row : result.getRows()) {
-                    Object v = idx < row.size() ? row.get(idx) : null;
+                    Object v = keyIdx < row.size() ? row.get(keyIdx) : null;
                     if (v != null && !seen.add(v)) {
                         dup = true;
                         break;
                     }
                 }
                 if (dup) {
-                    issues.add("duplicate key detected in column index " + idx);
+                    issues.add("duplicate key detected in column index " + keyIdx);
                 }
             }
         }
         return issues;
     }
-}
 
+    /** 解析重复键检查列：优先按名称（primaryKeyColumn）解析，否则用列下标（duplicateKeyColumn）。 */
+    private Integer resolveKeyIndex(QueryResult result, ExecutionSettings settings) {
+        String pkName = settings.getPrimaryKeyColumn();
+        if (pkName != null && !pkName.trim().isEmpty()) {
+            int idx = indexOfColumn(result, pkName.trim());
+            if (idx < 0) {
+                return null;
+            }
+            return idx;
+        }
+        return settings.getDuplicateKeyColumn();
+    }
+
+    private int indexOfColumn(QueryResult result, String name) {
+        if (result.getColumns() == null) {
+            return -1;
+        }
+        String target = name.toLowerCase(java.util.Locale.ROOT);
+        for (int i = 0; i < result.getColumns().size(); i++) {
+            String cn = result.getColumns().get(i).getName();
+            if (cn != null && cn.toLowerCase(java.util.Locale.ROOT).equals(target)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+}

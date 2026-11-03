@@ -43,6 +43,24 @@ public class SchemaContext {
         return allowedTableNames().contains(n) || allowedTableNames().contains(lastSegment(n));
     }
 
+    /** 返回某表的主键列名（取 primaryKey 列表首个），找不到或表无主键时返回 null。
+     * 供执行期 VERIFY 注入 {@code SqlExecInput.primaryKeyColumn} 以检测主键重复（§6.38.2）。 */
+    public String primaryKeyColumn(String tableName) {
+        if (tables == null || tableName == null) {
+            return null;
+        }
+        String n = normalize(tableName);
+        for (TableSchema t : tables) {
+            String full = normalize(t.getName());
+            if (full.equals(n) || lastSegment(full).equals(lastSegment(n))) {
+                if (t.getPrimaryKey() != null && !t.getPrimaryKey().isEmpty()) {
+                    return t.getPrimaryKey().get(0);
+                }
+            }
+        }
+        return null;
+    }
+
     public String render() {
         if (isEmpty()) {
             return "(no schema provided)";

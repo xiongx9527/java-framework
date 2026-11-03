@@ -88,6 +88,21 @@ public class ChartConfigValidator {
         return true;
     }
 
+    /** 数据集完整性自检（扩展 VERIFY）：列数 > 0 且每一行长度都等于列数（矩形，无残缺行）。
+     * 非矩形数据集会让 x 轴 / 系列长度不一致，必须降级为表格。 */
+    public boolean isDatasetConsistent(ChartDataset ds) {
+        if (ds == null || ds.columnCount() == 0 || ds.getRows() == null) {
+            return false;
+        }
+        int cols = ds.columnCount();
+        for (List<Object> row : ds.getRows()) {
+            if (row == null || row.size() != cols) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private boolean hasField(ChartDataset ds, String name) {
         if (name == null || name.trim().isEmpty() || ds.getColumns() == null) {
             return false;

@@ -33,6 +33,11 @@ public class SqlExecInput {
     @Builder.Default
     private final Integer duplicateKeyColumn = null;
 
+    /** 用于主键重复自检的列名（按名称解析，优先于 {@link #duplicateKeyColumn}）；为 null 时跳过。
+     * 典型来源：{@code SchemaContext.primaryKeyColumn(table)}。 */
+    @Builder.Default
+    private final String primaryKeyColumn = null;
+
     public void validate() {
         if (sql == null || sql.trim().isEmpty()) {
             throw new SqlExecutionException("sql 不可为空");
@@ -46,6 +51,7 @@ public class SqlExecInput {
                 .readOnly(readOnly)
                 .selfCheck(selfCheck)
                 .duplicateKeyColumn(duplicateKeyColumn)
+                .primaryKeyColumn(primaryKeyColumn)
                 .build();
     }
 }

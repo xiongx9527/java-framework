@@ -49,4 +49,32 @@ public class ChartConfigValidatorTest {
         assertTrue(v.isValid(new ChartSuggestion(ChartType.TABLE, ChartAxes.builder().build()), ds()));
         assertTrue(v.isValid(new ChartSuggestion(ChartType.UNKNOWN, null), ds()));
     }
+
+    @Test
+    void consistentRectangularDatasetIsValid() {
+        ChartConfigValidator v = new ChartConfigValidator();
+        ChartDataset rect = ChartDataset.builder()
+                .columns(Arrays.asList(new ChartColumn("region", "VARCHAR"),
+                        new ChartColumn("amount", "DOUBLE")))
+                .rows(Arrays.asList(Arrays.asList("east", 1.0), Arrays.asList("west", 2.0)))
+                .build();
+        assertTrue(v.isDatasetConsistent(rect));
+    }
+
+    @Test
+    void raggedDatasetIsInconsistent() {
+        ChartConfigValidator v = new ChartConfigValidator();
+        ChartDataset ragged = ChartDataset.builder()
+                .columns(Arrays.asList(new ChartColumn("region", "VARCHAR"),
+                        new ChartColumn("amount", "DOUBLE")))
+                .rows(Arrays.asList(Arrays.asList("east"), Arrays.asList("west", 2.0)))
+                .build();
+        assertFalse(v.isDatasetConsistent(ragged));
+    }
+
+    @Test
+    void emptyColumnsInconsistent() {
+        ChartConfigValidator v = new ChartConfigValidator();
+        assertFalse(v.isDatasetConsistent(ChartDataset.builder().build()));
+    }
 }

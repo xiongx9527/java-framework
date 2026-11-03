@@ -84,8 +84,9 @@ public class DefaultChartGenerationCapability implements ChartGenerationCapabili
 
         Map<String, Object> config = builder.build(suggestion, ds, input.getQuestion());
         boolean degraded = false;
-        // 形态校验 + 字段存在性校验（A.2.2），任一不过即降级为表格。
-        boolean valid = validator.isValid(config) && validator.isValid(suggestion, ds);
+        // 形态校验 + 字段存在性校验（A.2.2）+ 数据集完整性（扩展 VERIFY：矩形 / 长度一致），任一不过即降级为表格。
+        boolean valid = validator.isValid(config) && validator.isValid(suggestion, ds)
+                && validator.isDatasetConsistent(ds);
         if (!valid) {
             if (degradePolicy.isEnabled()) {
                 suggestion = new ChartSuggestion(ChartType.TABLE, ChartAxes.builder().build());

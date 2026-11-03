@@ -18,6 +18,14 @@ public class DefaultResultVerifierTest {
                 .build();
     }
 
+    private QueryResult withTwoColumns(List<List<Object>> rows) {
+        return QueryResult.builder()
+                .columns(List.of(new ColumnMeta("id", "BIGINT", false),
+                        new ColumnMeta("name", "VARCHAR", false)))
+                .rows(rows)
+                .build();
+    }
+
     @Test
     void flagsEmptyResult() {
         DefaultResultVerifier v = new DefaultResultVerifier();
@@ -37,11 +45,28 @@ public class DefaultResultVerifierTest {
     @Test
     void flagsDuplicateKey() {
         DefaultResultVerifier v = new DefaultResultVerifier();
-        List<List<Object>> rows = List.of(
-                List.of(1L), List.of(1L), List.of(2L));
+        List<List<Object>> rows = List.of(List.of(1L), List.of(1L), List.of(2L));
         ExecutionSettings settings = ExecutionSettings.builder().duplicateKeyColumn(0).build();
         List<String> issues = v.verify(withRows(rows, false), settings);
         assertTrue(issues.stream().anyMatch(i -> i.contains("duplicate key")));
+    }
+
+    @Test
+    void flagsDuplicateByColumnName() {
+        DefaultResultVerifier v = new DefaultResultVerifier();
+        List<List<Object>> rows = List.of(List.of(1L, "a"), List.of(1L, "b"), List.of(2L, "c"));
+        ExecutionSettings settings = ExecutionSettings.builder().primaryKeyColumn("id").build();
+        List<String> issues = v.verify(withTwoColumns(rows), settings);
+        assertTrue(issues.stream().anyMatch(i -> i.contains("duplicate key")));
+    }
+
+    @Test
+    void unknownPkNameDoesNotFalsePositive() {
+        DefaultResultVerifier v = new DefaultResultVerifier();
+        List<List<Object>> rows = List.of(List.of(1L, "a"), List.of(1L, "b"), List.of(2L, "c"));
+        ExecutionSettings settings = ExecutionSettings.builder().primaryKeyColumn("ghost").build();
+        List<String> issues = v.verify(withTwoColumns(rows), settings);
+        assertTrue(issues.stream().noneMatch(i -> i.contains("duplicate key")));
     }
 
     @Test
@@ -52,4 +77,3 @@ public class DefaultResultVerifierTest {
         assertEquals(0, issues.size());
     }
 }
-

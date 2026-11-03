@@ -27,5 +27,10 @@ public class ExecutionSettings {
     /** 用于主键重复自检的列下标（0-based）；为 null 时跳过重复检查。 */
     @Builder.Default
     private final Integer duplicateKeyColumn = null;
+
+    /** 用于主键重复自检的列名（按名称解析，优先于 {@link #duplicateKeyColumn}）；为 null 时跳过。
+     * 通常由调用方从 {@code SchemaContext.primaryKeyColumn(table)} 注入（见 §6.38.2）。 */
+    @Builder.Default
+    private final String primaryKeyColumn = null;
 }
 
