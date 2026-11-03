@@ -151,7 +151,7 @@ public class ResilientLlmChatPort implements LlmChatPort {
                         }
                     }
                     if (log.isDebugEnabled()) {
-                        log.debug("LLM 调用第 {} 次失败，{}ms 后重试: {}", attempt + 1, delay, e.toString());
+                        log.debug(I18nMessageResolver.resolveKey("askdata.log.llm.retry_failed"), attempt + 1, delay, e.toString());
                     }
                     continue;
                 }
@@ -175,7 +175,7 @@ public class ResilientLlmChatPort implements LlmChatPort {
             if (System.currentTimeMillis() - state.openedAt >= config.getCooldownMs()) {
                 state = new State(Breaker.HALF_OPEN, 0, 0L);
                 if (log.isDebugEnabled()) {
-                    log.debug("LLM 熔断器进入 HALF_OPEN 探活");
+                    log.debug(I18nMessageResolver.resolveKey("askdata.log.llm.breaker_half_open"));
                 }
                 return true;
             }
@@ -187,7 +187,7 @@ public class ResilientLlmChatPort implements LlmChatPort {
         synchronized (lock) {
             if (state.breaker != Breaker.CLOSED) {
                 if (log.isDebugEnabled()) {
-                    log.debug("LLM 探活成功，熔断器关闭");
+                    log.debug(I18nMessageResolver.resolveKey("askdata.log.llm.probe_success"));
                 }
             }
             state = new State(Breaker.CLOSED, 0, 0L);
@@ -199,7 +199,7 @@ public class ResilientLlmChatPort implements LlmChatPort {
             if (state.breaker == Breaker.HALF_OPEN) {
                 state = new State(Breaker.OPEN, 0, System.currentTimeMillis());
                 if (log.isDebugEnabled()) {
-                    log.debug("LLM 探活失败，熔断器重新打开: {}", e.toString());
+                    log.debug(I18nMessageResolver.resolveKey("askdata.log.llm.probe_failed"), e.toString());
                 }
                 return;
             }
@@ -212,7 +212,7 @@ public class ResilientLlmChatPort implements LlmChatPort {
                 if (n >= config.getFailureThreshold()) {
                     state = new State(Breaker.OPEN, n, System.currentTimeMillis());
                     if (log.isDebugEnabled()) {
-                        log.debug("LLM 连续失败 {} 次，熔断器打开", n);
+                        log.debug(I18nMessageResolver.resolveKey("askdata.log.llm.breaker_open"), n);
                     }
                 } else {
                     state = new State(Breaker.CLOSED, n, 0L);
