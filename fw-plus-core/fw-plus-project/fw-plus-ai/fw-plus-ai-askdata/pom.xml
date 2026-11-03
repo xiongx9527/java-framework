@@ -26,6 +26,11 @@
         </dependency>
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-support</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-common</artifactId>
         </dependency>
         <!-- i18n 解析依赖 Spring 的 LocaleContextHolder，与 fw-plus-common 保持一致标记为 optional，不强制下游引入 -->
