@@ -23,6 +23,13 @@
  *   <li>风险 A.2.1（SSR 重新猜类型丢弃模型配置）：preferredType 优先级最高，仅在其缺失时回退 LLM / 启发式；</li>
  *   <li>风险 A.2.2（模型幻觉不存在的列名画空图）：新增字段存在性校验，引用列不在数据集中即降级为表格；</li>
  *   <li>风险 A.1.2（图表实际绘制未截断）：ChartDataset.MAX_CHART_ROWS 截断注入图表的数据集。</li>
+ *   <li>§6.38.4 方言感知（DialectSqlChecker + LocalSqlValidationStrategy）：仅标记反引号误用、
+ *       LIMIT/TOP 在方言不支持时的分页关键字错配，交由修复环按方言提示重出，而非静默改写不可信 SQL。</li>
+ *   <li>§6.26 / D.4 LLM 韧性（ResilientLlmChatPort + SqlGenerationCapabilityBuilder.resilient）：
+ *       同一模型内的指数退避重试（仅瞬时错误）+ 三态熔断（CLOSED/OPEN/HALF_OPEN），
+ *       跨供应商故障转移仍属产品策略（§6.26.13），不由本装饰器承担。</li>
+ *   <li>§6.22 输入归一（SqlGenInputNormalizer + SqlGenerationCapabilityBuilder.normalizeInput）：
+ *       空白折叠 + 长度上限（fail-fast 不静默截断）+ 可注入的相对时间锚定前置改写，模块不内置语言相关日期解析。</li>
  * </ul>
  *
  * <p>不在本模块范围（属产品侧接线 / 前端 / SSR，记录备查）：免登录图表图片与 TTL 跨租户、

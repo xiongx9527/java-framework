@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.askdata.capability;
 
 import com.xiongx9527.fw.plus.ai.askdata.llm.LlmChatPort;
+import com.xiongx9527.fw.plus.ai.askdata.llm.ResilientLlmChatPort;
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.ConfidenceEstimator;
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.SqlRepairPolicy;
 import com.xiongx9527.fw.plus.ai.askdata.prompt.SqlPromptBuilder;
@@ -8,6 +9,7 @@ import com.xiongx9527.fw.plus.ai.askdata.prompt.SqlPromptBuilder;
 /**
  * {@link SqlGenerationCapability} 的流式构建器。至少提供 {@link LlmChatPort}；
  * LLM 语义校验默认开启（本地优先 + LLM 组合），可用 {@link #llmValidation} 覆盖或关闭。
+ * 可选 {@link #resilient} 让生成与 LLM 校验共用同一个韧性端口（重试 + 熔断，§6.26 / D.4）。
  */
 public class SqlGenerationCapabilityBuilder {
     private LlmChatPort llm;
@@ -17,6 +19,8 @@ public class SqlGenerationCapabilityBuilder {
     private ConfidenceEstimator confidenceEstimator;
     private SqlRepairPolicy repairPolicy;
     private boolean failClosed = true;
+    private boolean normalizeInput = false;
+    private ResilientLlmChatPort.ResilienceConfig resilienceConfig;
 
     public static SqlGenerationCapabilityBuilder builder() {
         return new SqlGenerationCapabilityBuilder();
@@ -24,6 +28,12 @@ public class SqlGenerationCapabilityBuilder {
 
     public SqlGenerationCapabilityBuilder llm(LlmChatPort v) {
         this.llm = v;
+        return this;
+    }
+
+    /** 开启 LLM 韧性（重试 + 熔断）；null 表示不包裹。生成与 LLM 校验共用被包裹后的端口。 */
+    public SqlGenerationCapabilityBuilder resilient(ResilientLlmChatPort.ResilienceConfig v) {
+        this.resilienceConfig = v;
         return this;
     }
 
@@ -57,16 +67,26 @@ public class SqlGenerationCapabilityBuilder {
         return this;
     }
 
+    /** 是否在生成前对输入做 §6.22 归一（空白折叠 + 长度上限）。默认 false。 */
+    public SqlGenerationCapabilityBuilder normalizeInput(boolean v) {
+        this.normalizeInput = v;
+        return this;
+    }
+
     public SqlGenerationCapability build() {
         if (llm == null) {
             throw new IllegalStateException("llm is required to build SqlGenerationCapability");
         }
+        LlmChatPort effectiveLlm = llm;
+        if (resilienceConfig != null) {
+            effectiveLlm = new ResilientLlmChatPort(llm, resilienceConfig);
+        }
         SqlValidationStrategy local = localValidation == null ? new LocalSqlValidationStrategy() : localValidation;
         SqlValidationStrategy llmV = llmValidation;
         if (llmV == null) {
-            llmV = new LlmSqlValidationStrategy(llm, local);
+            llmV = new LlmSqlValidationStrategy(effectiveLlm, local);
         }
-        return new DefaultSqlGenerationCapability(llm, promptBuilder, local, llmV,
-                confidenceEstimator, repairPolicy, failClosed);
+        return new DefaultSqlGenerationCapability(effectiveLlm, promptBuilder, local, llmV,
+                confidenceEstimator, repairPolicy, failClosed, normalizeInput);
     }
 }

@@ -11,6 +11,7 @@ import com.xiongx9527.fw.plus.ai.askdata.schema.SchemaContext;
 import com.xiongx9527.fw.plus.ai.askdata.schema.TableSchema;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
 public class DefaultSqlGenerationCapabilityTest {
@@ -76,5 +77,37 @@ public class DefaultSqlGenerationCapabilityTest {
                 .repairPolicy(SqlRepairPolicy.builder().failClosed(true).enabled(false).build())
                 .build();
         assertThrows(SqlGenerationException.class, () -> cap.generate(input("统计订单数")));
+    }
+
+    @Test
+    void normalizeInputFoldsWhitespaceBeforePrompt() {
+        AtomicReference<String> captured = new AtomicReference<>();
+        LlmChatPort port = new StaticLlmChatPort(p -> {
+            captured.set(p);
+            return F + "sql\nSELECT id FROM orders\n" + F;
+        });
+        SqlGenerationCapability cap = SqlGenerationCapabilityBuilder.builder()
+                .llm(port)
+                .normalizeInput(true)
+                .repairPolicy(SqlRepairPolicy.builder().enabled(false).build())
+                .build();
+        cap.generate(input("统计\n  订单   数"));
+        assertTrue(captured.get().contains("统计 订单 数"),
+                "prompt should contain folded question: " + captured.get());
+    }
+
+    @Test
+    void normalizeInputLengthCapThrows() {
+        LlmChatPort port = new StaticLlmChatPort("SELECT 1");
+        SqlGenerationCapability cap = SqlGenerationCapabilityBuilder.builder()
+                .llm(port)
+                .normalizeInput(true)
+                .repairPolicy(SqlRepairPolicy.builder().enabled(false).build())
+                .build();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 2500; i++) {
+            sb.append("a");
+        }
+        assertThrows(IllegalArgumentException.class, () -> cap.generate(input(sb.toString())));
     }
 }

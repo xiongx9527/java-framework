@@ -27,17 +27,19 @@ public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
     private final ConfidenceEstimator confidenceEstimator;
     private final SqlRepairPolicy repairPolicy;
     private final boolean failClosed;
+    private final boolean normalizeInput;
 
     public DefaultSqlGenerationCapability(LlmChatPort llm) {
         this(llm, new SqlPromptBuilder(), new LocalSqlValidationStrategy(), null,
-                new ConfidenceEstimator(), SqlRepairPolicy.builder().build(), true);
+                new ConfidenceEstimator(), SqlRepairPolicy.builder().build(), true, false);
     }
 
     public DefaultSqlGenerationCapability(LlmChatPort llm, SqlPromptBuilder promptBuilder,
                                          SqlValidationStrategy localValidation,
                                          SqlValidationStrategy llmValidation,
                                          ConfidenceEstimator confidenceEstimator,
-                                         SqlRepairPolicy repairPolicy, boolean failClosed) {
+                                         SqlRepairPolicy repairPolicy, boolean failClosed,
+                                         boolean normalizeInput) {
         if (llm == null) {
             throw new IllegalArgumentException("llm is required");
         }
@@ -48,12 +50,16 @@ public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
         this.confidenceEstimator = confidenceEstimator == null ? new ConfidenceEstimator() : confidenceEstimator;
         this.repairPolicy = repairPolicy;
         this.failClosed = failClosed;
+        this.normalizeInput = normalizeInput;
     }
 
     @Override
     public SqlGenResult generate(SqlGenInput input) {
         if (input == null) {
             throw new SqlGenerationException("input is null");
+        }
+        if (normalizeInput) {
+            input = SqlGenInputNormalizer.normalize(input);
         }
         input.validate();
         SqlPrompt prompt = promptBuilder.build(input);

@@ -62,4 +62,42 @@ public class LocalSqlValidationStrategyTest {
         ValidationResult vr = s.validate("   ", input());
         assertFalse(vr.isOk());
     }
+
+    @Test
+    void flagsBacktickInPostgresDialect() {
+        LocalSqlValidationStrategy s = new LocalSqlValidationStrategy();
+        SqlGenInput in = SqlGenInput.builder().question("q").schemaContext(schema())
+                .dialectHint("pg").build();
+        ValidationResult vr = s.validate("SELECT `id` FROM orders", in);
+        assertFalse(vr.isOk());
+        assertTrue(vr.getIssues().stream().anyMatch(i -> i.contains("backtick")),
+                "should flag backtick in pg: " + vr.getIssues());
+    }
+
+    @Test
+    void ignoresBacktickInMysqlDialect() {
+        LocalSqlValidationStrategy s = new LocalSqlValidationStrategy();
+        SqlGenInput in = SqlGenInput.builder().question("q").schemaContext(schema())
+                .dialectHint("mysql").build();
+        ValidationResult vr = s.validate("SELECT `id` FROM orders", in);
+        assertTrue(vr.isOk());
+    }
+
+    @Test
+    void flagsLimitInOracleDialect() {
+        LocalSqlValidationStrategy s = new LocalSqlValidationStrategy();
+        SqlGenInput in = SqlGenInput.builder().question("q").schemaContext(schema())
+                .dialectHint("oracle").build();
+        ValidationResult vr = s.validate("SELECT id FROM orders LIMIT 10", in);
+        assertFalse(vr.isOk());
+        assertTrue(vr.getIssues().stream().anyMatch(i -> i.contains("does not support LIMIT")),
+                "should flag LIMIT in oracle: " + vr.getIssues());
+    }
+
+    @Test
+    void skipsDialectCheckWhenNoHint() {
+        LocalSqlValidationStrategy s = new LocalSqlValidationStrategy();
+        ValidationResult vr = s.validate("SELECT id FROM orders LIMIT 10", input());
+        assertTrue(vr.isOk());
+    }
 }
