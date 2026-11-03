@@ -72,8 +72,8 @@ public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
             int attempts = Math.max(0, repairPolicy.getMaxAttempts());
             for (int i = 0; i < attempts && !vr.isOk(); i++) {
                 String repairUser = prompt.getUserPrompt()
-                        + System.lineSeparator() + "上次生成的 SQL 校验失败：" + joinIssues(vr)
-                        + "。请修正后仅重新输出 SQL。";
+                        + System.lineSeparator() + I18nMessageResolver.resolveKey("askdata.prompt.sql.repair_prefix") + joinIssues(vr)
+                        + I18nMessageResolver.resolveKey("askdata.prompt.sql.repair_suffix");
                 raw = safeComplete(new SqlPrompt(prompt.getSystemPrompt(), repairUser));
                 sql = SqlExtractor.extract(raw);
                 vr = validateChain(sql, input);

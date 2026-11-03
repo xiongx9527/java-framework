@@ -44,11 +44,10 @@ public class LlmSqlValidationStrategy implements SqlValidationStrategy {
         String schema = (input != null && input.getSchemaContext() != null)
                 ? input.getSchemaContext().render() : "(no schema)";
         String question = (input != null && input.getQuestion() != null) ? input.getQuestion() : "";
-        return "问题：" + question + System.lineSeparator()
-                + "可见表结构：" + System.lineSeparator() + schema + System.lineSeparator()
-                + "待校验 SQL：" + System.lineSeparator() + sql + System.lineSeparator()
-                + "请判断该 SQL 是否语义正确、能否回答上述问题。仅回答 YES 或 NO，"
-                + "若 NO 请另起一行给出简短原因。";
+        return I18nMessageResolver.resolveKey("askdata.prompt.validation.user")
+                .replace("{question}", question)
+                .replace("{schema}", schema)
+                .replace("{sql}", sql);
     }
 
     private ValidationResult parse(String resp) {

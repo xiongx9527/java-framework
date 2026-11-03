@@ -1,5 +1,7 @@
 package com.xiongx9527.fw.plus.ai.askdata.dialect;
 
+import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
+
 /**
  * 方言相关的轻量帮助类：标识符引号与分页提示。
  * 只做通用规范化，不重复实现产品侧的 14 种方言细节（见 §6.38.4）。
@@ -42,25 +44,37 @@ public final class DialectHelper {
     }
 
     public static String paginationHint(SqlDialect dialect) {
+        String suffix = suffixOf(dialect);
+        String resolved = I18nMessageResolver.resolveKey("askdata.dialect.pagination." + suffix);
+        if (resolved == null) {
+            resolved = I18nMessageResolver.resolveKey("askdata.dialect.pagination.default");
+        }
+        return resolved;
+    }
+
+    private static String suffixOf(SqlDialect dialect) {
+        if (dialect == null) {
+            return "default";
+        }
         switch (dialect) {
             case MYSQL:
             case SQLITE:
             case DORIS:
             case STARROCKS:
             case CLICKHOUSE:
-                return "MySQL 风格分页用 LIMIT n OFFSET m。";
+                return "mysql";
             case POSTGRESQL:
             case REDSHIFT:
             case HIVE:
-                return "PostgreSQL 风格分页用 LIMIT n OFFSET m。";
+                return "postgresql";
             case SQLSERVER:
-                return "SQL Server 分页用 OFFSET m ROWS FETCH NEXT n ROWS ONLY。";
+                return "sqlserver";
             case ORACLE:
             case DM:
             case KINGBASE:
-                return "Oracle 风格分页用 OFFSET m ROWS FETCH NEXT n ROWS ONLY 或 ROWNUM 嵌套。";
+                return "oracle";
             default:
-                return "如需分页请使用该方言标准的 LIMIT/OFFSET 语法。";
+                return "default";
         }
     }
 }
