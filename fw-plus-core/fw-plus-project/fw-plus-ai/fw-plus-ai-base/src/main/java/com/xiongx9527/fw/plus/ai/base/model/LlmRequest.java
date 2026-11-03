@@ -1,5 +1,7 @@
 package com.xiongx9527.fw.plus.ai.base.model;
 
+import com.xiongx9527.fw.plus.ai.base.tool.ToolChoice;
+import com.xiongx9527.fw.plus.ai.base.tool.ToolSpecification;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -11,6 +13,9 @@ import java.util.Map;
  *
  * <p>与具体厂商无关：{@code model} 为空表示用 adapter 的默认模型；{@code extraParams}
  * 承载厂商私有推理参数（如 {@code enable_thinking}），adapter 原样并入请求体。</p>
+ *
+ * <p>{@code tools} 非空时请求具备工具调用能力：adapter 把 {@link ToolSpecification} 翻译成
+ * 上游的 {@code tools[]} 报文，模型可能在 {@link LlmResponse#getToolCalls()} 里返回调用。</p>
  */
 public final class LlmRequest {
 
@@ -28,6 +33,10 @@ public final class LlmRequest {
 
     private final List<LlmListener> listeners;
 
+    private final List<ToolSpecification> tools;
+
+    private final ToolChoice toolChoice;
+
     private LlmRequest(Builder builder) {
         this.messages = Collections.unmodifiableList(new ArrayList<ChatMessage>(builder.messages));
         this.model = builder.model;
@@ -36,6 +45,8 @@ public final class LlmRequest {
         this.maxTokens = builder.maxTokens;
         this.extraParams = Collections.unmodifiableMap(new LinkedHashMap<String, Object>(builder.extraParams));
         this.listeners = Collections.unmodifiableList(new ArrayList<LlmListener>(builder.listeners));
+        this.tools = Collections.unmodifiableList(new ArrayList<ToolSpecification>(builder.tools));
+        this.toolChoice = builder.toolChoice;
     }
 
     public static Builder builder() {
@@ -76,6 +87,20 @@ public final class LlmRequest {
         return listeners;
     }
 
+    /** 允许模型调用的工具；空列表表示不带工具。 */
+    public List<ToolSpecification> getTools() {
+        return tools;
+    }
+
+    public boolean hasTools() {
+        return !tools.isEmpty();
+    }
+
+    /** 工具选择策略；{@code null} 表示由 adapter 决定（通常等同 {@code auto}）。 */
+    public ToolChoice getToolChoice() {
+        return toolChoice;
+    }
+
     /** 流式请求时是否要求上游返回思考过程；{@code false} 表示未显式开启。 */
     public boolean isThinkingEnabled() {
         Object value = extraParams.get("enable_thinking");
@@ -90,6 +115,8 @@ public final class LlmRequest {
 
         private final List<LlmListener> listeners = new ArrayList<LlmListener>();
 
+        private final List<ToolSpecification> tools = new ArrayList<ToolSpecification>();
+
         private String model;
 
         private Double temperature;
@@ -97,6 +124,8 @@ public final class LlmRequest {
         private Double topP;
 
         private Integer maxTokens;
+
+        private ToolChoice toolChoice;
 
         private Builder() {
         }
@@ -162,6 +191,26 @@ public final class LlmRequest {
             if (value != null) {
                 this.listeners.addAll(value);
             }
+            return this;
+        }
+
+        public Builder tools(List<ToolSpecification> value) {
+            this.tools.clear();
+            if (value != null) {
+                this.tools.addAll(value);
+            }
+            return this;
+        }
+
+        public Builder addTool(ToolSpecification value) {
+            if (value != null) {
+                this.tools.add(value);
+            }
+            return this;
+        }
+
+        public Builder toolChoice(ToolChoice value) {
+            this.toolChoice = value;
             return this;
         }
 

@@ -1,5 +1,7 @@
 package com.xiongx9527.fw.plus.ai.base.model;
 
+import com.xiongx9527.fw.plus.ai.base.tool.ToolExecutionRequest;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -97,6 +99,19 @@ public abstract class AbstractLlmPort implements LlmPort {
         }
     }
 
+    private static void notifyResponse(LlmRequest request, LlmResponse response) {
+        if (response == null) {
+            return;
+        }
+        for (LlmListener listener : request.getListeners()) {
+            try {
+                listener.onResponse(response);
+            } catch (RuntimeException ignored) {
+                // 监听器异常不得影响主链路
+            }
+        }
+    }
+
     /** 把增量事件同时转发给调用方 handler 与监听器。 */
     private static final class EventingStreamHandler implements LlmStreamHandler {
 
@@ -131,6 +146,11 @@ public abstract class AbstractLlmPort implements LlmPort {
         }
 
         @Override
+        public void onToolCall(ToolExecutionRequest call) {
+            delegate.onToolCall(call);
+        }
+
+        @Override
         public void onUsage(long totalTokens) {
             this.usage = new LlmUsage(0L, 0L, totalTokens);
             delegate.onUsage(totalTokens);
@@ -151,6 +171,8 @@ public abstract class AbstractLlmPort implements LlmPort {
         private final StringBuilder content = new StringBuilder();
 
         private final StringBuilder reasoning = new StringBuilder();
+
+        private final List<ToolExecutionRequest> toolCalls = new ArrayList<ToolExecutionRequest>();
 
         private LlmUsage usage = LlmUsage.ZERO;
 
@@ -173,6 +195,15 @@ public abstract class AbstractLlmPort implements LlmPort {
 
         @Override
         public void onComplete() {
+            if (error == null) {
+                LlmResponse response = LlmResponse.builder()
+                        .content(content.length() == 0 ? null : content.toString())
+                        .reasoningContent(reasoning.length() == 0 ? null : reasoning.toString())
+                        .usage(usage)
+                        .toolCalls(toolCalls)
+                        .build();
+                notifyResponse(request, response);
+            }
             notifyUsage(request, usage);
             notifyComplete(request);
         }
@@ -181,6 +212,13 @@ public abstract class AbstractLlmPort implements LlmPort {
         public void onError(String message) {
             this.error = message;
             notifyError(request, message);
+        }
+
+        @Override
+        public void onToolCall(ToolExecutionRequest call) {
+            if (call != null) {
+                toolCalls.add(call);
+            }
         }
 
         @Override
@@ -201,6 +239,7 @@ public abstract class AbstractLlmPort implements LlmPort {
                     .content(content.length() == 0 ? null : content.toString())
                     .reasoningContent(reasoning.length() == 0 ? null : reasoning.toString())
                     .usage(usage)
+                    .toolCalls(toolCalls)
                     .build();
         }
     }

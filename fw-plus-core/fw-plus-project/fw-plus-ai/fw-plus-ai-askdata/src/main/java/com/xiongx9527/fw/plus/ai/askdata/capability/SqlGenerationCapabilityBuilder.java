@@ -1,19 +1,19 @@
 package com.xiongx9527.fw.plus.ai.askdata.capability;
 
-import com.xiongx9527.fw.plus.ai.askdata.llm.LlmChatPort;
-import com.xiongx9527.fw.plus.ai.askdata.llm.ResilientLlmChatPort;
+import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
+import com.xiongx9527.fw.plus.ai.askdata.llm.ResilientLlmPort;
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.ConfidenceEstimator;
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.SqlRepairPolicy;
 import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.xiongx9527.fw.plus.ai.askdata.prompt.SqlPromptBuilder;
 
 /**
- * {@link SqlGenerationCapability} 的流式构建器。至少提供 {@link LlmChatPort}；
+ * {@link SqlGenerationCapability} 的流式构建器。至少提供 {@link LlmPort}；
  * LLM 语义校验默认开启（本地优先 + LLM 组合），可用 {@link #llmValidation} 覆盖或关闭。
  * 可选 {@link #resilient} 让生成与 LLM 校验共用同一个韧性端口（重试 + 熔断，§6.26 / D.4）。
  */
 public class SqlGenerationCapabilityBuilder {
-    private LlmChatPort llm;
+    private LlmPort llm;
     private SqlPromptBuilder promptBuilder;
     private SqlValidationStrategy localValidation;
     private SqlValidationStrategy llmValidation;
@@ -21,19 +21,19 @@ public class SqlGenerationCapabilityBuilder {
     private SqlRepairPolicy repairPolicy;
     private boolean failClosed = true;
     private boolean normalizeInput = false;
-    private ResilientLlmChatPort.ResilienceConfig resilienceConfig;
+    private ResilientLlmPort.ResilienceConfig resilienceConfig;
 
     public static SqlGenerationCapabilityBuilder builder() {
         return new SqlGenerationCapabilityBuilder();
     }
 
-    public SqlGenerationCapabilityBuilder llm(LlmChatPort v) {
+    public SqlGenerationCapabilityBuilder llm(LlmPort v) {
         this.llm = v;
         return this;
     }
 
     /** 开启 LLM 韧性（重试 + 熔断）；null 表示不包裹。生成与 LLM 校验共用被包裹后的端口。 */
-    public SqlGenerationCapabilityBuilder resilient(ResilientLlmChatPort.ResilienceConfig v) {
+    public SqlGenerationCapabilityBuilder resilient(ResilientLlmPort.ResilienceConfig v) {
         this.resilienceConfig = v;
         return this;
     }
@@ -78,9 +78,9 @@ public class SqlGenerationCapabilityBuilder {
         if (llm == null) {
             throw new IllegalStateException(I18nMessageResolver.resolveKey("askdata.contract.build_llm"));
         }
-        LlmChatPort effectiveLlm = llm;
+        LlmPort effectiveLlm = llm;
         if (resilienceConfig != null) {
-            effectiveLlm = new ResilientLlmChatPort(llm, resilienceConfig);
+            effectiveLlm = new ResilientLlmPort(llm, resilienceConfig);
         }
         SqlValidationStrategy local = localValidation == null ? new LocalSqlValidationStrategy() : localValidation;
         SqlValidationStrategy llmV = llmValidation;

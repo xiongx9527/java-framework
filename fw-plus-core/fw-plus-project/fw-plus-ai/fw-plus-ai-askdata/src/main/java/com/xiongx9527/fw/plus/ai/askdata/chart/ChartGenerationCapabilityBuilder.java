@@ -1,10 +1,10 @@
 package com.xiongx9527.fw.plus.ai.askdata.chart;
 
-import com.xiongx9527.fw.plus.ai.askdata.llm.LlmChatPort;
+import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
 
 /** {@link ChartGenerationCapability} 的流式构建器。llm 可选（缺省走启发式）。 */
 public class ChartGenerationCapabilityBuilder {
-    private LlmChatPort llm;
+    private LlmPort llm;
     private ChartConfigBuilder builder;
     private ChartTypeGuesser guesser;
     private ChartConfigValidator validator;
@@ -16,7 +16,7 @@ public class ChartGenerationCapabilityBuilder {
         return new ChartGenerationCapabilityBuilder();
     }
 
-    public ChartGenerationCapabilityBuilder llm(LlmChatPort v) {
+    public ChartGenerationCapabilityBuilder llm(LlmPort v) {
         this.llm = v;
         return this;
     }

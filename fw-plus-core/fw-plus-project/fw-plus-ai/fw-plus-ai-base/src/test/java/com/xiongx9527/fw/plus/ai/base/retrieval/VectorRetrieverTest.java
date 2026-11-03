@@ -3,12 +3,13 @@ package com.xiongx9527.fw.plus.ai.base.retrieval;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.xiongx9527.fw.plus.ai.base.store.Document;
 import com.xiongx9527.fw.plus.ai.base.store.ScoredDocument;
 import com.xiongx9527.fw.plus.ai.base.store.VectorSearchRequest;
+import com.xiongx9527.fw.plus.ai.base.store.VectorSearchResult;
 import com.xiongx9527.fw.plus.ai.base.store.VectorStorePort;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -48,19 +49,18 @@ class VectorRetrieverTest {
         }
 
         @Override
-        public List<ScoredDocument> search(VectorSearchRequest request) {
+        public VectorSearchResult search(VectorSearchRequest request) {
             this.last = request;
-            return hits;
+            return VectorSearchResult.of(hits);
         }
     }
 
     @Test
     void passesCollectionCandidatesAndFilters() {
-        FakeStore store = new FakeStore(Arrays.asList(
-                new ScoredDocument(com.xiongx9527.fw.plus.ai.base.store.Document.of("1", "t"), 0.8)));
+        FakeStore store = new FakeStore(Arrays.asList(new ScoredDocument(Document.of("1", "t"), 0.8)));
         VectorRetriever retriever = new VectorRetriever(text -> new double[]{1.0, 0.0}, store);
 
-        List<ScoredDocument> hits = retriever.retrieve(RetrievalQuery.builder()
+        List<Retrieved<Document>> hits = retriever.retrieve(RetrievalQuery.builder()
                 .text("q")
                 .collection("askdata-core_table")
                 .topK(5)
@@ -72,7 +72,7 @@ class VectorRetrieverTest {
         assertEquals("askdata-core_table", store.last.getCollection());
         assertEquals(5, store.last.getTopK());
         assertEquals(2, store.last.getCandidateIds().size());
-        assertEquals(7L, store.last.getFilter().get("ds_id"));
+        assertTrue(store.last.getFilter().matches(java.util.Collections.singletonMap("ds_id", 7L)));
     }
 
     @Test

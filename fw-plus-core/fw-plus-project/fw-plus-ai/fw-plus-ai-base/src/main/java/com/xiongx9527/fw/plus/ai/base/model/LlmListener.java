@@ -9,8 +9,8 @@ import com.xiongx9527.fw.plus.ai.base.event.AiListener;
  * 两条通道的事件序列一致，因此日志、计费、链路追踪等横切逻辑只需要写一份：</p>
  *
  * <pre>
- *   onRequest → onToken* → onUsage → onComplete
- *   onRequest → onToken* → onUsage → onError
+ *   onRequest → onToken* → onResponse → onUsage → onComplete
+ *   onRequest → onToken* → onResponse → onUsage → onError
  * </pre>
  *
  * <p>所有方法都有空实现，实现方只覆写关心的那一个。监听器在调用线程（含流式 IO 线程）上
@@ -24,6 +24,14 @@ public interface LlmListener extends AiListener {
 
     /** 收到一段增量内容；非流式通道在结束时一次回调完整内容。 */
     default void onToken(String content, String reasoningContent) {
+    }
+
+    /**
+     * 完整响应就绪（流式在聚合完成后、非流式在返回时触发）。
+     *
+     * <p>用于需要整段响应（而非逐 token）的横切逻辑，如整响应审计、按响应内容路由。</p>
+     */
+    default void onResponse(LlmResponse response) {
     }
 
     /** 用量上报；上游未上报时为 {@link LlmUsage#ZERO}。 */

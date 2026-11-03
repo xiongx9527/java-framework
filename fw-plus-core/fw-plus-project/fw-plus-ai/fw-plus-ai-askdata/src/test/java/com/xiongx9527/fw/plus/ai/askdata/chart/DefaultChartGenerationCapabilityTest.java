@@ -7,8 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.xiongx9527.fw.plus.ai.askdata.chart.data.ChartColumn;
 import com.xiongx9527.fw.plus.ai.askdata.chart.data.ChartDataset;
-import com.xiongx9527.fw.plus.ai.askdata.llm.LlmChatPort;
-import com.xiongx9527.fw.plus.ai.askdata.llm.StaticLlmChatPort;
+import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
+import com.xiongx9527.fw.plus.ai.askdata.llm.StaticLlmPort;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -48,7 +48,7 @@ public class DefaultChartGenerationCapabilityTest {
 
     @Test
     void llmDecisionUsedWhenProvided() {
-        LlmChatPort port = new StaticLlmChatPort(
+        LlmPort port = new StaticLlmPort(
                 "{\"chartType\":\"line\",\"categoryField\":\"region\",\"valueFields\":[\"amount\"]}");
         ChartGenerationCapability cap = ChartGenerationCapabilityBuilder.builder().llm(port).build();
         ChartGenResult r = cap.generate(ChartGenInput.builder().question("趋势").data(ds()).build());
@@ -73,7 +73,7 @@ public class DefaultChartGenerationCapabilityTest {
 
     @Test
     void degradesWhenLlmHallucinatesField() {
-        LlmChatPort port = new StaticLlmChatPort(
+        LlmPort port = new StaticLlmPort(
                 "{\"chartType\":\"bar\",\"categoryField\":\"ghost\",\"valueFields\":[\"amount\"]}");
         ChartGenerationCapability cap = ChartGenerationCapabilityBuilder.builder().llm(port).build();
         ChartGenResult r = cap.generate(ChartGenInput.builder().question("q").data(ds()).build());

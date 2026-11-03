@@ -1,7 +1,8 @@
 package com.xiongx9527.fw.plus.ai.askdata.chart;
 
 import com.xiongx9527.fw.plus.ai.askdata.chart.data.ChartDataset;
-import com.xiongx9527.fw.plus.ai.askdata.llm.LlmChatPort;
+import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
+import com.xiongx9527.fw.plus.ai.base.model.LlmResponse;
 import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,7 +19,7 @@ public class DefaultChartGenerationCapability implements ChartGenerationCapabili
 
     private static final Logger log = LoggerFactory.getLogger(DefaultChartGenerationCapability.class);
 
-    private final LlmChatPort llm;
+    private final LlmPort llm;
     private final ChartConfigBuilder builder;
     private final ChartTypeGuesser guesser;
     private final ChartConfigValidator validator;
@@ -26,12 +27,12 @@ public class DefaultChartGenerationCapability implements ChartGenerationCapabili
     private final ChartDegradePolicy degradePolicy;
     private final ChartPromptBuilder promptBuilder;
 
-    public DefaultChartGenerationCapability(LlmChatPort llm) {
+    public DefaultChartGenerationCapability(LlmPort llm) {
         this(llm, new ChartConfigBuilder(), new ChartTypeGuesser(), new ChartConfigValidator(),
                 new ChartLlmParser(), ChartDegradePolicy.builder().build(), new ChartPromptBuilder());
     }
 
-    public DefaultChartGenerationCapability(LlmChatPort llm, ChartConfigBuilder builder,
+    public DefaultChartGenerationCapability(LlmPort llm, ChartConfigBuilder builder,
             ChartTypeGuesser guesser, ChartConfigValidator validator, ChartLlmParser parser,
             ChartDegradePolicy degradePolicy, ChartPromptBuilder promptBuilder) {
         this.llm = llm;
@@ -64,7 +65,8 @@ public class DefaultChartGenerationCapability implements ChartGenerationCapabili
             source = "preferred";
         } else if (llm != null) {
             try {
-                String raw = llm.complete(promptBuilder.buildSystem(), promptBuilder.buildUser(input));
+                LlmResponse response = llm.complete(promptBuilder.buildSystem(), promptBuilder.buildUser(input));
+                String raw = response == null ? null : response.getContent();
                 ChartSuggestion parsed = parser.parse(raw);
                 if (parsed != null && parsed.getType() != ChartType.UNKNOWN) {
                     suggestion = parsed;

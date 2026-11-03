@@ -1,7 +1,6 @@
 package com.xiongx9527.fw.plus.ai.base.retrieval;
 
 import com.xiongx9527.fw.plus.ai.base.event.AiListener;
-import com.xiongx9527.fw.plus.ai.base.store.ScoredDocument;
 import java.util.List;
 
 /**
@@ -9,11 +8,15 @@ import java.util.List;
  */
 public interface RetrievalListener extends AiListener {
 
-    /** 检索开始（重排与阈值过滤之前）。 */
+    /** 检索开始。 */
     default void onQuery(RetrievalQuery query) {
     }
 
-    /** 检索完成，{@code hits} 为最终结果（已重排、已阈值过滤、已 topN 截断）。 */
-    default void onHits(List<ScoredDocument> hits) {
+    /** 检索完成；{@code hits} 为当前阶段结果（是否已重排 / 截断取决于装饰器顺序）。 */
+    default void onHits(List<? extends Retrieved<?>> hits) {
+    }
+
+    /** 检索上下文被注入对话时的回调（内容为注入段落，可能为 {@code null}）。 */
+    default void onContext(String content) {
     }
 }

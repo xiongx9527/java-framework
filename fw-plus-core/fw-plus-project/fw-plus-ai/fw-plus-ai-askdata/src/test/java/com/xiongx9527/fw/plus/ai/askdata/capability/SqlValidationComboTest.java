@@ -3,8 +3,8 @@ package com.xiongx9527.fw.plus.ai.askdata.capability;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.xiongx9527.fw.plus.ai.askdata.llm.LlmChatPort;
-import com.xiongx9527.fw.plus.ai.askdata.llm.StaticLlmChatPort;
+import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
+import com.xiongx9527.fw.plus.ai.askdata.llm.StaticLlmPort;
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.SqlRepairPolicy;
 import com.xiongx9527.fw.plus.ai.askdata.schema.SchemaContext;
 import com.xiongx9527.fw.plus.ai.askdata.schema.TableSchema;
@@ -27,7 +27,7 @@ public class SqlValidationComboTest {
 
     @Test
     void llmValidationFailureLowersConfidenceWhenOpen() {
-        LlmChatPort port = new StaticLlmChatPort(p -> {
+        LlmPort port = new StaticLlmPort(p -> {
             if (p.contains("待校验")) {
                 return "NO\n该 SQL 关联了错误表";
             }
@@ -44,7 +44,7 @@ public class SqlValidationComboTest {
 
     @Test
     void llmValidationFailureClosesWhenRepairCannotFix() {
-        LlmChatPort port = new StaticLlmChatPort(p -> {
+        LlmPort port = new StaticLlmPort(p -> {
             if (p.contains("待校验")) {
                 return "NO\n该 SQL 关联了错误表";
             }
@@ -60,7 +60,7 @@ public class SqlValidationComboTest {
 
     @Test
     void llmValidationPassKeepsHighConfidence() {
-        LlmChatPort port = new StaticLlmChatPort(p -> {
+        LlmPort port = new StaticLlmPort(p -> {
             if (p.contains("待校验")) {
                 return "YES";
             }

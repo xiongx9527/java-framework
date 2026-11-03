@@ -1,0 +1,44 @@
+package com.xiongx9527.fw.plus.ai.support.resilience;
+
+import com.xiongx9527.fw.plus.ai.base.model.LlmException;
+import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
+import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
+import com.xiongx9527.fw.plus.ai.base.model.LlmResponse;
+import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
+import com.xiongx9527.fw.plus.ai.base.resilience.QuotaPort;
+
+/**
+ * 配额闸门：调用前按模型 id 占用配额，拒绝时抛 {@link LlmException}，不触达上游。
+ */
+public final class QuotaGuardedLlmPort implements LlmPort {
+
+    private final LlmPort delegate;
+
+    private final QuotaPort quota;
+
+    private final long amount;
+
+    public QuotaGuardedLlmPort(LlmPort delegate, QuotaPort quota, long amount) {
+        this.delegate = delegate;
+        this.quota = quota;
+        this.amount = amount <= 0 ? 1L : amount;
+    }
+
+    @Override
+    public LlmResponse complete(LlmRequest request) {
+        acquire(request.getModel());
+        return delegate.complete(request);
+    }
+
+    @Override
+    public void stream(LlmRequest request, LlmStreamHandler handler) {
+        acquire(request.getModel());
+        delegate.stream(request, handler);
+    }
+
+    private void acquire(String scope) {
+        if (quota != null && !quota.tryAcquire(scope, amount)) {
+            throw new LlmException("quota exhausted for scope: " + scope);
+        }
+    }
+}

@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.base.store;
 
+import com.xiongx9527.fw.plus.common.exception.BizException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -79,10 +80,10 @@ public interface VectorStorePort {
     }
 
     /** 最近邻检索，结果按分数降序。 */
-    List<ScoredDocument> search(VectorSearchRequest request);
+    VectorSearchResult search(VectorSearchRequest request);
 
     /** 不限候选、不带元数据过滤的检索。 */
-    default List<ScoredDocument> search(String collection, double[] vector, int topK) {
+    default VectorSearchResult search(String collection, double[] vector, int topK) {
         return search(VectorSearchRequest.builder()
                 .collection(collection)
                 .vector(vector)
@@ -96,12 +97,15 @@ public interface VectorStorePort {
      * <p>单独成类型而不是靠消息文本判断——调用方要能区分「维度不对，需重建」与
      * 「后端不可达，稍后重试」，后者不能被当成永久损坏而短路后续写入。</p>
      */
-    class DimensionMismatchException extends IllegalStateException {
+    class DimensionMismatchException extends BizException {
 
         private static final long serialVersionUID = 1L;
 
+        /** 状态码：服务端 + 系统/基础设施 + 002。 */
+        public static final int CODE = 50_010_002;
+
         public DimensionMismatchException(String message) {
-            super(message);
+            super(CODE, message);
         }
     }
 }

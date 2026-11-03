@@ -25,7 +25,7 @@
  *   <li>风险 A.1.2（图表实际绘制未截断）：ChartDataset.MAX_CHART_ROWS 截断注入图表的数据集。</li>
  *   <li>§6.38.4 方言感知（DialectSqlChecker + LocalSqlValidationStrategy）：仅标记反引号误用、
  *       LIMIT/TOP 在方言不支持时的分页关键字错配，交由修复环按方言提示重出，而非静默改写不可信 SQL。</li>
- *   <li>§6.26 / D.4 LLM 韧性（ResilientLlmChatPort + SqlGenerationCapabilityBuilder.resilient）：
+ *   <li>§6.26 / D.4 LLM 韧性（ResilientLlmPort + SqlGenerationCapabilityBuilder.resilient）：
  *       同一模型内的指数退避重试（仅瞬时错误）+ 三态熔断（CLOSED/OPEN/HALF_OPEN），
  *       跨供应商故障转移仍属产品策略（§6.26.13），不由本装饰器承担。</li>
  *   <li>§6.22 输入归一（SqlGenInputNormalizer + SqlGenerationCapabilityBuilder.normalizeInput）：
@@ -40,7 +40,7 @@
  *
  * <p>设计约束：
  * <ul>
- *   <li>后端无关：只依赖本模块自定义的中立端口（LlmChatPort / SqlExecutorPort），
+ *   <li>后端无关：只依赖本模块自定义的中立端口（LlmPort / SqlExecutorPort），
  *       不依赖任何具体 LLM 框架与驱动，由产品侧 adapter 落地；</li>
  *   <li>纯函数：给定相同输入结果可复现，生成不执行、执行不画图、画图不回答；</li>
  *   <li>显式输入：只接收上游注入的可见 schema / 约束 / 数据集，不在能力内再判权限；</li>

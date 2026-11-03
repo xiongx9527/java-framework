@@ -75,10 +75,10 @@ public class ListeningVectorStorePort implements VectorStorePort {
     }
 
     @Override
-    public List<ScoredDocument> search(VectorSearchRequest request) {
+    public VectorSearchResult search(VectorSearchRequest request) {
         try {
-            List<ScoredDocument> hits = delegate.search(request);
-            int count = hits == null ? 0 : hits.size();
+            VectorSearchResult result = delegate.search(request);
+            int count = result == null ? 0 : result.size();
             for (VectorStoreListener listener : listeners) {
                 try {
                     listener.onSearch(request == null ? null : request.getCollection(),
@@ -87,7 +87,7 @@ public class ListeningVectorStorePort implements VectorStorePort {
                     // 监听器异常不得影响主链路
                 }
             }
-            return hits;
+            return result;
         } catch (RuntimeException e) {
             notifyError(e);
             throw e;

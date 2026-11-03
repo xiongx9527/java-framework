@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.askdata.capability;
 
-import com.xiongx9527.fw.plus.ai.askdata.llm.LlmChatPort;
+import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
+import com.xiongx9527.fw.plus.ai.base.model.LlmResponse;
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.ConfidenceEstimator;
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.SqlExtractor;
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.SqlRepairPolicy;
@@ -21,7 +22,7 @@ import java.util.StringJoiner;
  */
 public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
 
-    private final LlmChatPort llm;
+    private final LlmPort llm;
     private final SqlPromptBuilder promptBuilder;
     private final SqlValidationStrategy localValidation;
     private final SqlValidationStrategy llmValidation;
@@ -30,12 +31,12 @@ public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
     private final boolean failClosed;
     private final boolean normalizeInput;
 
-    public DefaultSqlGenerationCapability(LlmChatPort llm) {
+    public DefaultSqlGenerationCapability(LlmPort llm) {
         this(llm, new SqlPromptBuilder(), new LocalSqlValidationStrategy(), null,
                 new ConfidenceEstimator(), SqlRepairPolicy.builder().build(), true, false);
     }
 
-    public DefaultSqlGenerationCapability(LlmChatPort llm, SqlPromptBuilder promptBuilder,
+    public DefaultSqlGenerationCapability(LlmPort llm, SqlPromptBuilder promptBuilder,
                                          SqlValidationStrategy localValidation,
                                          SqlValidationStrategy llmValidation,
                                          ConfidenceEstimator confidenceEstimator,
@@ -111,7 +112,8 @@ public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
 
     private String safeComplete(SqlPrompt p) {
         try {
-            return llm.complete(p.getSystemPrompt(), p.getUserPrompt());
+            LlmResponse response = llm.complete(p.getSystemPrompt(), p.getUserPrompt());
+            return response == null ? null : response.getContent();
         } catch (Exception e) {
             throw new SqlGenerationException(50005801, I18nMessageResolver.resolveKey("askdata.gen.llm_failed"), e);
         }

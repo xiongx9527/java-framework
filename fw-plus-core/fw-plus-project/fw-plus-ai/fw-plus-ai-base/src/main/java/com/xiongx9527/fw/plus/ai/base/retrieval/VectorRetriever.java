@@ -1,16 +1,16 @@
 package com.xiongx9527.fw.plus.ai.base.retrieval;
 
 import com.xiongx9527.fw.plus.ai.base.model.EmbeddingPort;
+import com.xiongx9527.fw.plus.ai.base.store.Document;
 import com.xiongx9527.fw.plus.ai.base.store.ScoredDocument;
 import com.xiongx9527.fw.plus.ai.base.store.VectorSearchRequest;
+import com.xiongx9527.fw.plus.ai.base.store.VectorSearchResult;
 import com.xiongx9527.fw.plus.ai.base.store.VectorStorePort;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * 向量检索：{@link EmbeddingPort} 编码 query → {@link VectorStorePort} 最近邻检索。
- */
-public class VectorRetriever implements Retriever {
+/** 向量检索：EmbeddingPort 编码 query → VectorStorePort 最近邻检索。 */
+public class VectorRetriever implements DocumentRetriever {
 
     private final EmbeddingPort embedding;
 
@@ -25,21 +25,30 @@ public class VectorRetriever implements Retriever {
     }
 
     @Override
-    public List<ScoredDocument> retrieve(RetrievalQuery query) {
+    public List<Retrieved<Document>> retrieve(RetrievalQuery query) {
+        List<Retrieved<Document>> retrieved = new ArrayList<Retrieved<Document>>();
         if (query == null || query.getText() == null || query.getText().trim().isEmpty()) {
-            return new ArrayList<ScoredDocument>();
+            return retrieved;
         }
         double[] vector = embedding.embed(query.getText());
         if (vector == null) {
-            return new ArrayList<ScoredDocument>();
+            return retrieved;
         }
-        List<ScoredDocument> hits = store.search(VectorSearchRequest.builder()
+        VectorSearchResult result = store.search(VectorSearchRequest.builder()
                 .collection(query.getCollection())
                 .vector(vector)
                 .topK(query.getTopK())
                 .candidateIds(query.getCandidateIds())
                 .filter(query.getFilters())
                 .build());
-        return hits == null ? new ArrayList<ScoredDocument>() : hits;
+        if (result == null || result.isEmpty()) {
+            return retrieved;
+        }
+        for (ScoredDocument hit : result.getHits()) {
+            if (hit != null && hit.getDocument() != null) {
+                retrieved.add(Retrieved.of(hit.getDocument(), hit.getScore(), query.getCollection()));
+            }
+        }
+        return retrieved;
     }
 }

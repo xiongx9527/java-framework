@@ -3,8 +3,8 @@ package com.xiongx9527.fw.plus.ai.askdata.capability;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.xiongx9527.fw.plus.ai.askdata.llm.LlmChatPort;
-import com.xiongx9527.fw.plus.ai.askdata.llm.StaticLlmChatPort;
+import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
+import com.xiongx9527.fw.plus.ai.askdata.llm.StaticLlmPort;
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.ValidationResult;
 import com.xiongx9527.fw.plus.ai.askdata.schema.SchemaContext;
 import com.xiongx9527.fw.plus.ai.askdata.schema.TableSchema;
@@ -24,7 +24,7 @@ public class LlmSqlValidationStrategyTest {
 
     @Test
     void acceptsWhenLlmSaysYes() {
-        LlmChatPort port = new StaticLlmChatPort("YES");
+        LlmPort port = new StaticLlmPort("YES");
         LlmSqlValidationStrategy s = new LlmSqlValidationStrategy(port);
         ValidationResult vr = s.validate("SELECT id FROM orders", input());
         assertTrue(vr.isOk());
@@ -32,7 +32,7 @@ public class LlmSqlValidationStrategyTest {
 
     @Test
     void rejectsWhenLlmSaysNo() {
-        LlmChatPort port = new StaticLlmChatPort("NO\n字段在可见 schema 中不存在");
+        LlmPort port = new StaticLlmPort("NO\n字段在可见 schema 中不存在");
         LlmSqlValidationStrategy s = new LlmSqlValidationStrategy(port);
         ValidationResult vr = s.validate("SELECT x FROM orders", input());
         assertFalse(vr.isOk());
@@ -41,7 +41,7 @@ public class LlmSqlValidationStrategyTest {
 
     @Test
     void fallsBackToLocalWhenLlmThrows() {
-        LlmChatPort port = new StaticLlmChatPort(p -> {
+        LlmPort port = new StaticLlmPort(p -> {
             throw new RuntimeException("model unavailable");
         });
         LlmSqlValidationStrategy s = new LlmSqlValidationStrategy(port);

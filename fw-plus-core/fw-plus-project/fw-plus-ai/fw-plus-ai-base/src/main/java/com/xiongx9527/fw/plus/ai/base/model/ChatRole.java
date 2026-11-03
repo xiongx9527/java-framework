@@ -9,7 +9,10 @@ public enum ChatRole {
 
     USER("user"),
 
-    ASSISTANT("assistant");
+    ASSISTANT("assistant"),
+
+    /** 工具执行结果回填（OpenAI 的 {@code role: "tool"}）。 */
+    TOOL("tool");
 
     private final String wireName;
 

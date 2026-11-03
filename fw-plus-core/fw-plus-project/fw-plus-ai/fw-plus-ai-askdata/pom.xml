@@ -22,12 +22,12 @@
     <dependencies>
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-ai-base</artifactId>
+            <artifactId>fw-plus-ai-support</artifactId>
+            <version>${revision}</version>
         </dependency>
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-ai-support</artifactId>
-            <version>${revision}</version>
+            <artifactId>fw-plus-ai-base</artifactId>
         </dependency>
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>

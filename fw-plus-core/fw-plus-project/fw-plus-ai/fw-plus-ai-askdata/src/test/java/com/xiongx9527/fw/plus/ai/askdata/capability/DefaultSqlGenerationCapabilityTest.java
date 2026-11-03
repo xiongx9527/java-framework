@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.xiongx9527.fw.plus.ai.askdata.llm.LlmChatPort;
-import com.xiongx9527.fw.plus.ai.askdata.llm.StaticLlmChatPort;
+import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
+import com.xiongx9527.fw.plus.ai.askdata.llm.StaticLlmPort;
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.SqlRepairPolicy;
 import com.xiongx9527.fw.plus.ai.askdata.schema.SchemaContext;
 import com.xiongx9527.fw.plus.ai.askdata.schema.TableSchema;
@@ -30,7 +30,7 @@ public class DefaultSqlGenerationCapabilityTest {
 
     @Test
     void happyPathReturnsSqlAndConfidence() {
-        LlmChatPort port = new StaticLlmChatPort(F + "sql\nSELECT id FROM orders\n" + F);
+        LlmPort port = new StaticLlmPort(F + "sql\nSELECT id FROM orders\n" + F);
         SqlGenerationCapability cap = SqlGenerationCapabilityBuilder.builder()
                 .llm(port)
                 .repairPolicy(SqlRepairPolicy.builder().enabled(false).build())
@@ -43,7 +43,7 @@ public class DefaultSqlGenerationCapabilityTest {
 
     @Test
     void missingSchemaThrows() {
-        LlmChatPort port = new StaticLlmChatPort(F + "sql\nSELECT 1\n" + F);
+        LlmPort port = new StaticLlmPort(F + "sql\nSELECT 1\n" + F);
         SqlGenerationCapability cap = SqlGenerationCapabilityBuilder.builder()
                 .llm(port)
                 .repairPolicy(SqlRepairPolicy.builder().enabled(false).build())
@@ -55,7 +55,7 @@ public class DefaultSqlGenerationCapabilityTest {
     @Test
     void repairsInvalidSql() {
         AtomicInteger n = new AtomicInteger();
-        LlmChatPort port = new StaticLlmChatPort(p -> {
+        LlmPort port = new StaticLlmPort(p -> {
             if (n.getAndIncrement() == 0) {
                 return F + "sql\nSELECT x FROM missing_table\n" + F;
             }
@@ -71,7 +71,7 @@ public class DefaultSqlGenerationCapabilityTest {
 
     @Test
     void failClosedThrowsWhenValidationFails() {
-        LlmChatPort port = new StaticLlmChatPort("SELECT id FROM missing_table");
+        LlmPort port = new StaticLlmPort("SELECT id FROM missing_table");
         SqlGenerationCapability cap = SqlGenerationCapabilityBuilder.builder()
                 .llm(port)
                 .repairPolicy(SqlRepairPolicy.builder().failClosed(true).enabled(false).build())
@@ -82,7 +82,7 @@ public class DefaultSqlGenerationCapabilityTest {
     @Test
     void normalizeInputFoldsWhitespaceBeforePrompt() {
         AtomicReference<String> captured = new AtomicReference<>();
-        LlmChatPort port = new StaticLlmChatPort(p -> {
+        LlmPort port = new StaticLlmPort(p -> {
             captured.set(p);
             return F + "sql\nSELECT id FROM orders\n" + F;
         });
@@ -98,7 +98,7 @@ public class DefaultSqlGenerationCapabilityTest {
 
     @Test
     void normalizeInputLengthCapThrows() {
-        LlmChatPort port = new StaticLlmChatPort("SELECT 1");
+        LlmPort port = new StaticLlmPort("SELECT 1");
         SqlGenerationCapability cap = SqlGenerationCapabilityBuilder.builder()
                 .llm(port)
                 .normalizeInput(true)

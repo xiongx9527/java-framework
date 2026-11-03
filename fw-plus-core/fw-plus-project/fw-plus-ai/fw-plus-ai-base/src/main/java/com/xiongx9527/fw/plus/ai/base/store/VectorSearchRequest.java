@@ -10,8 +10,13 @@ import java.util.Set;
 /**
  * 向量检索请求。
  *
- * <p>{@code candidateIds} 是「只在给定 id 集合内检索」的限定条件（业务权限或候选集已在
- * 上游收敛时使用），与 {@code filter}（元数据等值过滤）互补：前者按主键收敛，后者按属性收敛。</p>
+ * <p>收敛候选集有两条互补路径：</p>
+ * <ul>
+ *   <li>{@code candidateIds}——按主键（文档 id）收敛，业务权限或上游已收敛候选集时使用；</li>
+ *   <li>{@code filter}——按元数据属性收敛（等值 / 范围 / 包含 / 组合），见 {@link Filter}。</li>
+ * </ul>
+ *
+ * <p>两条路径可同时使用：先按主键收敛再按属性过滤，等价于「白名单 ∩ 属性」。</p>
  */
 public final class VectorSearchRequest {
 
@@ -23,14 +28,14 @@ public final class VectorSearchRequest {
 
     private final Set<String> candidateIds;
 
-    private final Map<String, Object> filter;
+    private final Filter filter;
 
     private VectorSearchRequest(Builder builder) {
         this.collection = builder.collection;
         this.vector = builder.vector;
         this.topK = builder.topK;
         this.candidateIds = Collections.unmodifiableSet(new LinkedHashSet<String>(builder.candidateIds));
-        this.filter = Collections.unmodifiableMap(new LinkedHashMap<String, Object>(builder.filter));
+        this.filter = builder.filter == null ? Filter.NO_OP : builder.filter;
     }
 
     public static Builder builder() {
@@ -54,8 +59,8 @@ public final class VectorSearchRequest {
         return candidateIds;
     }
 
-    /** 元数据等值过滤；空表表示不过滤。 */
-    public Map<String, Object> getFilter() {
+    /** 元数据过滤条件；{@link Filter#NO_OP} 表示不过滤。 */
+    public Filter getFilter() {
         return filter;
     }
 
@@ -63,7 +68,7 @@ public final class VectorSearchRequest {
 
         private final Set<String> candidateIds = new LinkedHashSet<String>();
 
-        private final Map<String, Object> filter = new LinkedHashMap<String, Object>();
+        private Filter filter = Filter.NO_OP;
 
         private String collection;
 
@@ -97,18 +102,28 @@ public final class VectorSearchRequest {
             return this;
         }
 
-        public Builder filter(Map<String, Object> value) {
-            this.filter.clear();
-            if (value != null) {
-                this.filter.putAll(value);
-            }
+        public Builder filter(Filter value) {
+            this.filter = value == null ? Filter.NO_OP : value;
             return this;
         }
 
+        /** 便捷：单个元数据等值条件。 */
         public Builder filter(String key, Object value) {
-            if (key != null) {
-                this.filter.put(key, value);
+            this.filter = Filter.builder().eq(key, value).build();
+            return this;
+        }
+
+        /** 便捷：多个元数据等值条件（AND）。 */
+        public Builder filter(Map<String, Object> values) {
+            if (values == null || values.isEmpty()) {
+                this.filter = Filter.NO_OP;
+                return this;
             }
+            Filter.Builder b = Filter.builder();
+            for (Map.Entry<String, Object> entry : values.entrySet()) {
+                b.eq(entry.getKey(), entry.getValue());
+            }
+            this.filter = b.build();
             return this;
         }
 

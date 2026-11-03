@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.askdata.capability;
 
-import com.xiongx9527.fw.plus.ai.askdata.llm.LlmChatPort;
+import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
+import com.xiongx9527.fw.plus.ai.base.model.LlmResponse;
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.ValidationResult;
 import com.xiongx9527.fw.plus.ai.askdata.prompt.SqlPromptTemplates;
 import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
@@ -13,14 +14,14 @@ import java.util.List;
  * 能否回答问题。模型调用失败时回退到本地策略，避免阻断生成链路。
  */
 public class LlmSqlValidationStrategy implements SqlValidationStrategy {
-    private final LlmChatPort llm;
+    private final LlmPort llm;
     private final SqlValidationStrategy fallback;
 
-    public LlmSqlValidationStrategy(LlmChatPort llm) {
+    public LlmSqlValidationStrategy(LlmPort llm) {
         this(llm, new LocalSqlValidationStrategy());
     }
 
-    public LlmSqlValidationStrategy(LlmChatPort llm, SqlValidationStrategy fallback) {
+    public LlmSqlValidationStrategy(LlmPort llm, SqlValidationStrategy fallback) {
         if (llm == null) {
             throw new IllegalArgumentException(I18nMessageResolver.resolveKey("askdata.contract.llm_required"));
         }
@@ -33,7 +34,8 @@ public class LlmSqlValidationStrategy implements SqlValidationStrategy {
         String prompt = buildPrompt(sql, input);
         String resp;
         try {
-            resp = llm.complete(SqlPromptTemplates.VALIDATION_SYSTEM, prompt);
+            LlmResponse response = llm.complete(SqlPromptTemplates.VALIDATION_SYSTEM, prompt);
+            resp = response == null ? null : response.getContent();
         } catch (RuntimeException e) {
             return fallback.validate(sql, input);
         }

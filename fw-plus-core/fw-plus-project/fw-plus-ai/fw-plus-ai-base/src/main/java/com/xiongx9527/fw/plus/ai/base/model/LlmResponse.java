@@ -1,5 +1,10 @@
 package com.xiongx9527.fw.plus.ai.base.model;
 
+import com.xiongx9527.fw.plus.ai.base.tool.ToolExecutionRequest;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 /**
  * 一次非流式补全的结果。
  */
@@ -11,10 +16,13 @@ public final class LlmResponse {
 
     private final LlmUsage usage;
 
+    private final List<ToolExecutionRequest> toolCalls;
+
     private LlmResponse(Builder builder) {
         this.content = builder.content;
         this.reasoningContent = builder.reasoningContent;
         this.usage = builder.usage == null ? LlmUsage.ZERO : builder.usage;
+        this.toolCalls = Collections.unmodifiableList(new ArrayList<ToolExecutionRequest>(builder.toolCalls));
     }
 
     public static Builder builder() {
@@ -35,7 +43,18 @@ public final class LlmResponse {
         return usage;
     }
 
+    /** 模型要求执行的工具调用；没有时为空列表。 */
+    public List<ToolExecutionRequest> getToolCalls() {
+        return toolCalls;
+    }
+
+    public boolean hasToolCalls() {
+        return !toolCalls.isEmpty();
+    }
+
     public static final class Builder {
+
+        private final List<ToolExecutionRequest> toolCalls = new ArrayList<ToolExecutionRequest>();
 
         private String content;
 
@@ -58,6 +77,21 @@ public final class LlmResponse {
 
         public Builder usage(LlmUsage value) {
             this.usage = value;
+            return this;
+        }
+
+        public Builder toolCalls(List<ToolExecutionRequest> value) {
+            this.toolCalls.clear();
+            if (value != null) {
+                this.toolCalls.addAll(value);
+            }
+            return this;
+        }
+
+        public Builder addToolCall(ToolExecutionRequest value) {
+            if (value != null) {
+                this.toolCalls.add(value);
+            }
             return this;
         }
 
