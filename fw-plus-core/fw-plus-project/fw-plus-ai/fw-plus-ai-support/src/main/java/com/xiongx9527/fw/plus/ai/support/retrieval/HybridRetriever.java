@@ -1,5 +1,8 @@
 package com.xiongx9527.fw.plus.ai.support.retrieval;
 
+import com.xiongx9527.fw.plus.ai.base.retrieval.RetrievalQuery;
+import com.xiongx9527.fw.plus.ai.base.retrieval.Retriever;
+import com.xiongx9527.fw.plus.ai.base.store.ScoredDocument;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,7 +24,7 @@ public class HybridRetriever implements Retriever {
 
     @Override
     public List<ScoredDocument> retrieve(RetrievalQuery query) {
-        List<List<ScoredDocument>> lists = new ArrayList<>();
+        List<List<ScoredDocument>> lists = new ArrayList<List<ScoredDocument>>();
         for (Retriever r : retrievers) {
             lists.add(r.retrieve(query));
         }

@@ -2,6 +2,11 @@ package com.xiongx9527.fw.plus.ai.support.retrieval;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.xiongx9527.fw.plus.ai.base.retrieval.RetrievalQuery;
+import com.xiongx9527.fw.plus.ai.base.retrieval.Retriever;
+import com.xiongx9527.fw.plus.ai.base.store.Document;
+import com.xiongx9527.fw.plus.ai.base.store.ScoredDocument;
+
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;

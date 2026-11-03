@@ -1,5 +1,8 @@
 package com.xiongx9527.fw.plus.ai.support.retrieval;
 
+import com.xiongx9527.fw.plus.ai.base.model.RerankPort;
+import com.xiongx9527.fw.plus.ai.base.retrieval.Reranker;
+import com.xiongx9527.fw.plus.ai.base.store.ScoredDocument;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,11 +20,11 @@ public class ModelReranker implements Reranker {
 
     @Override
     public List<ScoredDocument> rerank(String query, List<ScoredDocument> candidates) {
-        List<ScoredDocument> out = new ArrayList<>();
+        List<ScoredDocument> out = new ArrayList<ScoredDocument>();
         if (candidates == null || candidates.isEmpty()) {
             return out;
         }
-        List<String> docs = new ArrayList<>();
+        List<String> docs = new ArrayList<String>();
         for (ScoredDocument sd : candidates) {
             docs.add(sd.getDocument() == null ? "" : sd.getDocument().getContent());
         }

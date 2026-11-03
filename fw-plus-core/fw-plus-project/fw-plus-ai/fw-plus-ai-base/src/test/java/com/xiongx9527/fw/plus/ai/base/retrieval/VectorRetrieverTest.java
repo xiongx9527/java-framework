@@ -1,0 +1,94 @@
+package com.xiongx9527.fw.plus.ai.base.retrieval;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import com.xiongx9527.fw.plus.ai.base.store.ScoredDocument;
+import com.xiongx9527.fw.plus.ai.base.store.VectorSearchRequest;
+import com.xiongx9527.fw.plus.ai.base.store.VectorStorePort;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import org.junit.jupiter.api.Test;
+
+class VectorRetrieverTest {
+
+    /** 记录最后一次检索请求的假存储。 */
+    private static class FakeStore implements VectorStorePort {
+
+        private VectorSearchRequest last;
+
+        private final List<ScoredDocument> hits;
+
+        FakeStore(List<ScoredDocument> hits) {
+            this.hits = hits;
+        }
+
+        @Override
+        public boolean health() {
+            return true;
+        }
+
+        @Override
+        public void ensureCollection(String collection, int dimension) {
+        }
+
+        @Override
+        public void dropCollection(String collection) {
+        }
+
+        @Override
+        public void upsert(String collection, String id, double[] vector, Map<String, Object> metadata) {
+        }
+
+        @Override
+        public void delete(String collection, String id) {
+        }
+
+        @Override
+        public List<ScoredDocument> search(VectorSearchRequest request) {
+            this.last = request;
+            return hits;
+        }
+    }
+
+    @Test
+    void passesCollectionCandidatesAndFilters() {
+        FakeStore store = new FakeStore(Arrays.asList(
+                new ScoredDocument(com.xiongx9527.fw.plus.ai.base.store.Document.of("1", "t"), 0.8)));
+        VectorRetriever retriever = new VectorRetriever(text -> new double[]{1.0, 0.0}, store);
+
+        List<ScoredDocument> hits = retriever.retrieve(RetrievalQuery.builder()
+                .text("q")
+                .collection("askdata-core_table")
+                .topK(5)
+                .candidateIds(Arrays.asList("1", "2"))
+                .filter("ds_id", 7L)
+                .build());
+
+        assertEquals(1, hits.size());
+        assertEquals("askdata-core_table", store.last.getCollection());
+        assertEquals(5, store.last.getTopK());
+        assertEquals(2, store.last.getCandidateIds().size());
+        assertEquals(7L, store.last.getFilter().get("ds_id"));
+    }
+
+    @Test
+    void unavailableEmbeddingYieldsEmpty() {
+        FakeStore store = new FakeStore(new ArrayList<ScoredDocument>());
+        VectorRetriever retriever = new VectorRetriever(text -> null, store);
+
+        assertTrue(retriever.retrieve(RetrievalQuery.builder().text("q").build()).isEmpty());
+        assertTrue(store.last == null);
+    }
+
+    @Test
+    void blankQuerySkipsStore() {
+        FakeStore store = new FakeStore(new ArrayList<ScoredDocument>());
+        VectorRetriever retriever = new VectorRetriever(text -> new double[]{1.0}, store);
+
+        assertTrue(retriever.retrieve(RetrievalQuery.builder().text("  ").build()).isEmpty());
+    }
+}

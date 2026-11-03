@@ -2,10 +2,10 @@ package com.xiongx9527.fw.plus.ai.askdata.recall;
 
 import com.xiongx9527.fw.plus.ai.askdata.schema.SchemaContext;
 import com.xiongx9527.fw.plus.ai.askdata.schema.TableSchema;
-import com.xiongx9527.fw.plus.ai.support.retrieval.Document;
-import com.xiongx9527.fw.plus.ai.support.retrieval.RetrievalEngine;
-import com.xiongx9527.fw.plus.ai.support.retrieval.RetrievalQuery;
-import com.xiongx9527.fw.plus.ai.support.retrieval.ScoredDocument;
+import com.xiongx9527.fw.plus.ai.base.retrieval.RetrievalEngine;
+import com.xiongx9527.fw.plus.ai.base.retrieval.RetrievalQuery;
+import com.xiongx9527.fw.plus.ai.base.store.Document;
+import com.xiongx9527.fw.plus.ai.base.store.ScoredDocument;
 import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.support.retrieval;
 
+import com.xiongx9527.fw.plus.ai.base.store.ScoredDocument;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -16,10 +17,10 @@ public final class Fusion {
 
     public static List<ScoredDocument> fuse(List<List<ScoredDocument>> lists, List<Double> weights,
                                             FusionMode mode, int topK) {
-        Map<String, ScoredDocument> byId = new LinkedHashMap<>();
-        Map<String, Double> scores = new HashMap<>();
+        Map<String, ScoredDocument> byId = new LinkedHashMap<String, ScoredDocument>();
+        Map<String, Double> scores = new HashMap<String, Double>();
         if (lists == null) {
-            return new ArrayList<>();
+            return new ArrayList<ScoredDocument>();
         }
         FusionMode m = mode == null ? FusionMode.WEIGHTED : mode;
         for (int li = 0; li < lists.size(); li++) {
@@ -40,13 +41,13 @@ public final class Fusion {
                 scores.merge(id, add, Double::sum);
             }
         }
-        List<ScoredDocument> out = new ArrayList<>();
+        List<ScoredDocument> out = new ArrayList<ScoredDocument>();
         for (Map.Entry<String, ScoredDocument> e : byId.entrySet()) {
             out.add(new ScoredDocument(e.getValue().getDocument(), scores.get(e.getKey())));
         }
         out.sort((a, b) -> Double.compare(b.getScore(), a.getScore()));
         if (topK > 0 && out.size() > topK) {
-            return new ArrayList<>(out.subList(0, topK));
+            return new ArrayList<ScoredDocument>(out.subList(0, topK));
         }
         return out;
     }
