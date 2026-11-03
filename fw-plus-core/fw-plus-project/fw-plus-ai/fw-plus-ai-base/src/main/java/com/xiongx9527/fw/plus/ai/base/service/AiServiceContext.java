@@ -21,8 +21,9 @@ import java.util.List;
 /**
  * AI 服务的运行上下文：模型端口 + 记忆 + 意图分类 + 按意图作用域分组的工具/检索/Skill + 监听器。
  *
- * <p>由 {@link AiServices} 的 builder 组装，代理在每次调用时读取。工具、检索增强、Skill 目录
- * 都通过 {@link IntentScoped} 绑定到具体意图（或全局），调用时按意图选择。</p>
+ * <p>由 {@link AiServices} 的 builder 组装，代理在每次调用时读取。工具、检索增强、Skill、记忆与
+ * 意图分类器都通过 {@link IntentScoped} 绑定到具体意图（或全局），调用时按意图选择；分类器因先于
+ * 意图产生，顶层调用恒走全局分类器，意图特定分类器用于嵌套 / 智能体二次路由。</p>
  */
 public final class AiServiceContext {
 
@@ -30,9 +31,9 @@ public final class AiServiceContext {
 
     private final LlmPort llm;
 
-    private final ChatMemoryProvider chatMemoryProvider;
+    private final List<IntentScoped<ChatMemoryProvider>> memoryScopes;
 
-    private final IntentPort intentClassifier;
+    private final List<IntentScoped<IntentPort>> intentScopes;
 
     private final List<IntentScoped<ToolProvider>> toolProviderScopes;
 
@@ -54,8 +55,9 @@ public final class AiServiceContext {
 
     private final List<AiObservationListener> observationListeners;
 
-    AiServiceContext(Class<?> serviceType, LlmPort llm, ChatMemoryProvider chatMemoryProvider,
-                     IntentPort intentClassifier,
+    AiServiceContext(Class<?> serviceType, LlmPort llm,
+                     List<IntentScoped<ChatMemoryProvider>> memoryScopes,
+                     List<IntentScoped<IntentPort>> intentScopes,
                      List<IntentScoped<ToolProvider>> toolProviderScopes,
                      List<IntentScoped<RetrievalAugmentor>> retrievalScopes,
                      List<IntentScoped<SkillBox>> skillScopes,
@@ -65,8 +67,10 @@ public final class AiServiceContext {
                      JsonOutputPort jsonOutput, List<AiObservationListener> observationListeners) {
         this.serviceType = serviceType;
         this.llm = llm;
-        this.chatMemoryProvider = chatMemoryProvider;
-        this.intentClassifier = intentClassifier;
+        this.memoryScopes = memoryScopes == null ? Collections.<IntentScoped<ChatMemoryProvider>>emptyList()
+                : Collections.unmodifiableList(new ArrayList<IntentScoped<ChatMemoryProvider>>(memoryScopes));
+        this.intentScopes = intentScopes == null ? Collections.<IntentScoped<IntentPort>>emptyList()
+                : Collections.unmodifiableList(new ArrayList<IntentScoped<IntentPort>>(intentScopes));
         this.toolProviderScopes = toolProviderScopes == null ? Collections.<IntentScoped<ToolProvider>>emptyList()
                 : Collections.unmodifiableList(new ArrayList<IntentScoped<ToolProvider>>(toolProviderScopes));
         this.retrievalScopes = retrievalScopes == null ? Collections.<IntentScoped<RetrievalAugmentor>>emptyList()
@@ -93,12 +97,12 @@ public final class AiServiceContext {
         return llm;
     }
 
-    public ChatMemoryProvider getChatMemoryProvider() {
-        return chatMemoryProvider;
+    public List<IntentScoped<ChatMemoryProvider>> getMemoryScopes() {
+        return memoryScopes;
     }
 
-    public IntentPort getIntentClassifier() {
-        return intentClassifier;
+    public List<IntentScoped<IntentPort>> getIntentScopes() {
+        return intentScopes;
     }
 
     public List<IntentScoped<ToolProvider>> getToolProviderScopes() {

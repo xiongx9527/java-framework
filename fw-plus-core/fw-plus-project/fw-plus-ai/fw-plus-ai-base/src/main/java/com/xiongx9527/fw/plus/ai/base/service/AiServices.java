@@ -72,8 +72,8 @@ public final class AiServices {
 
         private final Class<T> serviceType;
         private LlmPort llm;
-        private ChatMemoryProvider chatMemoryProvider;
-        private IntentPort intentClassifier;
+        private final List<IntentScoped<ChatMemoryProvider>> memoryScopes = new ArrayList<IntentScoped<ChatMemoryProvider>>();
+        private final List<IntentScoped<IntentPort>> intentScopes = new ArrayList<IntentScoped<IntentPort>>();
         private final List<IntentScoped<ToolProvider>> toolProviderScopes = new ArrayList<IntentScoped<ToolProvider>>();
         private final List<IntentScoped<RetrievalAugmentor>> retrievalScopes = new ArrayList<IntentScoped<RetrievalAugmentor>>();
         private final List<IntentScoped<SkillBox>> skillScopes = new ArrayList<IntentScoped<SkillBox>>();
@@ -99,12 +99,38 @@ public final class AiServices {
         }
 
         public Builder<T> chatMemoryProvider(ChatMemoryProvider value) {
-            this.chatMemoryProvider = value;
+            if (value != null) {
+                this.memoryScopes.add(IntentScoped.global(value));
+            }
+            return this;
+        }
+
+        /**
+         * 绑定指定意图的记忆提供器：仅当分类命中 {@code intents} 之一时才使用该记忆，
+         * 否则回退到全局（{@link #chatMemoryProvider(ChatMemoryProvider)}）提供器。
+         */
+        public Builder<T> chatMemoryProviderOn(ChatMemoryProvider value, String... intents) {
+            if (value != null) {
+                this.memoryScopes.add(IntentScoped.on(value, intents));
+            }
             return this;
         }
 
         public Builder<T> intentClassifier(IntentPort value) {
-            this.intentClassifier = value;
+            if (value != null) {
+                this.intentScopes.add(IntentScoped.global(value));
+            }
+            return this;
+        }
+
+        /**
+         * 绑定指定意图的分类器：仅当已有意图上下文命中 {@code intents} 之一时启用（顶层调用因意图未知，
+         * 恒走全局分类器）；用于智能体 / 嵌套路由下的二次分类。
+         */
+        public Builder<T> intentClassifierOn(IntentPort value, String... intents) {
+            if (value != null) {
+                this.intentScopes.add(IntentScoped.on(value, intents));
+            }
             return this;
         }
 
@@ -141,16 +167,37 @@ public final class AiServices {
          *
          * <p>对上层而言 MCP 工具与本地 {@code @Tool} 没有区别；{@code codec} 负责工具参数的
          * 序列化（base 不绑定 JSON 库，由调用方注入 Jackson / fastjson 等实现）。</p>
+         *
+         * <p>若希望 MCP 工具只在特定意图下才可用，用 {@link #mcpClientsOn(ToolArgumentCodec, String[], McpClient...)}。</p>
          */
         public Builder<T> mcpClients(ToolArgumentCodec codec, McpClient... clients) {
+            return mcpClientsOn(codec, null, clients);
+        }
+
+        /**
+         * 批量接入 MCP 客户端（数组），并绑定到指定意图：仅当分类结果命中 {@code intents} 之一时，
+         * 这些 MCP 工具才会被激活；{@code intents} 为 {@code null} 或空时退化为全局工具。
+         *
+         * <p>与 {@link #toolProviderOn(ToolProvider, String...)} 语义一致，用于同一支 AI 服务下
+         * 按意图挂载不同的 MCP 后端。</p>
+         */
+        public Builder<T> mcpClientsOn(ToolArgumentCodec codec, String[] intents, McpClient... clients) {
             if (codec != null && clients != null) {
                 for (McpClient client : clients) {
-                    if (client != null) {
-                        this.toolProviderScopes.add(IntentScoped.global(new McpToolProvider(client, codec)));
+                    if (client == null) {
+                        continue;
                     }
+                    this.toolProviderScopes.add(mcpScope(new McpToolProvider(client, codec), intents));
                 }
             }
             return this;
+        }
+
+        private static IntentScoped<ToolProvider> mcpScope(ToolProvider provider, String[] intents) {
+            if (intents == null || intents.length == 0) {
+                return IntentScoped.global(provider);
+            }
+            return IntentScoped.on(provider, intents);
         }
 
         public Builder<T> toolProviderOn(ToolProvider value, String... intents) {
@@ -261,8 +308,8 @@ public final class AiServices {
             }
             return serviceType.cast(Proxy.newProxyInstance(
                     serviceType.getClassLoader(), new Class<?>[]{serviceType},
-                    new AiServiceInvocationHandler(new AiServiceContext(
-                            serviceType, llm, chatMemoryProvider, intentClassifier,
+                    new AiServiceInvocationHandler(                            new AiServiceContext(
+                            serviceType, llm, memoryScopes, intentScopes,
                             toolProviderScopes, retrievalScopes, skillScopes, listeners,
                             emitLifecycleEvents, skipToolsWhenRetrievalHit,
                             moderationModel, moderationListeners, jsonOutput, observationListeners))));
@@ -318,8 +365,9 @@ public final class AiServices {
                 messages.add(ChatMessage.system(sys));
             }
 
-            ChatMemory memory = context.getChatMemoryProvider() == null || memoryId == null
-                    ? null : context.getChatMemoryProvider().get(memoryId);
+            ChatMemoryProvider memoryProvider = selectScoped(context.getMemoryScopes(), intentRef);
+            ChatMemory memory = memoryProvider == null || memoryId == null
+                    ? null : memoryProvider.get(memoryId);
             if (memory != null) {
                 messages.addAll(memory.messages());
             }
@@ -455,7 +503,7 @@ public final class AiServices {
         }
 
         private String classify(String userText, boolean emit, LlmStreamHandler streamHandler) {
-            IntentPort classifier = context.getIntentClassifier();
+            IntentPort classifier = selectScoped(context.getIntentScopes(), null);
             if (classifier == null || userText == null) {
                 return null;
             }
@@ -623,6 +671,24 @@ public final class AiServices {
                 }
             }
             return out;
+        }
+
+        /**
+         * 选出单个作用域组件：命中具体意图的优先，未命中时回退到全局（空意图集）组件。
+         * 用于记忆 / 分类器等「同一时刻只应有一个生效」的场景。
+         */
+        private static <T> T selectScoped(List<IntentScoped<T>> scopes, String intentRef) {
+            T fallback = null;
+            if (scopes != null) {
+                for (IntentScoped<T> scope : scopes) {
+                    if (scope.getIntents().isEmpty()) {
+                        fallback = scope.get();
+                    } else if (scope.appliesTo(intentRef)) {
+                        return scope.get();
+                    }
+                }
+            }
+            return fallback;
         }
 
         private Object invokeObjectMethod(Object proxy, Method method, Object[] args) {
