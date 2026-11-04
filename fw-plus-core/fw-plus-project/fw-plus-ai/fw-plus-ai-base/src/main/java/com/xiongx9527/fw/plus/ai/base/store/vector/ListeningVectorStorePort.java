@@ -23,6 +23,21 @@ public class ListeningVectorStorePort implements VectorStorePort {
     }
 
     @Override
+    public String name() {
+        return delegate.name();
+    }
+
+    @Override
+    public com.xiongx9527.fw.plus.ai.base.store.StoreType type() {
+        return delegate.type();
+    }
+
+    @Override
+    public String defaultCollection() {
+        return delegate.defaultCollection();
+    }
+
+    @Override
     public boolean configured() {
         return delegate.configured();
     }

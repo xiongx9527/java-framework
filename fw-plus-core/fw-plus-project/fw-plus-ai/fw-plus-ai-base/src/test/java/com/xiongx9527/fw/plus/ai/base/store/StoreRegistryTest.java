@@ -3,19 +3,19 @@ package com.xiongx9527.fw.plus.ai.base.store;
 import com.xiongx9527.fw.plus.ai.base.store.graph.GraphStorePort;
 import com.xiongx9527.fw.plus.ai.base.store.graph.InMemoryGraphStore;
 import com.xiongx9527.fw.plus.ai.base.store.vector.VectorStorePort;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class StoreRegistryTest {
 
     @Test
     public void getByNameReturnsRegistered() {
         StoreRegistry registry = new StoreRegistry();
-        InMemoryGraphStore store = new InMemoryGraphStore();
+        InMemoryGraphStore store = new InMemoryGraphStore("g");
         registry.register("g", store);
         assertSame(store, registry.get("g"));
     }
@@ -23,7 +23,7 @@ public class StoreRegistryTest {
     @Test
     public void getByTypeCastsSafely() {
         StoreRegistry registry = new StoreRegistry();
-        InMemoryGraphStore store = new InMemoryGraphStore();
+        InMemoryGraphStore store = new InMemoryGraphStore("g");
         registry.register("g", store);
         assertSame(store, registry.get("g", GraphStorePort.class));
     }
@@ -31,19 +31,16 @@ public class StoreRegistryTest {
     @Test
     public void getByTypeMismatchThrows() {
         StoreRegistry registry = new StoreRegistry();
-        registry.register("g", new InMemoryGraphStore());
-        try {
-            registry.get("g", VectorStorePort.class);
-            fail("expected IllegalStateException for type mismatch");
-        } catch (IllegalStateException expected) {
-            assertTrue(expected.getMessage().contains("not of type"));
-        }
+        registry.register("g", new InMemoryGraphStore("g"));
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> registry.get("g", VectorStorePort.class));
+        assertTrue(ex.getMessage().contains("not of type"));
     }
 
     @Test
     public void firstByTypeFindsAcrossNames() {
         StoreRegistry registry = new StoreRegistry();
-        InMemoryGraphStore store = new InMemoryGraphStore();
+        InMemoryGraphStore store = new InMemoryGraphStore("other");
         registry.register("other", store);
         assertSame(store, registry.first(GraphStorePort.class));
     }
@@ -51,35 +48,21 @@ public class StoreRegistryTest {
     @Test
     public void missingNameThrows() {
         StoreRegistry registry = new StoreRegistry();
-        try {
-            registry.get("nope");
-            fail("expected IllegalStateException for missing name");
-        } catch (IllegalStateException expected) {
-            assertTrue(expected.getMessage().contains("nope"));
-        }
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> registry.get("nope"));
+        assertTrue(ex.getMessage().contains("nope"));
     }
 
     @Test
     public void nullNameOrStoreRejected() {
         StoreRegistry registry = new StoreRegistry();
-        try {
-            registry.register(null, new InMemoryGraphStore());
-            fail("expected IllegalArgumentException for null name");
-        } catch (IllegalArgumentException expected) {
-            // ok
-        }
-        try {
-            registry.register("x", null);
-            fail("expected IllegalArgumentException for null store");
-        } catch (IllegalArgumentException expected) {
-            // ok
-        }
+        assertThrows(IllegalArgumentException.class, () -> registry.register(null, new InMemoryGraphStore("g")));
+        assertThrows(IllegalArgumentException.class, () -> registry.register("x", null));
     }
 
     @Test
     public void sizeAndContains() {
         StoreRegistry registry = new StoreRegistry();
-        registry.register("g", new InMemoryGraphStore());
+        registry.register("g", new InMemoryGraphStore("g"));
         assertEquals(1, registry.size());
         assertTrue(registry.contains("g"));
     }

@@ -7,6 +7,7 @@ import com.xiongx9527.fw.plus.ai.base.model.LlmListener;
 import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
 import com.xiongx9527.fw.plus.ai.base.model.moderation.ModerationListener;
 import com.xiongx9527.fw.plus.ai.base.model.moderation.ModerationModel;
+import com.xiongx9527.fw.plus.ai.base.output.JsonBindings;
 import com.xiongx9527.fw.plus.ai.base.output.JsonOutputPort;
 import com.xiongx9527.fw.plus.ai.base.store.StoreRegistry;
 import java.util.ArrayList;
@@ -53,6 +54,8 @@ public final class AiServiceContext {
 
     private final JsonOutputPort jsonOutput;
 
+    private final JsonBindings jsonBindings;
+
     private final List<AiObservationListener> observationListeners;
 
     private final StoreRegistry storeRegistry;
@@ -84,7 +87,8 @@ public final class AiServiceContext {
                      List<LlmListener> listeners,
                      boolean emitLifecycleEvents, boolean skipToolsWhenRetrievalHit,
                      ModerationModel moderationModel, List<ModerationListener> moderationListeners,
-                     JsonOutputPort jsonOutput, List<AiObservationListener> observationListeners,
+                     JsonOutputPort jsonOutput, JsonBindings jsonBindings,
+                     List<AiObservationListener> observationListeners,
                      String systemTextOverride, String userTemplateOverride,
                      java.util.function.Supplier<String> memoryIdOverride, Integer memoryIdParamIndex,
                      Map<String, Integer> varOverrides,
@@ -110,6 +114,7 @@ public final class AiServiceContext {
         this.moderationListeners = moderationListeners == null ? Collections.<ModerationListener>emptyList()
                 : Collections.unmodifiableList(new ArrayList<ModerationListener>(moderationListeners));
         this.jsonOutput = jsonOutput;
+        this.jsonBindings = jsonBindings;
         this.observationListeners = observationListeners == null ? Collections.<AiObservationListener>emptyList()
                 : Collections.unmodifiableList(new ArrayList<AiObservationListener>(observationListeners));
         this.systemTextOverride = systemTextOverride;
@@ -178,6 +183,11 @@ public final class AiServiceContext {
     /** 稳定 JSON 输出端口；为 {@code null} 表示不在 AI 服务层强制 JSON。 */
     public JsonOutputPort getJsonOutput() {
         return jsonOutput;
+    }
+
+    /** JSON 绑定器：把 {@link JsonOutputPort} 提取的文本反序列化为 POJO；为 {@code null} 时回退为原始 JSON 文本。 */
+    public JsonBindings getJsonBindings() {
+        return jsonBindings;
     }
 
     /** 调用级观测监听（用于 Langfuse / Langsmith 等）。 */

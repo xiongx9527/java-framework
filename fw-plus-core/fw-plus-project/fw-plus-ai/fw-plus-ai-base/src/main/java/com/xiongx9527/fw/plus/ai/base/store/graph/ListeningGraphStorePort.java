@@ -1,5 +1,8 @@
 package com.xiongx9527.fw.plus.ai.base.store.graph;
 
+import com.xiongx9527.fw.plus.ai.base.store.StoreQuery;
+import com.xiongx9527.fw.plus.ai.base.store.StoreRecord;
+import com.xiongx9527.fw.plus.ai.base.store.StoreType;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -32,6 +35,78 @@ public class ListeningGraphStorePort implements GraphStorePort {
     @Override
     public boolean health() {
         return delegate.health();
+    }
+
+    @Override
+    public String name() {
+        return delegate.name();
+    }
+
+    @Override
+    public StoreType type() {
+        return delegate.type();
+    }
+
+    @Override
+    public void save(StoreRecord record) {
+        guard(() -> delegate.save(record));
+    }
+
+    @Override
+    public void saveAll(Collection<StoreRecord> records) {
+        if (records != null) {
+            for (StoreRecord r : records) {
+                save(r);
+            }
+        }
+    }
+
+    @Override
+    public void update(StoreRecord record) {
+        delegate.update(record);
+    }
+
+    @Override
+    public StoreRecord get(String id) {
+        return delegate.get(id);
+    }
+
+    @Override
+    public List<StoreRecord> getAll(Collection<String> ids) {
+        return delegate.getAll(ids);
+    }
+
+    @Override
+    public boolean delete(String id) {
+        return delegate.delete(id);
+    }
+
+    @Override
+    public long deleteAll(Collection<String> ids) {
+        long removed = 0L;
+        if (ids != null) {
+            for (String id : ids) {
+                if (delegate.delete(id)) {
+                    removed++;
+                }
+            }
+        }
+        return removed;
+    }
+
+    @Override
+    public List<StoreRecord> search(StoreQuery query) {
+        return delegate.search(query);
+    }
+
+    @Override
+    public void clear() {
+        guard(delegate::clear);
+    }
+
+    @Override
+    public long count() {
+        return delegate.count();
     }
 
     @Override
@@ -86,6 +161,15 @@ public class ListeningGraphStorePort implements GraphStorePort {
                 }
             }
             return result;
+        } catch (RuntimeException e) {
+            notifyError(e);
+            throw e;
+        }
+    }
+
+    private void guard(Runnable action) {
+        try {
+            action.run();
         } catch (RuntimeException e) {
             notifyError(e);
             throw e;

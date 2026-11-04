@@ -23,6 +23,7 @@ import com.xiongx9527.fw.plus.ai.base.model.moderation.ModerationException;
 import com.xiongx9527.fw.plus.ai.base.model.moderation.ModerationListener;
 import com.xiongx9527.fw.plus.ai.base.model.moderation.ModerationModel;
 import com.xiongx9527.fw.plus.ai.base.model.moderation.ModerationResult;
+import com.xiongx9527.fw.plus.ai.base.output.JsonBindings;
 import com.xiongx9527.fw.plus.ai.base.output.JsonOutputPort;
 import com.xiongx9527.fw.plus.ai.base.store.StoreRegistry;
 import com.xiongx9527.fw.plus.ai.base.mcp.McpClient;
@@ -101,6 +102,7 @@ public final class AiServices {
         private ModerationModel moderationModel;
         private final List<ModerationListener> moderationListeners = new ArrayList<ModerationListener>();
         private JsonOutputPort jsonOutput;
+        private JsonBindings jsonBindings;
         private StoreRegistry storeRegistry;
         private final List<AiObservationListener> observationListeners = new ArrayList<AiObservationListener>();
 
@@ -339,6 +341,16 @@ public final class AiServices {
             return this;
         }
 
+        /**
+         * 接入 JSON 绑定器：被 {@link JsonResult} 标注且返回类型既非 {@code String} 也非
+         * {@link com.xiongx9527.fw.plus.ai.base.model.LlmResponse} 时，把提取的 JSON 文本反序列化为该 POJO。
+         * 不设置则回退为返回原始 JSON 文本（保持向后兼容）。
+         */
+        public Builder<T> jsonBindings(JsonBindings value) {
+            this.jsonBindings = value;
+            return this;
+        }
+
         /** 接入调用级观测监听（Langfuse / Langsmith 等），用于 trace / 监控。 */
         public Builder<T> observation(AiObservationListener... listeners) {
             if (listeners != null) {
@@ -400,7 +412,7 @@ public final class AiServices {
                             serviceType, llm, memoryScopes, intentScopes,
                             toolProviderScopes, retrievalScopes, skillScopes, listeners,
                             emitLifecycleEvents, skipToolsWhenRetrievalHit,
-                            moderationModel, moderationListeners, jsonOutput, observationListeners,
+                            moderationModel, moderationListeners, jsonOutput, jsonBindings, observationListeners,
                             systemTextOverride, userTemplateOverride, memoryIdOverride, memoryIdParamIndex,
                             varOverrides, customVariables, storeRegistry))));
         }
@@ -414,7 +426,7 @@ public final class AiServices {
                     serviceType, llm, memoryScopes, intentScopes,
                     toolProviderScopes, retrievalScopes, skillScopes, listeners,
                     emitLifecycleEvents, skipToolsWhenRetrievalHit,
-                    moderationModel, moderationListeners, jsonOutput, observationListeners,
+                    moderationModel, moderationListeners, jsonOutput, jsonBindings, observationListeners,
                     systemTextOverride, userTemplateOverride, memoryIdOverride, memoryIdParamIndex,
                     varOverrides, customVariables, storeRegistry);
             return new ChatCall(ctx, jsonResult, chatReturnType);
@@ -449,6 +461,7 @@ public final class AiServices {
             input.streamHandler = streamHandler;
             input.jsonResult = method.isAnnotationPresent(JsonResult.class);
             input.returnType = method.getReturnType();
+            input.genericReturnType = method.getGenericReturnType();
             return execute(input);
         }
 
@@ -460,6 +473,7 @@ public final class AiServices {
             LlmStreamHandler streamHandler = input.streamHandler;
             boolean jsonResult = input.jsonResult;
             Class<?> returnType = input.returnType;
+            java.lang.reflect.Type genericReturnType = input.genericReturnType;
             Method method = input.method;
             boolean emit = context.isEmitLifecycleEvents() && streamHandler != null;
 
@@ -547,7 +561,7 @@ public final class AiServices {
 
             Object result;
             try {
-                result = invokeModel(request, tools, streamHandler, jsonResult, returnType);
+                result = invokeModel(request, tools, streamHandler, jsonResult, returnType, genericReturnType);
             } catch (Throwable t) {
                 notifyObservationError(observation.intentRef(intentRef)
                         .retrievalInjected(retrievalInjected)
@@ -576,7 +590,7 @@ public final class AiServices {
 
         private Object invokeModel(LlmRequest request, ToolProvider tools,
                                    LlmStreamHandler streamHandler, boolean jsonResult,
-                                   Class<?> returnType) {
+                                   Class<?> returnType, java.lang.reflect.Type genericReturnType) {
             LlmPort llm = context.getLlm();
             // 标注 @JsonResult 且无工具：走稳定 JSON 输出端口（流式 / 非流式分别处理）
             if (context.getJsonOutput() != null && jsonResult
@@ -589,7 +603,16 @@ public final class AiServices {
                 if (returnType == LlmResponse.class) {
                     return LlmResponse.builder().content(json).build();
                 }
-                return json;
+                if (String.class.equals(returnType)) {
+                    return json;
+                }
+                JsonBindings bindings = context.getJsonBindings();
+                if (bindings == null) {
+                    throw new IllegalStateException("@JsonResult method declares return type "
+                            + returnType.getName() + " but no JsonBindings is configured; "
+                            + "either return String/LlmResponse or call Builder.jsonBindings(...)");
+                }
+                return bindings.bind(json, genericReturnType != null ? genericReturnType : returnType);
             }
             if (tools != null) {
                 boolean useJson = context.getJsonOutput() != null && jsonResult;
@@ -616,7 +639,16 @@ public final class AiServices {
                 if (returnType == LlmResponse.class) {
                     return LlmResponse.builder().content(answer).usage(callResult.getUsage()).build();
                 }
-                return answer;
+                if (String.class.equals(returnType)) {
+                    return answer;
+                }
+                JsonBindings bindings = context.getJsonBindings();
+                if (bindings == null) {
+                    throw new IllegalStateException("@JsonResult method declares return type "
+                            + returnType.getName() + " but no JsonBindings is configured; "
+                            + "either return String/LlmResponse or call Builder.jsonBindings(...)");
+                }
+                return bindings.bind(answer, genericReturnType != null ? genericReturnType : returnType);
             }
             if (streamHandler != null) {
                 llm.stream(request, streamHandler);
@@ -979,6 +1011,7 @@ public final class AiServices {
         LlmStreamHandler streamHandler;
         boolean jsonResult;
         Class<?> returnType;
+        java.lang.reflect.Type genericReturnType;
     }
 
     /** 把工具调用环的 {@link ToolCallingSink} 适配到用户传入的 {@link LlmStreamHandler}。 */
@@ -1110,6 +1143,7 @@ public final class AiServices {
             ci.streamHandler = handler;
             ci.jsonResult = jsonResult;
             ci.returnType = returnType;
+            ci.genericReturnType = returnType;
             return new AiServiceInvocationHandler(context).execute(ci);
         }
     }

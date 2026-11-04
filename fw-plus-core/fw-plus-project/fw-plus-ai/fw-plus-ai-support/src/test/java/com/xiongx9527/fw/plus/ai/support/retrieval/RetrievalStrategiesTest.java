@@ -34,6 +34,21 @@ class RetrievalStrategiesTest {
             }
 
             @Override
+            public String name() {
+                return "fake";
+            }
+
+            @Override
+            public com.xiongx9527.fw.plus.ai.base.store.StoreType type() {
+                return com.xiongx9527.fw.plus.ai.base.store.StoreType.VECTOR;
+            }
+
+            @Override
+            public String defaultCollection() {
+                return "test";
+            }
+
+            @Override
             public void ensureCollection(String collection, int dimension) {
             }
 
