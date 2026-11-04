@@ -137,6 +137,7 @@ class AiServicesChatCallTest {
         ChatCall call = AiServices.fluent()
                 .llm(llm)
                 .systemText("System")
+                .userTemplate("{{q}}")
                 .chatMemoryProvider(provider)
                 .memoryIdFromVar("sessionId")
                 .buildChatCall();

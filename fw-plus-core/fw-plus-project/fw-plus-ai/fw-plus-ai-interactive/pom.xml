@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.xiongx9527.fw.plus</groupId>
+        <artifactId>fw-plus-ai</artifactId>
+        <version>${revision}</version>
+    </parent>
+    <artifactId>fw-plus-ai-interactive</artifactId>
+    <name>fw-plus-ai-interactive</name>
+    <description>
+        交互编排场景层（与 fw-plus-ai-askdata 平级）。封装反问 / 选项 / 智能问卷 / 智能预约
+        的通用原语与场景：FormCollector 确定性参数收集状态机 + 可替换的抽取 / 校验策略 +
+        ConfirmationService / ConfirmGate 人工确认。只依赖 fw-plus-ai-base 与 fw-plus-ai-support，
+        由产品侧（如 askdata）按需依赖本模块完成参数收集与确认。
+    </description>
+    <properties>
+        <main.basedir>${basedir}/../..</main.basedir>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-support</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-base</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.10.2</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+</project>
