@@ -13,7 +13,8 @@
     <description>
         真实原子能力层（与 base 端口、support 组合层相对）：把 base 的端口落成可直接运行的实现——
         OpenAI 兼容 / Azure / Anthropic 大模型客户端（流式 / 非流式 / 工具调用，用 okhttp-sse），
-        OpenAI 兼容向量化客户端，Qdrant / Milvus 向量存储后端。
+        OpenAI 兼容向量化客户端，TEI / Cohere 重排客户端，Qdrant / Milvus 向量存储后端，Neo4j 图存储后端，
+        以及三端口的模型目录枚举与模型校验。
         参照 product 的直连实现，不引入大型模型 SDK；HTTP 走 okhttp3。
     </description>
     <properties>
