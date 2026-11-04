@@ -47,6 +47,10 @@ public final class LlmPortResolver {
     private static LlmPort createByVendor(LlmVendor vendor, LlmModelConfig config) {
         switch (vendor) {
             case OPENAI:
+            case DASHSCOPE:
+            case GITHUB_MODELS:
+            case OLLAMA:
+            case QIANFAN:
                 return new OpenAiChatCompletionsLlmPort(
                         config.getBaseUrl(), config.getApiKey(), config.getDefaultModel());
             case AZURE_OPENAI:
@@ -57,6 +61,9 @@ public final class LlmPortResolver {
             case GEMINI:
                 return new GeminiLlmPort(config.getBaseUrl(), config.getApiKey(),
                         config.getDefaultModel(), config.getApiVersion());
+            case VERTEX_AI_GEMINI:
+                throw new IllegalArgumentException("Vertex AI Gemini requires an explicit supported protocol; "
+                        + "the native Gemini API port does not implement Vertex AI authentication");
             default:
                 throw new IllegalArgumentException("unsupported llm vendor: " + vendor);
         }

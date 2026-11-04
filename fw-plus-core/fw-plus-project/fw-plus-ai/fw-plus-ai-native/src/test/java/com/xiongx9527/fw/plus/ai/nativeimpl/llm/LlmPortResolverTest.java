@@ -91,8 +91,8 @@ class LlmPortResolverTest {
                 instanceof OpenAiChatCompletionsLlmPort);
         assertTrue(LlmPortResolver.create(LlmVendor.QIANFAN, configWithoutProtocol())
                 instanceof OpenAiChatCompletionsLlmPort);
-        assertTrue(LlmPortResolver.create(LlmVendor.VERTEX_AI_GEMINI, configWithoutProtocol())
-                instanceof GeminiLlmPort);
+        assertThrows(IllegalArgumentException.class,
+                () -> LlmPortResolver.create(LlmVendor.VERTEX_AI_GEMINI, configWithoutProtocol()));
     }
 
     @Test
