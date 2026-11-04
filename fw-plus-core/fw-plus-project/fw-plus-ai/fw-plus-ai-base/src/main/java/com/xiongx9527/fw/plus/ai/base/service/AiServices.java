@@ -39,6 +39,7 @@ import com.xiongx9527.fw.plus.ai.base.skill.SkillBox;
 import com.xiongx9527.fw.plus.ai.base.skill.SkillDescriptor;
 import com.xiongx9527.fw.plus.ai.base.store.Document;
 import com.xiongx9527.fw.plus.ai.base.template.PromptTemplate;
+import com.xiongx9527.fw.plus.ai.base.trace.TraceContext;
 import com.xiongx9527.fw.plus.ai.base.tool.CompositeToolProvider;
 import com.xiongx9527.fw.plus.ai.base.tool.SkillGatedToolProvider;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolCallingLoop;
@@ -51,8 +52,10 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.Proxy;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -66,6 +69,19 @@ public final class AiServices {
 
     public static <T> Builder<T> builder(Class<T> serviceType) {
         return new Builder<T>(serviceType);
+    }
+
+    /** 接口代理入口：强类型调用。 */
+    public static <T> T create(Class<T> service) {
+        if (service == null || !service.isInterface()) {
+            throw new IllegalArgumentException("ai service type must be an interface");
+        }
+        return new Builder<T>(service).build();
+    }
+
+    /** 无类调用入口：不要求预先定义接口，运行时以动态入参驱动同一条执行管线。 */
+    public static Builder<Object> fluent() {
+        return new Builder<Object>(Object.class);
     }
 
     public static final class Builder<T> {
@@ -86,9 +102,30 @@ public final class AiServices {
         private JsonOutputPort jsonOutput;
         private final List<AiObservationListener> observationListeners = new ArrayList<AiObservationListener>();
 
+        private String systemTextOverride;
+        private String userTemplateOverride;
+        private java.util.function.Supplier<String> memoryIdOverride;
+        private Integer memoryIdParamIndex;
+        private final Map<String, Integer> varOverrides = new LinkedHashMap<String, Integer>();
+        private final Map<String, java.util.function.Supplier<Object>> customVariables = new LinkedHashMap<String, java.util.function.Supplier<Object>>();
+        private boolean jsonResult = false;
+        private Class<?> chatReturnType = String.class;
+
+        /** 无类调用（{@link #fluent()}）下是否走稳定 JSON 输出端口；等价于接口方法上的 {@code @JsonResult}。 */
+        public Builder<T> jsonResult(boolean value) {
+            this.jsonResult = value;
+            return this;
+        }
+
+        /** 无类调用（{@link #fluent()}）的返回类型：{@code String}（默认）或 {@code LlmResponse}。 */
+        public Builder<T> returnType(Class<?> value) {
+            this.chatReturnType = value == null ? String.class : value;
+            return this;
+        }
+
         private Builder(Class<T> serviceType) {
-            if (serviceType == null || !serviceType.isInterface()) {
-                throw new IllegalArgumentException("ai service type must be an interface");
+            if (serviceType == null) {
+                throw new IllegalArgumentException("service type is required");
             }
             this.serviceType = serviceType;
         }
@@ -302,6 +339,49 @@ public final class AiServices {
             return this;
         }
 
+        /** 覆盖类型 / 方法上的 {@code @SystemMessage}：直接给定 system 文本（支持 {@code {{var}}} 占位）。 */
+        public Builder<T> systemText(String value) {
+            this.systemTextOverride = value;
+            return this;
+        }
+
+        /**
+         * 覆盖方法上的 {@code @UserMessage}：用给定模板渲染用户输入，支持
+         * {@code {{var}}} / {@code {{var:format}}} / {@code {{var ?? default}}} 三种占位表达式。
+         */
+        public Builder<T> userTemplate(String value) {
+            this.userTemplateOverride = value;
+            return this;
+        }
+
+        /** 动态会话 id：每次调用实时计算（覆盖 {@code @MemoryId}）。 */
+        public Builder<T> memoryId(java.util.function.Supplier<String> supplier) {
+            this.memoryIdOverride = supplier;
+            return this;
+        }
+
+        /** 把第 {@code paramIndex} 个方法参数当作会话 id（覆盖 {@code @MemoryId}）。 */
+        public Builder<T> memoryIdFromParam(int paramIndex) {
+            this.memoryIdParamIndex = paramIndex;
+            return this;
+        }
+
+        /** 把第 {@code paramIndex} 个方法参数绑定到模板变量 {@code name}（替代参数上的 {@code @V}）。 */
+        public Builder<T> variable(String name, int paramIndex) {
+            if (name != null) {
+                this.varOverrides.put(name, paramIndex);
+            }
+            return this;
+        }
+
+        /** 注入动态自定义变量：每次调用实时计算后并入模板（不依赖固定值）。 */
+        public Builder<T> variable(String name, java.util.function.Supplier<Object> supplier) {
+            if (name != null) {
+                this.customVariables.put(name, supplier);
+            }
+            return this;
+        }
+
         public T build() {
             if (llm == null) {
                 throw new IllegalStateException("llm port is required");
@@ -312,7 +392,24 @@ public final class AiServices {
                             serviceType, llm, memoryScopes, intentScopes,
                             toolProviderScopes, retrievalScopes, skillScopes, listeners,
                             emitLifecycleEvents, skipToolsWhenRetrievalHit,
-                            moderationModel, moderationListeners, jsonOutput, observationListeners))));
+                            moderationModel, moderationListeners, jsonOutput, observationListeners,
+                            systemTextOverride, userTemplateOverride, memoryIdOverride, memoryIdParamIndex,
+                            varOverrides, customVariables))));
+        }
+
+        /** 构建无类调用器：复用同一套上下文与执行管线，仅入口从接口代理换成动态入参。 */
+        public ChatCall buildChatCall() {
+            if (llm == null) {
+                throw new IllegalStateException("llm port is required");
+            }
+            AiServiceContext ctx = new AiServiceContext(
+                    serviceType, llm, memoryScopes, intentScopes,
+                    toolProviderScopes, retrievalScopes, skillScopes, listeners,
+                    emitLifecycleEvents, skipToolsWhenRetrievalHit,
+                    moderationModel, moderationListeners, jsonOutput, observationListeners,
+                    systemTextOverride, userTemplateOverride, memoryIdOverride, memoryIdParamIndex,
+                    varOverrides, customVariables);
+            return new ChatCall(ctx, jsonResult, chatReturnType);
         }
     }
 
@@ -324,17 +421,41 @@ public final class AiServices {
             this.context = context;
         }
 
-        @Override
         public Object invoke(Object proxy, Method method, Object[] args) {
             if (method.getDeclaringClass() == Object.class) {
                 return invokeObjectMethod(proxy, method, args);
             }
-            Map<String, Object> variables = variables(method, args);
+            Map<String, Object> baseVariables = variables(method, args);
             String memoryId = memoryId(method, args);
             LlmStreamHandler streamHandler = streamHandler(method, args);
             boolean emit = context.isEmitLifecycleEvents() && streamHandler != null;
+            Map<String, Object> userVars = withSystemVars(baseVariables, memoryId, null);
+            String userText = userPrompt(method, userVars);
+            String systemPromptRaw = template(method.getAnnotation(SystemMessage.class),
+                    context.getServiceType().getAnnotation(SystemMessage.class));
+            CallInput input = new CallInput();
+            input.method = method;
+            input.userText = userText;
+            input.systemPromptRaw = systemPromptRaw;
+            input.baseVariables = baseVariables;
+            input.memoryId = memoryId;
+            input.streamHandler = streamHandler;
+            input.jsonResult = method.isAnnotationPresent(JsonResult.class);
+            input.returnType = method.getReturnType();
+            return execute(input);
+        }
 
-            String userText = userPrompt(method, variables);
+        /** 执行管线：意图分类 → 检索增强 → 工具/记忆选择 → 模型调用（含 JSON / 审核 / 观测）。 */
+        Object execute(CallInput input) {
+            String userText = input.userText;
+            Map<String, Object> baseVariables = input.baseVariables;
+            String memoryId = input.memoryId;
+            LlmStreamHandler streamHandler = input.streamHandler;
+            boolean jsonResult = input.jsonResult;
+            Class<?> returnType = input.returnType;
+            Method method = input.method;
+            boolean emit = context.isEmitLifecycleEvents() && streamHandler != null;
+
             moderateInput(userText);
             long startNanos = System.nanoTime();
             AiCallObservation.Builder observation = AiCallObservation.builder()
@@ -345,14 +466,14 @@ public final class AiServices {
             ChatMessage userMessage = ChatMessage.user(userText);
 
             String intentRef = classify(userText, emit, streamHandler);
+            Map<String, Object> sysVars = withSystemVars(baseVariables, memoryId, intentRef);
             RetrievalAugmentor retrieval = resolveRetrieval(intentRef);
-            String skillCatalog = resolveSkillCatalog(intentRef);
+            String skillCatalog = resolveSkillCatalog(intentRef, sysVars);
 
             List<ChatMessage> messages = new ArrayList<ChatMessage>();
-            String systemPrompt = template(method.getAnnotation(SystemMessage.class),
-                    context.getServiceType().getAnnotation(SystemMessage.class));
-            if (systemPrompt != null || skillCatalog != null) {
-                String sys = systemPrompt == null ? "" : systemPrompt;
+            String systemPromptRaw = input.systemPromptRaw;
+            if (systemPromptRaw != null || skillCatalog != null) {
+                String sys = systemPromptRaw == null ? "" : renderTemplate(systemPromptRaw, sysVars);
                 if (skillCatalog != null) {
                     sys = sys.isEmpty() ? skillCatalog : sys + "\n\n" + skillCatalog;
                     if (emit) {
@@ -419,7 +540,7 @@ public final class AiServices {
 
             Object result;
             try {
-                result = invokeModel(request, tools, streamHandler, method);
+                result = invokeModel(request, tools, streamHandler, jsonResult, returnType);
             } catch (Throwable t) {
                 notifyObservationError(observation.intentRef(intentRef)
                         .retrievalInjected(retrievalInjected)
@@ -430,7 +551,7 @@ public final class AiServices {
             }
 
             // 输出审核（结构化 JSON 结果不视为自然语言，跳过）
-            if (result instanceof String && !method.isAnnotationPresent(JsonResult.class)) {
+            if (result instanceof String && !jsonResult) {
                 moderateOutput((String) result);
             }
 
@@ -445,12 +566,13 @@ public final class AiServices {
             return result;
         }
 
+
         private Object invokeModel(LlmRequest request, ToolProvider tools,
-                                   LlmStreamHandler streamHandler, Method method) {
+                                   LlmStreamHandler streamHandler, boolean jsonResult,
+                                   Class<?> returnType) {
             LlmPort llm = context.getLlm();
-            Class<?> returnType = method.getReturnType();
             // 标注 @JsonResult 且无工具：走稳定 JSON 输出端口（流式 / 非流式分别处理）
-            if (context.getJsonOutput() != null && method.isAnnotationPresent(JsonResult.class)
+            if (context.getJsonOutput() != null && jsonResult
                     && tools == null) {
                 if (streamHandler != null) {
                     context.getJsonOutput().streamJson(request, streamHandler);
@@ -463,10 +585,9 @@ public final class AiServices {
                 return json;
             }
             if (tools != null) {
-                boolean jsonResult = context.getJsonOutput() != null
-                        && method.isAnnotationPresent(JsonResult.class);
+                boolean useJson = context.getJsonOutput() != null && jsonResult;
                 List<ChatMessage> toolMessages = request.getMessages();
-                if (jsonResult) {
+                if (useJson) {
                     toolMessages = withJsonInstruction(toolMessages, context.getJsonOutput().instruction());
                 }
                 ToolCallingLoop loop = new ToolCallingLoop(llm, tools);
@@ -478,7 +599,7 @@ public final class AiServices {
                         : new LlmStreamHandlerSink(streamHandler);
                 ToolCallingResult callResult = loop.call(tcRequest, sink);
                 String answer = callResult.getAnswer();
-                if (jsonResult) {
+                if (useJson) {
                     String json = JsonSupport.repairJson(answer);
                     if (json == null) {
                         throw new JsonOutputException("no parseable JSON in tool-calling result");
@@ -646,7 +767,7 @@ public final class AiServices {
             return ChainedRetrievalAugmentor.of(selected.toArray(new RetrievalAugmentor[0]));
         }
 
-        private String resolveSkillCatalog(String intentRef) {
+        private String resolveSkillCatalog(String intentRef, Map<String, Object> vars) {
             List<SkillBox> selected = select(context.getSkillScopes(), intentRef);
             if (selected.isEmpty()) {
                 return null;
@@ -658,7 +779,11 @@ public final class AiServices {
                 }
             }
             String catalog = merged.describeForPrompt(20);
-            return catalog.isEmpty() ? null : "Available skills (use only when relevant):\n" + catalog;
+            if (catalog.isEmpty()) {
+                return null;
+            }
+            String rendered = PromptTemplate.from(catalog).apply(vars);
+            return "Available skills (use only when relevant):\n" + rendered;
         }
 
         private static <T> List<T> select(List<IntentScoped<T>> scopes, String intentRef) {
@@ -723,10 +848,30 @@ public final class AiServices {
             if (unnamed != null) {
                 variables.put("it", unnamed);
             }
+            for (Map.Entry<String, Integer> e : context.getVarOverrides().entrySet()) {
+                Integer idx = e.getValue();
+                if (idx != null && args != null && idx >= 0 && idx < args.length) {
+                    variables.put(e.getKey(), args[idx]);
+                }
+            }
+            for (Map.Entry<String, java.util.function.Supplier<Object>> e : context.getCustomVariables().entrySet()) {
+                java.util.function.Supplier<Object> s = e.getValue();
+                if (s != null) {
+                    variables.put(e.getKey(), s.get());
+                }
+            }
             return variables;
         }
 
         private String memoryId(Method method, Object[] args) {
+            java.util.function.Supplier<String> override = context.getMemoryIdOverride();
+            if (override != null) {
+                return override.get();
+            }
+            Integer idx = context.getMemoryIdParamIndex();
+            if (idx != null && args != null && idx >= 0 && idx < args.length) {
+                return args[idx] == null ? null : String.valueOf(args[idx]);
+            }
             Parameter[] parameters = method.getParameters();
             for (int i = 0; i < parameters.length; i++) {
                 if (parameters[i].getAnnotation(MemoryId.class) != null && args != null && i < args.length) {
@@ -749,6 +894,10 @@ public final class AiServices {
         }
 
         private String userPrompt(Method method, Map<String, Object> variables) {
+            String override = context.getUserTemplateOverride();
+            if (override != null) {
+                return PromptTemplate.from(override).apply(variables);
+            }
             UserMessage annotation = method.getAnnotation(UserMessage.class);
             if (annotation == null) {
                 Object single = variables.get("it");
@@ -761,11 +910,41 @@ public final class AiServices {
         }
 
         private String template(SystemMessage methodLevel, SystemMessage typeLevel) {
+            String override = context.getSystemTextOverride();
+            if (override != null) {
+                return override;
+            }
             SystemMessage annotation = methodLevel != null ? methodLevel : typeLevel;
             if (annotation == null) {
                 return null;
             }
             return join(annotation.value());
+        }
+
+        /** 把内置系统变量并入变量表：now / today / traceId / service，以及已知的 memoryId / intent。 */
+        private Map<String, Object> withSystemVars(Map<String, Object> base, String memoryId, String intentRef) {
+            Map<String, Object> vars = new LinkedHashMap<String, Object>(base);
+            vars.put("now", new Date());
+            vars.put("today", LocalDate.now());
+            String traceId = TraceContext.traceId();
+            if (traceId != null) {
+                vars.put("traceId", traceId);
+            }
+            vars.put("service", context.getServiceType().getSimpleName());
+            if (memoryId != null) {
+                vars.put("memoryId", memoryId);
+            }
+            if (intentRef != null) {
+                vars.put("intent", intentRef);
+            }
+            return vars;
+        }
+
+        private static String renderTemplate(String raw, Map<String, Object> vars) {
+            if (raw == null) {
+                return null;
+            }
+            return PromptTemplate.from(raw).apply(vars);
         }
 
         private String join(String[] parts) {
@@ -781,6 +960,18 @@ public final class AiServices {
             }
             return sb.toString();
         }
+    }
+
+    /** 一次调用的入参快照：接口代理路径与无类 {@link ChatCall} 路径共用同一条执行管线。 */
+    static final class CallInput {
+        Method method;
+        String userText;
+        String systemPromptRaw;
+        Map<String, Object> baseVariables;
+        String memoryId;
+        LlmStreamHandler streamHandler;
+        boolean jsonResult;
+        Class<?> returnType;
     }
 
     /** 把工具调用环的 {@link ToolCallingSink} 适配到用户传入的 {@link LlmStreamHandler}。 */
@@ -807,5 +998,112 @@ public final class AiServices {
             handler.onToolResponse(result);
         }
     }
-}
 
+    /**
+     * 无类（class-free）调用器：不要求预先定义接口，以动态入参驱动与接口代理完全相同的执行管线
+     * （意图分类、检索增强、工具 / 记忆按意图选择、JSON 兜底、输入 / 输出审核、链路观测一应俱全）。
+     *
+     * <p>典型用法：</p>
+     * <pre>{@code
+     * ChatCall call = AiServices.fluent()
+     *         .llm(llm)
+     *         .systemText("你是助手，当前时间 {{now}}")
+     *         .userTemplate("回答问题：{{question}}")
+     *         .tools(toolProvider)
+     *         .jsonResult(true)
+     *         .buildChatCall();
+     * String answer = call.call(Collections.singletonMap("question", "1+1=?"));
+     * }</pre>
+     */
+    public static final class ChatCall {
+
+        private final AiServiceContext context;
+        private final boolean jsonResult;
+        private final Class<?> returnType;
+
+        ChatCall(AiServiceContext context, boolean jsonResult, Class<?> returnType) {
+            this.context = context;
+            this.jsonResult = jsonResult;
+            this.returnType = returnType == null ? String.class : returnType;
+        }
+
+        public String call(String userText) {
+            Object r = doCall(userText, null, null);
+            return r == null ? null : String.valueOf(r);
+        }
+
+        public String call(String userText, String memoryId) {
+            Object r = doCall(userText, memoryId, null);
+            return r == null ? null : String.valueOf(r);
+        }
+
+        public String call(java.util.Map<String, Object> vars) {
+            Object r = doCall(vars, null, null);
+            return r == null ? null : String.valueOf(r);
+        }
+
+        public String call(java.util.Map<String, Object> vars, String memoryId) {
+            Object r = doCall(vars, memoryId, null);
+            return r == null ? null : String.valueOf(r);
+        }
+
+        /** 返回原始结果（{@code LlmResponse} 或 {@code String}），便于取 usage / 元数据。 */
+        public Object callRaw(String userText) {
+            return doCall(userText, null, null);
+        }
+
+        public Object callRaw(java.util.Map<String, Object> vars) {
+            return doCall(vars, null, null);
+        }
+
+        public void stream(String userText, LlmStreamHandler handler) {
+            doCall(userText, null, handler);
+        }
+
+        public void stream(java.util.Map<String, Object> vars, LlmStreamHandler handler) {
+            doCall(vars, null, handler);
+        }
+
+        private Object doCall(Object input, String memoryId, LlmStreamHandler handler) {
+            java.util.Map<String, Object> baseVariables = new java.util.LinkedHashMap<String, Object>();
+            // 动态自定义变量（每次调用实时计算后并入模板，不依赖固定值）
+            for (java.util.Map.Entry<String, java.util.function.Supplier<Object>> e
+                    : context.getCustomVariables().entrySet()) {
+                if (e.getValue() != null) {
+                    baseVariables.put(e.getKey(), e.getValue().get());
+                }
+            }
+            String userText;
+            if (input instanceof java.util.Map) {
+                @SuppressWarnings("unchecked")
+                java.util.Map<String, Object> m = (java.util.Map<String, Object>) input;
+                baseVariables.putAll(m);
+                String tmpl = context.getUserTemplateOverride();
+                if (tmpl != null) {
+                    userText = PromptTemplate.from(tmpl).apply(baseVariables);
+                } else {
+                    Object it = m.get("it");
+                    userText = it == null ? "" : String.valueOf(it);
+                }
+            } else {
+                userText = input == null ? "" : String.valueOf(input);
+            }
+            if (memoryId == null) {
+                java.util.function.Supplier<String> ov = context.getMemoryIdOverride();
+                if (ov != null) {
+                    memoryId = ov.get();
+                }
+            }
+            CallInput ci = new CallInput();
+            ci.method = null;
+            ci.userText = userText;
+            ci.systemPromptRaw = context.getSystemTextOverride();
+            ci.baseVariables = baseVariables;
+            ci.memoryId = memoryId;
+            ci.streamHandler = handler;
+            ci.jsonResult = jsonResult;
+            ci.returnType = returnType;
+            return new AiServiceInvocationHandler(context).execute(ci);
+        }
+    }
+}

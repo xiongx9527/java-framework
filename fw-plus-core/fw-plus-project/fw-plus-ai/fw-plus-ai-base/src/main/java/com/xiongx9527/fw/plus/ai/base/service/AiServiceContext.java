@@ -10,13 +10,12 @@ import com.xiongx9527.fw.plus.ai.base.model.moderation.ModerationModel;
 import com.xiongx9527.fw.plus.ai.base.output.JsonOutputPort;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import com.xiongx9527.fw.plus.ai.base.retrieval.RetrievalAugmentor;
 import com.xiongx9527.fw.plus.ai.base.skill.SkillBox;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolProvider;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * AI 服务的运行上下文：模型端口 + 记忆 + 意图分类 + 按意图作用域分组的工具/检索/Skill + 监听器。
@@ -55,6 +54,24 @@ public final class AiServiceContext {
 
     private final List<AiObservationListener> observationListeners;
 
+    /** 覆盖注解的 system 文本（替代 {@code @SystemMessage}）。 */
+    private final String systemTextOverride;
+
+    /** 覆盖注解的 user 模板（替代 {@code @UserMessage}）。 */
+    private final String userTemplateOverride;
+
+    /** 动态会话 id（覆盖 {@code @MemoryId}）：每次调用实时计算。 */
+    private final java.util.function.Supplier<String> memoryIdOverride;
+
+    /** 会话 id 绑定的方法参数下标（与 {@code memoryIdOverride} 二选一）。 */
+    private final Integer memoryIdParamIndex;
+
+    /** 变量绑定覆盖：变量名 -> 方法参数下标（替代 {@code @V}）。 */
+    private final Map<String, Integer> varOverrides;
+
+    /** 动态自定义变量：每次调用实时计算后并入模板（不依赖固定值）。 */
+    private final Map<String, java.util.function.Supplier<Object>> customVariables;
+
     AiServiceContext(Class<?> serviceType, LlmPort llm,
                      List<IntentScoped<ChatMemoryProvider>> memoryScopes,
                      List<IntentScoped<IntentPort>> intentScopes,
@@ -64,7 +81,11 @@ public final class AiServiceContext {
                      List<LlmListener> listeners,
                      boolean emitLifecycleEvents, boolean skipToolsWhenRetrievalHit,
                      ModerationModel moderationModel, List<ModerationListener> moderationListeners,
-                     JsonOutputPort jsonOutput, List<AiObservationListener> observationListeners) {
+                     JsonOutputPort jsonOutput, List<AiObservationListener> observationListeners,
+                     String systemTextOverride, String userTemplateOverride,
+                     java.util.function.Supplier<String> memoryIdOverride, Integer memoryIdParamIndex,
+                     Map<String, Integer> varOverrides,
+                     Map<String, java.util.function.Supplier<Object>> customVariables) {
         this.serviceType = serviceType;
         this.llm = llm;
         this.memoryScopes = memoryScopes == null ? Collections.<IntentScoped<ChatMemoryProvider>>emptyList()
@@ -87,6 +108,14 @@ public final class AiServiceContext {
         this.jsonOutput = jsonOutput;
         this.observationListeners = observationListeners == null ? Collections.<AiObservationListener>emptyList()
                 : Collections.unmodifiableList(new ArrayList<AiObservationListener>(observationListeners));
+        this.systemTextOverride = systemTextOverride;
+        this.userTemplateOverride = userTemplateOverride;
+        this.memoryIdOverride = memoryIdOverride;
+        this.memoryIdParamIndex = memoryIdParamIndex;
+        this.varOverrides = varOverrides == null ? Collections.<String, Integer>emptyMap()
+                : Collections.unmodifiableMap(new LinkedHashMap<String, Integer>(varOverrides));
+        this.customVariables = customVariables == null ? Collections.<String, java.util.function.Supplier<Object>>emptyMap()
+                : Collections.unmodifiableMap(new LinkedHashMap<String, java.util.function.Supplier<Object>>(customVariables));
     }
 
     public Class<?> getServiceType() {
@@ -149,5 +178,35 @@ public final class AiServiceContext {
     /** 调用级观测监听（用于 Langfuse / Langsmith 等）。 */
     public List<AiObservationListener> getObservationListeners() {
         return observationListeners;
+    }
+
+    /** 覆盖 {@code @SystemMessage} 的文本；为 {@code null} 时回退到注解。 */
+    public String getSystemTextOverride() {
+        return systemTextOverride;
+    }
+
+    /** 覆盖 {@code @UserMessage} 的模板；为 {@code null} 时回退到注解。 */
+    public String getUserTemplateOverride() {
+        return userTemplateOverride;
+    }
+
+    /** 动态会话 id（覆盖 {@code @MemoryId}）的供应器；为 {@code null} 时回退到注解 / 参数下标。 */
+    public java.util.function.Supplier<String> getMemoryIdOverride() {
+        return memoryIdOverride;
+    }
+
+    /** 会话 id 绑定的方法参数下标；为 {@code null} 时回退到注解 / 供应器。 */
+    public Integer getMemoryIdParamIndex() {
+        return memoryIdParamIndex;
+    }
+
+    /** 变量名 -> 方法参数下标的覆盖（替代 {@code @V}）。 */
+    public Map<String, Integer> getVarOverrides() {
+        return varOverrides;
+    }
+
+    /** 动态自定义变量的供应器集合，渲染模板时实时计算并入。 */
+    public Map<String, java.util.function.Supplier<Object>> getCustomVariables() {
+        return customVariables;
     }
 }

@@ -129,11 +129,11 @@ public class AiServicesIntentRoutingTest {
                 .chatMemoryProviderOn(sqlMemory, "sql")  // 仅 sql 意图
                 .build();
 
-        assistant.ask("show me sales", "m1");
+        assistant.ask("m1", "show me sales");
         assertTrue(sqlMemory.touched());
         assertFalse(global.touched());
 
-        assistant.ask("hello", "m2");
+        assistant.ask("m2", "hello");
         assertTrue(global.touched());
     }
 }
