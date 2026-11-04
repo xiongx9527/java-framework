@@ -31,45 +31,39 @@ import org.slf4j.LoggerFactory;
 
 /**
  * 真实原子能力：OpenAI 兼容大模型客户端（流式 / 非流式 / 工具调用）。
- * 覆盖 OpenAI、Ollama、vLLM、Qwen(DashScope 兼容端点)、Azure OpenAI 等同族协议；
- * Azure 走部署写在 URL + api-key 头（无 Bearer）。用 okhttp3 + okhttp-sse 自研 SSE 解析。
+ * 覆盖使用 OpenAI Chat Completions 协议的服务。用 okhttp3 + okhttp-sse 自研 SSE 解析。
  * 落点是 base 的 LlmPort：业务用 TracedLlmPort 装饰即可获得日志 / 计费 / 追踪。
- * 差异较大的协议（Anthropic）由 AnthropicLlmPort 单独实现。
+ * 协议差异由独立端口实现；Azure OpenAI 使用 {@link AzureOpenAiLlmPort}。
  */
 public class OpenAiCompatibleLlmPort extends AbstractLlmPort {
     private static final Logger log = LoggerFactory.getLogger(OpenAiCompatibleLlmPort.class);
-    public enum Protocol { OPENAI, VLLM, AZURE }
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
     private final ObjectMapper mapper = new ObjectMapper();
-    private final OkHttpClient client;
-    private final String baseUrl;
-    private final String apiKey;
-    private final String defaultModel;
-    private final Protocol protocol;
-    private final String apiVersion;
+    protected final OkHttpClient client;
+    protected final String baseUrl;
+    protected final String apiKey;
+    protected final String defaultModel;
     public OpenAiCompatibleLlmPort(String baseUrl, String apiKey, String defaultModel) {
-        this(baseUrl, apiKey, defaultModel, Protocol.OPENAI, null);
-    }
-    public OpenAiCompatibleLlmPort(String baseUrl, String apiKey, String defaultModel, Protocol protocol) {
-        this(baseUrl, apiKey, defaultModel, protocol, null);
-    }
-    public OpenAiCompatibleLlmPort(String baseUrl, String apiKey, String defaultModel, Protocol protocol, String apiVersion) {
         if (baseUrl == null || baseUrl.trim().isEmpty()) throw new IllegalArgumentException("llm baseUrl is required");
         this.baseUrl = baseUrl.replaceAll("/+$", "");
         this.apiKey = apiKey;
         this.defaultModel = defaultModel;
-        this.protocol = protocol == null ? Protocol.OPENAI : protocol;
-        this.apiVersion = apiVersion;
         this.client = new OkHttpClient.Builder().connectTimeout(8_000, java.util.concurrent.TimeUnit.MILLISECONDS).readTimeout(600_000, java.util.concurrent.TimeUnit.MILLISECONDS).build();
     }
+    @Override
+    public com.xiongx9527.fw.plus.ai.base.model.LlmCapabilities capabilities() {
+        return com.xiongx9527.fw.plus.ai.base.model.LlmCapabilities.builder()
+                .streaming(true).toolCalling(true).structuredOutput(true)
+                .imageInput(true).reasoning(true).usage(true).build();
+    }
+
     @Override
     protected void doStream(LlmRequest request, LlmStreamHandler handler) {
         if (baseUrl == null) { handler.onError("llm not configured"); return; }
         try {
             String body = mapper.writeValueAsString(buildBody(request));
             Request.Builder rb = new Request.Builder().url(resolveUrl(request)).post(RequestBody.create(JSON, body));
-            if (protocol == Protocol.AZURE) { if (apiKey != null && !apiKey.isEmpty()) rb.addHeader("api-key", apiKey); }
-            else { if (apiKey != null && !apiKey.isEmpty()) rb.addHeader("Authorization", "Bearer " + apiKey); }
+            addAuthentication(rb);
             final CountDownLatch done = new CountDownLatch(1);
             final String[] errorBox = new String[1];
             Map<Integer, ToolAcc> acc = new LinkedHashMap<Integer, ToolAcc>();
@@ -99,22 +93,11 @@ public class OpenAiCompatibleLlmPort extends AbstractLlmPort {
             handler.onError(ex.getMessage());
         }
     }
-    /**
-     * 枚举模型：GET {@code /models}（Azure 为 {@code /openai/models?api-version=...}）。
-     *
-     * <p>枚举失败只记日志并返回空列表，不抛异常——它服务于配置页，不应影响推理主链路。</p>
-     */
+    /** 枚举模型；失败只记日志并返回空列表，不影响推理主链路。 */
     @Override
     public List<ModelInfo> listModels() {
-        String url = protocol == Protocol.AZURE
-                ? baseUrl + "/openai/models?api-version="
-                        + (apiVersion != null ? apiVersion : "2024-02-15-preview")
-                : baseUrl + "/models";
-        Request.Builder rb = new Request.Builder().url(url).get();
-        if (apiKey != null && !apiKey.isEmpty()) {
-            rb.addHeader(protocol == Protocol.AZURE ? "api-key" : "Authorization",
-                    protocol == Protocol.AZURE ? apiKey : "Bearer " + apiKey);
-        }
+        Request.Builder rb = new Request.Builder().url(modelsUrl()).get();
+        addAuthentication(rb);
         List<ModelInfo> out = new ArrayList<ModelInfo>();
         try (Response r = client.newCall(rb.build()).execute()) {
             if (!r.isSuccessful()) {
@@ -148,13 +131,18 @@ public class OpenAiCompatibleLlmPort extends AbstractLlmPort {
         return validateModelWithCompletion(model);
     }
 
-    private String resolveUrl(LlmRequest request) {
-        if (protocol == Protocol.AZURE) {
-            String deployment = request.getModel() != null ? request.getModel() : defaultModel;
-            String v = apiVersion != null ? apiVersion : "2024-02-15-preview";
-            return baseUrl + "/openai/deployments/" + deployment + "/chat/completions?api-version=" + v;
-        }
+    protected String resolveUrl(LlmRequest request) {
         return baseUrl + "/chat/completions";
+    }
+
+    protected String modelsUrl() {
+        return baseUrl + "/models";
+    }
+
+    protected void addAuthentication(Request.Builder request) {
+        if (apiKey != null && !apiKey.isEmpty()) {
+            request.addHeader("Authorization", "Bearer " + apiKey);
+        }
     }
     private Map<String, Object> buildBody(LlmRequest request) throws IOException {
         Map<String, Object> payload = new LinkedHashMap<String, Object>();

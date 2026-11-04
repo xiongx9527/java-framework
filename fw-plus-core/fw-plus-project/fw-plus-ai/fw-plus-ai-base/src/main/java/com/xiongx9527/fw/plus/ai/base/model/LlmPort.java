@@ -21,6 +21,11 @@ import java.util.List;
  */
 public interface LlmPort {
 
+    /** 返回该端口可稳定提供的协议能力。 */
+    default LlmCapabilities capabilities() {
+        return LlmCapabilities.basic();
+    }
+
     /**
      * 流式补全：按增量回调 {@code handler}，必然以 {@code onComplete} 或 {@code onError} 收尾。
      */

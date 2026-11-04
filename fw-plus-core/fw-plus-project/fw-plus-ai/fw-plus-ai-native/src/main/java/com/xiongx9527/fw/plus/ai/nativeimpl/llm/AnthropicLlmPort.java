@@ -57,6 +57,13 @@ public class AnthropicLlmPort extends AbstractLlmPort {
         this.client = new OkHttpClient.Builder().connectTimeout(8_000, java.util.concurrent.TimeUnit.MILLISECONDS).readTimeout(600_000, java.util.concurrent.TimeUnit.MILLISECONDS).build();
     }
     @Override
+    public com.xiongx9527.fw.plus.ai.base.model.LlmCapabilities capabilities() {
+        return com.xiongx9527.fw.plus.ai.base.model.LlmCapabilities.builder()
+                .streaming(true).toolCalling(true).imageInput(true)
+                .reasoning(true).usage(true).build();
+    }
+
+    @Override
     protected void doStream(LlmRequest request, LlmStreamHandler handler) {
         if (baseUrl == null) { handler.onError("llm not configured"); return; }
         try {

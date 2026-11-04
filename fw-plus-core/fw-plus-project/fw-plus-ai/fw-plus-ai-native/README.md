@@ -10,7 +10,8 @@
 
 | 包 | 实现 | 端口 | 说明 |
 | --- | --- | --- | --- |
-| `nativeimpl.llm` | `OpenAiCompatibleLlmPort` | `LlmPort` | OpenAI / vLLM / Ollama / Qwen(DashScope 兼容端点) / Azure OpenAI；okhttp-sse 自研流式解析 |
+| `nativeimpl.llm` | `OpenAiCompatibleLlmPort` | `LlmPort` | OpenAI Chat Completions 兼容协议（OpenAI / vLLM / Ollama / Qwen 等）；okhttp-sse 自研流式解析 |
+| `nativeimpl.llm` | `AzureOpenAiLlmPort` | `LlmPort` | Azure OpenAI deployment URL、`api-version`、`api-key` 认证 |
 | `nativeimpl.llm` | `AnthropicLlmPort` | `LlmPort` | Claude Messages API（`x-api-key`、`anthropic-version`、`tool_use` 块） |
 | `nativeimpl.embedding` | `OpenAiCompatibleEmbeddingPort` | `EmbeddingPort` | `/v1/embeddings`，批量编码并记录维度 |
 | `nativeimpl.rerank` | `RerankModelPort` | `RerankPort` | TEI `/rerank` 与 Cohere/Jina `/v1/rerank` 两种报文；分数按输入下标回填 |
@@ -30,7 +31,7 @@ ModelValidation validateModel(String model); // 校验模型可用性；失败�
 
 | 端口 | `listModels` | `validateModel` |
 | --- | --- | --- |
-| `LlmPort` | 默认空列表；OpenAI 兼容走 `GET /models`（Azure 为 `/openai/models`），Anthropic 走 `GET /v1/models` | 目录非空时按目录判定；目录为空时发一次 `max_tokens=1` 的真实补全探测 |
+| `LlmPort` | OpenAI 兼容走 `GET /models`；Azure 走 `GET /openai/models`；Anthropic 走 `GET /v1/models` | 目录非空时按目录判定；目录为空时发一次 `max_tokens=1` 的真实补全探测 |
 | `EmbeddingPort` | 默认空列表；OpenAI 兼容走 `GET /models` 并按模型名关键字（embed/bge/gte/m3e/e5/jina/voyage）过滤 | 用目标模型真实编码一条探针文本，拿到非空向量即通过，并记录维度 |
 | `RerankPort` | TEI / Cohere 无标准枚举端点，返回当前配置的模型（单条） | 用目标模型真实打一次分，返回结果非空即通过 |
 
