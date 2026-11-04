@@ -41,7 +41,10 @@ import com.xiongx9527.fw.plus.ai.base.skill.SkillBox;
 import com.xiongx9527.fw.plus.ai.base.skill.SkillDescriptor;
 import com.xiongx9527.fw.plus.ai.base.store.vector.Document;
 import com.xiongx9527.fw.plus.ai.base.template.PromptTemplate;
+import com.xiongx9527.fw.plus.ai.base.trace.Span;
+import com.xiongx9527.fw.plus.ai.base.trace.SpanKind;
 import com.xiongx9527.fw.plus.ai.base.trace.TraceContext;
+import com.xiongx9527.fw.plus.ai.base.trace.TracePort;
 import com.xiongx9527.fw.plus.ai.base.tool.CompositeToolProvider;
 import com.xiongx9527.fw.plus.ai.base.tool.SkillGatedToolProvider;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolCallingLoop;
@@ -50,6 +53,7 @@ import com.xiongx9527.fw.plus.ai.base.tool.ToolCallingResult;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolCallingSink;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolExecutionResult;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolProvider;
+import com.xiongx9527.fw.plus.ai.base.tool.ToolTrace;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -63,6 +67,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 public final class AiServices {
 
@@ -105,6 +110,7 @@ public final class AiServices {
         private JsonBindings jsonBindings;
         private StoreRegistry storeRegistry;
         private final List<AiObservationListener> observationListeners = new ArrayList<AiObservationListener>();
+        private TracePort trace = TracePort.noop();
 
         private String systemTextOverride;
         private String userTemplateOverride;
@@ -360,6 +366,18 @@ public final class AiServices {
             return this;
         }
 
+        /**
+         * 接入链路追踪端口：每次 AI 服务调用生成 {@code ai.call} 根节点，并为意图分类、工具调用
+         * 补子节点；未接入时不做任何额外开销。
+         *
+         * <p>根节点会复用调用线程上已有的 traceId（便于把 AI 调用挂到上游请求链路上），
+         * 调用结束后恢复原上下文。</p>
+         */
+        public Builder<T> trace(TracePort value) {
+            this.trace = value == null ? TracePort.noop() : value;
+            return this;
+        }
+
         /** 覆盖类型 / 方法上的 {@code @SystemMessage}：直接给定 system 文本（支持 {@code {{var}}} 占位）。 */
         public Builder<T> systemText(String value) {
             this.systemTextOverride = value;
@@ -424,7 +442,7 @@ public final class AiServices {
                             serviceType, llm, memoryScopes, intentScopes,
                             toolProviderScopes, retrievalScopes, skillScopes, listeners,
                             emitLifecycleEvents, skipToolsWhenRetrievalHit,
-                            moderationModel, moderationListeners, jsonOutput, jsonBindings, observationListeners,
+                            moderationModel, moderationListeners, jsonOutput, jsonBindings, observationListeners, trace,
                             systemTextOverride, userTemplateOverride, memoryIdOverride, memoryIdParamIndex,
                             memoryIdVarKey,
                             varOverrides, customVariables, storeRegistry))));
@@ -439,7 +457,7 @@ public final class AiServices {
                     serviceType, llm, memoryScopes, intentScopes,
                     toolProviderScopes, retrievalScopes, skillScopes, listeners,
                     emitLifecycleEvents, skipToolsWhenRetrievalHit,
-                    moderationModel, moderationListeners, jsonOutput, jsonBindings, observationListeners,
+                    moderationModel, moderationListeners, jsonOutput, jsonBindings, observationListeners, trace,
                     systemTextOverride, userTemplateOverride, memoryIdOverride, memoryIdParamIndex,
                     memoryIdVarKey,
                     varOverrides, customVariables, storeRegistry);
@@ -491,114 +509,163 @@ public final class AiServices {
             Method method = input.method;
             boolean emit = context.isEmitLifecycleEvents() && streamHandler != null;
 
-            moderateInput(userText);
-            long startNanos = System.nanoTime();
-            AiCallObservation.Builder observation = AiCallObservation.builder()
-                    .serviceType(context.getServiceType())
-                    .method(method)
-                    .userText(userText);
-            notifyObservationStart(observation);
-            ChatMessage userMessage = ChatMessage.user(userText);
-
-            String intentRef = classify(userText, emit, streamHandler);
-            Map<String, Object> sysVars = withSystemVars(baseVariables, memoryId, intentRef);
-            RetrievalAugmentor retrieval = resolveRetrieval(intentRef);
-            String skillCatalog = resolveSkillCatalog(intentRef, sysVars);
-
-            List<ChatMessage> messages = new ArrayList<ChatMessage>();
-            String systemPromptRaw = input.systemPromptRaw;
-            if (systemPromptRaw != null || skillCatalog != null) {
-                String sys = systemPromptRaw == null ? "" : renderTemplate(systemPromptRaw, sysVars);
-                if (skillCatalog != null) {
-                    sys = sys.isEmpty() ? skillCatalog : sys + "\n\n" + skillCatalog;
-                    if (emit) {
-                        streamHandler.onContextInject(ContextInjectEvent.start(
-                                ContextInjectEvent.Kind.SKILL, skillCatalog, null));
-                        streamHandler.onContextInject(ContextInjectEvent.end(
-                                ContextInjectEvent.Kind.SKILL, skillCatalog, null));
-                    }
-                }
-                messages.add(ChatMessage.system(sys));
+            // 复用调用线程已有的 traceId（挂到上游请求链路），否则新开一条链路
+            String previousTraceId = TraceContext.traceId();
+            String previousSpanId = TraceContext.spanId();
+            String traceId = previousTraceId == null ? UUID.randomUUID().toString() : previousTraceId;
+            Span.Builder callSpan = Span.start(traceId, "ai.call", SpanKind.CHAIN);
+            if (previousSpanId != null) {
+                callSpan.parent(previousSpanId);
             }
-
-            ChatMemoryProvider memoryProvider = selectScoped(context.getMemoryScopes(), intentRef);
-            ChatMemory memory = memoryProvider == null || memoryId == null
-                    ? null : memoryProvider.get(memoryId);
-            if (memory != null) {
-                messages.addAll(memory.messages());
+            callSpan.input(userText).attribute("service", context.getServiceType().getSimpleName());
+            if (method != null) {
+                callSpan.attribute("method", method.getName());
             }
-            messages.add(userMessage);
-            if (memory != null) {
-                memory.add(userMessage);
+            if (memoryId != null) {
+                callSpan.attribute("memoryId", memoryId);
             }
+            TraceContext.bind(traceId, callSpan.getSpanId());
 
-            boolean retrievalInjected = false;
-            if (retrieval != null) {
-                final RetrievalQuery rq = RetrievalQuery.builder().text(userText).build();
-                final boolean[] injected = {false};
-                RetrievalListener bridge = emit ? new RetrievalListener() {
-                    @Override
-                    public void onQuery(RetrievalQuery q) {
-                        streamHandler.onRetrieval(RetrievalEvent.start(q));
-                    }
-
-                    @Override
-                    public void onHits(List<? extends Retrieved<?>> hits) {
-                        streamHandler.onRetrieval(RetrievalEvent.end(rq, hits, null));
-                    }
-
-                    @Override
-                    public void onContext(String content) {
-                        streamHandler.onRetrieval(RetrievalEvent.end(rq, null, content));
-                        streamHandler.onContextInject(ContextInjectEvent.start(
-                                ContextInjectEvent.Kind.RETRIEVAL, content, null));
-                        streamHandler.onContextInject(ContextInjectEvent.end(
-                                ContextInjectEvent.Kind.RETRIEVAL, content, null));
-                        injected[0] = true;
-                    }
-                } : null;
-                RetrievalAugmentor wired = emit ? ChainedRetrievalAugmentor.of(bridge, retrieval) : retrieval;
-                messages = wired.augment(messages, rq);
-                retrievalInjected = injected[0];
-            }
-
-            ToolProvider tools = resolveTools(intentRef);
-            if (context.isSkipToolsWhenRetrievalHit() && retrievalInjected) {
-                tools = null;
-            }
-
-            LlmRequest request = LlmRequest.builder()
-                    .messages(messages)
-                    .tools(tools == null ? null : tools.specifications())
-                    .listeners(context.getListeners())
-                    .build();
-
-            Object result;
             try {
-                result = invokeModel(request, tools, streamHandler, jsonResult, returnType, genericReturnType);
-            } catch (Throwable t) {
-                notifyObservationError(observation.intentRef(intentRef)
+                moderateInput(userText);
+                long startNanos = System.nanoTime();
+                AiCallObservation.Builder observation = AiCallObservation.builder()
+                        .serviceType(context.getServiceType())
+                        .method(method)
+                        .userText(userText);
+                notifyObservationStart(observation);
+                ChatMessage userMessage = ChatMessage.user(userText);
+
+                String intentRef = classify(userText, emit, streamHandler);
+                if (intentRef != null) {
+                    callSpan.attribute("intent", intentRef);
+                }
+                Map<String, Object> sysVars = withSystemVars(baseVariables, memoryId, intentRef);
+                RetrievalAugmentor retrieval = resolveRetrieval(intentRef);
+                String skillCatalog = resolveSkillCatalog(intentRef, sysVars);
+
+                List<ChatMessage> messages = new ArrayList<ChatMessage>();
+                String systemPromptRaw = input.systemPromptRaw;
+                if (systemPromptRaw != null || skillCatalog != null) {
+                    String sys = systemPromptRaw == null ? "" : renderTemplate(systemPromptRaw, sysVars);
+                    if (skillCatalog != null) {
+                        sys = sys.isEmpty() ? skillCatalog : sys + "\n\n" + skillCatalog;
+                        if (emit) {
+                            streamHandler.onContextInject(ContextInjectEvent.start(
+                                    ContextInjectEvent.Kind.SKILL, skillCatalog, null));
+                            streamHandler.onContextInject(ContextInjectEvent.end(
+                                    ContextInjectEvent.Kind.SKILL, skillCatalog, null));
+                        }
+                    }
+                    messages.add(ChatMessage.system(sys));
+                }
+
+                ChatMemoryProvider memoryProvider = selectScoped(context.getMemoryScopes(), intentRef);
+                ChatMemory memory = memoryProvider == null || memoryId == null
+                        ? null : memoryProvider.get(memoryId);
+                if (memory != null) {
+                    messages.addAll(memory.messages());
+                }
+                messages.add(userMessage);
+                if (memory != null) {
+                    memory.add(userMessage);
+                }
+
+                boolean retrievalInjected = false;
+                if (retrieval != null) {
+                    final RetrievalQuery rq = RetrievalQuery.builder().text(userText).build();
+                    final boolean[] injected = {false};
+                    RetrievalListener bridge = emit ? new RetrievalListener() {
+                        @Override
+                        public void onQuery(RetrievalQuery q) {
+                            streamHandler.onRetrieval(RetrievalEvent.start(q));
+                        }
+
+                        @Override
+                        public void onHits(List<? extends Retrieved<?>> hits) {
+                            streamHandler.onRetrieval(RetrievalEvent.end(rq, hits, null));
+                        }
+
+                        @Override
+                        public void onContext(String content) {
+                            streamHandler.onRetrieval(RetrievalEvent.end(rq, null, content));
+                            streamHandler.onContextInject(ContextInjectEvent.start(
+                                    ContextInjectEvent.Kind.RETRIEVAL, content, null));
+                            streamHandler.onContextInject(ContextInjectEvent.end(
+                                    ContextInjectEvent.Kind.RETRIEVAL, content, null));
+                            injected[0] = true;
+                        }
+                    } : null;
+                    RetrievalAugmentor wired = emit ? ChainedRetrievalAugmentor.of(bridge, retrieval) : retrieval;
+                    messages = wired.augment(messages, rq);
+                    retrievalInjected = injected[0];
+                }
+                callSpan.attribute("retrievalInjected", retrievalInjected);
+
+                ToolProvider tools = resolveTools(intentRef);
+                if (context.isSkipToolsWhenRetrievalHit() && retrievalInjected) {
+                    tools = null;
+                }
+
+                LlmRequest request = LlmRequest.builder()
+                        .messages(messages)
+                        .tools(tools == null ? null : tools.specifications())
+                        .listeners(context.getListeners())
+                        .build();
+
+                Object result;
+                try {
+                    result = invokeModel(request, tools, streamHandler, jsonResult, returnType, genericReturnType);
+                } catch (Throwable t) {
+                    notifyObservationError(observation.intentRef(intentRef)
+                            .retrievalInjected(retrievalInjected)
+                            .latencyMillis((System.nanoTime() - startNanos) / 1000000L)
+                            .error(t.getMessage())
+                            .build());
+                    throw t;
+                }
+
+                // 输出审核（结构化 JSON 结果不视为自然语言，跳过）
+                if (result instanceof String && !jsonResult) {
+                    moderateOutput((String) result);
+                }
+
+                if (memory != null && result instanceof String) {
+                    memory.add(ChatMessage.assistant((String) result));
+                }
+
+                callSpan.output(result instanceof String ? (String) result : null);
+                notifyObservationEnd(observation.intentRef(intentRef)
                         .retrievalInjected(retrievalInjected)
-                        .latencyMillis((System.nanoTime() - startNanos) / 1000000L)
-                        .error(t.getMessage())
-                        .build());
+                        .answer(result instanceof String ? (String) result : null)
+                        .latencyMillis((System.nanoTime() - startNanos) / 1000000L));
+                return result;
+            } catch (Throwable t) {
+                callSpan.error(errorMessage(t));
                 throw t;
+            } finally {
+                callSpan.end(System.currentTimeMillis());
+                endSpan(callSpan);
+                if (previousTraceId != null) {
+                    TraceContext.bind(previousTraceId, previousSpanId);
+                } else {
+                    TraceContext.unbind();
+                }
             }
+        }
 
-            // 输出审核（结构化 JSON 结果不视为自然语言，跳过）
-            if (result instanceof String && !jsonResult) {
-                moderateOutput((String) result);
+        /** 结束并上报节点；观测失败不影响业务主链路。 */
+        private void endSpan(Span.Builder span) {
+            try {
+                context.getTrace().end(span);
+            } catch (RuntimeException ignored) {
+                // 与 LlmListener 派发保持一致：观测异常不得影响业务
             }
+        }
 
-            if (memory != null && result instanceof String) {
-                memory.add(ChatMessage.assistant((String) result));
-            }
-
-            notifyObservationEnd(observation.intentRef(intentRef)
-                    .retrievalInjected(retrievalInjected)
-                    .answer(result instanceof String ? (String) result : null)
-                    .latencyMillis((System.nanoTime() - startNanos) / 1000000L));
-            return result;
+        private static String errorMessage(Throwable t) {
+            String message = t.getMessage();
+            return message == null || message.isEmpty() ? t.getClass().getSimpleName() : message;
         }
 
 
@@ -642,6 +709,7 @@ public final class AiServices {
                 ToolCallingSink sink = streamHandler == null ? null
                         : new LlmStreamHandlerSink(streamHandler);
                 ToolCallingResult callResult = loop.call(tcRequest, sink);
+                recordToolSpans(callResult.getTraces());
                 String answer = callResult.getAnswer();
                 if (useJson) {
                     String json = JsonSupport.repairJson(answer);
@@ -681,20 +749,45 @@ public final class AiServices {
             if (classifier == null || userText == null) {
                 return null;
             }
-            if (emit) {
-                streamHandler.onIntent(IntentEvent.start(candidateIntents().size()));
+            String parentTraceId = TraceContext.traceId();
+            String parentSpanId = TraceContext.spanId();
+            Span.Builder intentSpan = Span.start(parentTraceId, "intent", SpanKind.CHAIN);
+            if (parentSpanId != null) {
+                intentSpan.parent(parentSpanId);
             }
-            IntentResult result = classifier.classify(IntentRequest.builder()
-                    .text(userText).candidates(candidateIntents()).build());
-            if (emit && result != null) {
-                List<IntentMatch> matches = result.getMatches();
-                for (int i = 0; i < matches.size(); i++) {
-                    IntentMatch m = matches.get(i);
-                    streamHandler.onIntent(IntentEvent.match(
-                            m.getRef(), m.getLabel(), m.getScore(), i + 1, matches.size()));
+            intentSpan.input(userText);
+            TraceContext.bind(intentSpan.getTraceId(), intentSpan.getSpanId());
+            try {
+                List<Intent> candidates = candidateIntents();
+                if (emit) {
+                    streamHandler.onIntent(IntentEvent.start(candidates.size()));
+                }
+                IntentResult result = classifier.classify(IntentRequest.builder()
+                        .text(userText).candidates(candidates).build());
+                if (emit && result != null) {
+                    List<IntentMatch> matches = result.getMatches();
+                    for (int i = 0; i < matches.size(); i++) {
+                        IntentMatch m = matches.get(i);
+                        streamHandler.onIntent(IntentEvent.match(
+                                m.getRef(), m.getLabel(), m.getScore(), i + 1, matches.size()));
+                    }
+                }
+                String ref = result == null || result.getTop() == null ? null : result.getTop().getRef();
+                intentSpan.output(ref);
+                intentSpan.attribute("candidateCount", candidates.size());
+                return ref;
+            } catch (RuntimeException e) {
+                intentSpan.error(errorMessage(e));
+                throw e;
+            } finally {
+                intentSpan.end(System.currentTimeMillis());
+                endSpan(intentSpan);
+                if (parentTraceId != null) {
+                    TraceContext.bind(parentTraceId, parentSpanId);
+                } else {
+                    TraceContext.unbind();
                 }
             }
-            return result == null || result.getTop() == null ? null : result.getTop().getRef();
         }
 
         /** 汇总各作用域声明的意图引用，作为分类候选。 */

@@ -10,6 +10,7 @@ import com.xiongx9527.fw.plus.ai.base.model.moderation.ModerationModel;
 import com.xiongx9527.fw.plus.ai.base.output.JsonBindings;
 import com.xiongx9527.fw.plus.ai.base.output.JsonOutputPort;
 import com.xiongx9527.fw.plus.ai.base.store.StoreRegistry;
+import com.xiongx9527.fw.plus.ai.base.trace.TracePort;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -58,6 +59,8 @@ public final class AiServiceContext {
 
     private final List<AiObservationListener> observationListeners;
 
+    private final TracePort trace;
+
     private final StoreRegistry storeRegistry;
 
     /** 覆盖注解的 system 文本（替代 {@code @SystemMessage}）。 */
@@ -91,7 +94,7 @@ public final class AiServiceContext {
                      boolean emitLifecycleEvents, boolean skipToolsWhenRetrievalHit,
                      ModerationModel moderationModel, List<ModerationListener> moderationListeners,
                      JsonOutputPort jsonOutput, JsonBindings jsonBindings,
-                     List<AiObservationListener> observationListeners,
+                     List<AiObservationListener> observationListeners, TracePort trace,
                      String systemTextOverride, String userTemplateOverride,
                      java.util.function.Supplier<String> memoryIdOverride, Integer memoryIdParamIndex,
                      String memoryIdVarKey,
@@ -121,6 +124,7 @@ public final class AiServiceContext {
         this.jsonBindings = jsonBindings;
         this.observationListeners = observationListeners == null ? Collections.<AiObservationListener>emptyList()
                 : Collections.unmodifiableList(new ArrayList<AiObservationListener>(observationListeners));
+        this.trace = trace == null ? TracePort.noop() : trace;
         this.systemTextOverride = systemTextOverride;
         this.userTemplateOverride = userTemplateOverride;
         this.memoryIdOverride = memoryIdOverride;
@@ -198,6 +202,11 @@ public final class AiServiceContext {
     /** 调用级观测监听（用于 Langfuse / Langsmith 等）。 */
     public List<AiObservationListener> getObservationListeners() {
         return observationListeners;
+    }
+
+    /** 链路追踪端口：未接入时为 {@link TracePort#noop()}。 */
+    public TracePort getTrace() {
+        return trace;
     }
 
     /** 命名存储注册器（向量 / 图 / 自定义后端的统一入口，按名或类型取用）。 */

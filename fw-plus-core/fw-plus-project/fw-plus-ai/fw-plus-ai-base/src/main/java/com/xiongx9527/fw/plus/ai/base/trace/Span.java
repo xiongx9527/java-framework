@@ -163,6 +163,16 @@ public final class Span {
             this.kind = kind;
         }
 
+        /** 本节点所属链路 id（可作为子节点的 traceId）。 */
+        public String getTraceId() {
+            return traceId;
+        }
+
+        /** 本节点 id（可作为子节点的 parentSpanId，也可绑定到 {@link TraceContext} 供下游串联）。 */
+        public String getSpanId() {
+            return spanId;
+        }
+
         public Builder parent(String parentSpanId) {
             this.parentSpanId = parentSpanId;
             return this;
