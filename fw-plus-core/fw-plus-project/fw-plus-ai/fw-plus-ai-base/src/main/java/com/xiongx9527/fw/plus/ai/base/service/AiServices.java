@@ -43,6 +43,7 @@ import com.xiongx9527.fw.plus.ai.base.store.vector.Document;
 import com.xiongx9527.fw.plus.ai.base.template.PromptTemplate;
 import com.xiongx9527.fw.plus.ai.base.trace.Span;
 import com.xiongx9527.fw.plus.ai.base.trace.SpanKind;
+import com.xiongx9527.fw.plus.ai.base.trace.SpanStatus;
 import com.xiongx9527.fw.plus.ai.base.trace.TraceContext;
 import com.xiongx9527.fw.plus.ai.base.trace.TracePort;
 import com.xiongx9527.fw.plus.ai.base.tool.CompositeToolProvider;
@@ -666,6 +667,29 @@ public final class AiServices {
         private static String errorMessage(Throwable t) {
             String message = t.getMessage();
             return message == null || message.isEmpty() ? t.getClass().getSimpleName() : message;
+        }
+
+        /** 把工具调用环产生的轨迹补成 TOOL 子节点（父节点为当前 {@code ai.call}）。 */
+        private void recordToolSpans(List<ToolTrace> traces) {
+            if (traces == null || traces.isEmpty()) {
+                return;
+            }
+            String traceId = TraceContext.traceId();
+            String parentSpanId = TraceContext.spanId();
+            for (ToolTrace trace : traces) {
+                Span.Builder span = Span.start(traceId, trace.getName(), SpanKind.TOOL);
+                if (parentSpanId != null) {
+                    span.parent(parentSpanId);
+                }
+                span.input(trace.getArgumentsSummary());
+                span.attribute("ok", trace.isOk());
+                span.attribute("latencyMillis", trace.getLatencyMillis());
+                if (!trace.isOk()) {
+                    span.status(SpanStatus.ERROR);
+                }
+                span.end(System.currentTimeMillis());
+                endSpan(span);
+            }
         }
 
 
