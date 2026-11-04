@@ -129,6 +129,42 @@ class AiServicesChatCallTest {
     }
 
     @Test
+    void memoryIdResolvedDynamicallyFromBusinessInput() {
+        RecordingLlm llm = new RecordingLlm();
+        final InMemoryChatMemoryStore store = new InMemoryChatMemoryStore();
+        ChatMemoryProvider provider = memoryId -> MessageWindowChatMemory.builder()
+                .id(memoryId).store(store).build();
+        ChatCall call = AiServices.fluent()
+                .llm(llm)
+                .systemText("System")
+                .chatMemoryProvider(provider)
+                .memoryIdFromVar("sessionId")
+                .buildChatCall();
+
+        Map<String, Object> varsA = new HashMap<String, Object>();
+        varsA.put("sessionId", "user-1");
+        varsA.put("q", "first");
+        call.call(varsA);
+
+        Map<String, Object> varsB = new HashMap<String, Object>();
+        varsB.put("sessionId", "user-2");
+        varsB.put("q", "second");
+        call.call(varsB);
+
+        // 两个不同业务输入对应两个不同会话，记忆互不干扰
+        List<ChatMessage> second = llm.requests.get(1).getMessages();
+        assertEquals("second", second.get(second.size() - 1).getContent());
+        // user-2 是全新会话，历史里不应出现 user-1 的首轮内容
+        boolean sawUser1First = false;
+        for (ChatMessage m : second) {
+            if ("first".equals(m.getContent())) {
+                sawUser1First = true;
+            }
+        }
+        assertTrue(!sawUser1First);
+    }
+
+    @Test
     void streamDispatchesTokensToHandler() {
         RecordingLlm llm = new RecordingLlm();
         ChatCall call = AiServices.fluent()

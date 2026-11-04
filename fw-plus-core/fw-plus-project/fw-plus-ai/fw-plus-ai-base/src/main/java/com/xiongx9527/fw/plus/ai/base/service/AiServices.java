@@ -110,6 +110,7 @@ public final class AiServices {
         private String userTemplateOverride;
         private java.util.function.Supplier<String> memoryIdOverride;
         private Integer memoryIdParamIndex;
+        private String memoryIdVarKey;
         private final Map<String, Integer> varOverrides = new LinkedHashMap<String, Integer>();
         private final Map<String, java.util.function.Supplier<Object>> customVariables = new LinkedHashMap<String, java.util.function.Supplier<Object>>();
         private boolean jsonResult = false;
@@ -380,6 +381,17 @@ public final class AiServices {
             return this;
         }
 
+        /**
+         * 从业务输入变量表里按 key 动态取会话 id：每次调用从入参变量（无类调用为 {@code call(vars)} 的 map，
+         * 接口调用为 {@code @V} 绑定的变量）中读 {@code key} 的值作为会话 id。
+         * 适合会话 / 用户 id 由请求体带入、随业务输入动态变化的场景；优先级低于 {@code @MemoryId} /
+         * {@link #memoryIdFromParam(int)} / {@link #memoryId(Supplier)}。
+         */
+        public Builder<T> memoryIdFromVar(String key) {
+            this.memoryIdVarKey = key;
+            return this;
+        }
+
         /** 把第 {@code paramIndex} 个方法参数当作会话 id（覆盖 {@code @MemoryId}）。 */
         public Builder<T> memoryIdFromParam(int paramIndex) {
             this.memoryIdParamIndex = paramIndex;
@@ -414,6 +426,7 @@ public final class AiServices {
                             emitLifecycleEvents, skipToolsWhenRetrievalHit,
                             moderationModel, moderationListeners, jsonOutput, jsonBindings, observationListeners,
                             systemTextOverride, userTemplateOverride, memoryIdOverride, memoryIdParamIndex,
+                            memoryIdVarKey,
                             varOverrides, customVariables, storeRegistry))));
         }
 
@@ -428,6 +441,7 @@ public final class AiServices {
                     emitLifecycleEvents, skipToolsWhenRetrievalHit,
                     moderationModel, moderationListeners, jsonOutput, jsonBindings, observationListeners,
                     systemTextOverride, userTemplateOverride, memoryIdOverride, memoryIdParamIndex,
+                    memoryIdVarKey,
                     varOverrides, customVariables, storeRegistry);
             return new ChatCall(ctx, jsonResult, chatReturnType);
         }
@@ -446,7 +460,7 @@ public final class AiServices {
                 return invokeObjectMethod(proxy, method, args);
             }
             Map<String, Object> baseVariables = variables(method, args);
-            String memoryId = memoryId(method, args);
+            String memoryId = memoryId(method, args, baseVariables);
             LlmStreamHandler streamHandler = streamHandler(method, args);
             Map<String, Object> userVars = withSystemVars(baseVariables, memoryId, null);
             String userText = userPrompt(method, userVars);
@@ -902,7 +916,7 @@ public final class AiServices {
             return variables;
         }
 
-        private String memoryId(Method method, Object[] args) {
+        private String memoryId(Method method, Object[] args, Map<String, Object> baseVariables) {
             java.util.function.Supplier<String> override = context.getMemoryIdOverride();
             if (override != null) {
                 return override.get();
@@ -915,6 +929,13 @@ public final class AiServices {
             for (int i = 0; i < parameters.length; i++) {
                 if (parameters[i].getAnnotation(MemoryId.class) != null && args != null && i < args.length) {
                     return args[i] == null ? null : String.valueOf(args[i]);
+                }
+            }
+            String varKey = context.getMemoryIdVarKey();
+            if (varKey != null && baseVariables != null) {
+                Object v = baseVariables.get(varKey);
+                if (v != null) {
+                    return String.valueOf(v);
                 }
             }
             return null;
@@ -1132,6 +1153,15 @@ public final class AiServices {
                 java.util.function.Supplier<String> ov = context.getMemoryIdOverride();
                 if (ov != null) {
                     memoryId = ov.get();
+                }
+            }
+            if (memoryId == null) {
+                String varKey = context.getMemoryIdVarKey();
+                if (varKey != null) {
+                    Object v = baseVariables.get(varKey);
+                    if (v != null) {
+                        memoryId = String.valueOf(v);
+                    }
                 }
             }
             CallInput ci = new CallInput();

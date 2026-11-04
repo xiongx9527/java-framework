@@ -72,6 +72,9 @@ public final class AiServiceContext {
     /** 会话 id 绑定的方法参数下标（与 {@code memoryIdOverride} 二选一）。 */
     private final Integer memoryIdParamIndex;
 
+    /** 从业务输入变量表里按 key 取会话 id（与 {@code @MemoryId} / 参数下标 / override 二选一，优先级最低）。 */
+    private final String memoryIdVarKey;
+
     /** 变量绑定覆盖：变量名 -> 方法参数下标（替代 {@code @V}）。 */
     private final Map<String, Integer> varOverrides;
 
@@ -91,6 +94,7 @@ public final class AiServiceContext {
                      List<AiObservationListener> observationListeners,
                      String systemTextOverride, String userTemplateOverride,
                      java.util.function.Supplier<String> memoryIdOverride, Integer memoryIdParamIndex,
+                     String memoryIdVarKey,
                      Map<String, Integer> varOverrides,
                      Map<String, java.util.function.Supplier<Object>> customVariables,
                      StoreRegistry storeRegistry) {
@@ -121,6 +125,7 @@ public final class AiServiceContext {
         this.userTemplateOverride = userTemplateOverride;
         this.memoryIdOverride = memoryIdOverride;
         this.memoryIdParamIndex = memoryIdParamIndex;
+        this.memoryIdVarKey = memoryIdVarKey;
         this.varOverrides = varOverrides == null ? Collections.<String, Integer>emptyMap()
                 : Collections.unmodifiableMap(new LinkedHashMap<String, Integer>(varOverrides));
         this.customVariables = customVariables == null ? Collections.<String, java.util.function.Supplier<Object>>emptyMap()
@@ -218,6 +223,11 @@ public final class AiServiceContext {
     /** 会话 id 绑定的方法参数下标；为 {@code null} 时回退到注解 / 供应器。 */
     public Integer getMemoryIdParamIndex() {
         return memoryIdParamIndex;
+    }
+
+    /** 从业务输入变量表里取会话 id 的 key；为 {@code null} 时不从变量取。 */
+    public String getMemoryIdVarKey() {
+        return memoryIdVarKey;
     }
 
     /** 变量名 -> 方法参数下标的覆盖（替代 {@code @V}）。 */
