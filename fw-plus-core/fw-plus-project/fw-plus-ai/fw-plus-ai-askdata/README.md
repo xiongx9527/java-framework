@@ -7,6 +7,50 @@
 - 纯能力封装，**不绑定**任何 LLM / 向量库 / 数据库实现（这些通过 `fw-plus-ai-base`、`fw-plus-ai-support` 的端口注入）。
 - 既可作为独立能力内联调用，也可作为 `AiServices` 的 `ToolProvider` 暴露给模型。
 
+## 业务侧需要注入什么
+
+`fw-plus-ai-askdata` 提供通用编排和默认实现，不负责选择业务数据源、识别当前用户权限或替业务注册具体模型。业务侧按使用场景提供以下依赖：
+
+| 依赖 | 是否必需 | 业务侧职责 / 模块提供的实现 |
+| --- | --- | --- |
+| `LlmPort` | SQL 生成必需 | 接到业务选择的模型；通常由 `fw-plus-ai-langchain4j-*` 等适配模块提供，也可自行实现 `fw-plus-ai-base` 端口。 |
+| `SqlExecutorPort` 或 `DataSource` | SQL 执行必需 | 选择可查询的数据源并落实租户路由。固定数据源可直接使用 `new JdbcSqlExecutor(dataSource)`；动态数据源/非 JDBC 后端由业务提供 `SqlExecutorPort` 实现。 |
+| `SchemaCandidateProvider` | 使用 `AskDataRetriever` 接入 AiServices 检索时必需 | 从业务元数据中构造 `TableSchema`，并且只返回当前用户、租户和数据权限允许访问的表及字段。直接调用 `AskDataCapability` 时，业务代码需把授权后的表结构传入 `AskDataInput.candidates`。 |
+| `Retriever<Document>`（向量、词法）及可选 `Reranker<Document>` | 采用检索式 schema 召回时按策略需要 | 复用 `fw-plus-ai-base` / `fw-plus-ai-support` 检索端口及相应存储适配；经济型需要词法检索器，质量型可组合向量、词法和重排。 |
+| `ToolArgumentCodec` | 通过 `ToolProvider` 暴露工具时必需 | 可注入 `fw-plus-ai-support` 的 `JacksonToolArgumentCodec`；也可按应用的 JSON 组件自行实现。 |
+| 图表生成调用 | 仅需要图表时 | 不参与 `DefaultAskDataCapability` 主流程；调用方在拿到 `QueryResult` 后独立调用 `ChartGenerationCapability`。 |
+
+最小的 SQL 问答装配如下（省略具体模型适配和 `DataSource` 配置）：
+
+```java
+SqlGenerationCapability generation = SqlGenerationCapabilityBuilder.builder()
+        .llm(llmPort)
+        .build();
+
+SqlExecutionCapability execution = SqlExecutionCapabilityBuilder.builder()
+        .executor(new JdbcSqlExecutor(dataSource))
+        .build();
+
+// 不启用 schema 召回：调用 ask() 时由可信业务代码传入候选表。
+AskDataCapability askData = new DefaultAskDataCapability(generation, execution);
+
+// 启用 schema 召回：AskDataInput.candidates 仍须由可信业务代码按权限筛选后传入。
+SchemaRecallCapability recall = EngineSchemaRecallCapability.forStrategy(
+        IndexMode.ECONOMICAL, null, lexicalRetriever, null, 10, 8, 0.0);
+AskDataCapability askDataWithRecall = new DefaultAskDataCapability(recall, generation, execution);
+```
+
+若应用只需业务代码直接调用 `askData.ask(input)`，不需要创建 `ToolArgumentCodec` 或 `AskDataToolProvider`。若只需 SQL 生成或执行，也可分别装配 `SqlGenerationCapability` / `SqlExecutionCapability`，无需创建端到端 `AskDataCapability`。
+
+接入 AiServices 做 schema 检索时，使用 `AskDataRetriever.forStrategy(candidateProvider, indexMode, vectorRetriever, lexicalRetriever, reranker)`；AiServices 的工具注册则另行注册 `AskDataToolProvider`。两者不能互相替代。
+
+### 权限与安全边界
+
+- 用户身份、租户、数据权限和动态数据源路由必须由业务侧可信上下文决定，不能由模型参数决定。`SchemaCandidateProvider` 是 `AskDataRetriever` 的表结构候选过滤点，不替代数据库本身的行级/列级权限；直接调用问数能力时，授权候选表由业务侧放进 `AskDataInput.candidates`。
+- `readOnly` 和 SQL 校验是通用防护，不等于完整 SQL 安全沙箱。应使用只读数据库账号、设置正数的行数/超时上限，并在业务侧限制可访问的数据源。
+- 当前 `AskDataToolProvider` 将 `schemaContext` 声明为模型工具必填参数，并直接转换成候选表传给 `AskDataCapability`；它不会自动调用 `SchemaCandidateProvider`。因此多租户或有权限隔离要求时，不要把模型传入的 schema 当授权依据，也不要未经业务侧可信注入就直接暴露该 Provider。AiServices 的 `Retriever<Document>` 召回与此工具参数目前不是自动联动的权限链路。
+- `AiServices` 中注册检索器与注册工具是两件事：`AskDataRetriever` 负责按 `SchemaCandidateProvider` 限定可检索的 schema 文档；`AskDataToolProvider` 负责调用 SQL 问答能力。注册 Retriever 本身不会使工具执行自动获得其检索结果。
+
 ## 核心能力
 
 | 能力 | 端口 / 实现 | 说明 |
@@ -21,7 +65,7 @@
 
 ## 端到端编排
 
-`DefaultAskDataCapability.ask(AskDataInput)` 串起 **召回 → 生成 SQL → 执行**：
+`DefaultAskDataCapability.ask(AskDataInput)` 串起 **可选召回 → 生成 SQL → 执行**。未配置 `SchemaRecallCapability` 时直接使用 `AskDataInput.candidates`；图表生成不在此调用链内：
 
 ```java
 AskDataResult result = askData.ask(AskDataInput.builder()
