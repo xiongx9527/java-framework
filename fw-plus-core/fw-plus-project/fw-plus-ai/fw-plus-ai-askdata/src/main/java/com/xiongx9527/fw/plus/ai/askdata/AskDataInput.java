@@ -1,6 +1,5 @@
 package com.xiongx9527.fw.plus.ai.askdata;
 
-import com.xiongx9527.fw.plus.ai.askdata.schema.TableSchema;
 import com.xiongx9527.fw.plus.ai.support.retrieval.IndexMode;
 import java.util.Collections;
 import java.util.List;
@@ -20,9 +19,6 @@ public class AskDataInput {
 
     /** 用户自然语言问题（必填）。 */
     private final String question;
-
-    /** 候选表 schema 列表；为空时由召回阶段根据问题自行发现相关表。 */
-    private final List<TableSchema> candidates;
 
     /** SQL 方言提示（如 mysql / postgres），通常来自 DatasourceType.sqlDialectHint()。 */
     private final String dialectHint;

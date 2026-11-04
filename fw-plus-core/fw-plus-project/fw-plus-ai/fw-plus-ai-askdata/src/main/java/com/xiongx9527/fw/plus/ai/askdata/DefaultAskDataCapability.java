@@ -6,35 +6,44 @@ import com.xiongx9527.fw.plus.ai.askdata.capability.SqlGenerationCapability;
 import com.xiongx9527.fw.plus.ai.askdata.execution.QueryResult;
 import com.xiongx9527.fw.plus.ai.askdata.execution.SqlExecInput;
 import com.xiongx9527.fw.plus.ai.askdata.execution.SqlExecutionCapability;
+import com.xiongx9527.fw.plus.ai.askdata.recall.SchemaCandidateProvider;
 import com.xiongx9527.fw.plus.ai.askdata.recall.SchemaRecallCapability;
 import com.xiongx9527.fw.plus.ai.askdata.recall.SchemaRecallInput;
+import com.xiongx9527.fw.plus.ai.askdata.schema.TableSchema;
 import com.xiongx9527.fw.plus.ai.askdata.schema.SchemaContext;
+import com.xiongx9527.fw.plus.ai.base.retrieval.RetrievalQuery;
 import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import java.util.Collections;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 /**
- * Default AskDataCapability: recall schema (optional), generate SQL with the NL2SQL capability,
+ * Default AskDataCapability: resolve authorized schema candidates, recall schema, generate SQL with the NL2SQL capability,
  * and execute it with the execution capability. Returns the executed result plus the SQL and
  * confidence so callers can present or re-ask.
  */
 public class DefaultAskDataCapability implements AskDataCapability {
 
+    private final SchemaCandidateProvider candidateProvider;
     private final SchemaRecallCapability recall;
     private final SqlGenerationCapability generation;
     private final SqlExecutionCapability execution;
 
-    public DefaultAskDataCapability(SqlGenerationCapability generation, SqlExecutionCapability execution) {
-        this(null, generation, execution);
-    }
-
-    public DefaultAskDataCapability(SchemaRecallCapability recall, SqlGenerationCapability generation,
-                                   SqlExecutionCapability execution) {
+    public DefaultAskDataCapability(SchemaCandidateProvider candidateProvider, SchemaRecallCapability recall,
+                                   SqlGenerationCapability generation, SqlExecutionCapability execution) {
+        if (candidateProvider == null) {
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("askdata.contract.schema_candidate_provider_required"));
+        }
         if (generation == null) {
             throw new IllegalArgumentException(I18nMessageResolver.resolveKey("askdata.contract.gen_capability_required"));
         }
         if (execution == null) {
             throw new IllegalArgumentException(I18nMessageResolver.resolveKey("askdata.contract.exec_capability_required"));
         }
+        this.candidateProvider = candidateProvider;
         this.recall = recall;
         this.generation = generation;
         this.execution = execution;
@@ -45,16 +54,27 @@ public class DefaultAskDataCapability implements AskDataCapability {
         if (input == null) {
             throw new IllegalArgumentException(I18nMessageResolver.resolveKey("askdata.contract.ask_data_input_required"));
         }
+        List<TableSchema> providedCandidates = candidateProvider.findCandidates(
+                RetrievalQuery.builder().text(input.getQuestion()).build());
+        List<TableSchema> candidates = new ArrayList<TableSchema>();
+        if (providedCandidates != null) {
+            for (TableSchema candidate : providedCandidates) {
+                if (candidate != null && candidate.getName() != null && !candidate.getName().trim().isEmpty()) {
+                    candidates.add(candidate);
+                }
+            }
+        }
         SchemaContext schema;
         if (recall != null) {
-            schema = recall.recall(SchemaRecallInput.builder()
+            SchemaContext recalled = recall.recall(SchemaRecallInput.builder()
                     .question(input.getQuestion())
-                    .candidates(input.getCandidates())
+                    .candidates(new ArrayList<TableSchema>(candidates))
                     .indexMode(input.getRecallIndexMode())
                     .build());
+            schema = restrictToAuthorizedCandidates(candidates, recalled);
         } else {
             schema = SchemaContext.builder()
-                    .tables(input.getCandidates() == null ? Collections.emptyList() : input.getCandidates())
+                    .tables(candidates)
                     .build();
         }
         SqlGenInput.Builder gb = SqlGenInput.builder()
@@ -98,5 +118,32 @@ public class DefaultAskDataCapability implements AskDataCapability {
                 .warnings(qr.getWarnings())
                 .executed(true)
                 .build();
+    }
+
+    private SchemaContext restrictToAuthorizedCandidates(List<TableSchema> candidates, SchemaContext recalled) {
+        if (recalled == null || recalled.isEmpty()) {
+            return SchemaContext.builder().tables(Collections.<TableSchema>emptyList()).build();
+        }
+        Map<String, TableSchema> authorized = new LinkedHashMap<String, TableSchema>();
+        for (TableSchema candidate : candidates) {
+            if (candidate != null && candidate.getName() != null) {
+                authorized.put(normalize(candidate.getName()), candidate);
+            }
+        }
+        java.util.ArrayList<TableSchema> tables = new java.util.ArrayList<TableSchema>();
+        for (TableSchema table : recalled.getTables()) {
+            if (table == null || table.getName() == null) {
+                continue;
+            }
+            TableSchema trusted = authorized.get(normalize(table.getName()));
+            if (trusted != null && !tables.contains(trusted)) {
+                tables.add(trusted);
+            }
+        }
+        return SchemaContext.builder().tables(tables).build();
+    }
+
+    private String normalize(String tableName) {
+        return tableName.trim().toLowerCase(Locale.ROOT).replace("`", "").replace("\"", "");
     }
 }

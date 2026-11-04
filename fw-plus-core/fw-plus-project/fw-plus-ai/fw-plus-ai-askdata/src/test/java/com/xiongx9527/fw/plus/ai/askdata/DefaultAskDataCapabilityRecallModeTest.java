@@ -10,6 +10,7 @@ import com.xiongx9527.fw.plus.ai.askdata.execution.SqlExecInput;
 import com.xiongx9527.fw.plus.ai.askdata.execution.SqlExecutionCapability;
 import com.xiongx9527.fw.plus.ai.askdata.recall.SchemaRecallCapability;
 import com.xiongx9527.fw.plus.ai.askdata.recall.SchemaRecallInput;
+import com.xiongx9527.fw.plus.ai.askdata.recall.SchemaCandidateProvider;
 import com.xiongx9527.fw.plus.ai.askdata.schema.SchemaContext;
 import com.xiongx9527.fw.plus.ai.support.retrieval.IndexMode;
 import org.junit.jupiter.api.Test;
@@ -47,7 +48,7 @@ public class DefaultAskDataCapabilityRecallModeTest {
     @Test
     void economicalModeIsPlumbed() {
         SpyRecall recall = new SpyRecall();
-        DefaultAskDataCapability cap = new DefaultAskDataCapability(recall, new StubGen(), new StubExec());
+        DefaultAskDataCapability cap = new DefaultAskDataCapability(emptyCandidates(), recall, new StubGen(), new StubExec());
         cap.ask(AskDataInput.builder().question("q").recallIndexMode(IndexMode.ECONOMICAL).build());
         assertEquals(IndexMode.ECONOMICAL, recall.last.getIndexMode());
     }
@@ -55,8 +56,12 @@ public class DefaultAskDataCapabilityRecallModeTest {
     @Test
     void defaultModeIsHighQuality() {
         SpyRecall recall = new SpyRecall();
-        DefaultAskDataCapability cap = new DefaultAskDataCapability(recall, new StubGen(), new StubExec());
+        DefaultAskDataCapability cap = new DefaultAskDataCapability(emptyCandidates(), recall, new StubGen(), new StubExec());
         cap.ask(AskDataInput.builder().question("q").build());
         assertEquals(IndexMode.HIGH_QUALITY, recall.last.getIndexMode());
+    }
+
+    private SchemaCandidateProvider emptyCandidates() {
+        return query -> java.util.Collections.emptyList();
     }
 }
