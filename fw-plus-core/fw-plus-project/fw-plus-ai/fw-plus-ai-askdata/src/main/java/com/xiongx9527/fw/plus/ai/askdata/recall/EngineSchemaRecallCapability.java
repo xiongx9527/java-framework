@@ -6,6 +6,9 @@ import com.xiongx9527.fw.plus.ai.base.retrieval.RetrievalQuery;
 import com.xiongx9527.fw.plus.ai.askdata.schema.SchemaContext;
 import com.xiongx9527.fw.plus.ai.askdata.schema.TableSchema;
 import com.xiongx9527.fw.plus.ai.base.store.vector.Document;
+import com.xiongx9527.fw.plus.ai.base.retrieval.Reranker;
+import com.xiongx9527.fw.plus.ai.support.retrieval.IndexMode;
+import com.xiongx9527.fw.plus.ai.support.retrieval.RetrievalStrategies;
 import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -41,6 +44,17 @@ public class EngineSchemaRecallCapability implements SchemaRecallCapability {
         this.topK = topK;
         this.topN = topN;
         this.scoreThreshold = scoreThreshold;
+    }
+
+    /**
+     * Build a schema recall capability with an economical/quality strategy (IndexMode).
+     * Delegates to RetrievalStrategies.build so ECONOMICAL only allows lexical recall with no rerank,
+     * while HIGH_QUALITY enables semantic/hybrid recall with optional rerank.
+     */
+    public static SchemaRecallCapability forStrategy(IndexMode indexMode, Retriever<Document> vector,
+            Retriever<Document> lexical, Reranker<Document> reranker, int topK, int topN, double threshold) {
+        Retriever<Document> chain = RetrievalStrategies.build(indexMode, null, vector, lexical, reranker, null);
+        return new EngineSchemaRecallCapability(chain, topK, topN, threshold);
     }
 
     @Override

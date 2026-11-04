@@ -37,7 +37,7 @@ public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
 
     public DefaultSqlGenerationCapability(LlmPort llm) {
         this(llm, new SqlPromptBuilder(), new LocalSqlValidationStrategy(), null,
-                new ConfidenceEstimator(), SqlRepairPolicy.builder().build(), true, false);
+                new ConfidenceEstimator(), SqlRepairPolicy.builder().build(), false);
     }
 
     public DefaultSqlGenerationCapability(LlmPort llm, SqlPromptBuilder promptBuilder,

@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.askdata;
 
 import com.xiongx9527.fw.plus.ai.askdata.schema.TableSchema;
+import com.xiongx9527.fw.plus.ai.support.retrieval.IndexMode;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -31,4 +32,8 @@ public class AskDataInput {
     private final int queryTimeoutSeconds = 30;
     @Builder.Default
     private final boolean readOnly = true;
+
+    /** Recall index strategy: HIGH_QUALITY (quality) or ECONOMICAL. Default quality. */
+    @Builder.Default
+    private final IndexMode recallIndexMode = IndexMode.HIGH_QUALITY;
 }
