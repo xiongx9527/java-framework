@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 
 class LlmPortTest {
@@ -33,7 +34,7 @@ class LlmPortTest {
         }
     }
 
-    @Test
+    @org.junit.Test
     void completeAggregatesStreamingDeltas() {
         LlmResponse response = new FakePort(false).complete(LlmRequest.systemUser("sys", "user"));
 
@@ -137,5 +138,31 @@ class LlmPortTest {
 
         assertNull(response.getContent());
         assertEquals(0L, response.getUsage().getTotalTokens());
+    }
+
+    @Test
+    void completeWaitsForAsynchronousStreamCompletion() {
+        AbstractLlmPort asynchronous = new AbstractLlmPort() {
+            @Override
+            protected void doStream(LlmRequest request, LlmStreamHandler handler) {
+                Thread worker = new Thread(() -> {
+                    try {
+                        TimeUnit.MILLISECONDS.sleep(30L);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        handler.onError("interrupted");
+                        return;
+                    }
+                    handler.onToken("async answer", null);
+                    handler.onComplete();
+                });
+                worker.setDaemon(true);
+                worker.start();
+            }
+        };
+
+        LlmResponse response = asynchronous.complete(LlmRequest.systemUser("s", "u"));
+
+        assertEquals("async answer", response.getContent());
     }
 }

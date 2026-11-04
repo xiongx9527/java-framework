@@ -82,6 +82,20 @@ class LlmPortResolverTest {
     }
 
     @Test
+    void routesLangChain4jProvidersWithoutExplicitProtocol() {
+        assertTrue(LlmPortResolver.create(LlmVendor.DASHSCOPE, configWithoutProtocol())
+                instanceof OpenAiChatCompletionsLlmPort);
+        assertTrue(LlmPortResolver.create(LlmVendor.GITHUB_MODELS, configWithoutProtocol())
+                instanceof OpenAiChatCompletionsLlmPort);
+        assertTrue(LlmPortResolver.create(LlmVendor.OLLAMA, configWithoutProtocol())
+                instanceof OpenAiChatCompletionsLlmPort);
+        assertTrue(LlmPortResolver.create(LlmVendor.QIANFAN, configWithoutProtocol())
+                instanceof OpenAiChatCompletionsLlmPort);
+        assertTrue(LlmPortResolver.create(LlmVendor.VERTEX_AI_GEMINI, configWithoutProtocol())
+                instanceof GeminiLlmPort);
+    }
+
+    @Test
     void rejectsProtocolThatDoesNotBelongToVendorFactory() {
         assertThrows(IllegalArgumentException.class,
                 () -> LlmPortResolver.createAnthropic(config(LlmProtocol.GEMINI)));
