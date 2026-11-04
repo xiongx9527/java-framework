@@ -514,7 +514,7 @@ public final class AiServices {
             String previousTraceId = TraceContext.traceId();
             String previousSpanId = TraceContext.spanId();
             String traceId = previousTraceId == null ? UUID.randomUUID().toString() : previousTraceId;
-            Span.Builder callSpan = Span.start(traceId, "ai.call", SpanKind.CHAIN);
+            Span.Builder callSpan = context.getTrace().start("ai.call", SpanKind.CHAIN);
             if (previousSpanId != null) {
                 callSpan.parent(previousSpanId);
             }

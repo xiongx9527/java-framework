@@ -12,6 +12,9 @@ import com.xiongx9527.fw.plus.ai.base.model.ChatMessage;
 import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmResponse;
 import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
+import com.xiongx9527.fw.plus.ai.base.trace.Span;
+import com.xiongx9527.fw.plus.ai.base.trace.SpanKind;
+import com.xiongx9527.fw.plus.ai.base.trace.TracePort;
 import com.xiongx9527.fw.plus.ai.base.service.AiServices.ChatCall;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,6 +23,26 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class AiServicesChatCallTest {
+
+    static class RecordingTracePort implements TracePort {
+        final List<Span> spans = new ArrayList<Span>();
+        final List<String> startedSpans = new ArrayList<String>();
+
+        @Override
+        public Span.Builder start(String name, SpanKind kind) {
+            startedSpans.add(name);
+            return Span.start(null, name, kind);
+        }
+
+        @Override
+        public void end(Span.Builder span) {
+            spans.add(span.build());
+        }
+
+        @Override
+        public void flush() {
+        }
+    }
 
     static class RecordingLlm extends AbstractLlmPort {
         final List<LlmRequest> requests = new ArrayList<LlmRequest>();
@@ -102,6 +125,24 @@ class AiServicesChatCallTest {
         assertNotNull(raw);
         assertTrue(raw instanceof LlmResponse);
         assertEquals("answer", ((LlmResponse) raw).getContent());
+    }
+
+    @Test
+    void chatCallExportsAiCallSpanThroughConfiguredTracePort() {
+        RecordingTracePort trace = new RecordingTracePort();
+        ChatCall call = AiServices.fluent()
+                .llm(new RecordingLlm())
+                .trace(trace)
+                .buildChatCall();
+
+        call.call("trace me");
+
+        assertEquals(1, trace.startedSpans.size());
+        assertEquals("ai.call", trace.startedSpans.get(0));
+        assertEquals(1, trace.spans.size());
+        assertEquals("ai.call", trace.spans.get(0).getName());
+        assertEquals("trace me", trace.spans.get(0).getInput());
+        assertEquals("answer", trace.spans.get(0).getOutput());
     }
 
     @Test
