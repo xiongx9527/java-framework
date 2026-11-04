@@ -5,19 +5,37 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.xiongx9527.fw.plus</groupId>
-        <artifactId>fw-plus-parent</artifactId>
+        <artifactId>fw-plus-ai</artifactId>
         <version>${revision}</version>
-        <relativePath>../../fw-plus-parent</relativePath>
     </parent>
-    <groupId>com.xiongx9527.fw.plus</groupId>
     <artifactId>fw-plus-ai-native</artifactId>
-    <version>${revision}</version>
-    <packaging>pom</packaging>
-    <description>native 后端：不依赖 langchain4j / Spring AI，直连厂商 API；实现 base 与 support 的契约。按能力域建父工程：core / model / store / retrieval / document / tool / mcp / skill / agentic / bridge / adapter</description>
-    <modules>
-    </modules>
+    <name>fw-plus-ai-native</name>
+    <description>
+        真实原子能力层（与 base 端口、support 组合层相对）：把 base 的端口落成可直接运行的实现——
+        OpenAI 兼容大模型客户端（流式 / 非流式 / 工具调用）、OpenAI 兼容向量化客户端、内存向量存储。
+        参照 product 的直连实现（自研 SSE / HttpURLConnection），不引入额外模型 SDK。
+    </description>
     <properties>
-        <main.basedir>${basedir}/../../..</main.basedir>
+        <main.basedir>${basedir}/../..</main.basedir>
     </properties>
-
+    <dependencies>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-base</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.10.2</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 </project>
