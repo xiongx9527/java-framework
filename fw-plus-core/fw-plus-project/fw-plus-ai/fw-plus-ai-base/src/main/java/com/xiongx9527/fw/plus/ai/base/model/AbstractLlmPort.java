@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.ai.base.model;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolExecutionRequest;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * {@link LlmPort} 的骨架实现：统一收口事件派发，adapter 只实现
@@ -38,6 +39,7 @@ public abstract class AbstractLlmPort implements LlmPort {
         notifyRequest(request);
         AggregatingStreamHandler aggregator = new AggregatingStreamHandler(request);
         doStream(request, aggregator);
+        LlmPort.awaitCompletion(aggregator.completed);
         return aggregator.result();
     }
 
@@ -187,6 +189,8 @@ public abstract class AbstractLlmPort implements LlmPort {
 
         private final LlmRequest request;
 
+        private final CountDownLatch completed = new CountDownLatch(1);
+
         private final StringBuilder content = new StringBuilder();
 
         private final StringBuilder reasoning = new StringBuilder();
@@ -225,12 +229,14 @@ public abstract class AbstractLlmPort implements LlmPort {
             }
             notifyUsage(request, usage);
             notifyComplete(request);
+            completed.countDown();
         }
 
         @Override
         public void onError(String message) {
             this.error = message;
             notifyError(request, message);
+            completed.countDown();
         }
 
         @Override

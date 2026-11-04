@@ -2,12 +2,33 @@ package com.xiongx9527.fw.plus.ai.nativeimpl.llm;
 
 import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
 
-/** 按厂商创建 LLM 端口，并在厂商内部按明确配置的协议选择 API 实现。 */
+/** 创建 LLM 端口；同时配置厂商和协议时，始终以协议为准。 */
 public final class LlmPortResolver {
     private LlmPortResolver() { }
 
     public static LlmPort create(LlmModelConfig config) {
         requireConfig(config);
+        if (config.getProtocol() == null) {
+            throw new IllegalArgumentException("llm protocol is required when vendor is not provided");
+        }
+        return createByProtocol(config);
+    }
+
+    /**
+     * 创建端口。协议存在时忽略厂商；只有协议未配置时，才使用厂商作为默认路由。
+     */
+    public static LlmPort create(LlmVendor vendor, LlmModelConfig config) {
+        requireConfig(config);
+        if (config.getProtocol() != null) {
+            return createByProtocol(config);
+        }
+        if (vendor == null) {
+            throw new IllegalArgumentException("llm vendor is required");
+        }
+        return createByVendor(vendor, config);
+    }
+
+    private static LlmPort createByProtocol(LlmModelConfig config) {
         switch (config.getProtocol()) {
             case OPENAI_CHAT_COMPLETIONS:
             case OPENAI_RESPONSES:
@@ -20,6 +41,24 @@ public final class LlmPortResolver {
                 return createGemini(config);
             default:
                 throw new IllegalArgumentException("unsupported llm protocol: " + config.getProtocol());
+        }
+    }
+
+    private static LlmPort createByVendor(LlmVendor vendor, LlmModelConfig config) {
+        switch (vendor) {
+            case OPENAI:
+                return new OpenAiChatCompletionsLlmPort(
+                        config.getBaseUrl(), config.getApiKey(), config.getDefaultModel());
+            case AZURE_OPENAI:
+                return new AzureOpenAiLlmPort(config.getBaseUrl(), config.getApiKey(),
+                        config.getDefaultModel(), config.getApiVersion());
+            case ANTHROPIC:
+                return new AnthropicLlmPort(config.getBaseUrl(), config.getApiKey(), config.getDefaultModel());
+            case GEMINI:
+                return new GeminiLlmPort(config.getBaseUrl(), config.getApiKey(),
+                        config.getDefaultModel(), config.getApiVersion());
+            default:
+                throw new IllegalArgumentException("unsupported llm vendor: " + vendor);
         }
     }
 
@@ -64,4 +103,5 @@ public final class LlmPortResolver {
             throw new IllegalArgumentException("llm model config is required");
         }
     }
+
 }

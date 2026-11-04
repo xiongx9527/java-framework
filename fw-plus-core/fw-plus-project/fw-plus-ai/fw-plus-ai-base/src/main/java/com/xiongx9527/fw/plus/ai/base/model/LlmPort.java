@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.base.model;
 
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * 大语言模型端口。
@@ -44,6 +45,7 @@ public interface LlmPort {
         final StringBuilder reasoning = new StringBuilder();
         final LlmUsage[] usage = {LlmUsage.ZERO};
         final String[] error = {null};
+        final CountDownLatch completed = new CountDownLatch(1);
         stream(request, new LlmStreamHandler() {
             @Override
             public void onToken(String delta, String reasoningDelta) {
@@ -57,12 +59,13 @@ public interface LlmPort {
 
             @Override
             public void onComplete() {
-                // 非流式调用方不关心结束事件
+                completed.countDown();
             }
 
             @Override
             public void onError(String message) {
                 error[0] = message;
+                completed.countDown();
             }
 
             @Override
@@ -70,6 +73,7 @@ public interface LlmPort {
                 usage[0] = new LlmUsage(inputTokens, outputTokens, totalTokens);
             }
         });
+        awaitCompletion(completed);
         if (error[0] != null) {
             throw new LlmException(error[0]);
         }
@@ -78,6 +82,15 @@ public interface LlmPort {
                 .reasoningContent(reasoning.length() == 0 ? null : reasoning.toString())
                 .usage(usage[0])
                 .build();
+    }
+
+    static void awaitCompletion(CountDownLatch completed) {
+        try {
+            completed.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new LlmException("interrupted while waiting for llm response", e);
+        }
     }
 
     /** 单轮 system + user 的非流式补全快捷方式。 */

@@ -56,6 +56,32 @@ class LlmPortResolverTest {
     }
 
     @Test
+    void createsPortsThroughUnifiedVendorFactory() {
+        assertTrue(LlmPortResolver.create(LlmVendor.OPENAI,
+                config(LlmProtocol.OPENAI_CHAT_COMPLETIONS)) instanceof OpenAiChatCompletionsLlmPort);
+        assertTrue(LlmPortResolver.create(LlmVendor.OPENAI,
+                config(LlmProtocol.OPENAI_RESPONSES)) instanceof OpenAiResponsesLlmPort);
+        assertTrue(LlmPortResolver.create(LlmVendor.AZURE_OPENAI,
+                config(LlmProtocol.AZURE_OPENAI_CHAT_COMPLETIONS)) instanceof AzureOpenAiLlmPort);
+        assertTrue(LlmPortResolver.create(LlmVendor.ANTHROPIC,
+                config(LlmProtocol.ANTHROPIC_MESSAGES)) instanceof AnthropicLlmPort);
+        assertTrue(LlmPortResolver.create(LlmVendor.GEMINI,
+                config(LlmProtocol.GEMINI)) instanceof GeminiLlmPort);
+    }
+
+    @Test
+    void protocolWinsWhenVendorAndProtocolAreBothProvided() {
+        assertTrue(LlmPortResolver.create(LlmVendor.ANTHROPIC, config(LlmProtocol.GEMINI))
+                instanceof GeminiLlmPort);
+    }
+
+    @Test
+    void vendorIsUsedWhenProtocolIsNotProvided() {
+        assertTrue(LlmPortResolver.create(LlmVendor.ANTHROPIC, configWithoutProtocol())
+                instanceof AnthropicLlmPort);
+    }
+
+    @Test
     void rejectsProtocolThatDoesNotBelongToVendorFactory() {
         assertThrows(IllegalArgumentException.class,
                 () -> LlmPortResolver.createAnthropic(config(LlmProtocol.GEMINI)));
@@ -64,6 +90,14 @@ class LlmPortResolverTest {
     private LlmModelConfig config(LlmProtocol protocol) {
         return LlmModelConfig.builder()
                 .protocol(protocol)
+                .baseUrl("http://localhost:8080/v1")
+                .defaultModel("model")
+                .apiVersion("2025-01-01")
+                .build();
+    }
+
+    private LlmModelConfig configWithoutProtocol() {
+        return LlmModelConfig.builder()
                 .baseUrl("http://localhost:8080/v1")
                 .defaultModel("model")
                 .apiVersion("2025-01-01")

@@ -16,6 +16,7 @@ import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
 import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmResponse;
 import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
+import com.xiongx9527.fw.plus.ai.base.model.LlmTokenStream;
 import com.xiongx9527.fw.plus.ai.base.model.ChatRole;
 import com.xiongx9527.fw.plus.ai.base.output.JsonOutputException;
 import com.xiongx9527.fw.plus.ai.base.output.JsonSupport;
@@ -495,6 +496,12 @@ public final class AiServices {
             input.jsonResult = method.isAnnotationPresent(JsonResult.class);
             input.returnType = method.getReturnType();
             input.genericReturnType = method.getGenericReturnType();
+            if (LlmTokenStream.class.equals(method.getReturnType())) {
+                return LlmTokenStream.create(handler -> {
+                    input.streamHandler = handler;
+                    execute(input);
+                });
+            }
             return execute(input);
         }
 

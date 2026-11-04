@@ -10,8 +10,10 @@ import com.xiongx9527.fw.plus.ai.base.model.AbstractLlmPort;
 import com.xiongx9527.fw.plus.ai.base.model.ChatMessage;
 import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
+import com.xiongx9527.fw.plus.ai.base.model.LlmTokenStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
 
 class AiServicesTest {
@@ -40,6 +42,12 @@ class AiServicesTest {
 
         @UserMessage("{{it}}")
         String ask(@MemoryId String memoryId, String question);
+    }
+
+    interface StreamingAssistant {
+
+        @UserMessage("{{it}}")
+        LlmTokenStream ask(String question);
     }
 
     @Test
@@ -71,5 +79,31 @@ class AiServicesTest {
         assertEquals("first", second.get(0).getContent());
         assertEquals("answer", second.get(1).getContent());
         assertEquals("second", second.get(second.size() - 1).getContent());
+    }
+
+    @Test
+    void returnsDeferredTokenStreamAndDeliversCallbacksAfterStart() {
+        final AtomicBoolean requested = new AtomicBoolean();
+        AbstractLlmPort llm = new AbstractLlmPort() {
+            @Override
+            protected void doStream(LlmRequest request, LlmStreamHandler handler) {
+                requested.set(true);
+                handler.onToken("answer", "reasoning");
+                handler.onComplete();
+            }
+        };
+        StreamingAssistant assistant = AiServices.builder(StreamingAssistant.class).llm(llm).build();
+        List<String> events = new ArrayList<String>();
+
+        LlmTokenStream stream = assistant.ask("question")
+                .onPartialResponse(content -> events.add(content))
+                .onPartialThinking(reasoning -> events.add(reasoning))
+                .onComplete(() -> events.add("complete"));
+
+        assertEquals(false, requested.get());
+        stream.start();
+
+        assertEquals(true, requested.get());
+        assertEquals(java.util.Arrays.asList("answer", "reasoning", "complete"), events);
     }
 }

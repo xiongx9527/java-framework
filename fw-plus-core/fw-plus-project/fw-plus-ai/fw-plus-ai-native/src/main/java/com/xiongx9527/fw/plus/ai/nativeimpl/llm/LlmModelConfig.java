@@ -35,7 +35,6 @@ public final class LlmModelConfig {
         public Builder defaultModel(String value) { this.defaultModel = value; return this; }
         public Builder apiVersion(String value) { this.apiVersion = value; return this; }
         public LlmModelConfig build() {
-            if (protocol == null) throw new IllegalArgumentException("llm protocol is required");
             if (baseUrl == null || baseUrl.trim().isEmpty()) throw new IllegalArgumentException("llm baseUrl is required");
             return new LlmModelConfig(this);
         }
