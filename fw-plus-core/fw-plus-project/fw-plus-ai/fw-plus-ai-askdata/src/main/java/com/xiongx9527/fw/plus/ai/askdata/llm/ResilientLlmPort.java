@@ -9,6 +9,7 @@ import com.xiongx9527.fw.plus.ai.base.model.ModelValidation;
 import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;

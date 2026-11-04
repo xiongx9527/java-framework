@@ -8,6 +8,7 @@ import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
 import com.xiongx9527.fw.plus.ai.base.model.ModelInfo;
 import com.xiongx9527.fw.plus.ai.base.model.ModelValidation;
 import com.xiongx9527.fw.plus.ai.base.resilience.QuotaPort;
+import java.util.List;
 
 /**
  * 配额闸门：调用前按模型 id 占用配额，拒绝时抛 {@link LlmException}，不触达上游。

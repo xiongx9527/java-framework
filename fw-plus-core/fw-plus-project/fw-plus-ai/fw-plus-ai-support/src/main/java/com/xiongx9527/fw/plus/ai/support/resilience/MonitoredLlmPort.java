@@ -9,6 +9,7 @@ import com.xiongx9527.fw.plus.ai.base.model.ModelInfo;
 import com.xiongx9527.fw.plus.ai.base.model.ModelValidation;
 import com.xiongx9527.fw.plus.ai.base.resilience.ModelHealthPort;
 import com.xiongx9527.fw.plus.ai.base.resilience.ModelListener;
+import java.util.List;
 
 /**
  * 给 LLM 调用挂「健康度记录 + 模型级监听」的装饰器：成功 / 失败都回写健康端口，
