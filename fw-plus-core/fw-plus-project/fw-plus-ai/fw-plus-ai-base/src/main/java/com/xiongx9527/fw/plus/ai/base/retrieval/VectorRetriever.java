@@ -1,11 +1,11 @@
 package com.xiongx9527.fw.plus.ai.base.retrieval;
 
 import com.xiongx9527.fw.plus.ai.base.model.EmbeddingPort;
-import com.xiongx9527.fw.plus.ai.base.store.Document;
-import com.xiongx9527.fw.plus.ai.base.store.ScoredDocument;
-import com.xiongx9527.fw.plus.ai.base.store.VectorSearchRequest;
-import com.xiongx9527.fw.plus.ai.base.store.VectorSearchResult;
-import com.xiongx9527.fw.plus.ai.base.store.VectorStorePort;
+import com.xiongx9527.fw.plus.ai.base.store.vector.Document;
+import com.xiongx9527.fw.plus.ai.base.store.vector.ScoredDocument;
+import com.xiongx9527.fw.plus.ai.base.store.vector.VectorSearchRequest;
+import com.xiongx9527.fw.plus.ai.base.store.vector.VectorSearchResult;
+import com.xiongx9527.fw.plus.ai.base.store.vector.VectorStorePort;
 import java.util.ArrayList;
 import java.util.List;
 

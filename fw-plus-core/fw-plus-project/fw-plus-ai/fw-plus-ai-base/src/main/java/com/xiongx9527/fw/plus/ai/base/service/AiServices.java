@@ -24,6 +24,7 @@ import com.xiongx9527.fw.plus.ai.base.model.moderation.ModerationListener;
 import com.xiongx9527.fw.plus.ai.base.model.moderation.ModerationModel;
 import com.xiongx9527.fw.plus.ai.base.model.moderation.ModerationResult;
 import com.xiongx9527.fw.plus.ai.base.output.JsonOutputPort;
+import com.xiongx9527.fw.plus.ai.base.store.StoreRegistry;
 import com.xiongx9527.fw.plus.ai.base.mcp.McpClient;
 import com.xiongx9527.fw.plus.ai.base.mcp.McpToolProvider;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolArgumentCodec;
@@ -37,7 +38,7 @@ import com.xiongx9527.fw.plus.ai.base.retrieval.RetrievalEvent;
 import com.xiongx9527.fw.plus.ai.base.retrieval.Retriever;
 import com.xiongx9527.fw.plus.ai.base.skill.SkillBox;
 import com.xiongx9527.fw.plus.ai.base.skill.SkillDescriptor;
-import com.xiongx9527.fw.plus.ai.base.store.Document;
+import com.xiongx9527.fw.plus.ai.base.store.vector.Document;
 import com.xiongx9527.fw.plus.ai.base.template.PromptTemplate;
 import com.xiongx9527.fw.plus.ai.base.trace.TraceContext;
 import com.xiongx9527.fw.plus.ai.base.tool.CompositeToolProvider;
@@ -100,6 +101,7 @@ public final class AiServices {
         private ModerationModel moderationModel;
         private final List<ModerationListener> moderationListeners = new ArrayList<ModerationListener>();
         private JsonOutputPort jsonOutput;
+        private StoreRegistry storeRegistry;
         private final List<AiObservationListener> observationListeners = new ArrayList<AiObservationListener>();
 
         private String systemTextOverride;
@@ -304,6 +306,12 @@ public final class AiServices {
             return this;
         }
 
+        /** 接入命名存储注册器：把向量 / 图 / 自定义后端统一登记，上层按名或类型取用。 */
+        public Builder<T> storeRegistry(StoreRegistry value) {
+            this.storeRegistry = value;
+            return this;
+        }
+
         /** 是否向流处理器派发意图 / 检索 / 注入 / 工具 等生命周期事件（默认开启）。 */
         public Builder<T> emitLifecycleEvents(boolean value) {
             this.emitLifecycleEvents = value;
@@ -394,7 +402,7 @@ public final class AiServices {
                             emitLifecycleEvents, skipToolsWhenRetrievalHit,
                             moderationModel, moderationListeners, jsonOutput, observationListeners,
                             systemTextOverride, userTemplateOverride, memoryIdOverride, memoryIdParamIndex,
-                            varOverrides, customVariables))));
+                            varOverrides, customVariables, storeRegistry))));
         }
 
         /** 构建无类调用器：复用同一套上下文与执行管线，仅入口从接口代理换成动态入参。 */
@@ -408,7 +416,7 @@ public final class AiServices {
                     emitLifecycleEvents, skipToolsWhenRetrievalHit,
                     moderationModel, moderationListeners, jsonOutput, observationListeners,
                     systemTextOverride, userTemplateOverride, memoryIdOverride, memoryIdParamIndex,
-                    varOverrides, customVariables);
+                    varOverrides, customVariables, storeRegistry);
             return new ChatCall(ctx, jsonResult, chatReturnType);
         }
     }

@@ -1,6 +1,6 @@
 package com.xiongx9527.fw.plus.ai.base.retrieval;
 
-import com.xiongx9527.fw.plus.ai.base.store.Document;
+import com.xiongx9527.fw.plus.ai.base.store.vector.Document;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;

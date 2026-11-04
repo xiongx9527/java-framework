@@ -2,7 +2,7 @@ package com.xiongx9527.fw.plus.ai.base.retrieval;
 
 import com.xiongx9527.fw.plus.ai.base.model.ChatMessage;
 import com.xiongx9527.fw.plus.ai.base.model.ChatRole;
-import com.xiongx9527.fw.plus.ai.base.store.Document;
+import com.xiongx9527.fw.plus.ai.base.store.vector.Document;
 import java.util.ArrayList;
 import java.util.List;
 

@@ -1,6 +1,8 @@
-package com.xiongx9527.fw.plus.ai.support.retrieval.graph;
+package com.xiongx9527.fw.plus.ai.base.store.graph;
 
-/** 图边（GraphRAG 预留）。 */
+/**
+ * 图边（GraphRAG 基础模型）。
+ */
 public final class GraphEdge {
 
     private final String fromId;

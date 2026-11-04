@@ -3,11 +3,11 @@ package com.xiongx9527.fw.plus.ai.base.retrieval;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.xiongx9527.fw.plus.ai.base.store.Document;
-import com.xiongx9527.fw.plus.ai.base.store.ScoredDocument;
-import com.xiongx9527.fw.plus.ai.base.store.VectorSearchRequest;
-import com.xiongx9527.fw.plus.ai.base.store.VectorSearchResult;
-import com.xiongx9527.fw.plus.ai.base.store.VectorStorePort;
+import com.xiongx9527.fw.plus.ai.base.store.vector.Document;
+import com.xiongx9527.fw.plus.ai.base.store.vector.ScoredDocument;
+import com.xiongx9527.fw.plus.ai.base.store.vector.VectorSearchRequest;
+import com.xiongx9527.fw.plus.ai.base.store.vector.VectorSearchResult;
+import com.xiongx9527.fw.plus.ai.base.store.vector.VectorStorePort;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;

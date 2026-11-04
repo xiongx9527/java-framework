@@ -3,7 +3,7 @@ package com.xiongx9527.fw.plus.ai.support.retrieval;
 import com.xiongx9527.fw.plus.ai.base.retrieval.DocumentRetriever;
 import com.xiongx9527.fw.plus.ai.base.retrieval.RetrievalQuery;
 import com.xiongx9527.fw.plus.ai.base.retrieval.Retrieved;
-import com.xiongx9527.fw.plus.ai.base.store.Document;
+import com.xiongx9527.fw.plus.ai.base.store.vector.Document;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;

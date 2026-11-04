@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.base.store;
+package com.xiongx9527.fw.plus.ai.base.store.vector;
 
 /**
  * 检索命中：文档 + 相关度分数（0~1，越大越相关）。

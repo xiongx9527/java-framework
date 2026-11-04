@@ -3,7 +3,7 @@ package com.xiongx9527.fw.plus.ai.support.retrieval;
 import com.xiongx9527.fw.plus.ai.base.retrieval.Reranker;
 import com.xiongx9527.fw.plus.ai.base.retrieval.Retriever;
 import com.xiongx9527.fw.plus.ai.base.retrieval.VectorRetriever;
-import com.xiongx9527.fw.plus.ai.base.store.Document;
+import com.xiongx9527.fw.plus.ai.base.store.vector.Document;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;

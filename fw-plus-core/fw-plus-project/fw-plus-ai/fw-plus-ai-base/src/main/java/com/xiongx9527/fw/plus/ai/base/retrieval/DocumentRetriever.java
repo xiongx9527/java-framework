@@ -1,6 +1,6 @@
 package com.xiongx9527.fw.plus.ai.base.retrieval;
 
-import com.xiongx9527.fw.plus.ai.base.store.Document;
+import com.xiongx9527.fw.plus.ai.base.store.vector.Document;
 
 /**
  * 文档检索器：条目类型固定为 {@link Document} 的常用特化。

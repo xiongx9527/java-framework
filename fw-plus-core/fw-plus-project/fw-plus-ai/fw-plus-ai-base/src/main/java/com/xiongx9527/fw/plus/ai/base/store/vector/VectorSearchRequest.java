@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.base.store;
+package com.xiongx9527.fw.plus.ai.base.store.vector;
 
 import java.util.Collection;
 import java.util.Collections;

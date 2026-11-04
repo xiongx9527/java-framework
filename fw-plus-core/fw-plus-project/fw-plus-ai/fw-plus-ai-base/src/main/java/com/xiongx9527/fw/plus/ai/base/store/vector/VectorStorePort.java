@@ -1,5 +1,6 @@
-package com.xiongx9527.fw.plus.ai.base.store;
+package com.xiongx9527.fw.plus.ai.base.store.vector;
 
+import com.xiongx9527.fw.plus.ai.base.store.Store;
 import com.xiongx9527.fw.plus.common.exception.BizException;
 import java.util.Collection;
 import java.util.List;
@@ -16,7 +17,7 @@ import java.util.Map;
  * 一次维度误配不应该变成无人值守的数据清空，重建必须走显式的
  * {@link #dropCollection(String)} + 回填。</p>
  */
-public interface VectorStorePort {
+public interface VectorStorePort extends Store {
 
     /** 是否已完成配置（未配置后端地址时为 {@code false}，用于区分「未配置」与「不可达」）。 */
     default boolean configured() {

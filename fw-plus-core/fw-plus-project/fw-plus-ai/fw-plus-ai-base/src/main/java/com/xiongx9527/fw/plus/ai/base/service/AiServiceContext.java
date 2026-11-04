@@ -8,6 +8,7 @@ import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
 import com.xiongx9527.fw.plus.ai.base.model.moderation.ModerationListener;
 import com.xiongx9527.fw.plus.ai.base.model.moderation.ModerationModel;
 import com.xiongx9527.fw.plus.ai.base.output.JsonOutputPort;
+import com.xiongx9527.fw.plus.ai.base.store.StoreRegistry;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -54,6 +55,8 @@ public final class AiServiceContext {
 
     private final List<AiObservationListener> observationListeners;
 
+    private final StoreRegistry storeRegistry;
+
     /** 覆盖注解的 system 文本（替代 {@code @SystemMessage}）。 */
     private final String systemTextOverride;
 
@@ -85,7 +88,8 @@ public final class AiServiceContext {
                      String systemTextOverride, String userTemplateOverride,
                      java.util.function.Supplier<String> memoryIdOverride, Integer memoryIdParamIndex,
                      Map<String, Integer> varOverrides,
-                     Map<String, java.util.function.Supplier<Object>> customVariables) {
+                     Map<String, java.util.function.Supplier<Object>> customVariables,
+                     StoreRegistry storeRegistry) {
         this.serviceType = serviceType;
         this.llm = llm;
         this.memoryScopes = memoryScopes == null ? Collections.<IntentScoped<ChatMemoryProvider>>emptyList()
@@ -116,6 +120,7 @@ public final class AiServiceContext {
                 : Collections.unmodifiableMap(new LinkedHashMap<String, Integer>(varOverrides));
         this.customVariables = customVariables == null ? Collections.<String, java.util.function.Supplier<Object>>emptyMap()
                 : Collections.unmodifiableMap(new LinkedHashMap<String, java.util.function.Supplier<Object>>(customVariables));
+        this.storeRegistry = storeRegistry == null ? new StoreRegistry() : storeRegistry;
     }
 
     public Class<?> getServiceType() {
@@ -178,6 +183,11 @@ public final class AiServiceContext {
     /** 调用级观测监听（用于 Langfuse / Langsmith 等）。 */
     public List<AiObservationListener> getObservationListeners() {
         return observationListeners;
+    }
+
+    /** 命名存储注册器（向量 / 图 / 自定义后端的统一入口，按名或类型取用）。 */
+    public StoreRegistry getStoreRegistry() {
+        return storeRegistry;
     }
 
     /** 覆盖 {@code @SystemMessage} 的文本；为 {@code null} 时回退到注解。 */

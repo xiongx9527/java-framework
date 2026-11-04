@@ -8,7 +8,7 @@ import com.xiongx9527.fw.plus.ai.base.retrieval.RetrievalListener;
 import com.xiongx9527.fw.plus.ai.base.retrieval.RetrievalQuery;
 import com.xiongx9527.fw.plus.ai.base.retrieval.Retriever;
 import com.xiongx9527.fw.plus.ai.base.retrieval.Retrieved;
-import com.xiongx9527.fw.plus.ai.base.store.Document;
+import com.xiongx9527.fw.plus.ai.base.store.vector.Document;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
