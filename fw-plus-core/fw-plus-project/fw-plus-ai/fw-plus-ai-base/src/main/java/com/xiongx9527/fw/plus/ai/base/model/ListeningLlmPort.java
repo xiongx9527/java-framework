@@ -43,6 +43,16 @@ public final class ListeningLlmPort implements LlmPort {
         delegate.stream(request, handler);
     }
 
+    @Override
+    public List<ModelInfo> listModels() {
+        return delegate.listModels();
+    }
+
+    @Override
+    public ModelValidation validateModel(String model) {
+        return delegate.validateModel(model);
+    }
+
     private void notifyRequest(String modelId) {
         for (ChatModelListener listener : listeners) {
             try {

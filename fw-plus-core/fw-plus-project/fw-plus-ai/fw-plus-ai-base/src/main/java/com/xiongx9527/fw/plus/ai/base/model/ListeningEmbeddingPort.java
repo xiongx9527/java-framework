@@ -62,6 +62,16 @@ public class ListeningEmbeddingPort implements EmbeddingPort {
         return delegate.dimension();
     }
 
+    @Override
+    public List<ModelInfo> listModels() {
+        return delegate.listModels();
+    }
+
+    @Override
+    public ModelValidation validateModel(String model) {
+        return delegate.validateModel(model);
+    }
+
     private void notifyRequest(List<String> texts) {
         for (EmbeddingListener listener : listeners) {
             try {

@@ -1,5 +1,7 @@
 package com.xiongx9527.fw.plus.ai.base.model;
 
+import java.util.List;
+
 /**
  * 大语言模型端口。
  *
@@ -76,5 +78,44 @@ public interface LlmPort {
     /** 单轮 system + user 的非流式补全快捷方式。 */
     default LlmResponse complete(String systemPrompt, String userPrompt) {
         return complete(LlmRequest.systemUser(systemPrompt, userPrompt));
+    }
+
+    /**
+     * 枚举该后端可用的对话模型，供配置页选型与启动自检使用。
+     *
+     * <p>不支持枚举的后端返回空列表（不抛异常）；列表项的 {@link ModelInfo#getType()} 为
+     * {@link ModelType#LLM}。支持 {@code /models} 类端点的 adapter 覆写本方法。</p>
+     */
+    default List<ModelInfo> listModels() {
+        return ModelCatalogSupport.empty();
+    }
+
+    /**
+     * 校验给定模型是否可用：目录能枚举时按目录判定；目录为空时用一次 {@code max_tokens=1}
+     * 的真实补全探测，这样地址、鉴权、模型名三者同时得到验证。
+     *
+     * <p>校验失败通过 {@link ModelValidation#isValid()} 表达，不抛异常；网络不可达等异常也收敛
+     * 为失败结果并给出可展示原因。</p>
+     */
+    default ModelValidation validateModel(String model) {
+        if (model == null || model.trim().isEmpty()) {
+            return ModelValidation.invalid(model, "model id is required", 0L);
+        }
+        List<ModelInfo> catalog = listModels();
+        if (!catalog.isEmpty()) {
+            return ModelCatalogSupport.validate(ModelType.LLM, catalog, model, 0L);
+        }
+        long start = System.currentTimeMillis();
+        try {
+            complete(LlmRequest.builder()
+                    .model(model)
+                    .maxTokens(1)
+                    .addMessage(ChatMessage.user("ping"))
+                    .build());
+            return ModelValidation.valid(model, System.currentTimeMillis() - start);
+        } catch (RuntimeException e) {
+            String message = e.getMessage() == null ? "model probe failed" : e.getMessage();
+            return ModelValidation.invalid(model, message, System.currentTimeMillis() - start);
+        }
     }
 }

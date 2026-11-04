@@ -7,6 +7,8 @@ import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmResponse;
 import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
 import com.xiongx9527.fw.plus.ai.base.model.LlmUsage;
+import com.xiongx9527.fw.plus.ai.base.model.ModelInfo;
+import com.xiongx9527.fw.plus.ai.base.model.ModelValidation;
 
 /**
  * 成本核算装饰器：调用结束后把用量折算成 {@link CostUsage} 落库 / 上报。
@@ -34,6 +36,16 @@ public final class CostAccountingLlmPort implements LlmPort {
     @Override
     public void stream(LlmRequest request, LlmStreamHandler handler) {
         delegate.stream(request, new CostStreamHandler(handler, this, request.getModel()));
+    }
+
+    @Override
+    public List<ModelInfo> listModels() {
+        return delegate.listModels();
+    }
+
+    @Override
+    public ModelValidation validateModel(String model) {
+        return delegate.validateModel(model);
     }
 
     private void record(String modelId, LlmUsage usage) {

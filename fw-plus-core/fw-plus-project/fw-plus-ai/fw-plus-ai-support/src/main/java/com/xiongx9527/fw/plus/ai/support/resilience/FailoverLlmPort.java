@@ -5,6 +5,8 @@ import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
 import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmResponse;
 import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
+import com.xiongx9527.fw.plus.ai.base.model.ModelInfo;
+import com.xiongx9527.fw.plus.ai.base.model.ModelValidation;
 import com.xiongx9527.fw.plus.ai.base.resilience.ModelFailoverPort;
 import com.xiongx9527.fw.plus.ai.base.resilience.ModelHealthPort;
 import java.util.List;
@@ -60,6 +62,16 @@ public final class FailoverLlmPort implements LlmPort {
     public void stream(LlmRequest request, LlmStreamHandler handler) {
         // 流式不跨候选重试，直接走主模型
         primary.stream(request, handler);
+    }
+
+    @Override
+    public List<ModelInfo> listModels() {
+        return primary.listModels();
+    }
+
+    @Override
+    public ModelValidation validateModel(String model) {
+        return primary.validateModel(model);
     }
 
     private static LlmRequest withModel(LlmRequest request, String modelId) {

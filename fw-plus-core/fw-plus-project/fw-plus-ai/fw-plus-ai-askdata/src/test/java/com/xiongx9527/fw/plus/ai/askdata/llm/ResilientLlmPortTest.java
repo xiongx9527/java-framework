@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
+import com.xiongx9527.fw.plus.ai.base.model.ModelInfo;
+import com.xiongx9527.fw.plus.ai.base.model.ModelValidation;
 import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmResponse;
 import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
@@ -17,6 +19,7 @@ public class ResilientLlmPortTest {
 
     /** 前 failures 次抛 IOException，之后返回 ok。 */
     static class FlakyPort implements LlmPort {
+
         final AtomicInteger calls = new AtomicInteger();
         final int failures;
         final RuntimeException hardError;
@@ -50,6 +53,7 @@ public class ResilientLlmPortTest {
     }
 
     static class ConstantPort implements LlmPort {
+
         final AtomicInteger calls = new AtomicInteger();
         final Throwable error;
 
@@ -149,6 +153,7 @@ public class ResilientLlmPortTest {
     void customRetryablePredicateControlsRetries() {
         AtomicInteger calls = new AtomicInteger();
         LlmPort delegate = new LlmPort() {
+
             @Override
             public void stream(LlmRequest request, LlmStreamHandler handler) {
                 complete(request);

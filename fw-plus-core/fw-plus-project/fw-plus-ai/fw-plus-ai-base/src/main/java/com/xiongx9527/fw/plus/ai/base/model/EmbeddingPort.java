@@ -29,4 +29,39 @@ public interface EmbeddingPort {
     default int dimension() {
         return 0;
     }
+
+    /**
+     * 枚举该后端可用的向量模型，供配置页选型使用。
+     *
+     * <p>不支持枚举的后端返回空列表（不抛异常）；列表项的 {@link ModelInfo#getType()} 为
+     * {@link ModelType#EMBEDDING}，已知维度时一并填入 {@link ModelInfo#getDimension()}。</p>
+     */
+    default List<ModelInfo> listModels() {
+        return ModelCatalogSupport.empty();
+    }
+
+    /**
+     * 校验给定模型是否可用：默认用当前实例真实编码一条探针文本，能拿到非空向量即视为可用
+     * （地址、鉴权、模型名同时被验证）。需要按模型名切换后端时由 adapter 覆写。
+     *
+     * <p>校验失败通过 {@link ModelValidation#isValid()} 表达，不抛异常。</p>
+     */
+    default ModelValidation validateModel(String model) {
+        if (model == null || model.trim().isEmpty()) {
+            return ModelValidation.invalid(model, "model id is required", 0L);
+        }
+        long start = System.currentTimeMillis();
+        double[] vector;
+        try {
+            vector = embed("ping");
+        } catch (RuntimeException e) {
+            String message = e.getMessage() == null ? "embedding probe failed" : e.getMessage();
+            return ModelValidation.invalid(model, message, System.currentTimeMillis() - start);
+        }
+        long elapsed = System.currentTimeMillis() - start;
+        if (vector == null || vector.length == 0) {
+            return ModelValidation.invalid(model, "embedding probe returned no vector", elapsed);
+        }
+        return ModelValidation.valid(model, elapsed);
+    }
 }

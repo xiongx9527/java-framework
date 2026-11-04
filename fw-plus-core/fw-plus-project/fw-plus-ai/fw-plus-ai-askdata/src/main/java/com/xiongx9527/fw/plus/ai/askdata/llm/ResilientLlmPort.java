@@ -4,6 +4,8 @@ import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
 import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmResponse;
 import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
+import com.xiongx9527.fw.plus.ai.base.model.ModelInfo;
+import com.xiongx9527.fw.plus.ai.base.model.ModelValidation;
 import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
@@ -126,6 +128,16 @@ public class ResilientLlmPort implements LlmPort {
     }
 
     /** 流式通道直接透传（重放已吐出的增量会产生重复内容）。 */
+    @Override
+    public List<ModelInfo> listModels() {
+        return delegate.listModels();
+    }
+
+    @Override
+    public ModelValidation validateModel(String model) {
+        return delegate.validateModel(model);
+    }
+
     @Override
     public void stream(LlmRequest request, LlmStreamHandler handler) {
         delegate.stream(request, handler);

@@ -3,6 +3,9 @@ package com.xiongx9527.fw.plus.ai.nativeimpl.embedding;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xiongx9527.fw.plus.ai.base.model.EmbeddingPort;
+import com.xiongx9527.fw.plus.ai.base.model.ModelInfo;
+import com.xiongx9527.fw.plus.ai.base.model.ModelType;
+import com.xiongx9527.fw.plus.ai.base.model.ModelValidation;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -48,10 +51,14 @@ public class OpenAiCompatibleEmbeddingPort implements EmbeddingPort {
     }
     @Override
     public List<double[]> embedAll(List<String> texts) {
+        return embedWith(defaultModel, texts);
+    }
+
+    private List<double[]> embedWith(String model, List<String> texts) {
         if (texts == null || texts.isEmpty()) return new ArrayList<double[]>();
         try {
             Map<String, Object> payload = new LinkedHashMap<String, Object>();
-            payload.put("model", defaultModel);
+            payload.put("model", model);
             payload.put("input", new ArrayList<String>(texts));
             Request.Builder rb = new Request.Builder().url(baseUrl + "/embeddings").post(RequestBody.create(JSON, mapper.writeValueAsString(payload)));
             if (apiKey != null && !apiKey.isEmpty()) rb.addHeader("Authorization", "Bearer " + apiKey);
@@ -75,6 +82,64 @@ public class OpenAiCompatibleEmbeddingPort implements EmbeddingPort {
     }
     @Override
     public int dimension() { return dimension; }
+
+    /**
+     * 枚举向量模型：GET {@code /models}，按常见向量模型名关键字过滤。
+     *
+     * <p>OpenAI 兼容的 {@code /models} 不标注模型能力，只能按 id 关键字判断；一个都匹配不上时
+     * 返回空列表（表示「无法可靠枚举」），而不是把对话模型误报成向量模型。</p>
+     */
+    @Override
+    public List<ModelInfo> listModels() {
+        Request.Builder rb = new Request.Builder().url(baseUrl + "/models").get();
+        if (apiKey != null && !apiKey.isEmpty()) rb.addHeader("Authorization", "Bearer " + apiKey);
+        List<ModelInfo> out = new ArrayList<ModelInfo>();
+        try (Response r = client.newCall(rb.build()).execute()) {
+            if (!r.isSuccessful()) { log.warn("embedding list models http {}", r.code()); return out; }
+            JsonNode data = mapper.readTree(bodyOf(r)).get("data");
+            if (data == null || !data.isArray()) return out;
+            for (JsonNode item : data) {
+                String id = item.path("id").asText(null);
+                if (id == null || !looksLikeEmbedding(id)) continue;
+                out.add(ModelInfo.builder().id(id).name(id)
+                        .ownedBy(item.hasNonNull("owned_by") ? item.get("owned_by").asText() : null)
+                        .type(ModelType.EMBEDDING)
+                        .dimension(id.equals(defaultModel) ? dimension : 0)
+                        .build());
+            }
+        } catch (IOException ex) {
+            log.warn("embedding list models failed: {}", ex.getMessage());
+        }
+        return out;
+    }
+
+    /**
+     * 模型校验：用该模型真实编码一条探针文本，能拿到非空向量即视为可用。
+     *
+     * <p>这样地址、鉴权、模型名三者同时被验证；顺带记录维度，供集合维度校验使用。</p>
+     */
+    @Override
+    public ModelValidation validateModel(String model) {
+        if (model == null || model.trim().isEmpty()) {
+            return ModelValidation.invalid(model, "model id is required", 0L);
+        }
+        long start = System.currentTimeMillis();
+        List<double[]> vectors = embedWith(model, Collections.singletonList("ping"));
+        long elapsed = System.currentTimeMillis() - start;
+        double[] vector = vectors == null || vectors.isEmpty() ? null : vectors.get(0);
+        if (vector == null || vector.length == 0) {
+            return ModelValidation.invalid(model, "embedding probe returned no vector", elapsed);
+        }
+        if (model.equals(defaultModel)) dimension = vector.length;
+        return ModelValidation.valid(model, elapsed);
+    }
+
+    private static boolean looksLikeEmbedding(String id) {
+        String lower = id.toLowerCase(java.util.Locale.ROOT);
+        return lower.contains("embed") || lower.contains("bge") || lower.contains("gte")
+                || lower.contains("m3e") || lower.contains("e5-") || lower.contains("jina")
+                || lower.contains("voyage");
+    }
     private static String bodyOf(Response r) throws IOException {
         try (ResponseBody b = r.body()) { return b == null ? "" : b.string(); }
     }

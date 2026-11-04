@@ -6,6 +6,8 @@ import com.xiongx9527.fw.plus.ai.base.model.AbstractLlmPort;
 import com.xiongx9527.fw.plus.ai.base.model.ChatMessage;
 import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
+import com.xiongx9527.fw.plus.ai.base.model.ModelInfo;
+import com.xiongx9527.fw.plus.ai.base.model.ModelType;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolChoice;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolExecutionRequest;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolSpecification;
@@ -96,6 +98,50 @@ public class OpenAiCompatibleLlmPort extends AbstractLlmPort {
             handler.onError(ex.getMessage());
         }
     }
+    /**
+     * 枚举模型：GET {@code /models}（Azure 为 {@code /openai/models?api-version=...}）。
+     *
+     * <p>枚举失败只记日志并返回空列表，不抛异常——它服务于配置页，不应影响推理主链路。</p>
+     */
+    @Override
+    public List<ModelInfo> listModels() {
+        String url = protocol == Protocol.AZURE
+                ? baseUrl + "/openai/models?api-version="
+                        + (apiVersion != null ? apiVersion : "2024-02-15-preview")
+                : baseUrl + "/models";
+        Request.Builder rb = new Request.Builder().url(url).get();
+        if (apiKey != null && !apiKey.isEmpty()) {
+            rb.addHeader(protocol == Protocol.AZURE ? "api-key" : "Authorization",
+                    protocol == Protocol.AZURE ? apiKey : "Bearer " + apiKey);
+        }
+        List<ModelInfo> out = new ArrayList<ModelInfo>();
+        try (Response r = client.newCall(rb.build()).execute()) {
+            if (!r.isSuccessful()) {
+                log.warn("llm list models http {}", r.code());
+                return out;
+            }
+            JsonNode data = mapper.readTree(bodyOf(r)).get("data");
+            if (data == null || !data.isArray()) {
+                return out;
+            }
+            for (JsonNode item : data) {
+                String id = item.path("id").asText(null);
+                if (id == null || id.isEmpty()) {
+                    continue;
+                }
+                out.add(ModelInfo.builder()
+                        .id(id)
+                        .name(id)
+                        .ownedBy(item.hasNonNull("owned_by") ? item.get("owned_by").asText() : null)
+                        .type(ModelType.LLM)
+                        .build());
+            }
+        } catch (IOException ex) {
+            log.warn("llm list models failed: {}", ex.getMessage());
+        }
+        return out;
+    }
+
     private String resolveUrl(LlmRequest request) {
         if (protocol == Protocol.AZURE) {
             String deployment = request.getModel() != null ? request.getModel() : defaultModel;
@@ -202,6 +248,12 @@ public class OpenAiCompatibleLlmPort extends AbstractLlmPort {
             }
         }
     }
+    private static String bodyOf(Response response) throws IOException {
+        try (okhttp3.ResponseBody body = response.body()) {
+            return body == null ? "" : body.string();
+        }
+    }
+
     private static long longOr(JsonNode node, String field, long dft) {
         JsonNode v = node.get(field);
         return v != null && v.isNumber() ? v.asLong() : dft;

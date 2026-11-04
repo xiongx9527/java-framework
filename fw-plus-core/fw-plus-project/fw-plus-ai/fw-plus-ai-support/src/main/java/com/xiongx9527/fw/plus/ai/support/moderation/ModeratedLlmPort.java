@@ -6,6 +6,8 @@ import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
 import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmResponse;
 import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
+import com.xiongx9527.fw.plus.ai.base.model.ModelInfo;
+import com.xiongx9527.fw.plus.ai.base.model.ModelValidation;
 import com.xiongx9527.fw.plus.ai.base.model.moderation.ModerationException;
 import com.xiongx9527.fw.plus.ai.base.model.moderation.ModerationModel;
 import com.xiongx9527.fw.plus.ai.base.model.moderation.ModerationResult;
@@ -63,6 +65,16 @@ public final class ModeratedLlmPort implements LlmPort {
         }
         // 流式输出无法先审后发，故只审输入
         delegate.stream(request, handler);
+    }
+
+    @Override
+    public List<ModelInfo> listModels() {
+        return delegate.listModels();
+    }
+
+    @Override
+    public ModelValidation validateModel(String model) {
+        return delegate.validateModel(model);
     }
 
     private boolean shouldModerateInput() {

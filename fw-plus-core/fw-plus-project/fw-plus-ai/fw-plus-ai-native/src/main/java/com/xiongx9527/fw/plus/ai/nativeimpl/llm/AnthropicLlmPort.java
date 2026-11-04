@@ -7,6 +7,8 @@ import com.xiongx9527.fw.plus.ai.base.model.ChatMessage;
 import com.xiongx9527.fw.plus.ai.base.model.ChatRole;
 import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
+import com.xiongx9527.fw.plus.ai.base.model.ModelInfo;
+import com.xiongx9527.fw.plus.ai.base.model.ModelType;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolExecutionRequest;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolSpecification;
 import java.io.IOException;
@@ -90,6 +92,46 @@ public class AnthropicLlmPort extends AbstractLlmPort {
             handler.onError(ex.getMessage());
         }
     }
+    /**
+     * 枚举模型：GET {@code /v1/models}，鉴权与 Messages API 一致（x-api-key + anthropic-version）。
+     * 失败只记日志并返回空列表。
+     */
+    @Override
+    public List<ModelInfo> listModels() {
+        Request.Builder rb = new Request.Builder().url(baseUrl + "/v1/models").get();
+        if (apiKey != null && !apiKey.isEmpty()) {
+            rb.addHeader("x-api-key", apiKey);
+        }
+        rb.addHeader("anthropic-version", anthropicVersion);
+        List<ModelInfo> out = new ArrayList<ModelInfo>();
+        try (Response r = client.newCall(rb.build()).execute()) {
+            if (!r.isSuccessful()) {
+                log.warn("anthropic list models http {}", r.code());
+                return out;
+            }
+            JsonNode data = mapper.readTree(bodyOf(r)).get("data");
+            if (data == null || !data.isArray()) {
+                return out;
+            }
+            for (JsonNode item : data) {
+                String id = item.path("id").asText(null);
+                if (id == null || id.isEmpty()) {
+                    continue;
+                }
+                String display = item.path("display_name").asText(null);
+                out.add(ModelInfo.builder()
+                        .id(id)
+                        .name(display == null || display.isEmpty() ? id : display)
+                        .ownedBy("anthropic")
+                        .type(ModelType.LLM)
+                        .build());
+            }
+        } catch (IOException ex) {
+            log.warn("anthropic list models failed: {}", ex.getMessage());
+        }
+        return out;
+    }
+
     private Map<String, Object> buildBody(LlmRequest request) throws IOException {
         Map<String, Object> payload = new LinkedHashMap<String, Object>();
         payload.put("model", request.getModel() != null ? request.getModel() : defaultModel);
@@ -198,6 +240,12 @@ public class AnthropicLlmPort extends AbstractLlmPort {
             handler.onError(root.path("error").path("message").asText("anthropic error"));
         }
     }
+    private static String bodyOf(Response response) throws IOException {
+        try (okhttp3.ResponseBody body = response.body()) {
+            return body == null ? "" : body.string();
+        }
+    }
+
     private static final class ToolAcc {
         String id;
         String name = "";

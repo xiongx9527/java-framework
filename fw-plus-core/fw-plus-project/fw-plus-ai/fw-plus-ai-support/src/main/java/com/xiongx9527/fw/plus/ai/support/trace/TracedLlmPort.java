@@ -6,6 +6,8 @@ import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
 import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmResponse;
 import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
+import com.xiongx9527.fw.plus.ai.base.model.ModelInfo;
+import com.xiongx9527.fw.plus.ai.base.model.ModelValidation;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolChoice;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolSpecification;
 import com.xiongx9527.fw.plus.ai.base.trace.TracePort;
@@ -36,6 +38,16 @@ public final class TracedLlmPort implements LlmPort {
     @Override
     public LlmResponse complete(LlmRequest request) {
         return delegate.complete(withListener(request));
+    }
+
+    @Override
+    public List<ModelInfo> listModels() {
+        return delegate.listModels();
+    }
+
+    @Override
+    public ModelValidation validateModel(String model) {
+        return delegate.validateModel(model);
     }
 
     private LlmRequest withListener(LlmRequest request) {

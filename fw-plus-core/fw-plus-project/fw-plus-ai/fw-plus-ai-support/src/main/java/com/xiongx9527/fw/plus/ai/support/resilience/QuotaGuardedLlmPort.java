@@ -5,6 +5,8 @@ import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
 import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmResponse;
 import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
+import com.xiongx9527.fw.plus.ai.base.model.ModelInfo;
+import com.xiongx9527.fw.plus.ai.base.model.ModelValidation;
 import com.xiongx9527.fw.plus.ai.base.resilience.QuotaPort;
 
 /**
@@ -34,6 +36,16 @@ public final class QuotaGuardedLlmPort implements LlmPort {
     public void stream(LlmRequest request, LlmStreamHandler handler) {
         acquire(request.getModel());
         delegate.stream(request, handler);
+    }
+
+    @Override
+    public List<ModelInfo> listModels() {
+        return delegate.listModels();
+    }
+
+    @Override
+    public ModelValidation validateModel(String model) {
+        return delegate.validateModel(model);
     }
 
     private void acquire(String scope) {

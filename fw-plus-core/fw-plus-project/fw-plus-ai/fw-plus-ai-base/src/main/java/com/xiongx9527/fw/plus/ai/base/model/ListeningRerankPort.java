@@ -21,6 +21,16 @@ public class ListeningRerankPort implements RerankPort {
     }
 
     @Override
+    public List<ModelInfo> listModels() {
+        return delegate.listModels();
+    }
+
+    @Override
+    public ModelValidation validateModel(String model) {
+        return delegate.validateModel(model);
+    }
+
+    @Override
     public List<Double> score(String query, List<String> documents) {
         for (RerankListener listener : listeners) {
             try {

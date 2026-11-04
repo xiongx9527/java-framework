@@ -6,6 +6,8 @@ import com.xiongx9527.fw.plus.ai.base.intent.IntentRequest;
 import com.xiongx9527.fw.plus.ai.base.intent.IntentResult;
 import com.xiongx9527.fw.plus.ai.base.model.ChatMessage;
 import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
+import com.xiongx9527.fw.plus.ai.base.model.ModelInfo;
+import com.xiongx9527.fw.plus.ai.base.model.ModelValidation;
 import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmResponse;
 import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
@@ -29,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class AiServicesIntentRoutingTest {
 
     private static final class CapturingLlm implements LlmPort {
+
         LlmRequest last;
         @Override public LlmResponse complete(LlmRequest request) {
             this.last = request; return LlmResponse.builder().content("ok").usage(LlmUsage.ZERO).build();

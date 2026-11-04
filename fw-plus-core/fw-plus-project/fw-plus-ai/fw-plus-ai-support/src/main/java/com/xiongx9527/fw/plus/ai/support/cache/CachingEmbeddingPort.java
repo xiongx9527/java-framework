@@ -2,6 +2,8 @@ package com.xiongx9527.fw.plus.ai.support.cache;
 
 import com.xiongx9527.fw.plus.ai.base.cache.CachePort;
 import com.xiongx9527.fw.plus.ai.base.model.EmbeddingPort;
+import com.xiongx9527.fw.plus.ai.base.model.ModelInfo;
+import com.xiongx9527.fw.plus.ai.base.model.ModelValidation;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -51,6 +53,16 @@ public final class CachingEmbeddingPort implements EmbeddingPort {
             out.add(embed(text));
         }
         return out;
+    }
+
+    @Override
+    public List<ModelInfo> listModels() {
+        return delegate.listModels();
+    }
+
+    @Override
+    public ModelValidation validateModel(String model) {
+        return delegate.validateModel(model);
     }
 
     @Override

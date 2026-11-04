@@ -2,6 +2,8 @@ package com.xiongx9527.fw.plus.ai.support.moderation;
 
 import com.xiongx9527.fw.plus.ai.base.model.ChatMessage;
 import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
+import com.xiongx9527.fw.plus.ai.base.model.ModelInfo;
+import com.xiongx9527.fw.plus.ai.base.model.ModelValidation;
 import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmResponse;
 import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
@@ -25,6 +27,7 @@ public class ModeratedLlmPortTest {
     }
 
     private static final class FixedLlm implements LlmPort {
+
         @Override public LlmResponse complete(LlmRequest request) {
             return LlmResponse.builder().content("ok").usage(LlmUsage.ZERO).build();
         }

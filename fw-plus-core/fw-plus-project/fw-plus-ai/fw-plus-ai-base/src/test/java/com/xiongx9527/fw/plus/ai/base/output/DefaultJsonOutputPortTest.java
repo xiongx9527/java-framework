@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.xiongx9527.fw.plus.ai.base.model.ChatMessage;
 import com.xiongx9527.fw.plus.ai.base.model.ChatRole;
 import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
+import com.xiongx9527.fw.plus.ai.base.model.ModelInfo;
+import com.xiongx9527.fw.plus.ai.base.model.ModelValidation;
 import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
 import java.util.ArrayDeque;
@@ -19,6 +21,7 @@ class DefaultJsonOutputPortTest {
 
     /** 按脚本依次返回正文的假模型，并记录每次请求。 */
     private static class ScriptedPort implements LlmPort {
+
 
         private final Queue<String> contents = new ArrayDeque<String>();
 
