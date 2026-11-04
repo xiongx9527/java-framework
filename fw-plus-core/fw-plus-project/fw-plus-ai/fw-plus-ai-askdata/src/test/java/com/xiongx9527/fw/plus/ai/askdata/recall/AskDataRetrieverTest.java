@@ -9,6 +9,7 @@ import com.xiongx9527.fw.plus.ai.base.retrieval.RetrievalQuery;
 import com.xiongx9527.fw.plus.ai.base.retrieval.Retrieved;
 import com.xiongx9527.fw.plus.ai.base.retrieval.Retriever;
 import com.xiongx9527.fw.plus.ai.base.store.vector.Document;
+import com.xiongx9527.fw.plus.ai.support.retrieval.IndexMode;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -59,5 +60,49 @@ class AskDataRetrieverTest {
 
         assertTrue(retriever.retrieve(RetrievalQuery.builder().text("users").build()).isEmpty());
         assertTrue(!called.get());
+    }
+
+    @Test
+    void economicalStrategyUsesLexicalRetrieverOnly() {
+        AtomicBoolean vectorCalled = new AtomicBoolean();
+        Retriever<Document> vector = query -> {
+            vectorCalled.set(true);
+            return Collections.emptyList();
+        };
+        Retriever<Document> lexical = query -> Collections.singletonList(
+                Retrieved.of(query.getCorpus().get(0), 0.9));
+        AskDataRetriever retriever = AskDataRetriever.forStrategy(
+                query -> Collections.singletonList(TableSchema.builder().name("users").build()),
+                IndexMode.ECONOMICAL, vector, lexical, null);
+
+        List<Retrieved<Document>> result = retriever.retrieve(
+                RetrievalQuery.builder().text("users").build());
+
+        assertEquals(1, result.size());
+        assertTrue(!vectorCalled.get());
+    }
+
+    @Test
+    void highQualityStrategyUsesHybridRetrieval() {
+        AtomicBoolean vectorCalled = new AtomicBoolean();
+        AtomicBoolean lexicalCalled = new AtomicBoolean();
+        Retriever<Document> vector = query -> {
+            vectorCalled.set(true);
+            return Collections.singletonList(Retrieved.of(query.getCorpus().get(0), 0.9));
+        };
+        Retriever<Document> lexical = query -> {
+            lexicalCalled.set(true);
+            return Collections.singletonList(Retrieved.of(query.getCorpus().get(0), 0.8));
+        };
+        AskDataRetriever retriever = AskDataRetriever.forStrategy(
+                query -> Collections.singletonList(TableSchema.builder().name("users").build()),
+                IndexMode.HIGH_QUALITY, vector, lexical, null);
+
+        List<Retrieved<Document>> result = retriever.retrieve(
+                RetrievalQuery.builder().text("users").build());
+
+        assertEquals(1, result.size());
+        assertTrue(vectorCalled.get());
+        assertTrue(lexicalCalled.get());
     }
 }

@@ -2,11 +2,11 @@ package com.xiongx9527.fw.plus.ai.askdata.recall;
 
 import com.xiongx9527.fw.plus.ai.base.retrieval.Retriever;
 import com.xiongx9527.fw.plus.ai.base.retrieval.Retrieved;
+import com.xiongx9527.fw.plus.ai.base.retrieval.Reranker;
 import com.xiongx9527.fw.plus.ai.base.retrieval.RetrievalQuery;
 import com.xiongx9527.fw.plus.ai.askdata.schema.SchemaContext;
 import com.xiongx9527.fw.plus.ai.askdata.schema.TableSchema;
 import com.xiongx9527.fw.plus.ai.base.store.vector.Document;
-import com.xiongx9527.fw.plus.ai.base.retrieval.Reranker;
 import com.xiongx9527.fw.plus.ai.support.retrieval.IndexMode;
 import com.xiongx9527.fw.plus.ai.support.retrieval.RetrievalMode;
 import com.xiongx9527.fw.plus.ai.support.retrieval.RetrievalStrategies;
@@ -30,7 +30,7 @@ import java.util.Map;
  *
  * <p>无命中时返回空 SchemaContext（不兜底全量），由下游 SqlGenInput.validate() fail-fast。</p>
  */
-public class EngineSchemaRecallCapability implements SchemaRecallCapability {
+public class EngineSchemaRecallCapability implements SchemaRecallCapability, Retriever<Document> {
 
     // 构造期固定的单一检索器（单检索器构造函数 / forStrategy），优先于组件式装配。
     private final Retriever<Document> retriever;
@@ -80,10 +80,29 @@ public class EngineSchemaRecallCapability implements SchemaRecallCapability {
     /**
      * 构造期固定的经济型/质量型召回能力（IndexMode）；链路在构造时确定，请求级 indexMode 被忽略。
      */
-    public static SchemaRecallCapability forStrategy(IndexMode indexMode, Retriever<Document> vector,
+    public static EngineSchemaRecallCapability forStrategy(IndexMode indexMode, Retriever<Document> vector,
             Retriever<Document> lexical, Reranker<Document> reranker, int topK, int topN, double threshold) {
         Retriever<Document> chain = RetrievalStrategies.build(indexMode, null, vector, lexical, reranker, null);
         return new EngineSchemaRecallCapability(chain, topK, topN, threshold);
+    }
+
+    @Override
+    public List<Retrieved<Document>> retrieve(RetrievalQuery query) {
+        if (query == null || query.getText() == null || query.getText().trim().isEmpty()) {
+            return new ArrayList<Retrieved<Document>>();
+        }
+        Retriever<Document> active = resolveRetriever(null);
+        RetrievalQuery configuredQuery = RetrievalQuery.builder()
+                .text(query.getText())
+                .collection(query.getCollection())
+                .topK(topK)
+                .topN(topN)
+                .scoreThreshold(scoreThreshold)
+                .filters(query.getFilters())
+                .candidateIds(query.getCandidateIds())
+                .corpus(query.getCorpus())
+                .build();
+        return active.retrieve(configuredQuery);
     }
 
     @Override

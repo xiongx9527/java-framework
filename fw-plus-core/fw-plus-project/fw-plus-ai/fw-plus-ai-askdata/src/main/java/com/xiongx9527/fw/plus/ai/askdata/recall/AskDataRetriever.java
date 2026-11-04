@@ -1,10 +1,12 @@
 package com.xiongx9527.fw.plus.ai.askdata.recall;
 
 import com.xiongx9527.fw.plus.ai.askdata.schema.TableSchema;
+import com.xiongx9527.fw.plus.ai.base.retrieval.Reranker;
 import com.xiongx9527.fw.plus.ai.base.retrieval.RetrievalQuery;
 import com.xiongx9527.fw.plus.ai.base.retrieval.Retrieved;
 import com.xiongx9527.fw.plus.ai.base.retrieval.Retriever;
 import com.xiongx9527.fw.plus.ai.base.store.vector.Document;
+import com.xiongx9527.fw.plus.ai.support.retrieval.IndexMode;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -28,6 +30,19 @@ public class AskDataRetriever implements Retriever<Document> {
         }
         this.candidateProvider = candidateProvider;
         this.delegate = delegate;
+    }
+
+    /** Creates an AiServices-compatible retriever using the askdata schema recall strategy. */
+    public static AskDataRetriever forStrategy(SchemaCandidateProvider candidateProvider, IndexMode indexMode,
+            Retriever<Document> vector, Retriever<Document> lexical, Reranker<Document> reranker) {
+        return forStrategy(candidateProvider, indexMode, vector, lexical, reranker, 10, 8, 0.0);
+    }
+
+    public static AskDataRetriever forStrategy(SchemaCandidateProvider candidateProvider, IndexMode indexMode,
+            Retriever<Document> vector, Retriever<Document> lexical, Reranker<Document> reranker,
+            int topK, int topN, double scoreThreshold) {
+        return new AskDataRetriever(candidateProvider, EngineSchemaRecallCapability.forStrategy(
+                indexMode, vector, lexical, reranker, topK, topN, scoreThreshold));
     }
 
     @Override
