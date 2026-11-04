@@ -428,7 +428,6 @@ public final class AiServices {
             Map<String, Object> baseVariables = variables(method, args);
             String memoryId = memoryId(method, args);
             LlmStreamHandler streamHandler = streamHandler(method, args);
-            boolean emit = context.isEmitLifecycleEvents() && streamHandler != null;
             Map<String, Object> userVars = withSystemVars(baseVariables, memoryId, null);
             String userText = userPrompt(method, userVars);
             String systemPromptRaw = template(method.getAnnotation(SystemMessage.class),
