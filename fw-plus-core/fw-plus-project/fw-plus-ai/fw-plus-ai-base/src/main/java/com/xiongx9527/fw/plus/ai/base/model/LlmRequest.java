@@ -29,6 +29,9 @@ public final class LlmRequest {
 
     private final Integer maxTokens;
 
+    /** 随机种子（确定性生成）；仅部分后端支持，不支持时 adapter 应忽略。 */
+    private final Integer seed;
+
     private final Map<String, Object> extraParams;
 
     private final List<LlmListener> listeners;
@@ -43,6 +46,7 @@ public final class LlmRequest {
         this.temperature = builder.temperature;
         this.topP = builder.topP;
         this.maxTokens = builder.maxTokens;
+        this.seed = builder.seed;
         this.extraParams = Collections.unmodifiableMap(new LinkedHashMap<String, Object>(builder.extraParams));
         this.listeners = Collections.unmodifiableList(new ArrayList<LlmListener>(builder.listeners));
         this.tools = Collections.unmodifiableList(new ArrayList<ToolSpecification>(builder.tools));
@@ -76,6 +80,10 @@ public final class LlmRequest {
 
     public Integer getMaxTokens() {
         return maxTokens;
+    }
+
+    public Integer getSeed() {
+        return seed;
     }
 
     public Map<String, Object> getExtraParams() {
@@ -125,6 +133,8 @@ public final class LlmRequest {
 
         private Integer maxTokens;
 
+        private Integer seed;
+
         private ToolChoice toolChoice;
 
         private Builder() {
@@ -162,6 +172,11 @@ public final class LlmRequest {
 
         public Builder maxTokens(Integer value) {
             this.maxTokens = value;
+            return this;
+        }
+
+        public Builder seed(Integer value) {
+            this.seed = value;
             return this;
         }
 

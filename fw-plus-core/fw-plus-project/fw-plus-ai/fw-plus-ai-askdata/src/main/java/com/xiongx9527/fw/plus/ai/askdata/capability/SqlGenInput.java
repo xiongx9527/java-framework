@@ -4,6 +4,7 @@ import com.xiongx9527.fw.plus.ai.askdata.schema.SchemaContext;
 import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -31,6 +32,12 @@ public class SqlGenInput {
     /** 上游注入的行 / 列级约束（仅消费，不再判权限）。 */
     @Builder.Default
     private final List<String> constraints = Collections.emptyList();
+
+    private final Integer seed;
+    private final Double temperature;
+    private final Double topP;
+    @Builder.Default
+    private final Map<String, Object> extraParams = Collections.emptyMap();
 
     /** 输入合法性自检：问题与可见 schema 均不可缺。 */
     public void validate() {

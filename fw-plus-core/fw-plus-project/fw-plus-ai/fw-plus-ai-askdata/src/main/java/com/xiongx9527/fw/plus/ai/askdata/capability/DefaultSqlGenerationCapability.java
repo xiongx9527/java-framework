@@ -1,6 +1,8 @@
 package com.xiongx9527.fw.plus.ai.askdata.capability;
 
+import com.xiongx9527.fw.plus.ai.base.model.ChatMessage;
 import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
+import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmResponse;
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.ConfidenceEstimator;
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.SqlExtractor;
@@ -65,7 +67,7 @@ public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
         }
         input.validate();
         SqlPrompt prompt = promptBuilder.build(input);
-        String raw = safeComplete(prompt);
+        String raw = safeComplete(prompt, input);
         String sql = SqlExtractor.extract(raw);
         boolean repaired = false;
         ValidationResult vr = validateChain(sql, input);
@@ -75,7 +77,7 @@ public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
                 String repairUser = prompt.getUserPrompt()
                         + System.lineSeparator() + I18nMessageResolver.resolveKey("askdata.prompt.sql.repair_prefix") + joinIssues(vr)
                         + I18nMessageResolver.resolveKey("askdata.prompt.sql.repair_suffix");
-                raw = safeComplete(new SqlPrompt(prompt.getSystemPrompt(), repairUser));
+                raw = safeComplete(new SqlPrompt(prompt.getSystemPrompt(), repairUser), input);
                 sql = SqlExtractor.extract(raw);
                 vr = validateChain(sql, input);
                 repaired = true;
@@ -110,9 +112,24 @@ public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
         return local;
     }
 
-    private String safeComplete(SqlPrompt p) {
+    private String safeComplete(SqlPrompt p, SqlGenInput input) {
         try {
-            LlmResponse response = llm.complete(p.getSystemPrompt(), p.getUserPrompt());
+            LlmRequest.Builder rb = LlmRequest.builder()
+                    .addMessage(ChatMessage.system(p.getSystemPrompt()))
+                    .addMessage(ChatMessage.user(p.getUserPrompt()));
+            if (input.getSeed() != null) {
+                rb.seed(input.getSeed());
+            }
+            if (input.getTemperature() != null) {
+                rb.temperature(input.getTemperature());
+            }
+            if (input.getTopP() != null) {
+                rb.topP(input.getTopP());
+            }
+            if (input.getExtraParams() != null && !input.getExtraParams().isEmpty()) {
+                rb.extraParams(input.getExtraParams());
+            }
+            LlmResponse response = llm.complete(rb.build());
             return response == null ? null : response.getContent();
         } catch (Exception e) {
             throw new SqlGenerationException(50005801, I18nMessageResolver.resolveKey("askdata.gen.llm_failed"), e);

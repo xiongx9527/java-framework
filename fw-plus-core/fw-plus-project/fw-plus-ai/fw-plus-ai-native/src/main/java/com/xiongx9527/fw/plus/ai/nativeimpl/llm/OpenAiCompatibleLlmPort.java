@@ -159,6 +159,7 @@ public class OpenAiCompatibleLlmPort extends AbstractLlmPort {
         if (request.getTemperature() != null) payload.put("temperature", request.getTemperature());
         if (request.getTopP() != null) payload.put("top_p", request.getTopP());
         if (request.getMaxTokens() != null) payload.put("max_tokens", request.getMaxTokens());
+        if (request.getSeed() != null) payload.put("seed", request.getSeed());
         if (!request.getTools().isEmpty()) {
             List<Object> tools = new ArrayList<Object>();
             for (ToolSpecification t : request.getTools()) {
