@@ -42,17 +42,17 @@ public class DefaultToolExecutor implements ToolExecutor {
     @Override
     public String execute(ToolExecutionRequest request) {
         if (request == null || request.getName() == null) {
-            throw new ToolArgumentException("tool name is required");
+            throw new ToolArgumentException("tool name is required", ToolArgumentException.KEY_MISSING_NAME);
         }
         Method method = methods.get(request.getName());
         if (method == null) {
-            throw new ToolArgumentException("unknown tool: " + request.getName());
+            throw new ToolArgumentException("unknown tool: " + request.getName(), ToolArgumentException.KEY_UNKNOWN_TOOL, request.getName());
         }
         Map<String, Object> arguments;
         try {
             arguments = codec.decode(request.getArguments());
         } catch (Exception e) {
-            throw new ToolArgumentException("failed to decode tool arguments: " + e.getMessage(), e);
+            throw new ToolArgumentException("failed to decode tool arguments: " + e.getMessage(), e, ToolArgumentException.KEY_DECODE, e.getMessage());
         }
         Object[] args = bind(method, arguments == null ? new HashMap<String, Object>() : arguments);
         try {
@@ -78,7 +78,7 @@ public class DefaultToolExecutor implements ToolExecutor {
             boolean required = annotation == null || annotation.required();
             if (raw == null) {
                 if (required) {
-                    throw new ToolArgumentException("missing required parameter: " + name);
+                    throw argError(annotation, ToolArgumentException.KEY_REQUIRED, "missing required parameter: " + name, name);
                 }
                 args[i] = coerce(null, types[i]);
                 continue;
@@ -86,8 +86,9 @@ public class DefaultToolExecutor implements ToolExecutor {
             if (annotation != null && annotation.pattern() != null && !annotation.pattern().trim().isEmpty()) {
                 String text = String.valueOf(raw);
                 if (!text.matches(annotation.pattern())) {
-                    throw new ToolArgumentException("parameter " + name
-                            + " does not match pattern " + annotation.pattern() + ": " + text);
+                    throw argError(annotation, ToolArgumentException.KEY_PATTERN,
+                            "parameter " + name + " does not match pattern " + annotation.pattern() + ": " + text,
+                            name, annotation.pattern(), text);
                 }
             }
             validateConstraints(name, raw, annotation);
@@ -126,22 +127,28 @@ public class DefaultToolExecutor implements ToolExecutor {
     }
 
 
+    private ToolArgumentException argError(P annotation, String key, String defaultMessage, Object... args) {
+        String message = (annotation != null && annotation.message() != null
+                && !annotation.message().trim().isEmpty()) ? annotation.message() : defaultMessage;
+        return new ToolArgumentException(message, key, args);
+    }
+
     private void validateConstraints(String name, Object raw, P annotation) {
         String text = String.valueOf(raw);
         int ml = annotation.minLength();
         if (ml >= 0 && text.length() < ml) {
-            throw new ToolArgumentException("parameter " + name + " length must be >= " + ml + ": " + text);
+            throw argError(annotation, ToolArgumentException.KEY_MIN_LENGTH, "parameter " + name + " length must be >= " + ml + ": " + text, name, ml, text);
         }
         int xl = annotation.maxLength();
         if (xl >= 0 && text.length() > xl) {
-            throw new ToolArgumentException("parameter " + name + " length must be <= " + xl + ": " + text);
+            throw argError(annotation, ToolArgumentException.KEY_MAX_LENGTH, "parameter " + name + " length must be <= " + xl + ": " + text, name, xl, text);
         }
         String minStr = annotation.min();
         if (minStr != null && !minStr.trim().isEmpty()) {
             Double bound = parseDoubleSafe(minStr);
             Double val = parseDoubleSafe(text);
             if (bound != null && val != null && val < bound) {
-                throw new ToolArgumentException("parameter " + name + " must be >= " + bound + ": " + text);
+                throw argError(annotation, ToolArgumentException.KEY_MIN, "parameter " + name + " must be >= " + bound + ": " + text, name, bound, text);
             }
         }
         String maxStr = annotation.max();
@@ -149,16 +156,16 @@ public class DefaultToolExecutor implements ToolExecutor {
             Double bound = parseDoubleSafe(maxStr);
             Double val = parseDoubleSafe(text);
             if (bound != null && val != null && val > bound) {
-                throw new ToolArgumentException("parameter " + name + " must be <= " + bound + ": " + text);
+                throw argError(annotation, ToolArgumentException.KEY_MAX, "parameter " + name + " must be <= " + bound + ": " + text, name, bound, text);
             }
         }
         String shape = annotation.jsonShape();
         if (shape != null && !shape.trim().isEmpty()) {
             if ("object".equals(shape) && !isJsonObject(text)) {
-                throw new ToolArgumentException("parameter " + name + " must be a JSON object: " + text);
+                throw argError(annotation, ToolArgumentException.KEY_JSON_OBJECT, "parameter " + name + " must be a JSON object: " + text, name, text);
             }
             if ("array".equals(shape) && !isJsonArray(text)) {
-                throw new ToolArgumentException("parameter " + name + " must be a JSON array: " + text);
+                throw argError(annotation, ToolArgumentException.KEY_JSON_ARRAY, "parameter " + name + " must be a JSON array: " + text, name, text);
             }
         }
     }

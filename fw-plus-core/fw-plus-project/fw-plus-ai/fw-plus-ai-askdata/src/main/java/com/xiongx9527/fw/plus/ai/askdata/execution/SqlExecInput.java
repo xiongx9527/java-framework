@@ -4,29 +4,35 @@ import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import lombok.Builder;
 import lombok.Getter;
 
-/** SQL 执行的显式输入（全部显式，无隐式全局状态，见 §6.38.2）。 */
+/**
+ * SQL 执行的显式入参（6.38.2 执行节点）。
+ *
+ * <p>执行设置（限行 / 超时 / 只读 / 自检 / 主键重复检查）由本对象承载，toSettings() 将其折叠为
+ * ExecutionSettings 交给底层执行器。validate() 在入参进入执行前校验 SQL 非空。</p>
+ */
 @Getter
 @Builder
 public class SqlExecInput {
-    /** 待执行的只读 SQL。 */
+
+    /** 待执行的 SQL（必填）。 */
     private final String sql;
 
-    /** 方言提示字符串（产品侧 DatasourceType.sqlDialectHint() 映射），可选，仅用于日志 / 校验。 */
+    /** SQL 方言提示（如 mysql / postgres），用于驱动/语法适配。 */
     private final String dialectHint;
 
-    /** 最大返回行数。 */
+    /** 最大返回行数，防止大结果集拖垮内存；<=0 表示不限制。 */
     @Builder.Default
     private final int maxRows = 1000;
 
-    /** 查询超时（秒）。 */
+    /** 查询超时（秒），<=0 表示不限制。 */
     @Builder.Default
     private final int queryTimeoutSeconds = 30;
 
-    /** 是否只读。 */
+    /** 是否只读执行；为 true 时执行器应拒绝写入型语句（见 DefaultSqlExecutionCapability）。 */
     @Builder.Default
     private final boolean readOnly = true;
 
-    /** 执行后是否做结果自检 VERIFY（§6.20.5 / P1 #18）。 */
+    /** 执行后是否做结果自检 VERIFY（6.20.5 / P1 #18）：空结果 / 截断 / 主键重复。 */
     @Builder.Default
     private final boolean selfCheck = true;
 
@@ -34,17 +40,19 @@ public class SqlExecInput {
     @Builder.Default
     private final Integer duplicateKeyColumn = null;
 
-    /** 用于主键重复自检的列名（按名称解析，优先于 {@link #duplicateKeyColumn}）；为 null 时跳过。
-     * 典型来源：{@code SchemaContext.primaryKeyColumn(table)}。 */
+    /** 用于主键重复自检的列名（优先于 {@link #duplicateKeyColumn}）；为 null 时跳过。
+     * 通常由调用方从 {@code SchemaContext.primaryKeyColumn(table)} 注入（见 6.38.2）。 */
     @Builder.Default
     private final String primaryKeyColumn = null;
 
+    /** 执行前校验：SQL 不可为空。 */
     public void validate() {
         if (sql == null || sql.trim().isEmpty()) {
             throw new SqlExecutionException(50005802, I18nMessageResolver.resolveKey("askdata.exec.sql_required"));
         }
     }
 
+    /** 折叠为底层执行器使用的 ExecutionSettings。 */
     public ExecutionSettings toSettings() {
         return ExecutionSettings.builder()
                 .maxRows(maxRows)
@@ -56,4 +64,3 @@ public class SqlExecInput {
                 .build();
     }
 }
-

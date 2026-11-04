@@ -19,6 +19,14 @@ public @interface P {
     String name() default "";
 
     /**
+     * Custom per-parameter error message (model-facing, English preferred). When non-empty,
+     * the executor uses it as the message fed back to the model on validation failure; when
+     * empty, the executor generates a default English description and the exception still
+     * carries an errorKey so the UI layer can localize independently.
+     */
+    String message() default "";
+
+    /**
      * 是否必填。默认必填，与 schema 生成一致；设为 {@code false} 表示可选参数，
      * 缺省时执行器不会抛错（交由工具方法自身处理）。
      */

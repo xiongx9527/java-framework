@@ -9,37 +9,48 @@ import lombok.Builder;
 import lombok.Getter;
 
 /**
- * SQL 生成能力的显式输入（全部显式，无隐式全局状态，见 §6.38.2）。
+ * SQL 生成能力的显式入参（6.38.2 生成节点）。
+ *
+ * <p>与 AskDataInput 不同，这里直接使用已解析的 SchemaContext，避免生成阶段再次做表发现。
+ * validate() 在生成前校验必填项，缺失时抛出 MissingInputException（带 i18n key）。</p>
  */
 @Getter
 @Builder
 public class SqlGenInput {
-    /** 已按 §6.22 归一、锚定相对时间的问题。 */
+
+    /** 用户自然语言问题（必填）。 */
     private final String question;
 
-    /** 召回的表 / 字段 / 关系（可见 schema）。缺失应报错（§6.38.6）。 */
+    /** 已解析的库表 schema；生成阶段据此决定可引用的表/列（必填）。 */
     private final SchemaContext schemaContext;
 
-    /** 方言提示字符串（产品侧 DatasourceType.sqlDialectHint() 映射）。 */
+    /** SQL 方言提示（如 mysql / postgres），来自 DatasourceType.sqlDialectHint()。 */
     private final String dialectHint;
 
-    /** 多轮指代消解结果（P0 #12 / §6.9），可选。 */
+    /** 上一轮 SQL（P0 #12 / 6.9 多轮修正），用于增量改写。 */
     private final String priorSql;
 
-    /** 指代消解说明，可选。 */
+    /** 引用消解结果。 */
     private final String refResolution;
 
-    /** 上游注入的行 / 列级约束（仅消费，不再判权限）。 */
+    /** 额外业务约束，默认空列表。 */
     @Builder.Default
     private final List<String> constraints = Collections.emptyList();
 
+    /** 采样种子，null 表示不固定。 */
     private final Integer seed;
+
+    /** 采样温度，null 表示使用引擎默认。 */
     private final Double temperature;
+
+    /** 核采样 top-p，null 表示使用引擎默认。 */
     private final Double topP;
+
+    /** 透传额外参数。 */
     @Builder.Default
     private final Map<String, Object> extraParams = Collections.emptyMap();
 
-    /** 输入合法性自检：问题与可见 schema 均不可缺。 */
+    /** 生成前校验：问题与 schema 均不可为空。 */
     public void validate() {
         if (question == null || question.trim().isEmpty()) {
             throw new MissingInputException(50005804, I18nMessageResolver.resolveKey("askdata.input.question_required"));
