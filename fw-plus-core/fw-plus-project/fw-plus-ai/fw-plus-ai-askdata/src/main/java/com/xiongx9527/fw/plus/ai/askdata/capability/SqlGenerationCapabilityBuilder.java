@@ -87,7 +87,18 @@ public class SqlGenerationCapabilityBuilder {
         if (llmV == null) {
             llmV = new LlmSqlValidationStrategy(effectiveLlm, local);
         }
+        // failClosed 单一来源：以 repairPolicy 为准；构建器上的 .failClosed(x) 优先生效。
+        SqlRepairPolicy rp = repairPolicy;
+        if (rp == null) {
+            rp = SqlRepairPolicy.builder().failClosed(failClosed).build();
+        } else if (rp.isFailClosed() != failClosed) {
+            rp = SqlRepairPolicy.builder()
+                    .enabled(rp.isEnabled())
+                    .maxAttempts(rp.getMaxAttempts())
+                    .failClosed(failClosed)
+                    .build();
+        }
         return new DefaultSqlGenerationCapability(effectiveLlm, promptBuilder, local, llmV,
-                confidenceEstimator, repairPolicy, failClosed, normalizeInput);
+                confidenceEstimator, rp, normalizeInput);
     }
 }

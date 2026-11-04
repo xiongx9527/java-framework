@@ -74,6 +74,11 @@ public class RerankModelPort implements RerankPort {
         return scoreWith(model, query, documents);
     }
 
+    @Override
+    public List<Double> score(String model, String query, List<String> documents) {
+        return scoreWith(model, query, documents);
+    }
+
     private List<Double> scoreWith(String model, String query, List<String> documents) {
         if (documents == null || documents.isEmpty()) {
             return new ArrayList<Double>();

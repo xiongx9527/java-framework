@@ -12,6 +12,8 @@ import com.xiongx9527.fw.plus.ai.askdata.prompt.SqlPrompt;
 import com.xiongx9527.fw.plus.ai.askdata.prompt.SqlPromptBuilder;
 import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import java.util.StringJoiner;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 默认 {@link SqlGenerationCapability} 实现（§6.38）：构造提示词 → 调用 LLM → 提取 SQL →
@@ -42,8 +44,7 @@ public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
                                          SqlValidationStrategy localValidation,
                                          SqlValidationStrategy llmValidation,
                                          ConfidenceEstimator confidenceEstimator,
-                                         SqlRepairPolicy repairPolicy, boolean failClosed,
-                                         boolean normalizeInput) {
+                                         SqlRepairPolicy repairPolicy, boolean normalizeInput) {
         if (llm == null) {
             throw new IllegalArgumentException(I18nMessageResolver.resolveKey("askdata.contract.llm_required"));
         }
@@ -53,7 +54,7 @@ public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
         this.llmValidation = llmValidation;
         this.confidenceEstimator = confidenceEstimator == null ? new ConfidenceEstimator() : confidenceEstimator;
         this.repairPolicy = repairPolicy;
-        this.failClosed = failClosed;
+        this.failClosed = repairPolicy != null ? repairPolicy.isFailClosed() : true;
         this.normalizeInput = normalizeInput;
     }
 
@@ -70,6 +71,7 @@ public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
         String raw = safeComplete(prompt, input);
         String sql = SqlExtractor.extract(raw);
         boolean repaired = false;
+        List<String> alternatives = new ArrayList<String>();
         ValidationResult vr = validateChain(sql, input);
         if (!vr.isOk() && repairPolicy != null && repairPolicy.isEnabled()) {
             int attempts = Math.max(0, repairPolicy.getMaxAttempts());
@@ -80,6 +82,10 @@ public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
                 raw = safeComplete(new SqlPrompt(prompt.getSystemPrompt(), repairUser), input);
                 sql = SqlExtractor.extract(raw);
                 vr = validateChain(sql, input);
+                if (vr.isOk()) {
+                    break;
+                }
+                alternatives.add(sql);
                 repaired = true;
             }
         }
@@ -93,6 +99,7 @@ public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
                 .explanation(explanation)
                 .referencedTables(vr.getReferencedTables())
                 .confidence(confidence)
+                .alternatives(alternatives)
                 .valid(vr.isOk())
                 .build();
     }

@@ -14,6 +14,16 @@ public interface RerankPort {
     List<Double> score(String query, List<String> documents);
 
     /**
+     * Model-bearing score. Default ignores the model id and delegates to {@link #score(String, List)};
+     * adapters that can address multiple rerank models override this to switch models (e.g. failover).
+     *
+     * @param model  rerank model id; null uses the adapter default
+     */
+    default List<Double> score(String model, String query, List<String> documents) {
+        return score(query, documents);
+    }
+
+    /**
      * 枚举该后端可用的重排模型，供配置页选型使用。
      *
      * <p>不支持枚举的后端返回空列表（不抛异常）；列表项的 {@link ModelInfo#getType()} 为
