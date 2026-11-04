@@ -9,74 +9,89 @@ import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolChoice;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolExecutionRequest;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolSpecification;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import okhttp3.sse.EventSource;
+import okhttp3.sse.EventSourceListener;
+import okhttp3.sse.EventSources;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * 真实原子能力：OpenAI 兼容大模型客户端（流式 / 非流式 / 工具调用）。
- * 覆盖 OpenAI、Ollama、vLLM 等同一套 /v1/chat/completions 协议的网关；
- * 通过 {@link Protocol#AZURE} 兼容 Azure OpenAI（部署写在 URL、鉴权用 api-key 头、无 Bearer）。
- * 参照 product 的 ChatModelClient 直连实现，用 JDK HttpURLConnection 自研 SSE 解析，不引入额外模型 SDK。
+ * 覆盖 OpenAI、Ollama、vLLM、Qwen(DashScope 兼容端点)、Azure OpenAI 等同族协议；
+ * Azure 走部署写在 URL + api-key 头（无 Bearer）。用 okhttp3 + okhttp-sse 自研 SSE 解析。
  * 落点是 base 的 LlmPort：业务用 TracedLlmPort 装饰即可获得日志 / 计费 / 追踪。
- * 差异较大的协议（如 Anthropic）由 {@code AnthropicLlmPort} 单独实现。
+ * 差异较大的协议（Anthropic）由 AnthropicLlmPort 单独实现。
  */
 public class OpenAiCompatibleLlmPort extends AbstractLlmPort {
     private static final Logger log = LoggerFactory.getLogger(OpenAiCompatibleLlmPort.class);
     public enum Protocol { OPENAI, VLLM, AZURE }
+    private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
     private final ObjectMapper mapper = new ObjectMapper();
+    private final OkHttpClient client;
     private final String baseUrl;
     private final String apiKey;
     private final String defaultModel;
     private final Protocol protocol;
     private final String apiVersion;
-    private final int connectTimeoutMillis;
-    private final int readTimeoutMillis;
     public OpenAiCompatibleLlmPort(String baseUrl, String apiKey, String defaultModel) {
-        this(baseUrl, apiKey, defaultModel, Protocol.OPENAI, null, 8000, 600000);
+        this(baseUrl, apiKey, defaultModel, Protocol.OPENAI, null);
     }
     public OpenAiCompatibleLlmPort(String baseUrl, String apiKey, String defaultModel, Protocol protocol) {
-        this(baseUrl, apiKey, defaultModel, protocol, null, 8000, 600000);
+        this(baseUrl, apiKey, defaultModel, protocol, null);
     }
     public OpenAiCompatibleLlmPort(String baseUrl, String apiKey, String defaultModel, Protocol protocol, String apiVersion) {
-        this(baseUrl, apiKey, defaultModel, protocol, apiVersion, 8000, 600000);
-    }
-    private OpenAiCompatibleLlmPort(String baseUrl, String apiKey, String defaultModel, Protocol protocol, String apiVersion, int connectTimeoutMillis, int readTimeoutMillis) {
         if (baseUrl == null || baseUrl.trim().isEmpty()) throw new IllegalArgumentException("llm baseUrl is required");
         this.baseUrl = baseUrl.replaceAll("/+$", "");
         this.apiKey = apiKey;
         this.defaultModel = defaultModel;
         this.protocol = protocol == null ? Protocol.OPENAI : protocol;
         this.apiVersion = apiVersion;
-        this.connectTimeoutMillis = connectTimeoutMillis;
-        this.readTimeoutMillis = readTimeoutMillis;
+        this.client = new OkHttpClient.Builder().connectTimeout(8_000, java.util.concurrent.TimeUnit.MILLISECONDS).readTimeout(600_000, java.util.concurrent.TimeUnit.MILLISECONDS).build();
     }
     @Override
     protected void doStream(LlmRequest request, LlmStreamHandler handler) {
         if (baseUrl == null) { handler.onError("llm not configured"); return; }
         try {
-            String body = buildBody(request);
-            HttpURLConnection conn = openConnection(resolveUrl(request));
-            try (OutputStream os = conn.getOutputStream()) { os.write(body.getBytes(StandardCharsets.UTF_8)); }
-            int code = conn.getResponseCode();
-            if (code != 200) {
-                String err = readError(conn);
-                handler.onError("llm http " + code + (err.isEmpty() ? "" : ": " + err));
-                return;
+            String body = mapper.writeValueAsString(buildBody(request));
+            Request.Builder rb = new Request.Builder().url(resolveUrl(request)).post(RequestBody.create(JSON, body));
+            if (protocol == Protocol.AZURE) { if (apiKey != null && !apiKey.isEmpty()) rb.addHeader("api-key", apiKey); }
+            else { if (apiKey != null && !apiKey.isEmpty()) rb.addHeader("Authorization", "Bearer " + apiKey); }
+            final CountDownLatch done = new CountDownLatch(1);
+            final String[] errorBox = new String[1];
+            Map<Integer, ToolAcc> acc = new LinkedHashMap<Integer, ToolAcc>();
+            EventSourceListener listener = new EventSourceListener() {
+                @Override public void onEvent(EventSource es, String id, String type, String data) {
+                    if (data == null || data.isEmpty()) return;
+                    if ("[DONE]".equals(data.trim())) return;
+                    try { dispatch(data, handler, acc); } catch (IOException ex) { log.warn("llm sse parse skipped: {}", ex.getMessage()); }
+                }
+                @Override public void onFailure(EventSource es, Throwable t, Response r) {
+                    errorBox[0] = t != null ? t.getMessage() : "llm stream failed";
+                    log.warn("llm stream failed: {}", errorBox[0]);
+                    if (errorBox[0] != null) handler.onError(errorBox[0]);
+                    done.countDown();
+                }
+                @Override public void onClosed(EventSource es) { done.countDown(); }
+            };
+            EventSource es = EventSources.createFactory(client).newEventSource(rb.build(), listener);
+            try { done.await(); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); handler.onError("llm interrupted"); }
+            es.cancel();
+            if (errorBox[0] == null) {
+                for (ToolAcc a : acc.values()) handler.onToolCall(new ToolExecutionRequest(a.id, a.name, a.args.toString()));
+                handler.onComplete();
             }
-            parseSse(conn.getInputStream(), handler);
-        } catch (Exception ex) {
+        } catch (IOException ex) {
             log.warn("llm stream failed: {}", ex.getMessage());
             handler.onError(ex.getMessage());
         }
@@ -89,21 +104,7 @@ public class OpenAiCompatibleLlmPort extends AbstractLlmPort {
         }
         return baseUrl + "/chat/completions";
     }
-    private HttpURLConnection openConnection(String url) throws IOException {
-        HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
-        conn.setRequestMethod("POST");
-        conn.setConnectTimeout(connectTimeoutMillis);
-        conn.setReadTimeout(readTimeoutMillis);
-        conn.setDoOutput(true);
-        conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-        if (protocol == Protocol.AZURE) {
-            if (apiKey != null && !apiKey.isEmpty()) conn.setRequestProperty("api-key", apiKey);
-        } else {
-            if (apiKey != null && !apiKey.isEmpty()) conn.setRequestProperty("Authorization", "Bearer " + apiKey);
-        }
-        return conn;
-    }
-    private String buildBody(LlmRequest request) throws IOException {
+    private Map<String, Object> buildBody(LlmRequest request) throws IOException {
         Map<String, Object> payload = new LinkedHashMap<String, Object>();
         payload.put("model", request.getModel() != null ? request.getModel() : defaultModel);
         List<Object> msgs = new ArrayList<Object>();
@@ -128,7 +129,7 @@ public class OpenAiCompatibleLlmPort extends AbstractLlmPort {
             payload.put("tool_choice", toWire(request.getToolChoice()));
         }
         payload.put("stream", true);
-        return mapper.writeValueAsString(payload);
+        return payload;
     }
     private Map<String, Object> toWire(ChatMessage m) {
         Map<String, Object> o = new LinkedHashMap<String, Object>();
@@ -167,27 +168,9 @@ public class OpenAiCompatibleLlmPort extends AbstractLlmPort {
             default: return "auto";
         }
     }
-    private void parseSse(InputStream in, LlmStreamHandler handler) throws IOException {
-        Map<Integer, ToolAcc> acc = new LinkedHashMap<Integer, ToolAcc>();
-        BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
-        String line;
-        StringBuilder data = new StringBuilder();
-        while ((line = reader.readLine()) != null) {
-            if (line.startsWith("data:")) {
-                String chunk = line.substring(5).trim();
-                if ("[DONE]".equals(chunk)) continue;
-                data.append(chunk);
-            } else {
-                if (data.length() > 0) { dispatch(data.toString(), handler, acc); data.setLength(0); }
-            }
-        }
-        if (data.length() > 0) dispatch(data.toString(), handler, acc);
-        for (ToolAcc a : acc.values()) handler.onToolCall(new ToolExecutionRequest(a.id, a.name, a.args.toString()));
-        handler.onComplete();
-    }
-    private void dispatch(String json, LlmStreamHandler handler, Map<Integer, ToolAcc> acc) {
-        try {
-            JsonNode root = mapper.readTree(json);
+    private void dispatch(String json, LlmStreamHandler handler, Map<Integer, ToolAcc> acc) throws IOException {
+        JsonNode root = mapper.readTree(json);
+        if (root.has("choices")) {
             JsonNode usage = root.get("usage");
             if (usage != null) {
                 long input = longOr(usage, "prompt_tokens", 0);
@@ -196,7 +179,7 @@ public class OpenAiCompatibleLlmPort extends AbstractLlmPort {
                 handler.onUsageDetail(input, output, total);
             }
             JsonNode choices = root.get("choices");
-            if (choices != null && choices.isArray() && choices.size() > 0) {
+            if (choices.isArray() && choices.size() > 0) {
                 JsonNode delta = choices.get(0).get("delta");
                 if (delta != null) {
                     if (delta.has("content")) { JsonNode c = delta.get("content"); if (!c.isNull()) handler.onToken(c.asText(), null); }
@@ -217,23 +200,11 @@ public class OpenAiCompatibleLlmPort extends AbstractLlmPort {
                     }
                 }
             }
-        } catch (IOException ex) {
-            log.warn("llm sse parse skipped: {}", ex.getMessage());
         }
     }
     private static long longOr(JsonNode node, String field, long dft) {
         JsonNode v = node.get(field);
         return v != null && v.isNumber() ? v.asLong() : dft;
-    }
-    private static String readError(HttpURLConnection conn) {
-        try {
-            InputStream e = conn.getErrorStream();
-            if (e == null) return "";
-            StringBuilder sb = new StringBuilder();
-            int c;
-            while ((c = e.read()) != -1) sb.append((char) c);
-            return sb.toString().replace("\n", " ").replace("\r", " ");
-        } catch (IOException ex) { return ""; }
     }
     private static final class ToolAcc {
         String id;

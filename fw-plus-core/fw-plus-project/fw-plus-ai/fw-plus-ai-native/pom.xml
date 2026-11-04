@@ -12,8 +12,9 @@
     <name>fw-plus-ai-native</name>
     <description>
         真实原子能力层（与 base 端口、support 组合层相对）：把 base 的端口落成可直接运行的实现——
-        OpenAI 兼容大模型客户端（流式 / 非流式 / 工具调用）、OpenAI 兼容向量化客户端、内存向量存储。
-        参照 product 的直连实现（自研 SSE / HttpURLConnection），不引入额外模型 SDK。
+        OpenAI 兼容 / Azure / Anthropic 大模型客户端（流式 / 非流式 / 工具调用，用 okhttp-sse），
+        OpenAI 兼容向量化客户端，Qdrant / Milvus 向量存储后端。
+        参照 product 的直连实现，不引入大型模型 SDK；HTTP 走 okhttp3。
     </description>
     <properties>
         <main.basedir>${basedir}/../..</main.basedir>
@@ -26,6 +27,16 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>3.14.9</version>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp-sse</artifactId>
+            <version>3.14.9</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
