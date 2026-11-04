@@ -28,8 +28,11 @@ public class JacksonToolArgumentCodec implements ToolArgumentCodec {
             return Collections.emptyMap();
         }
         try {
-            Map<String, Object> map = mapper.readValue(arguments, new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
-            return map == null ? (Map<String, Object>) Collections.emptyMap() : map;
+            Object parsed = mapper.readValue(arguments, Object.class);
+            if (!(parsed instanceof Map)) {
+                throw new IllegalArgumentException("tool arguments must be a JSON object");
+            }
+            return (Map<String, Object>) parsed;
         } catch (Exception e) {
             throw new IllegalArgumentException("tool arguments is not valid JSON: " + e.getMessage(), e);
         }

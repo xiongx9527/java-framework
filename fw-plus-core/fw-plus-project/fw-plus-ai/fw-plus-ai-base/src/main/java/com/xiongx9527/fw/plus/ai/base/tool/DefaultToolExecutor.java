@@ -42,13 +42,18 @@ public class DefaultToolExecutor implements ToolExecutor {
     @Override
     public String execute(ToolExecutionRequest request) {
         if (request == null || request.getName() == null) {
-            throw new ToolExecutionException("tool name is required");
+            throw new ToolArgumentException("tool name is required");
         }
         Method method = methods.get(request.getName());
         if (method == null) {
-            throw new ToolExecutionException("unknown tool: " + request.getName());
+            throw new ToolArgumentException("unknown tool: " + request.getName());
         }
-        Map<String, Object> arguments = codec.decode(request.getArguments());
+        Map<String, Object> arguments;
+        try {
+            arguments = codec.decode(request.getArguments());
+        } catch (Exception e) {
+            throw new ToolArgumentException("failed to decode tool arguments: " + e.getMessage(), e);
+        }
         Object[] args = bind(method, arguments == null ? new HashMap<String, Object>() : arguments);
         try {
             Object result = method.invoke(target, args);
@@ -69,7 +74,24 @@ public class DefaultToolExecutor implements ToolExecutor {
             P annotation = parameters[i].getAnnotation(P.class);
             String name = annotation != null && annotation.name() != null && !annotation.name().trim().isEmpty()
                     ? annotation.name().trim() : parameters[i].getName();
-            args[i] = coerce(arguments.get(name), types[i]);
+            Object raw = arguments.get(name);
+            boolean required = annotation == null || annotation.required();
+            if (raw == null) {
+                if (required) {
+                    throw new ToolArgumentException("missing required parameter: " + name);
+                }
+                args[i] = coerce(null, types[i]);
+                continue;
+            }
+            if (annotation != null && annotation.pattern() != null && !annotation.pattern().trim().isEmpty()) {
+                String text = String.valueOf(raw);
+                if (!text.matches(annotation.pattern())) {
+                    throw new ToolArgumentException("parameter " + name
+                            + " does not match pattern " + annotation.pattern() + ": " + text);
+                }
+            }
+            validateConstraints(name, raw, annotation);
+            args[i] = coerce(raw, types[i]);
         }
         return args;
     }
@@ -101,6 +123,112 @@ public class DefaultToolExecutor implements ToolExecutor {
             return Boolean.valueOf(text);
         }
         return value;
+    }
+
+
+    private void validateConstraints(String name, Object raw, P annotation) {
+        String text = String.valueOf(raw);
+        int ml = annotation.minLength();
+        if (ml >= 0 && text.length() < ml) {
+            throw new ToolArgumentException("parameter " + name + " length must be >= " + ml + ": " + text);
+        }
+        int xl = annotation.maxLength();
+        if (xl >= 0 && text.length() > xl) {
+            throw new ToolArgumentException("parameter " + name + " length must be <= " + xl + ": " + text);
+        }
+        String minStr = annotation.min();
+        if (minStr != null && !minStr.trim().isEmpty()) {
+            Double bound = parseDoubleSafe(minStr);
+            Double val = parseDoubleSafe(text);
+            if (bound != null && val != null && val < bound) {
+                throw new ToolArgumentException("parameter " + name + " must be >= " + bound + ": " + text);
+            }
+        }
+        String maxStr = annotation.max();
+        if (maxStr != null && !maxStr.trim().isEmpty()) {
+            Double bound = parseDoubleSafe(maxStr);
+            Double val = parseDoubleSafe(text);
+            if (bound != null && val != null && val > bound) {
+                throw new ToolArgumentException("parameter " + name + " must be <= " + bound + ": " + text);
+            }
+        }
+        String shape = annotation.jsonShape();
+        if (shape != null && !shape.trim().isEmpty()) {
+            if ("object".equals(shape) && !isJsonObject(text)) {
+                throw new ToolArgumentException("parameter " + name + " must be a JSON object: " + text);
+            }
+            if ("array".equals(shape) && !isJsonArray(text)) {
+                throw new ToolArgumentException("parameter " + name + " must be a JSON array: " + text);
+            }
+        }
+    }
+
+    private static Double parseDoubleSafe(String s) {
+        if (s == null) {
+            return null;
+        }
+        try {
+            return Double.valueOf(s.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static boolean isJsonObject(String s) {
+        return isJsonShape(s, '{', '}');
+    }
+
+    private static boolean isJsonArray(String s) {
+        return isJsonShape(s, '[', ']');
+    }
+
+    private static boolean isJsonShape(String s, char open, char close) {
+        if (s == null) {
+            return false;
+        }
+        int start = 0;
+        int end = s.length() - 1;
+        while (start <= end && Character.isWhitespace(s.charAt(start))) {
+            start++;
+        }
+        while (end >= start && Character.isWhitespace(s.charAt(end))) {
+            end--;
+        }
+        if (start > end || s.charAt(start) != open || s.charAt(end) != close) {
+            return false;
+        }
+        java.util.Deque<Character> stack = new java.util.ArrayDeque<Character>();
+        boolean inString = false;
+        boolean escaped = false;
+        for (int i = start; i <= end; i++) {
+            char c = s.charAt(i);
+            if (inString) {
+                if (escaped) {
+                    escaped = false;
+                } else if (c == (char) 92) {
+                    escaped = true;
+                } else if (c == '"') {
+                    inString = false;
+                }
+                continue;
+            }
+            if (c == '"') {
+                inString = true;
+            } else if (c == '{') {
+                stack.push('}');
+            } else if (c == '[') {
+                stack.push(']');
+            } else if (c == '}') {
+                if (stack.isEmpty() || stack.pop() != '}') {
+                    return false;
+                }
+            } else if (c == ']') {
+                if (stack.isEmpty() || stack.pop() != ']') {
+                    return false;
+                }
+            }
+        }
+        return stack.isEmpty() && !inString;
     }
 
     private Object defaultPrimitive(Class<?> type) {

@@ -49,8 +49,32 @@ public final class ToolSpecifications {
             if (annotation != null && annotation.value() != null && !annotation.value().trim().isEmpty()) {
                 property.put("description", annotation.value());
             }
+            if (annotation != null && annotation.format() != null && !annotation.format().trim().isEmpty()) {
+                property.put("format", annotation.format());
+            }
+            if (annotation != null && annotation.pattern() != null && !annotation.pattern().trim().isEmpty()) {
+                property.put("pattern", annotation.pattern());
+            }
+            if (annotation != null && annotation.minLength() >= 0) {
+                property.put("minLength", annotation.minLength());
+            }
+            if (annotation != null && annotation.maxLength() >= 0) {
+                property.put("maxLength", annotation.maxLength());
+            }
+            if (annotation != null && annotation.min() != null && !annotation.min().trim().isEmpty()) {
+                property.put("minimum", annotation.min());
+            }
+            if (annotation != null && annotation.max() != null && !annotation.max().trim().isEmpty()) {
+                property.put("maximum", annotation.max());
+            }
+            if (annotation != null && annotation.jsonShape() != null && !annotation.jsonShape().trim().isEmpty()) {
+                property.put("x-json-shape", annotation.jsonShape());
+            }
             properties.put(paramName, property);
-            required.add(paramName);
+            boolean requiredParam = annotation == null || annotation.required();
+            if (requiredParam) {
+                required.add(paramName);
+            }
         }
         Map<String, Object> schema = new LinkedHashMap<String, Object>();
         schema.put("type", "object");

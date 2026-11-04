@@ -6,6 +6,10 @@ import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmResponse;
 import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
 import com.xiongx9527.fw.plus.ai.base.model.LlmUsage;
+import com.xiongx9527.fw.plus.ai.base.tool.ToolArgumentException;
+import com.xiongx9527.fw.plus.ai.base.tool.ToolArgumentsErrorHandler;
+import com.xiongx9527.fw.plus.ai.base.tool.ToolErrorHandlerResult;
+import com.xiongx9527.fw.plus.ai.base.tool.ToolExecutionErrorHandler;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolExecutionException;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolExecutionRequest;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolExecutionResult;
@@ -42,12 +46,23 @@ public final class ToolCallingLoop {
 
     private final List<ToolCallingListener> listeners;
 
+    private final ToolArgumentsErrorHandler argsHandler;
+
+    private final ToolExecutionErrorHandler execHandler;
+
     public ToolCallingLoop(LlmPort llm, ToolProvider tools) {
         this(llm, tools, DEFAULT_MAX_STEPS, DEFAULT_MAX_RESULT_CHARS, null);
     }
 
     public ToolCallingLoop(LlmPort llm, ToolProvider tools, int defaultMaxSteps, int maxResultChars,
                            List<ToolCallingListener> listeners) {
+        this(llm, tools, defaultMaxSteps, maxResultChars, listeners,
+                ToolArgumentsErrorHandler.defaultHandler(), ToolExecutionErrorHandler.defaultHandler());
+    }
+
+    public ToolCallingLoop(LlmPort llm, ToolProvider tools, int defaultMaxSteps, int maxResultChars,
+                           List<ToolCallingListener> listeners,
+                           ToolArgumentsErrorHandler argsHandler, ToolExecutionErrorHandler execHandler) {
         if (llm == null) {
             throw new IllegalArgumentException("llm port is required");
         }
@@ -56,6 +71,8 @@ public final class ToolCallingLoop {
         this.defaultMaxSteps = defaultMaxSteps <= 0 ? DEFAULT_MAX_STEPS : defaultMaxSteps;
         this.maxResultChars = maxResultChars <= 0 ? DEFAULT_MAX_RESULT_CHARS : maxResultChars;
         this.listeners = listeners;
+        this.argsHandler = argsHandler == null ? ToolArgumentsErrorHandler.defaultHandler() : argsHandler;
+        this.execHandler = execHandler == null ? ToolExecutionErrorHandler.defaultHandler() : execHandler;
     }
 
     /** 非流式：返回完整结果（sink 传 {@code null} 即可）。 */
@@ -108,6 +125,10 @@ public final class ToolCallingLoop {
             for (ToolExecutionRequest call : handler.toolCalls) {
                 ToolTrace trace = execute(call, sink);
                 traces.add(trace);
+                if (lastStop) {
+                    notifyStepEnd();
+                    return new ToolCallingResult(null, traces, total, ToolStopReason.ERROR);
+                }
                 messages.add(ChatMessage.tool(call.getId(), call.getName(), truncate(lastResult)));
             }
             notifyStepEnd();
@@ -116,6 +137,8 @@ public final class ToolCallingLoop {
     }
 
     private String lastResult;
+
+    private boolean lastStop;
 
     private List<ToolSpecification> resolveSpecs(Set<String> allowed) {
         if (tools == null) {
@@ -144,20 +167,32 @@ public final class ToolCallingLoop {
         }
         boolean ok;
         ToolExecutionResult result;
+        boolean stop = false;
         try {
             String raw = tools == null ? null : tools.execute(call);
             lastResult = raw == null ? "" : raw;
             ok = true;
             result = ToolExecutionResult.success(call, lastResult);
-        } catch (ToolExecutionException e) {
-            lastResult = "tool error: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+        } catch (ToolArgumentException e) {
+            ToolErrorHandlerResult handled = argsHandler.handle(call, call.getArguments(), e);
+            lastResult = handled.getMessage();
             ok = false;
+            stop = handled.isStop();
+            result = ToolExecutionResult.failure(call, lastResult);
+        } catch (ToolExecutionException e) {
+            ToolErrorHandlerResult handled = execHandler.handle(call, e);
+            lastResult = handled.getMessage();
+            ok = false;
+            stop = handled.isStop();
             result = ToolExecutionResult.failure(call, lastResult);
         } catch (RuntimeException e) {
-            lastResult = "tool error: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+            ToolErrorHandlerResult handled = execHandler.handle(call, e);
+            lastResult = handled.getMessage();
             ok = false;
+            stop = handled.isStop();
             result = ToolExecutionResult.failure(call, lastResult);
         }
+        lastStop = stop;
         long latency = System.currentTimeMillis() - start;
         if (listeners != null) {
             for (ToolCallingListener listener : listeners) {
