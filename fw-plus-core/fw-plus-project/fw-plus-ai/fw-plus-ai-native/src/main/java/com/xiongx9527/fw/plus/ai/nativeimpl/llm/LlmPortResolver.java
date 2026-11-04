@@ -59,11 +59,17 @@ public final class LlmPortResolver {
             case ANTHROPIC:
                 return new AnthropicLlmPort(config.getBaseUrl(), config.getApiKey(), config.getDefaultModel());
             case GEMINI:
+            case GOOGLE_AI_GEMINI:
                 return new GeminiLlmPort(config.getBaseUrl(), config.getApiKey(),
                         config.getDefaultModel(), config.getApiVersion());
             case VERTEX_AI_GEMINI:
                 throw new IllegalArgumentException("Vertex AI Gemini requires an explicit supported protocol; "
                         + "the native Gemini API port does not implement Vertex AI authentication");
+            case HUGGING_FACE:
+            case ZHIPU_AI:
+            case COHERE:
+                throw new IllegalArgumentException("llm vendor " + vendor
+                        + " requires an explicit protocol; no native vendor-specific port is available");
             default:
                 throw new IllegalArgumentException("unsupported llm vendor: " + vendor);
         }

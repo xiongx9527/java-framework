@@ -10,5 +10,10 @@ public enum LlmVendor {
     GITHUB_MODELS,
     OLLAMA,
     QIANFAN,
-    VERTEX_AI_GEMINI
+    VERTEX_AI_GEMINI,
+    GOOGLE_AI_GEMINI,
+    HUGGING_FACE,
+    LOCAL_AI,
+    ZHIPU_AI,
+    COHERE
 }

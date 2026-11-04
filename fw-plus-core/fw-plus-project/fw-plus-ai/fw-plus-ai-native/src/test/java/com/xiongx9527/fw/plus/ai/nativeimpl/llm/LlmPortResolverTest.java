@@ -91,8 +91,18 @@ class LlmPortResolverTest {
                 instanceof OpenAiChatCompletionsLlmPort);
         assertTrue(LlmPortResolver.create(LlmVendor.QIANFAN, configWithoutProtocol())
                 instanceof OpenAiChatCompletionsLlmPort);
+        assertTrue(LlmPortResolver.create(LlmVendor.LOCAL_AI, configWithoutProtocol())
+                instanceof OpenAiChatCompletionsLlmPort);
+        assertTrue(LlmPortResolver.create(LlmVendor.GOOGLE_AI_GEMINI, configWithoutProtocol())
+                instanceof GeminiLlmPort);
         assertThrows(IllegalArgumentException.class,
                 () -> LlmPortResolver.create(LlmVendor.VERTEX_AI_GEMINI, configWithoutProtocol()));
+        assertThrows(IllegalArgumentException.class,
+                () -> LlmPortResolver.create(LlmVendor.HUGGING_FACE, configWithoutProtocol()));
+        assertThrows(IllegalArgumentException.class,
+                () -> LlmPortResolver.create(LlmVendor.ZHIPU_AI, configWithoutProtocol()));
+        assertThrows(IllegalArgumentException.class,
+                () -> LlmPortResolver.create(LlmVendor.COHERE, configWithoutProtocol()));
     }
 
     @Test
