@@ -51,6 +51,7 @@ public final class LlmPortResolver {
             case GITHUB_MODELS:
             case OLLAMA:
             case QIANFAN:
+            case LOCAL_AI:
                 return new OpenAiChatCompletionsLlmPort(
                         config.getBaseUrl(), config.getApiKey(), config.getDefaultModel());
             case AZURE_OPENAI:
