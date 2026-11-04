@@ -50,6 +50,7 @@ public class DefaultAskDataCapability implements AskDataCapability {
             schema = recall.recall(SchemaRecallInput.builder()
                     .question(input.getQuestion())
                     .candidates(input.getCandidates())
+                    .indexMode(input.getRecallIndexMode())
                     .build());
         } else {
             schema = SchemaContext.builder()
