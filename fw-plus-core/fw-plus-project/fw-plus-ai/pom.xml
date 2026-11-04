@@ -14,6 +14,7 @@
         <module>fw-plus-ai-base</module>
         <module>fw-plus-ai-support</module>
         <module>fw-plus-ai-askdata</module>
+        <module>fw-plus-ai-interactive</module>
         <module>fw-plus-ai-mcp-server</module>
         <module>fw-plus-ai-langchain4j</module>
         <module>fw-plus-ai-spring-ai</module>
