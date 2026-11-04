@@ -41,6 +41,25 @@ public abstract class AbstractLlmPort implements LlmPort {
         return aggregator.result();
     }
 
+    /** 用一次最小真实补全请求校验模型及当前端点、鉴权配置。 */
+    protected final ModelValidation validateModelWithCompletion(String model) {
+        if (model == null || model.trim().isEmpty()) {
+            return ModelValidation.invalid(model, "model id is required", 0L);
+        }
+        long start = System.currentTimeMillis();
+        try {
+            complete(LlmRequest.builder()
+                    .model(model)
+                    .maxTokens(1)
+                    .addMessage(ChatMessage.user("ping"))
+                    .build());
+            return ModelValidation.valid(model, System.currentTimeMillis() - start);
+        } catch (RuntimeException e) {
+            String message = e.getMessage() == null ? "model probe failed" : e.getMessage();
+            return ModelValidation.invalid(model, message, System.currentTimeMillis() - start);
+        }
+    }
+
     /**
      * 发起一次上游请求并按增量回调 {@code handler}。
      *

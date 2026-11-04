@@ -8,6 +8,7 @@ import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
 import com.xiongx9527.fw.plus.ai.base.model.ModelInfo;
 import com.xiongx9527.fw.plus.ai.base.model.ModelType;
+import com.xiongx9527.fw.plus.ai.base.model.ModelValidation;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolChoice;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolExecutionRequest;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolSpecification;
@@ -140,6 +141,11 @@ public class OpenAiCompatibleLlmPort extends AbstractLlmPort {
             log.warn("llm list models failed: {}", ex.getMessage());
         }
         return out;
+    }
+
+    @Override
+    public ModelValidation validateModel(String model) {
+        return validateModelWithCompletion(model);
     }
 
     private String resolveUrl(LlmRequest request) {

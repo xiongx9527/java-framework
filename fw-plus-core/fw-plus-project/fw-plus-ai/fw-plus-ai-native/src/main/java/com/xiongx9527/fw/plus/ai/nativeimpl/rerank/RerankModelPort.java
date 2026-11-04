@@ -3,7 +3,6 @@ package com.xiongx9527.fw.plus.ai.nativeimpl.rerank;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xiongx9527.fw.plus.ai.base.model.ModelInfo;
-import com.xiongx9527.fw.plus.ai.base.model.ModelType;
 import com.xiongx9527.fw.plus.ai.base.model.ModelValidation;
 import com.xiongx9527.fw.plus.ai.base.model.RerankPort;
 import com.xiongx9527.fw.plus.ai.nativeimpl.http.JdkHttp;
@@ -103,16 +102,12 @@ public class RerankModelPort implements RerankPort {
     }
 
     /**
-     * 枚举模型：TEI 与 Cohere 都没有标准的重排模型枚举端点，故返回当前配置的模型（单条），
-     * 便于配置页展示；未配置模型时返回空列表。
+     * TEI 与 Cohere 重排 API 均未提供可用于此适配器的模型目录端点；
+     * 当前配置的模型不等于服务端可枚举目录，因此返回空列表。
      */
     @Override
     public List<ModelInfo> listModels() {
-        List<ModelInfo> out = new ArrayList<ModelInfo>();
-        if (model != null && !model.isEmpty()) {
-            out.add(ModelInfo.builder().id(model).name(model).type(ModelType.RERANK).build());
-        }
-        return out;
+        return Collections.emptyList();
     }
 
     /**

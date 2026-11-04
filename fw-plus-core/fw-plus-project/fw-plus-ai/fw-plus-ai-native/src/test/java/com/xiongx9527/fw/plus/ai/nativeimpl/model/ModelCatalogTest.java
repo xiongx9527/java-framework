@@ -45,7 +45,7 @@ class ModelCatalogTest {
     }
 
     @Test
-    void openAiListsModelsAndValidatesAgainstCatalog() throws Exception {
+    void openAiValidatesListedModelWithCompletionRequest() throws Exception {
         FakeHttpServer server = server();
         try {
             OpenAiCompatibleLlmPort port = new OpenAiCompatibleLlmPort(server.url() + "/v1", "k", "gpt-4o");
@@ -57,7 +57,8 @@ class ModelCatalogTest {
             assertEquals("Bearer k", server.lastRequest().header("Authorization"));
 
             ModelValidation hit = port.validateModel("gpt-4o");
-            assertTrue(hit.isValid());
+            assertFalse(hit.isValid());
+            assertEquals("/v1/chat/completions", server.lastRequest().path);
             assertFalse(port.validateModel("nope").isValid());
             assertFalse(port.validateModel(null).isValid());
         } finally {
@@ -66,7 +67,7 @@ class ModelCatalogTest {
     }
 
     @Test
-    void anthropicListsModelsWithDisplayNameAndVersionHeader() throws Exception {
+    void anthropicValidatesListedModelWithMessagesRequest() throws Exception {
         FakeHttpServer server = server();
         try {
             AnthropicLlmPort port = new AnthropicLlmPort(server.url(), "k", "claude-3-5-sonnet");
@@ -76,7 +77,9 @@ class ModelCatalogTest {
             assertEquals("Claude 3.5 Sonnet", models.get(0).getName());
             assertEquals("k", server.lastRequest().header("x-api-key"));
             assertEquals("2023-06-01", server.lastRequest().header("anthropic-version"));
-            assertTrue(port.validateModel("claude-3-5-sonnet").isValid());
+            ModelValidation validation = port.validateModel("claude-3-5-sonnet");
+            assertFalse(validation.isValid());
+            assertEquals("/v1/messages", server.lastRequest().path);
         } finally {
             server.close();
         }
@@ -104,15 +107,12 @@ class ModelCatalogTest {
     }
 
     @Test
-    void rerankListsConfiguredModelAndProbesScore() throws Exception {
+    void rerankDoesNotExposeConfiguredModelAsCatalogAndProbesScore() throws Exception {
         FakeHttpServer server = server();
         try {
             RerankModelPort port = new RerankModelPort(server.url() + "/rerank", null, "bge-reranker",
                     RerankModelPort.Style.COHERE);
-            List<ModelInfo> models = port.listModels();
-            assertEquals(1, models.size());
-            assertEquals("bge-reranker", models.get(0).getId());
-            assertEquals(ModelType.RERANK, models.get(0).getType());
+            assertTrue(port.listModels().isEmpty());
 
             assertTrue(port.validateModel("bge-reranker").isValid());
             assertFalse(port.validateModel("missing").isValid());

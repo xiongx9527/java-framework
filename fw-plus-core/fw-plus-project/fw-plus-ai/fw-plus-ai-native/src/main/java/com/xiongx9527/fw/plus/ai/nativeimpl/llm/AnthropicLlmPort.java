@@ -9,6 +9,7 @@ import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
 import com.xiongx9527.fw.plus.ai.base.model.ModelInfo;
 import com.xiongx9527.fw.plus.ai.base.model.ModelType;
+import com.xiongx9527.fw.plus.ai.base.model.ModelValidation;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolExecutionRequest;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolSpecification;
 import java.io.IOException;
@@ -130,6 +131,11 @@ public class AnthropicLlmPort extends AbstractLlmPort {
             log.warn("anthropic list models failed: {}", ex.getMessage());
         }
         return out;
+    }
+
+    @Override
+    public ModelValidation validateModel(String model) {
+        return validateModelWithCompletion(model);
     }
 
     private Map<String, Object> buildBody(LlmRequest request) throws IOException {

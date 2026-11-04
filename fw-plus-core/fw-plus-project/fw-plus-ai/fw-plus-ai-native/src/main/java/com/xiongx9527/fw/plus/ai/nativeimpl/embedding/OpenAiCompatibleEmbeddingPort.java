@@ -84,19 +84,20 @@ public class OpenAiCompatibleEmbeddingPort implements EmbeddingPort {
     public int dimension() { return dimension; }
 
     /**
-     * 枚举向量模型：GET {@code /models}，按常见向量模型名关键字过滤。
+     * 优先通过 {@code /models} 枚举向量模型；该端点返回 404 时尝试读取 TEI {@code /info}。
      *
      * <p>OpenAI 兼容的 {@code /models} 不标注模型能力，只能按 id 关键字判断；一个都匹配不上时
-     * 返回空列表（表示「无法可靠枚举」），而不是把对话模型误报成向量模型。</p>
+     * 返回空列表，而不是把对话模型误报成向量模型。</p>
      */
     @Override
     public List<ModelInfo> listModels() {
-        Request.Builder rb = new Request.Builder().url(baseUrl + "/models").get();
-        if (apiKey != null && !apiKey.isEmpty()) rb.addHeader("Authorization", "Bearer " + apiKey);
         List<ModelInfo> out = new ArrayList<ModelInfo>();
-        try (Response r = client.newCall(rb.build()).execute()) {
+        try (Response r = client.newCall(getRequest(baseUrl + "/models")).execute()) {
+            if (r.code() == 404) {
+                return listInfoModel();
+            }
             if (!r.isSuccessful()) { log.warn("embedding list models http {}", r.code()); return out; }
-            JsonNode data = mapper.readTree(bodyOf(r)).get("data");
+            JsonNode data = mapper.readTree(bodyOf(r)).path("data");
             if (data == null || !data.isArray()) return out;
             for (JsonNode item : data) {
                 String id = item.path("id").asText(null);
@@ -111,6 +112,41 @@ public class OpenAiCompatibleEmbeddingPort implements EmbeddingPort {
             log.warn("embedding list models failed: {}", ex.getMessage());
         }
         return out;
+    }
+
+    private List<ModelInfo> listInfoModel() {
+        List<ModelInfo> out = new ArrayList<ModelInfo>();
+        String infoBaseUrl = baseUrl.endsWith("/v1")
+                ? baseUrl.substring(0, baseUrl.length() - 3) : baseUrl;
+        try (Response response = client.newCall(getRequest(infoBaseUrl + "/info")).execute()) {
+            if (!response.isSuccessful()) {
+                log.warn("embedding info http {}", response.code());
+                return out;
+            }
+            JsonNode info = mapper.readTree(bodyOf(response));
+            if (!info.path("model_type").has("embedding")) {
+                return out;
+            }
+            String id = info.path("model_id").asText(null);
+            if (id == null || id.trim().isEmpty()) {
+                id = info.path("served_model_name").asText(null);
+            }
+            if (id != null && !id.trim().isEmpty()) {
+                out.add(ModelInfo.builder().id(id).name(id).type(ModelType.EMBEDDING)
+                        .dimension(id.equals(defaultModel) ? dimension : 0).build());
+            }
+        } catch (IOException ex) {
+            log.warn("embedding info failed: {}", ex.getMessage());
+        }
+        return out;
+    }
+
+    private Request getRequest(String url) {
+        Request.Builder builder = new Request.Builder().url(url).get();
+        if (apiKey != null && !apiKey.isEmpty()) {
+            builder.addHeader("Authorization", "Bearer " + apiKey);
+        }
+        return builder.build();
     }
 
     /**
