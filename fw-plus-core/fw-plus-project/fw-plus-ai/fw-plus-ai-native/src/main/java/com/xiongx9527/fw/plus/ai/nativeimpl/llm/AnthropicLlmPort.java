@@ -46,15 +46,21 @@ public class AnthropicLlmPort extends AbstractLlmPort {
     private final String defaultModel;
     private final String anthropicVersion;
     public AnthropicLlmPort(String baseUrl, String apiKey, String defaultModel) {
-        this(baseUrl, apiKey, defaultModel, "2023-06-01");
+        this(baseUrl, apiKey, defaultModel, "2023-06-01", null, null);
     }
-    public AnthropicLlmPort(String baseUrl, String apiKey, String defaultModel, String anthropicVersion) {
+    public AnthropicLlmPort(String baseUrl, String apiKey, String defaultModel, String anthropicVersion,
+            Integer connectTimeoutMillis, Integer readTimeoutMillis) {
         if (baseUrl == null || baseUrl.trim().isEmpty()) throw new IllegalArgumentException("llm baseUrl is required");
         this.baseUrl = baseUrl.replaceAll("/+$", "");
         this.apiKey = apiKey;
         this.defaultModel = defaultModel;
         this.anthropicVersion = anthropicVersion == null ? "2023-06-01" : anthropicVersion;
-        this.client = new OkHttpClient.Builder().connectTimeout(8_000, java.util.concurrent.TimeUnit.MILLISECONDS).readTimeout(600_000, java.util.concurrent.TimeUnit.MILLISECONDS).build();
+        long connect = connectTimeoutMillis != null ? connectTimeoutMillis : 8_000L;
+        long read = readTimeoutMillis != null ? readTimeoutMillis : 600_000L;
+        this.client = new OkHttpClient.Builder()
+                .connectTimeout(connect, java.util.concurrent.TimeUnit.MILLISECONDS)
+                .readTimeout(read, java.util.concurrent.TimeUnit.MILLISECONDS)
+                .build();
     }
     @Override
     public com.xiongx9527.fw.plus.ai.base.model.LlmCapabilities capabilities() {

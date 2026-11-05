@@ -44,11 +44,21 @@ public class OpenAiCompatibleLlmPort extends AbstractLlmPort {
     protected final String apiKey;
     protected final String defaultModel;
     public OpenAiCompatibleLlmPort(String baseUrl, String apiKey, String defaultModel) {
+        this(baseUrl, apiKey, defaultModel, null, null);
+    }
+
+    public OpenAiCompatibleLlmPort(String baseUrl, String apiKey, String defaultModel,
+            Integer connectTimeoutMillis, Integer readTimeoutMillis) {
         if (baseUrl == null || baseUrl.trim().isEmpty()) throw new IllegalArgumentException("llm baseUrl is required");
         this.baseUrl = baseUrl.replaceAll("/+$", "");
         this.apiKey = apiKey;
         this.defaultModel = defaultModel;
-        this.client = new OkHttpClient.Builder().connectTimeout(8_000, java.util.concurrent.TimeUnit.MILLISECONDS).readTimeout(600_000, java.util.concurrent.TimeUnit.MILLISECONDS).build();
+        long connect = connectTimeoutMillis != null ? connectTimeoutMillis : 8_000L;
+        long read = readTimeoutMillis != null ? readTimeoutMillis : 600_000L;
+        this.client = new OkHttpClient.Builder()
+                .connectTimeout(connect, java.util.concurrent.TimeUnit.MILLISECONDS)
+                .readTimeout(read, java.util.concurrent.TimeUnit.MILLISECONDS)
+                .build();
     }
     @Override
     public com.xiongx9527.fw.plus.ai.base.model.LlmCapabilities capabilities() {

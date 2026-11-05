@@ -9,7 +9,12 @@ public class AzureOpenAiLlmPort extends OpenAiCompatibleLlmPort {
     private final String apiVersion;
 
     public AzureOpenAiLlmPort(String baseUrl, String apiKey, String deployment, String apiVersion) {
-        super(baseUrl, apiKey, deployment);
+        this(baseUrl, apiKey, deployment, apiVersion, null, null);
+    }
+
+    public AzureOpenAiLlmPort(String baseUrl, String apiKey, String deployment, String apiVersion,
+            Integer connectTimeoutMillis, Integer readTimeoutMillis) {
+        super(baseUrl, apiKey, deployment, connectTimeoutMillis, readTimeoutMillis);
         this.apiVersion = apiVersion == null || apiVersion.trim().isEmpty()
                 ? DEFAULT_API_VERSION : apiVersion.trim();
     }

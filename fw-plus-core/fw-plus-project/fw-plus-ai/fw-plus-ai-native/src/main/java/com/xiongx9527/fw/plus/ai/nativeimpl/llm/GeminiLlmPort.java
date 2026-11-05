@@ -40,7 +40,7 @@ import okhttp3.sse.EventSources;
 public class GeminiLlmPort extends AbstractLlmPort {
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
     private final ObjectMapper mapper = new ObjectMapper();
-    private final OkHttpClient client = new OkHttpClient.Builder().readTimeout(600, TimeUnit.SECONDS).build();
+    private final OkHttpClient client;
     private final String baseUrl;
     private final String apiKey;
     private final String defaultModel;
@@ -49,9 +49,20 @@ public class GeminiLlmPort extends AbstractLlmPort {
     public GeminiLlmPort(String baseUrl, String apiKey, String defaultModel) { this(baseUrl, apiKey, defaultModel, null); }
 
     public GeminiLlmPort(String baseUrl, String apiKey, String defaultModel, String apiVersion) {
+        this(baseUrl, apiKey, defaultModel, apiVersion, null, null);
+    }
+
+    public GeminiLlmPort(String baseUrl, String apiKey, String defaultModel, String apiVersion,
+            Integer connectTimeoutMillis, Integer readTimeoutMillis) {
         if (baseUrl == null || baseUrl.trim().isEmpty()) throw new IllegalArgumentException("llm baseUrl is required");
         this.baseUrl = baseUrl.replaceAll("/+$", ""); this.apiKey = apiKey; this.defaultModel = defaultModel;
         this.apiVersion = apiVersion == null || apiVersion.trim().isEmpty() ? "v1beta" : apiVersion.trim().replaceAll("^/+|/+$", "");
+        long connect = connectTimeoutMillis != null ? connectTimeoutMillis : 8_000L;
+        long read = readTimeoutMillis != null ? readTimeoutMillis : 600_000L;
+        this.client = new OkHttpClient.Builder()
+                .connectTimeout(connect, java.util.concurrent.TimeUnit.MILLISECONDS)
+                .readTimeout(read, java.util.concurrent.TimeUnit.MILLISECONDS)
+                .build();
     }
 
     @Override public LlmCapabilities capabilities() {

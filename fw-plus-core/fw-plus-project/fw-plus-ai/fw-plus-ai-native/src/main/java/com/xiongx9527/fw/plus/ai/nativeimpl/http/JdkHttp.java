@@ -22,10 +22,12 @@ public final class JdkHttp {
     public static final class Response {
         private final int code;
         private final String body;
+        private final Map<String, String> headers;
 
-        public Response(int code, String body) {
+        public Response(int code, String body, Map<String, String> headers) {
             this.code = code;
             this.body = body;
+            this.headers = headers == null ? java.util.Collections.<String, String>emptyMap() : headers;
         }
 
         public int getCode() {
@@ -34,6 +36,20 @@ public final class JdkHttp {
 
         public String getBody() {
             return body;
+        }
+
+        /** 取响应头（键名不区分大小写）；不存在时返回 null。 */
+        public String getHeader(String name) {
+            if (name == null) {
+                return null;
+            }
+            String key = name.toLowerCase(java.util.Locale.ROOT);
+            for (Map.Entry<String, String> entry : headers.entrySet()) {
+                if (entry.getKey().toLowerCase(java.util.Locale.ROOT).equals(key)) {
+                    return entry.getValue();
+                }
+            }
+            return null;
         }
     }
 
@@ -59,7 +75,14 @@ public final class JdkHttp {
         }
         int code = conn.getResponseCode();
         String resp = readAll(code >= 400 ? conn.getErrorStream() : conn.getInputStream());
-        return new Response(code, resp);
+        Map<String, String> headerMap = new java.util.LinkedHashMap<String, String>();
+        for (Map.Entry<String, java.util.List<String>> entry : conn.getHeaderFields().entrySet()) {
+            if (entry.getKey() == null || entry.getValue() == null || entry.getValue().isEmpty()) {
+                continue;
+            }
+            headerMap.put(entry.getKey(), entry.getValue().get(0));
+        }
+        return new Response(code, resp, headerMap);
     }
 
     /** 4xx/5xx 视为失败，抛出带响应体的 IOException。 */

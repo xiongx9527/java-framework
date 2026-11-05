@@ -57,54 +57,54 @@ class LlmPortResolverTest {
 
     @Test
     void createsPortsThroughUnifiedVendorFactory() {
-        assertTrue(LlmPortResolver.create(LlmVendor.OPENAI,
-                config(LlmProtocol.OPENAI_CHAT_COMPLETIONS)) instanceof OpenAiChatCompletionsLlmPort);
-        assertTrue(LlmPortResolver.create(LlmVendor.OPENAI,
-                config(LlmProtocol.OPENAI_RESPONSES)) instanceof OpenAiResponsesLlmPort);
-        assertTrue(LlmPortResolver.create(LlmVendor.AZURE_OPENAI,
-                config(LlmProtocol.AZURE_OPENAI_CHAT_COMPLETIONS)) instanceof AzureOpenAiLlmPort);
-        assertTrue(LlmPortResolver.create(LlmVendor.ANTHROPIC,
-                config(LlmProtocol.ANTHROPIC_MESSAGES)) instanceof AnthropicLlmPort);
-        assertTrue(LlmPortResolver.create(LlmVendor.GEMINI,
-                config(LlmProtocol.GEMINI)) instanceof GeminiLlmPort);
+        assertTrue(LlmPortResolver.create(config(LlmProtocol.OPENAI_CHAT_COMPLETIONS, LlmVendor.OPENAI))
+                instanceof OpenAiChatCompletionsLlmPort);
+        assertTrue(LlmPortResolver.create(config(LlmProtocol.OPENAI_RESPONSES, LlmVendor.OPENAI))
+                instanceof OpenAiResponsesLlmPort);
+        assertTrue(LlmPortResolver.create(config(LlmProtocol.AZURE_OPENAI_CHAT_COMPLETIONS, LlmVendor.AZURE_OPENAI))
+                instanceof AzureOpenAiLlmPort);
+        assertTrue(LlmPortResolver.create(config(LlmProtocol.ANTHROPIC_MESSAGES, LlmVendor.ANTHROPIC))
+                instanceof AnthropicLlmPort);
+        assertTrue(LlmPortResolver.create(config(LlmProtocol.GEMINI, LlmVendor.GEMINI))
+                instanceof GeminiLlmPort);
     }
 
     @Test
     void protocolWinsWhenVendorAndProtocolAreBothProvided() {
-        assertTrue(LlmPortResolver.create(LlmVendor.ANTHROPIC, config(LlmProtocol.GEMINI))
+        assertTrue(LlmPortResolver.create(config(LlmProtocol.GEMINI, LlmVendor.ANTHROPIC))
                 instanceof GeminiLlmPort);
     }
 
     @Test
     void vendorIsUsedWhenProtocolIsNotProvided() {
-        assertTrue(LlmPortResolver.create(LlmVendor.ANTHROPIC, configWithoutProtocol())
+        assertTrue(LlmPortResolver.create(configWithoutProtocol(LlmVendor.ANTHROPIC))
                 instanceof AnthropicLlmPort);
     }
 
     @Test
     void routesLangChain4jProvidersWithoutExplicitProtocol() {
-        assertTrue(LlmPortResolver.create(LlmVendor.DASHSCOPE, configWithoutProtocol())
+        assertTrue(LlmPortResolver.create(configWithoutProtocol(LlmVendor.DASHSCOPE))
                 instanceof OpenAiChatCompletionsLlmPort);
-        assertTrue(LlmPortResolver.create(LlmVendor.QWEN, configWithoutProtocol())
+        assertTrue(LlmPortResolver.create(configWithoutProtocol(LlmVendor.QWEN))
                 instanceof OpenAiChatCompletionsLlmPort);
-        assertTrue(LlmPortResolver.create(LlmVendor.GITHUB_MODELS, configWithoutProtocol())
+        assertTrue(LlmPortResolver.create(configWithoutProtocol(LlmVendor.GITHUB_MODELS))
                 instanceof OpenAiChatCompletionsLlmPort);
-        assertTrue(LlmPortResolver.create(LlmVendor.OLLAMA, configWithoutProtocol())
+        assertTrue(LlmPortResolver.create(configWithoutProtocol(LlmVendor.OLLAMA))
                 instanceof OpenAiChatCompletionsLlmPort);
-        assertTrue(LlmPortResolver.create(LlmVendor.QIANFAN, configWithoutProtocol())
+        assertTrue(LlmPortResolver.create(configWithoutProtocol(LlmVendor.QIANFAN))
                 instanceof OpenAiChatCompletionsLlmPort);
-        assertTrue(LlmPortResolver.create(LlmVendor.LOCAL_AI, configWithoutProtocol())
+        assertTrue(LlmPortResolver.create(configWithoutProtocol(LlmVendor.LOCAL_AI))
                 instanceof OpenAiChatCompletionsLlmPort);
-        assertTrue(LlmPortResolver.create(LlmVendor.GOOGLE_AI_GEMINI, configWithoutProtocol())
+        assertTrue(LlmPortResolver.create(configWithoutProtocol(LlmVendor.GOOGLE_AI_GEMINI))
                 instanceof GeminiLlmPort);
         assertThrows(IllegalArgumentException.class,
-                () -> LlmPortResolver.create(LlmVendor.VERTEX_AI_GEMINI, configWithoutProtocol()));
+                () -> LlmPortResolver.create(configWithoutProtocol(LlmVendor.VERTEX_AI_GEMINI)));
         assertThrows(IllegalArgumentException.class,
-                () -> LlmPortResolver.create(LlmVendor.HUGGING_FACE, configWithoutProtocol()));
+                () -> LlmPortResolver.create(configWithoutProtocol(LlmVendor.HUGGING_FACE)));
         assertThrows(IllegalArgumentException.class,
-                () -> LlmPortResolver.create(LlmVendor.ZHIPU_AI, configWithoutProtocol()));
+                () -> LlmPortResolver.create(configWithoutProtocol(LlmVendor.ZHIPU_AI)));
         assertThrows(IllegalArgumentException.class,
-                () -> LlmPortResolver.create(LlmVendor.COHERE, configWithoutProtocol()));
+                () -> LlmPortResolver.create(configWithoutProtocol(LlmVendor.COHERE)));
     }
 
     @Test
@@ -130,8 +130,13 @@ class LlmPortResolverTest {
     }
 
     private LlmModelConfig config(LlmProtocol protocol) {
+        return config(protocol, null);
+    }
+
+    private LlmModelConfig config(LlmProtocol protocol, LlmVendor vendor) {
         return LlmModelConfig.builder()
                 .protocol(protocol)
+                .vendor(vendor)
                 .baseUrl("http://localhost:8080/v1")
                 .defaultModel("model")
                 .apiVersion("2025-01-01")
@@ -153,5 +158,17 @@ class LlmPortResolverTest {
                 .defaultModel("model")
                 .apiVersion("2025-01-01")
                 .build();
+    }
+
+    @Test
+    void acceptsTimeoutAndProperties() {
+        assertTrue(LlmPortResolver.create(LlmModelConfig.builder()
+                .protocol(LlmProtocol.OPENAI_CHAT_COMPLETIONS)
+                .baseUrl("http://localhost:8080/v1")
+                .defaultModel("chat-model")
+                .connectTimeoutMillis(1234)
+                .readTimeoutMillis(5678)
+                .property("organization", "acme")
+                .build()) instanceof OpenAiChatCompletionsLlmPort);
     }
 }

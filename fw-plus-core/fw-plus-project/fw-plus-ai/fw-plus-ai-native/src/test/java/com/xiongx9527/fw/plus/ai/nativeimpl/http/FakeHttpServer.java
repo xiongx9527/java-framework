@@ -41,15 +41,21 @@ public final class FakeHttpServer implements AutoCloseable {
     public static final class Response {
         public final int status;
         public final String body;
+        public final Map<String, String> headers;
 
-        Response(int status, String body) {
+        Response(int status, String body, Map<String, String> headers) {
             this.status = status;
             this.body = body;
+            this.headers = headers;
         }
     }
 
     public static Response json(int status, String body) {
-        return new Response(status, body);
+        return new Response(status, body, null);
+    }
+
+    public static Response json(int status, String body, Map<String, String> headers) {
+        return new Response(status, body, headers);
     }
 
     /** 把单引号写成双引号，便于测试里直接写 JSON 字面量而不必在 Java 源码里转义引号。 */
@@ -151,11 +157,18 @@ public final class FakeHttpServer implements AutoCloseable {
             response = json(500, FakeHttpServer.body("{'error':'handler failed'}"));
         }
         byte[] payload = response.body.getBytes(StandardCharsets.UTF_8);
+        StringBuilder head = new StringBuilder();
+        head.append("HTTP/1.1 ").append(response.status).append(" OK").append(CRLF)
+                .append("Content-Type: application/json").append(CRLF);
+        if (response.headers != null) {
+            for (Map.Entry<String, String> e : response.headers.entrySet()) {
+                head.append(e.getKey()).append(": ").append(e.getValue()).append(CRLF);
+            }
+        }
+        head.append("Content-Length: ").append(payload.length).append(CRLF)
+                .append("Connection: close").append(CRLF).append(CRLF);
         OutputStream os = socket.getOutputStream();
-        os.write(("HTTP/1.1 " + response.status + " OK" + CRLF
-                + "Content-Type: application/json" + CRLF
-                + "Content-Length: " + payload.length + CRLF
-                + "Connection: close" + CRLF + CRLF).getBytes(StandardCharsets.UTF_8));
+        os.write(head.toString().getBytes(StandardCharsets.UTF_8));
         os.write(payload);
         os.flush();
     }

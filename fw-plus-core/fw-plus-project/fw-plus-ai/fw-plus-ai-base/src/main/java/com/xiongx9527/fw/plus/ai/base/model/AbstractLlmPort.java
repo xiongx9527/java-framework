@@ -270,21 +270,4 @@ public abstract class AbstractLlmPort implements LlmPort {
         }
     }
 
-    /** {@code null} handler 的兜底。 */
-    private enum NullStreamHandler implements LlmStreamHandler {
-
-        INSTANCE;
-
-        @Override
-        public void onToken(String content, String reasoningContent) {
-        }
-
-        @Override
-        public void onComplete() {
-        }
-
-        @Override
-        public void onError(String message) {
-        }
-    }
 }

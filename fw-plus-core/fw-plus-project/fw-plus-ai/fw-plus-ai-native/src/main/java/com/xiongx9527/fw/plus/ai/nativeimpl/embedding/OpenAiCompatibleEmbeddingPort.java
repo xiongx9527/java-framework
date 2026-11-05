@@ -37,11 +37,21 @@ public class OpenAiCompatibleEmbeddingPort implements EmbeddingPort {
     private final String defaultModel;
     private volatile int dimension;
     public OpenAiCompatibleEmbeddingPort(String baseUrl, String apiKey, String defaultModel) {
+        this(baseUrl, apiKey, defaultModel, null, null);
+    }
+
+    public OpenAiCompatibleEmbeddingPort(String baseUrl, String apiKey, String defaultModel,
+            Integer connectTimeoutMillis, Integer readTimeoutMillis) {
         if (baseUrl == null || baseUrl.trim().isEmpty()) throw new IllegalArgumentException("embedding baseUrl is required");
         this.baseUrl = baseUrl.replaceAll("/+$", "");
         this.apiKey = apiKey;
         this.defaultModel = defaultModel;
-        this.client = new OkHttpClient.Builder().connectTimeout(8_000, TimeUnit.MILLISECONDS).readTimeout(30_000, TimeUnit.MILLISECONDS).build();
+        long connect = connectTimeoutMillis != null ? connectTimeoutMillis : 8_000L;
+        long read = readTimeoutMillis != null ? readTimeoutMillis : 30_000L;
+        this.client = new OkHttpClient.Builder()
+                .connectTimeout(connect, TimeUnit.MILLISECONDS)
+                .readTimeout(read, TimeUnit.MILLISECONDS)
+                .build();
     }
     @Override
     public double[] embed(String text) {

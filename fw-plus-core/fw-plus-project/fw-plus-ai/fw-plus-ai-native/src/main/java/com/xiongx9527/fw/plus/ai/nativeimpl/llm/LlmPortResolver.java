@@ -10,26 +10,14 @@ public final class LlmPortResolver {
      * 创建端口。厂商与协议至少配置其一；二者皆有时以协议为准，协议缺失时回退到厂商路由。
      */
     public static LlmPort create(LlmModelConfig config) {
-        return resolve(config, null);
-    }
-
-    /**
-     * 创建端口。显式传入厂商（仅当配置内未携带厂商时生效）；协议存在时忽略厂商。
-     */
-    public static LlmPort create(LlmVendor vendor, LlmModelConfig config) {
-        return resolve(config, vendor);
-    }
-
-    private static LlmPort resolve(LlmModelConfig config, LlmVendor explicitVendor) {
         requireConfig(config);
         if (config.getProtocol() != null) {
             return createByProtocol(config);
         }
-        LlmVendor vendor = explicitVendor != null ? explicitVendor : config.getVendor();
-        if (vendor == null) {
+        if (config.getVendor() == null) {
             throw new IllegalArgumentException("llm protocol or vendor is required");
         }
-        return createByVendor(vendor, config);
+        return createByVendor(config.getVendor(), config);
     }
 
     private static LlmPort createByProtocol(LlmModelConfig config) {
@@ -84,26 +72,31 @@ public final class LlmPortResolver {
     public static LlmPort createOpenAi(LlmModelConfig config) {
         requireProtocol(config, LlmProtocol.OPENAI_CHAT_COMPLETIONS, LlmProtocol.OPENAI_RESPONSES);
         if (config.getProtocol() == LlmProtocol.OPENAI_RESPONSES) {
-            return new OpenAiResponsesLlmPort(config.getBaseUrl(), config.getApiKey(), config.getDefaultModel());
+            return new OpenAiResponsesLlmPort(config.getBaseUrl(), config.getApiKey(),
+                    config.getDefaultModel(), config.getConnectTimeoutMillis(), config.getReadTimeoutMillis());
         }
-        return new OpenAiChatCompletionsLlmPort(config.getBaseUrl(), config.getApiKey(), config.getDefaultModel());
+        return new OpenAiChatCompletionsLlmPort(config.getBaseUrl(), config.getApiKey(),
+                config.getDefaultModel(), config.getConnectTimeoutMillis(), config.getReadTimeoutMillis());
     }
 
     public static LlmPort createAzureOpenAi(LlmModelConfig config) {
         requireProtocol(config, LlmProtocol.AZURE_OPENAI_CHAT_COMPLETIONS);
         return new AzureOpenAiLlmPort(config.getBaseUrl(), config.getApiKey(),
-                config.getDefaultModel(), config.getApiVersion());
+                config.getDefaultModel(), config.getApiVersion(),
+                config.getConnectTimeoutMillis(), config.getReadTimeoutMillis());
     }
 
     public static LlmPort createAnthropic(LlmModelConfig config) {
         requireProtocol(config, LlmProtocol.ANTHROPIC_MESSAGES);
-        return new AnthropicLlmPort(config.getBaseUrl(), config.getApiKey(), config.getDefaultModel());
+        return new AnthropicLlmPort(config.getBaseUrl(), config.getApiKey(), config.getDefaultModel(),
+                null, config.getConnectTimeoutMillis(), config.getReadTimeoutMillis());
     }
 
     public static LlmPort createGemini(LlmModelConfig config) {
         requireProtocol(config, LlmProtocol.GEMINI);
         return new GeminiLlmPort(config.getBaseUrl(), config.getApiKey(),
-                config.getDefaultModel(), config.getApiVersion());
+                config.getDefaultModel(), config.getApiVersion(),
+                config.getConnectTimeoutMillis(), config.getReadTimeoutMillis());
     }
 
     private static void requireProtocol(LlmModelConfig config, LlmProtocol... supportedProtocols) {
