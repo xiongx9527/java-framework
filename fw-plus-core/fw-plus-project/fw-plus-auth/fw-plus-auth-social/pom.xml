@@ -7,7 +7,6 @@
         <groupId>com.xiongx9527.fw.plus</groupId>
         <artifactId>fw-plus-auth</artifactId>
         <version>${revision}</version>
-        <relativePath>..</relativePath>
     </parent>
     <artifactId>fw-plus-auth-social</artifactId>
     <packaging>jar</packaging>
