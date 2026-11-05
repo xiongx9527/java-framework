@@ -13,6 +13,7 @@
         <module>fw-plus-auth-base</module>
         <module>fw-plus-auth-core</module>
         <module>fw-plus-auth-satoken</module>
+        <module>fw-plus-auth-social</module>
     </modules>
     <packaging>pom</packaging>
     <artifactId>fw-plus-auth</artifactId>
