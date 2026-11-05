@@ -20,14 +20,14 @@ public class ChartGenResult {
     private final String explanation;
 
     /** 0~1 置信度；降级时降低。 */
-    @Builder.Default
+    @lombok.Builder.Default
     private final double confidence = 0.0d;
 
     /** 是否因校验失败而降级为表格。 */
-    @Builder.Default
+    @lombok.Builder.Default
     private final boolean degraded = false;
 
     /** 备选图表类型。 */
-    @Builder.Default
+    @lombok.Builder.Default
     private final List<ChartType> alternatives = Collections.emptyList();
 }

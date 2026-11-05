@@ -10,11 +10,11 @@ import lombok.Getter;
 public class TableSchema {
     private final String name;
     private final String comment;
-    @Builder.Default
+    @lombok.Builder.Default
     private final List<ColumnSchema> columns = java.util.Collections.emptyList();
-    @Builder.Default
+    @lombok.Builder.Default
     private final List<String> primaryKey = java.util.Collections.emptyList();
-    @Builder.Default
+    @lombok.Builder.Default
     private final List<RelationSchema> relations = java.util.Collections.emptyList();
 
     /** 产生紧凑的表结构描述，供 prompt 使用。 */

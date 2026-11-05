@@ -7,6 +7,6 @@ import lombok.Getter;
 @Getter
 @Builder
 public class ChartDegradePolicy {
-    @Builder.Default
+    @lombok.Builder.Default
     private final boolean enabled = true;
 }

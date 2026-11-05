@@ -34,7 +34,7 @@ public class SqlGenInput {
     private final String refResolution;
 
     /** 额外业务约束，默认空列表。 */
-    @Builder.Default
+    @lombok.Builder.Default
     private final List<String> constraints = Collections.emptyList();
 
     /** 采样种子，null 表示不固定。 */
@@ -47,7 +47,7 @@ public class SqlGenInput {
     private final Double topP;
 
     /** 透传额外参数。 */
-    @Builder.Default
+    @lombok.Builder.Default
     private final Map<String, Object> extraParams = Collections.emptyMap();
 
     /** 生成前校验：问题与 schema 均不可为空。 */

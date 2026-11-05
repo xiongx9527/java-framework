@@ -13,6 +13,6 @@ import lombok.Getter;
 public class ChartAxes {
     private final String categoryField;
 
-    @Builder.Default
+    @lombok.Builder.Default
     private final List<String> valueFields = Collections.emptyList();
 }

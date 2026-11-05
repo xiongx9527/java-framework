@@ -15,7 +15,7 @@ import lombok.Getter;
 @Getter
 @Builder
 public class SchemaContext {
-    @Builder.Default
+    @lombok.Builder.Default
     private final List<TableSchema> tables = new ArrayList<>();
 
     public boolean isEmpty() {

@@ -10,22 +10,22 @@ import lombok.Getter;
 @Getter
 @Builder
 public class QueryResult {
-    @Builder.Default
+    @lombok.Builder.Default
     private final List<ColumnMeta> columns = Collections.emptyList();
 
-    @Builder.Default
+    @lombok.Builder.Default
     private final List<List<Object>> rows = Collections.emptyList();
 
     /** 是否因达到 maxRows 而截断（结果可能不完整）。 */
-    @Builder.Default
+    @lombok.Builder.Default
     private final boolean truncated = false;
 
     /** 执行耗时（毫秒）。 */
-    @Builder.Default
+    @lombok.Builder.Default
     private final long elapsedMillis = 0L;
 
     /** 结果自检（VERIFY）发现的可疑项提示（不影响结果本身，供上游告警 / 反问）。 */
-    @Builder.Default
+    @lombok.Builder.Default
     private final List<String> warnings = Collections.emptyList();
 
     public int rowCount() {

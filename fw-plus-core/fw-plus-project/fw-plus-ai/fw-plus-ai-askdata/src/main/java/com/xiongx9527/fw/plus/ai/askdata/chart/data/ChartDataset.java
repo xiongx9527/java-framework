@@ -15,10 +15,10 @@ import lombok.Getter;
 @Getter
 @Builder
 public class ChartDataset {
-    @Builder.Default
+    @lombok.Builder.Default
     private final List<ChartColumn> columns = Collections.emptyList();
 
-    @Builder.Default
+    @lombok.Builder.Default
     private final List<List<Object>> rows = Collections.emptyList();
 
     /** 图表渲染的安全行上限（风险登记 A.1.2：MAX_RENDER_ROWS 只限制推断、未限制实际绘制）。

@@ -21,7 +21,7 @@ public class ChartGenInput {
     private final ChartType preferredType;
 
     /** 额外约束（可选）。 */
-    @Builder.Default
+    @lombok.Builder.Default
     private final List<String> constraints = Collections.emptyList();
 
     public void validate() {

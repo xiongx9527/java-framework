@@ -11,10 +11,10 @@ public class ColumnSchema {
     private final String name;
     private final String type;
     private final String comment;
-    @Builder.Default
+    @lombok.Builder.Default
     private final boolean primaryKey = false;
-    @Builder.Default
+    @lombok.Builder.Default
     private final boolean nullable = true;
-    @Builder.Default
+    @lombok.Builder.Default
     private final List<String> sampleValues = java.util.Collections.emptyList();
 }

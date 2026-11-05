@@ -17,12 +17,12 @@ public class AskDataResult {
     private final QueryResult queryResult;
     private final double confidence;
     private final boolean valid;
-    @Builder.Default
+    @lombok.Builder.Default
     private final List<String> referencedTables = Collections.emptyList();
-    @Builder.Default
+    @lombok.Builder.Default
     private final List<String> alternatives = Collections.emptyList();
-    @Builder.Default
+    @lombok.Builder.Default
     private final List<String> warnings = Collections.emptyList();
-    @Builder.Default
+    @lombok.Builder.Default
     private final boolean executed = false;
 }

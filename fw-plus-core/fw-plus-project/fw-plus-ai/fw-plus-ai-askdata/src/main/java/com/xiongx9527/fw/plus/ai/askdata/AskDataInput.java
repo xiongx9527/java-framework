@@ -30,7 +30,7 @@ public class AskDataInput {
     private final String refResolution;
 
     /** 额外业务约束（如“只看最近 7 天”），默认空列表。 */
-    @Builder.Default
+    @lombok.Builder.Default
     private final List<String> constraints = Collections.emptyList();
 
     /** 采样种子，null 表示不固定。 */
@@ -43,22 +43,22 @@ public class AskDataInput {
     private final Double topP;
 
     /** 透传给底层执行器的额外参数。 */
-    @Builder.Default
+    @lombok.Builder.Default
     private final Map<String, Object> extraParams = Collections.emptyMap();
 
     /** 最大返回行数，防止大结果集拖垮内存；<=0 表示不限制。 */
-    @Builder.Default
+    @lombok.Builder.Default
     private final int maxRows = 1000;
 
     /** 查询超时（秒），<=0 表示不限制。 */
-    @Builder.Default
+    @lombok.Builder.Default
     private final int queryTimeoutSeconds = 30;
 
     /** 是否只读执行；为 true 时执行器应拒绝写入型语句。 */
-    @Builder.Default
+    @lombok.Builder.Default
     private final boolean readOnly = true;
 
     /** 召回索引策略：质量型（HIGH_QUALITY）或经济型（ECONOMICAL），默认质量型。 */
-    @Builder.Default
+    @lombok.Builder.Default
     private final IndexMode recallIndexMode = IndexMode.HIGH_QUALITY;
 }

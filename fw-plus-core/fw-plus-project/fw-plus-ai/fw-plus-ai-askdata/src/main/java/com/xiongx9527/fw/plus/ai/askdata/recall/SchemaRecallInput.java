@@ -19,10 +19,10 @@ public class SchemaRecallInput {
 
     private final String question;
 
-    @Builder.Default
+    @lombok.Builder.Default
     private final List<TableSchema> candidates = Collections.emptyList();
 
     /** 召回索引策略（质量型 / 经济型）；null 表示由召回能力决定默认策略。 */
-    @Builder.Default
+    @lombok.Builder.Default
     private final IndexMode indexMode = null;
 }

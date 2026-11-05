@@ -18,19 +18,19 @@ public class SqlGenResult {
     private final String explanation;
 
     /** 引用到的表，供执行期与审计。 */
-    @Builder.Default
+    @lombok.Builder.Default
     private final List<String> referencedTables = Collections.emptyList();
 
     /** 0~1 置信度，低置信走 §6.32 反问。 */
-    @Builder.Default
+    @lombok.Builder.Default
     private final double confidence = 0.0d;
 
     /** 漂离时的可选 SQL。 */
-    @Builder.Default
+    @lombok.Builder.Default
     private final List<String> alternatives = Collections.emptyList();
 
     /** 最终校验是否通过；false 表示 SQL 未通过本地 / LLM 校验，调用方不应直接执行。 */
-    @Builder.Default
+    @lombok.Builder.Default
     private final boolean valid = false;
 }
 

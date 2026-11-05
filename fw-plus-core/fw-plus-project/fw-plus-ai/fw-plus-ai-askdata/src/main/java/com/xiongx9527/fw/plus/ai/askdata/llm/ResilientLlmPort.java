@@ -85,25 +85,25 @@ public class ResilientLlmPort implements LlmPort {
     @Builder
     public static class ResilienceConfig {
         /** 额外重试次数（不含首次），默认 2。 */
-        @Builder.Default
+        @lombok.Builder.Default
         private final int maxRetries = 2;
         /** 退避基准毫秒，默认 200。 */
-        @Builder.Default
+        @lombok.Builder.Default
         private final long baseDelayMs = 200L;
         /** 退避上限毫秒，默认 1000。 */
-        @Builder.Default
+        @lombok.Builder.Default
         private final long maxDelayMs = 1000L;
         /** 连续可重试失败达到该值即打开熔断，默认 3。 */
-        @Builder.Default
+        @lombok.Builder.Default
         private final int failureThreshold = 3;
         /** 熔断冷却毫秒，默认 30000。 */
-        @Builder.Default
+        @lombok.Builder.Default
         private final long cooldownMs = 30000L;
         /** 非可重试异常是否也计入熔断计数，默认 false（熔断只反映瞬时故障）。 */
-        @Builder.Default
+        @lombok.Builder.Default
         private final boolean countNonRetryableAsFailure = false;
         /** 可重试判定，默认 {@link #TRANSIENT}。 */
-        @Builder.Default
+        @lombok.Builder.Default
         private final Predicate<Throwable> retryable = TRANSIENT;
     }
 
