@@ -235,6 +235,11 @@ public abstract class AbstractLlmPort implements LlmPort {
             this.usage = new LlmUsage(inputTokens, outputTokens, totalTokens);
             delegate.onUsageDetail(inputTokens, outputTokens, totalTokens);
         }
+
+        @Override
+        public void onFinish(String finishReason) {
+            delegate.onFinish(finishReason);
+        }
     }
 
     /** 非流式聚合：收集正文 / 思考过程 / 用量，同时派发监听器事件。 */
@@ -251,6 +256,8 @@ public abstract class AbstractLlmPort implements LlmPort {
         private final List<ToolExecutionRequest> toolCalls = new ArrayList<ToolExecutionRequest>();
 
         private LlmUsage usage = LlmUsage.ZERO;
+
+        private String finishReason;
 
         private String error;
 
@@ -309,6 +316,11 @@ public abstract class AbstractLlmPort implements LlmPort {
             this.usage = new LlmUsage(inputTokens, outputTokens, totalTokens);
         }
 
+        @Override
+        public void onFinish(String reason) {
+            this.finishReason = reason;
+        }
+
         private LlmResponse result() {
             if (error != null) {
                 throw new LlmException(error);
@@ -318,6 +330,7 @@ public abstract class AbstractLlmPort implements LlmPort {
                     .reasoningContent(reasoning.length() == 0 ? null : reasoning.toString())
                     .usage(usage)
                     .toolCalls(toolCalls)
+                    .finishReason(finishReason)
                     .build();
         }
     }

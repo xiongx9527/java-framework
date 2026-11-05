@@ -282,6 +282,13 @@ public final class LlmTokenStream {
         }
 
         @Override
+        public void onFinish(String finishReason) {
+            if (!cancelled.get()) {
+                delegate.onFinish(finishReason);
+            }
+        }
+
+        @Override
         public void onUnmappedRawEvent(Object rawEvent) {
             if (!cancelled.get()) {
                 delegate.onUnmappedRawEvent(rawEvent);
@@ -337,6 +344,7 @@ public final class LlmTokenStream {
         private final StringBuilder reasoning = new StringBuilder();
         private final List<ToolExecutionRequest> toolCalls = new ArrayList<ToolExecutionRequest>();
         private LlmUsage usage = LlmUsage.ZERO;
+        private String finishReason;
 
         private CompositeHandler(List<LlmStreamHandler> delegates,
                                  List<Consumer<LlmResponse>> responseHandlers) {
@@ -359,6 +367,7 @@ public final class LlmTokenStream {
                         .reasoningContent(reasoning.length() == 0 ? null : reasoning.toString())
                         .usage(usage)
                         .toolCalls(toolCalls)
+                        .finishReason(finishReason)
                         .build();
             }
             for (Consumer<LlmResponse> callback : responseHandlers) callback.accept(response);
@@ -408,6 +417,12 @@ public final class LlmTokenStream {
             for (LlmStreamHandler delegate : delegates) {
                 delegate.onUsageDetail(inputTokens, outputTokens, totalTokens);
             }
+        }
+        @Override public void onFinish(String reason) {
+            synchronized (this) {
+                finishReason = reason;
+            }
+            for (LlmStreamHandler delegate : delegates) delegate.onFinish(reason);
         }
         @Override public void onUnmappedRawEvent(Object rawEvent) {
             for (LlmStreamHandler delegate : delegates) delegate.onUnmappedRawEvent(rawEvent);

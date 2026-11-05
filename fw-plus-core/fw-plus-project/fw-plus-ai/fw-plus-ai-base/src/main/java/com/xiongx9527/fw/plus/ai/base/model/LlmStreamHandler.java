@@ -118,6 +118,16 @@ public interface LlmStreamHandler {
     }
 
     /**
+     * 流结束原因（STOP / LENGTH / TOOL_EXECUTION / CONTENT_FILTER / OTHER）。
+     *
+     * <p>对应 LangChain4j 1.x {@code FinishReason}；上游不支持时（如部分流式实现）
+     * 不上报，{@link com.xiongx9527.fw.plus.ai.base.model.LlmResponse#getFinishReason()}
+     * 为 {@code null}。默认忽略。</p>
+     */
+    default void onFinish(String finishReason) {
+    }
+
+    /**
      * 收到模型下发的、未映射到上述结构化事件的原始事件。
      *
      * <p>对齐 LangChain4j 1.x {@code StreamingChatResponseHandler.onUnmappedRawEvent(Object)}；
