@@ -59,6 +59,8 @@ public final class AiServiceContext {
 
     private final List<AiObservationListener> observationListeners;
 
+    private final List<AiInvocationSummaryListener> summaryListeners;
+
     private final TracePort trace;
 
     private final StoreRegistry storeRegistry;
@@ -99,6 +101,21 @@ public final class AiServiceContext {
     /** 默认随机种子。 */
     private final Integer seed;
 
+    /** 默认 topK。 */
+    private final Integer topK;
+
+    /** 默认频率惩罚。 */
+    private final Double frequencyPenalty;
+
+    /** 默认存在惩罚。 */
+    private final Double presencePenalty;
+
+    /** 默认停止序列。 */
+    private final List<String> stopSequences;
+
+    /** 默认结构化输出约束。 */
+    private final Map<String, Object> responseFormat;
+
     AiServiceContext(Class<?> serviceType, LlmPort llm,
                      List<IntentScoped<ChatMemoryProvider>> memoryScopes,
                      List<IntentScoped<IntentPort>> intentScopes,
@@ -116,7 +133,10 @@ public final class AiServiceContext {
                      Map<String, Integer> varOverrides,
                      Map<String, java.util.function.Supplier<Object>> customVariables,
                      StoreRegistry storeRegistry,
-                     String model, Double temperature, Double topP, Integer maxTokens, Integer seed) {
+                     String model, Double temperature, Double topP, Integer maxTokens, Integer seed,
+                     Integer topK, Double frequencyPenalty, Double presencePenalty,
+                     List<String> stopSequences, Map<String, Object> responseFormat,
+                     List<AiInvocationSummaryListener> summaryListeners) {
         this.serviceType = serviceType;
         this.llm = llm;
         this.memoryScopes = memoryScopes == null ? Collections.<IntentScoped<ChatMemoryProvider>>emptyList()
@@ -156,6 +176,16 @@ public final class AiServiceContext {
         this.topP = topP;
         this.maxTokens = maxTokens;
         this.seed = seed;
+        this.topK = topK;
+        this.frequencyPenalty = frequencyPenalty;
+        this.presencePenalty = presencePenalty;
+        this.stopSequences = stopSequences == null ? Collections.<String>emptyList()
+                : Collections.unmodifiableList(new ArrayList<String>(stopSequences));
+        this.responseFormat = responseFormat == null ? null
+                : Collections.unmodifiableMap(new LinkedHashMap<String, Object>(responseFormat));
+        this.summaryListeners = summaryListeners == null
+                ? Collections.<AiInvocationSummaryListener>emptyList()
+                : Collections.unmodifiableList(new ArrayList<AiInvocationSummaryListener>(summaryListeners));
     }
 
     public Class<?> getServiceType() {
@@ -223,6 +253,11 @@ public final class AiServiceContext {
     /** 调用级观测监听（用于 Langfuse / Langsmith 等）。 */
     public List<AiObservationListener> getObservationListeners() {
         return observationListeners;
+    }
+
+    /** 调用结束后的全量摘要监听。 */
+    public List<AiInvocationSummaryListener> getSummaryListeners() {
+        return summaryListeners;
     }
 
     /** 链路追踪端口：未接入时为 {@link TracePort#noop()}。 */
@@ -293,5 +328,30 @@ public final class AiServiceContext {
     /** 默认随机种子；为 {@code null} 时由后端决定。 */
     public Integer getSeed() {
         return seed;
+    }
+
+    /** 默认 topK；为 {@code null} 时由后端决定。 */
+    public Integer getTopK() {
+        return topK;
+    }
+
+    /** 默认频率惩罚；为 {@code null} 时由后端决定。 */
+    public Double getFrequencyPenalty() {
+        return frequencyPenalty;
+    }
+
+    /** 默认存在惩罚；为 {@code null} 时由后端决定。 */
+    public Double getPresencePenalty() {
+        return presencePenalty;
+    }
+
+    /** 默认停止序列；永不为 {@code null}。 */
+    public List<String> getStopSequences() {
+        return stopSequences;
+    }
+
+    /** 默认结构化输出约束；为 {@code null} 时不强制。 */
+    public Map<String, Object> getResponseFormat() {
+        return responseFormat;
     }
 }

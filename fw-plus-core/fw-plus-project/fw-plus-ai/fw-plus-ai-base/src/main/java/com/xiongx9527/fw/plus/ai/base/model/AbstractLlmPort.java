@@ -173,6 +173,16 @@ public abstract class AbstractLlmPort implements LlmPort {
         }
 
         @Override
+        public void onPartialToolCall(String id, String name, String argumentsDelta) {
+            delegate.onPartialToolCall(id, name, argumentsDelta);
+        }
+
+        @Override
+        public void onCompleteToolCall(ToolExecutionRequest call) {
+            delegate.onCompleteToolCall(call);
+        }
+
+        @Override
         public void onUsage(long totalTokens) {
             this.usage = new LlmUsage(0L, 0L, totalTokens);
             delegate.onUsage(totalTokens);

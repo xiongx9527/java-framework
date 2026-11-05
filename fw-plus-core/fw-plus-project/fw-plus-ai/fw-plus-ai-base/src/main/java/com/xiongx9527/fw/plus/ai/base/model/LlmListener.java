@@ -42,4 +42,19 @@ public interface LlmListener extends AiListener {
     default void onComplete() {
     }
 
+    /** 带上下文的请求事件；默认转发到 {@link #onRequest(LlmRequest)}。 */
+    default void onRequest(LlmRequestContext context) {
+        onRequest(context == null ? null : context.request());
+    }
+
+    /** 带上下文的响应事件；默认转发到 {@link #onResponse(LlmResponse)}。 */
+    default void onResponse(LlmResponseContext context) {
+        onResponse(context == null ? null : context.response());
+    }
+
+    /** 带上下文的错误事件；默认转发到 {@code onError(String)}。 */
+    default void onError(LlmErrorContext context) {
+        onError(context == null ? null : context.message());
+    }
+
 }

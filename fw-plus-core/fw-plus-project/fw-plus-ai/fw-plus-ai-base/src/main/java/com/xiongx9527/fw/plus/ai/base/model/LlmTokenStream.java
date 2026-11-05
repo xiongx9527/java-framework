@@ -23,6 +23,8 @@ public final class LlmTokenStream {
     private final List<Consumer<LlmResponse>> completeResponseHandlers = new ArrayList<Consumer<LlmResponse>>();
     private final AtomicBoolean started = new AtomicBoolean();
 
+    private final AtomicBoolean cancelled = new AtomicBoolean();
+
     private LlmTokenStream(Starter starter) {
         if (starter == null) {
             throw new IllegalArgumentException("stream starter is required");
@@ -150,11 +152,26 @@ public final class LlmTokenStream {
             responseHandlers = new ArrayList<Consumer<LlmResponse>>(completeResponseHandlers);
         }
         CompositeHandler composite = new CompositeHandler(registered, responseHandlers);
+        CancellationGuard guard = new CancellationGuard(composite, cancelled);
         try {
-            starter.start(composite);
+            starter.start(guard);
         } catch (RuntimeException e) {
-            composite.onError(errorMessage(e));
+            guard.onError(errorMessage(e));
         }
+    }
+
+    /**
+     * 取消流：调用后所有回调（包括已排队但尚未派发的事件）都不再向下游派发。
+     *
+     * <p>对齐 LangChain4j 1.x {@code StreamingHandle} 的语义；线程安全，可在流式 IO 线程之外调用。
+     * 取消不改变上游请求本身，adapter 如需中断 IO 应自行覆写。</p>
+     */
+    public void cancel() {
+        cancelled.set(true);
+    }
+
+    public boolean isCancelled() {
+        return cancelled.get();
     }
 
     private synchronized void ensureNotStarted() {
@@ -166,6 +183,103 @@ public final class LlmTokenStream {
     private static String errorMessage(Throwable error) {
         return error.getMessage() == null || error.getMessage().isEmpty()
                 ? error.getClass().getSimpleName() : error.getMessage();
+    }
+
+    /** 取消守卫：cancel 之后不再派发任何事件。 */
+    private static final class CancellationGuard implements LlmStreamHandler {
+
+        private final LlmStreamHandler delegate;
+
+        private final AtomicBoolean cancelled;
+
+        private CancellationGuard(LlmStreamHandler delegate, AtomicBoolean cancelled) {
+            this.delegate = delegate;
+            this.cancelled = cancelled;
+        }
+
+        @Override
+        public void onToken(String content, String reasoningContent) {
+            if (!cancelled.get()) {
+                delegate.onToken(content, reasoningContent);
+            }
+        }
+
+        @Override
+        public void onComplete() {
+            if (!cancelled.get()) {
+                delegate.onComplete();
+            }
+        }
+
+        @Override
+        public void onError(String message) {
+            if (!cancelled.get()) {
+                delegate.onError(message);
+            }
+        }
+
+        @Override
+        public void onToolCall(ToolExecutionRequest call) {
+            if (!cancelled.get()) {
+                delegate.onToolCall(call);
+            }
+        }
+
+        @Override
+        public void onPartialToolCall(String id, String name, String argumentsDelta) {
+            if (!cancelled.get()) {
+                delegate.onPartialToolCall(id, name, argumentsDelta);
+            }
+        }
+
+        @Override
+        public void onCompleteToolCall(ToolExecutionRequest call) {
+            if (!cancelled.get()) {
+                delegate.onCompleteToolCall(call);
+            }
+        }
+
+        @Override
+        public void onToolResponse(ToolExecutionResult result) {
+            if (!cancelled.get()) {
+                delegate.onToolResponse(result);
+            }
+        }
+
+        @Override
+        public void onIntent(IntentEvent event) {
+            if (!cancelled.get()) {
+                delegate.onIntent(event);
+            }
+        }
+
+        @Override
+        public void onRetrieval(RetrievalEvent event) {
+            if (!cancelled.get()) {
+                delegate.onRetrieval(event);
+            }
+        }
+
+        @Override
+        public void onContextInject(ContextInjectEvent event) {
+            if (!cancelled.get()) {
+                delegate.onContextInject(event);
+            }
+        }
+
+        @Override
+        public void onUsage(long totalTokens) {
+            if (!cancelled.get()) {
+                delegate.onUsage(totalTokens);
+            }
+        }
+
+        @Override
+        public void onUsageDetail(long inputTokens, long outputTokens, long totalTokens) {
+            if (!cancelled.get()) {
+                delegate.onUsageDetail(inputTokens, outputTokens, totalTokens);
+            }
+        }
     }
 
     private abstract static class HandlerAdapter implements LlmStreamHandler {
@@ -218,6 +332,14 @@ public final class LlmTokenStream {
                 }
             }
             for (LlmStreamHandler delegate : delegates) delegate.onToolCall(call);
+        }
+        @Override public void onPartialToolCall(String id, String name, String argumentsDelta) {
+            for (LlmStreamHandler delegate : delegates) {
+                delegate.onPartialToolCall(id, name, argumentsDelta);
+            }
+        }
+        @Override public void onCompleteToolCall(ToolExecutionRequest call) {
+            for (LlmStreamHandler delegate : delegates) delegate.onCompleteToolCall(call);
         }
         @Override public void onToolResponse(ToolExecutionResult result) {
             for (LlmStreamHandler delegate : delegates) delegate.onToolResponse(result);

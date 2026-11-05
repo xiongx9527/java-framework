@@ -1,15 +1,19 @@
 package com.xiongx9527.fw.plus.ai.base.service;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
- * 一次 AI 服务调用的观测快照，交给 {@link AiObservationListener} 做追踪 / 监控。
+ * 一次 AI 服务调用的观测快照，交给 {@link AiObservationListener} 做追踪 / 监控，
+ * 也可作为 {@link AiInvocationSummaryListener} 的调用摘要。
  *
- * <p>把「意图分类 → 检索增强 → 工具循环 → 最终回答」收敛成一条调用级 trace，
- * 便于上报到 Langfuse / Langsmith 等观测平台（这些具体后端在 {@code support} 层实现）。</p>
+ * <p>把「意图分类 → 检索增强 → 工具循环 → 最终回答」收敛成一条调用级 trace；
+ * {@link #getEvents()} 按发生顺序记录链路里的关键事件（对齐 LangChain4j 1.23 的
+ * {@code AiServiceInvocationSummaryEvent}），便于上报到 Langfuse / Langsmith 等观测平台。</p>
  */
 public final class AiCallObservation {
 
@@ -31,6 +35,8 @@ public final class AiCallObservation {
 
     private final Map<String, Object> attributes;
 
+    private final List<String> events;
+
     private AiCallObservation(Builder b) {
         this.serviceType = b.serviceType;
         this.methodName = b.methodName;
@@ -41,6 +47,7 @@ public final class AiCallObservation {
         this.latencyMillis = b.latencyMillis;
         this.error = b.error;
         this.attributes = Collections.unmodifiableMap(new LinkedHashMap<String, Object>(b.attributes));
+        this.events = Collections.unmodifiableList(new ArrayList<String>(b.events));
     }
 
     public static Builder builder() {
@@ -83,6 +90,11 @@ public final class AiCallObservation {
         return attributes;
     }
 
+    /** 调用链路关键事件（按发生顺序）；永不为 {@code null}。 */
+    public List<String> getEvents() {
+        return events;
+    }
+
     public static final class Builder {
 
         private Class<?> serviceType;
@@ -102,6 +114,8 @@ public final class AiCallObservation {
         private String error;
 
         private final Map<String, Object> attributes = new LinkedHashMap<String, Object>();
+
+        private final List<String> events = new ArrayList<String>();
 
         public Builder serviceType(Class<?> value) {
             this.serviceType = value;
@@ -151,6 +165,22 @@ public final class AiCallObservation {
         public Builder attribute(String key, Object value) {
             if (key != null) {
                 this.attributes.put(key, value);
+            }
+            return this;
+        }
+
+        /** 追加一条链路事件（如 {@code intent=faq} / {@code retrieval.hit} / {@code tool.search}）。 */
+        public Builder event(String value) {
+            if (value != null) {
+                this.events.add(value);
+            }
+            return this;
+        }
+
+        public Builder events(List<String> value) {
+            this.events.clear();
+            if (value != null) {
+                this.events.addAll(value);
             }
             return this;
         }

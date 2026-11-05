@@ -16,13 +16,18 @@ import java.util.Set;
  *   <li>{@code filter}——按元数据属性收敛（等值 / 范围 / 包含 / 组合），见 {@link Filter}。</li>
  * </ul>
  *
- * <p>两条路径可同时使用：先按主键收敛再按属性过滤，等价于「白名单 ∩ 属性」。</p>
+ * <p>两条路径可同时使用：先按主键收敛再按属性过滤，等价于「白名单 ∩ 属性」。
+ * {@code query} 是可选的文本查询（对齐 LangChain4j 1.x {@code EmbeddingSearchRequest.query()}），
+ * 由 adapter 决定是否自行向量化或用于混合检索；base 的向量库仍以 {@code vector} 为准。</p>
  */
 public final class VectorSearchRequest {
 
     private final String collection;
 
     private final double[] vector;
+
+    /** 可选的文本查询；向量库不负责向量化，仅透传给 adapter。 */
+    private final String query;
 
     private final int topK;
 
@@ -33,6 +38,7 @@ public final class VectorSearchRequest {
     private VectorSearchRequest(Builder builder) {
         this.collection = builder.collection;
         this.vector = builder.vector;
+        this.query = builder.query;
         this.topK = builder.topK;
         this.candidateIds = Collections.unmodifiableSet(new LinkedHashSet<String>(builder.candidateIds));
         this.filter = builder.filter == null ? Filter.NO_OP : builder.filter;
@@ -48,6 +54,10 @@ public final class VectorSearchRequest {
 
     public double[] getVector() {
         return vector;
+    }
+
+    public String getQuery() {
+        return query;
     }
 
     public int getTopK() {
@@ -74,6 +84,8 @@ public final class VectorSearchRequest {
 
         private double[] vector;
 
+        private String query;
+
         private int topK = 10;
 
         private Builder() {
@@ -86,6 +98,11 @@ public final class VectorSearchRequest {
 
         public Builder vector(double[] value) {
             this.vector = value;
+            return this;
+        }
+
+        public Builder query(String value) {
+            this.query = value;
             return this;
         }
 

@@ -53,6 +53,22 @@ public interface LlmStreamHandler {
     }
 
     /**
+     * 工具调用的参数增量（上游分片下发 id / name / arguments 时）。
+     *
+     * <p>对齐 LangChain4j 1.x {@code StreamingChatResponseHandler.onPartialToolCall}；
+     * adapter 拼装完成后仍应回调一次 {@link #onToolCall}。</p>
+     */
+    default void onPartialToolCall(String id, String name, String argumentsDelta) {
+    }
+
+    /**
+     * 一个完整工具调用拼装完成，与 {@link #onToolCall} 语义相同，
+     * 供需要区分「增量 / 完整」阶段的监听器使用。
+     */
+    default void onCompleteToolCall(ToolExecutionRequest call) {
+    }
+
+    /**
      * 工具执行完成（结束），与 {@link #onToolCall} 配对。
      *
      * <p>{@code result} 的 {@link ToolExecutionResult#isError()} 标明成败；工具环内每执行一次工具回调一次。</p>

@@ -11,6 +11,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * 向量存储端口：持久化 + 最近邻检索。
@@ -181,6 +182,11 @@ public interface VectorStorePort extends Store {
 
     /** 最近邻检索，结果按分数降序。 */
     VectorSearchResult search(VectorSearchRequest request);
+
+    /** 异步最近邻检索；默认在公共线程池执行 {@link #search(VectorSearchRequest)}，后端可覆写为原生异步。 */
+    default CompletableFuture<VectorSearchResult> searchAsync(VectorSearchRequest request) {
+        return CompletableFuture.supplyAsync(() -> search(request));
+    }
 
     /** 不限候选、不带元数据过滤的检索。 */
     default VectorSearchResult search(String collection, double[] vector, int topK) {

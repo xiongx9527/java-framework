@@ -18,6 +18,14 @@
  *   <li>{@code context} —— 一次调用在整条链路里携带的身份与追踪信息</li>
  * </ul>
  *
+ * <p><b>与 support 的分工</b>：base 保留少量可直接运行的默认实现与装饰器
+ * （{@code DefaultRetrievalAugmentor} / {@code ToolCallingLoop} / {@code Listening*} / {@code AiServices}），
+ * 便于零依赖使用；完整的多路检索管线、融合 / 重排策略、韧性 / 成本 / 缓存编排在
+ * {@code fw-plus-ai-support}。两侧存在同名的
+ * {@code RetrievalAugmentor} / {@code DefaultRetrievalAugmentor}，但签名与职责不同：
+ * base 是「消息列表 + 查询 → 消息列表」的轻量挂钩，support 是「请求 → 结构化聚合结果」的编排入口
+ * （support 侧已提供 {@code RagAugmentor} / {@code DefaultRagAugmentor} 作为推荐名字）。</p>
+ *
  * <p>约束：本模块禁止 import langchain4j / spring-ai / agentscope 的具体类；目标 JDK 1.8。</p>
  */
 package com.xiongx9527.fw.plus.ai.base;

@@ -112,6 +112,7 @@ public final class AiServices {
         private JsonBindings jsonBindings;
         private StoreRegistry storeRegistry;
         private final List<AiObservationListener> observationListeners = new ArrayList<AiObservationListener>();
+        private final List<AiInvocationSummaryListener> summaryListeners = new ArrayList<AiInvocationSummaryListener>();
         private TracePort trace = TracePort.noop();
 
         private String systemTextOverride;
@@ -128,6 +129,19 @@ public final class AiServices {
         private Double topP;
         private Integer maxTokens;
         private Integer seed;
+        private Integer topK;
+        private Double frequencyPenalty;
+        private Double presencePenalty;
+        private java.util.List<String> stopSequences;
+        private java.util.Map<String, Object> responseFormat;
+
+        /** 注册调用结束后的全量摘要监听。 */
+        public Builder<T> summaryListener(AiInvocationSummaryListener value) {
+            if (value != null) {
+                this.summaryListeners.add(value);
+            }
+            return this;
+        }
 
         /** 无类调用（{@link #fluent()}）下是否走稳定 JSON 输出端口；等价于接口方法上的 {@code @JsonResult}。 */
         public Builder<T> jsonResult(boolean value) {
@@ -168,6 +182,36 @@ public final class AiServices {
         /** 默认随机种子；为 {@code null} 时由后端决定。 */
         public Builder<T> seed(Integer value) {
             this.seed = value;
+            return this;
+        }
+
+        /** 默认 topK。 */
+        public Builder<T> topK(Integer value) {
+            this.topK = value;
+            return this;
+        }
+
+        /** 默认频率惩罚。 */
+        public Builder<T> frequencyPenalty(Double value) {
+            this.frequencyPenalty = value;
+            return this;
+        }
+
+        /** 默认存在惩罚。 */
+        public Builder<T> presencePenalty(Double value) {
+            this.presencePenalty = value;
+            return this;
+        }
+
+        /** 默认停止序列。 */
+        public Builder<T> stopSequences(java.util.List<String> value) {
+            this.stopSequences = value;
+            return this;
+        }
+
+        /** 默认结构化输出约束（如 {@code {"type":"json_object"}}）。 */
+        public Builder<T> responseFormat(java.util.Map<String, Object> value) {
+            this.responseFormat = value;
             return this;
         }
 
@@ -484,7 +528,9 @@ public final class AiServices {
                             systemTextOverride, userTemplateOverride, memoryIdOverride, memoryIdParamIndex,
                             memoryIdVarKey,
                             varOverrides, customVariables, storeRegistry,
-                            model, temperature, topP, maxTokens, seed))));
+                            model, temperature, topP, maxTokens, seed,
+                            topK, frequencyPenalty, presencePenalty, stopSequences, responseFormat,
+                            summaryListeners))));
         }
 
         /** 构建无类调用器：复用同一套上下文与执行管线，仅入口从接口代理换成动态入参。 */
@@ -500,7 +546,9 @@ public final class AiServices {
                     systemTextOverride, userTemplateOverride, memoryIdOverride, memoryIdParamIndex,
                     memoryIdVarKey,
                     varOverrides, customVariables, storeRegistry,
-                    model, temperature, topP, maxTokens, seed);
+                    model, temperature, topP, maxTokens, seed,
+                    topK, frequencyPenalty, presencePenalty, stopSequences, responseFormat,
+                    summaryListeners);
             return new ChatCall(ctx, jsonResult, chatReturnType);
         }
     }
@@ -580,11 +628,13 @@ public final class AiServices {
                         .method(method)
                         .userText(userText);
                 notifyObservationStart(observation);
+                observation.event("request");
                 ChatMessage userMessage = ChatMessage.user(userText);
 
                 String intentRef = classify(userText, emit, streamHandler);
                 if (intentRef != null) {
                     callSpan.attribute("intent", intentRef);
+                    observation.event("intent=" + intentRef);
                 }
                 Map<String, Object> sysVars = withSystemVars(baseVariables, memoryId, intentRef);
                 RetrievalAugmentor retrieval = resolveRetrieval(intentRef);
@@ -653,6 +703,7 @@ public final class AiServices {
                     tools = null;
                 }
 
+                observation.event("llm.request");
                 LlmRequest request = LlmRequest.builder()
                         .messages(messages)
                         .model(context.getModel())
@@ -660,6 +711,11 @@ public final class AiServices {
                         .topP(context.getTopP())
                         .maxTokens(context.getMaxTokens())
                         .seed(context.getSeed())
+                        .topK(context.getTopK())
+                        .frequencyPenalty(context.getFrequencyPenalty())
+                        .presencePenalty(context.getPresencePenalty())
+                        .stopSequences(context.getStopSequences())
+                        .responseFormat(context.getResponseFormat())
                         .tools(tools == null ? null : tools.specifications())
                         .listeners(context.getListeners())
                         .build();
@@ -927,14 +983,30 @@ public final class AiServices {
         }
 
         private void notifyObservationEnd(AiCallObservation.Builder observation) {
+            observation.event("end");
+            AiCallObservation snapshot = observation.build();
             for (AiObservationListener listener : context.getObservationListeners()) {
-                listener.onEnd(observation.build());
+                listener.onEnd(snapshot);
+            }
+            for (AiInvocationSummaryListener listener : context.getSummaryListeners()) {
+                try {
+                    listener.onSummary(snapshot);
+                } catch (RuntimeException ignored) {
+                    // 监听器异常不得影响主链路
+                }
             }
         }
 
         private void notifyObservationError(AiCallObservation observation) {
             for (AiObservationListener listener : context.getObservationListeners()) {
                 listener.onError(observation);
+            }
+            for (AiInvocationSummaryListener listener : context.getSummaryListeners()) {
+                try {
+                    listener.onSummary(observation);
+                } catch (RuntimeException ignored) {
+                    // 监听器异常不得影响主链路
+                }
             }
         }
 

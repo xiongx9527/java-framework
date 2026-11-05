@@ -1,6 +1,8 @@
 package com.xiongx9527.fw.plus.ai.base.model;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 
 /**
@@ -25,6 +27,42 @@ public interface LlmPort {
     /** 返回该端口可稳定提供的协议能力。 */
     default LlmCapabilities capabilities() {
         return LlmCapabilities.basic();
+    }
+
+    /** 端口级监听器；业务侧可覆写，无需再手动包 {@code ListeningLlmPort} 装饰器。 */
+    default List<LlmListener> listeners() {
+        return Collections.emptyList();
+    }
+
+    /** 返回一个绑定了端口级监听器的视图（本实例不变）。 */
+    default LlmPort withListeners(List<LlmListener> listeners) {
+        return new ListenerBoundLlmPort(this, listeners);
+    }
+
+    /** 异步补全；默认在公共线程池执行 {@link #complete(LlmRequest)}，adapter 可覆写为原生异步。 */
+    default CompletableFuture<LlmResponse> completeAsync(LlmRequest request) {
+        return CompletableFuture.supplyAsync(() -> complete(request));
+    }
+
+    /**
+     * 能力协商：请求要求了本端口声明不具备的能力时显式拒绝，避免静默降级。
+     *
+     * <p><b>框架不自动强制</b>：多数既有 adapter 未覆写 {@link #capabilities()}（默认
+     * {@link LlmCapabilities#basic()}）却实际支持工具调用，自动拦截会误伤。本方法供业务侧
+     * 在调用前显式预检；需要硬约束的 adapter 可覆写 {@code stream/complete} 并调用它。</p>
+     */
+    default LlmRequest negotiate(LlmRequest request) {
+        if (request == null) {
+            return null;
+        }
+        LlmCapabilities caps = capabilities();
+        if (request.hasTools() && !caps.isToolCalling()) {
+            throw new UnsupportedOperationException("tool calling is not supported by this llm port");
+        }
+        if (request.getResponseFormat() != null && !caps.isStructuredOutput()) {
+            throw new UnsupportedOperationException("structured output is not supported by this llm port");
+        }
+        return request;
     }
 
     /**

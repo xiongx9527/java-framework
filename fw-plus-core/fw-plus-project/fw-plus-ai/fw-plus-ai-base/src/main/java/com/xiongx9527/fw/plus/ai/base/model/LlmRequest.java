@@ -16,6 +16,10 @@ import java.util.Map;
  *
  * <p>{@code tools} 非空时请求具备工具调用能力：adapter 把 {@link ToolSpecification} 翻译成
  * 上游的 {@code tools[]} 报文，模型可能在 {@link LlmResponse#getToolCalls()} 里返回调用。</p>
+ *
+ * <p>请求级推理参数（temperature / topP / topK / 惩罚项 / stop / responseFormat）与
+ * {@link LlmResponse} 的响应元数据一起，构成与 LangChain4j 1.x {@code ChatRequest/ChatResponse}
+ * 对齐的结构化契约；后端不支持的参数应忽略而非报错。</p>
  */
 public final class LlmRequest {
 
@@ -27,10 +31,25 @@ public final class LlmRequest {
 
     private final Double topP;
 
+    /** 采样候选集大小（topK）；仅部分后端支持。 */
+    private final Integer topK;
+
     private final Integer maxTokens;
 
     /** 随机种子（确定性生成）；仅部分后端支持，不支持时 adapter 应忽略。 */
     private final Integer seed;
+
+    /** 频率惩罚；仅部分后端支持。 */
+    private final Double frequencyPenalty;
+
+    /** 存在惩罚；仅部分后端支持。 */
+    private final Double presencePenalty;
+
+    /** 停止序列；后端按自身协议翻译。 */
+    private final List<String> stopSequences;
+
+    /** 结构化输出约束（如 {@code {"type":"json_object"}}）；不由 base 解释，adapter 原样处理。 */
+    private final Map<String, Object> responseFormat;
 
     private final Map<String, Object> extraParams;
 
@@ -45,8 +64,14 @@ public final class LlmRequest {
         this.model = builder.model;
         this.temperature = builder.temperature;
         this.topP = builder.topP;
+        this.topK = builder.topK;
         this.maxTokens = builder.maxTokens;
         this.seed = builder.seed;
+        this.frequencyPenalty = builder.frequencyPenalty;
+        this.presencePenalty = builder.presencePenalty;
+        this.stopSequences = Collections.unmodifiableList(new ArrayList<String>(builder.stopSequences));
+        this.responseFormat = builder.responseFormat == null ? null
+                : Collections.unmodifiableMap(new LinkedHashMap<String, Object>(builder.responseFormat));
         this.extraParams = Collections.unmodifiableMap(new LinkedHashMap<String, Object>(builder.extraParams));
         this.listeners = Collections.unmodifiableList(new ArrayList<LlmListener>(builder.listeners));
         this.tools = Collections.unmodifiableList(new ArrayList<ToolSpecification>(builder.tools));
@@ -55,6 +80,27 @@ public final class LlmRequest {
 
     public static Builder builder() {
         return new Builder();
+    }
+
+    /** 以当前请求为蓝本创建可修改的 Builder（对齐 LangChain4j 1.x 的 {@code ChatRequest.toBuilder()}）。 */
+    public Builder toBuilder() {
+        Builder b = new Builder();
+        b.messages(messages);
+        b.model(model);
+        b.temperature(temperature);
+        b.topP(topP);
+        b.topK(topK);
+        b.maxTokens(maxTokens);
+        b.seed(seed);
+        b.frequencyPenalty(frequencyPenalty);
+        b.presencePenalty(presencePenalty);
+        b.stopSequences(stopSequences);
+        b.responseFormat(responseFormat);
+        b.extraParams(extraParams);
+        b.listeners(listeners);
+        b.tools(tools);
+        b.toolChoice(toolChoice);
+        return b;
     }
 
     /** 单轮 system + user 请求的快捷构造。 */
@@ -78,12 +124,32 @@ public final class LlmRequest {
         return topP;
     }
 
+    public Integer getTopK() {
+        return topK;
+    }
+
     public Integer getMaxTokens() {
         return maxTokens;
     }
 
     public Integer getSeed() {
         return seed;
+    }
+
+    public Double getFrequencyPenalty() {
+        return frequencyPenalty;
+    }
+
+    public Double getPresencePenalty() {
+        return presencePenalty;
+    }
+
+    public List<String> getStopSequences() {
+        return stopSequences;
+    }
+
+    public Map<String, Object> getResponseFormat() {
+        return responseFormat;
     }
 
     public Map<String, Object> getExtraParams() {
@@ -125,15 +191,25 @@ public final class LlmRequest {
 
         private final List<ToolSpecification> tools = new ArrayList<ToolSpecification>();
 
+        private final List<String> stopSequences = new ArrayList<String>();
+
         private String model;
 
         private Double temperature;
 
         private Double topP;
 
+        private Integer topK;
+
         private Integer maxTokens;
 
         private Integer seed;
+
+        private Double frequencyPenalty;
+
+        private Double presencePenalty;
+
+        private Map<String, Object> responseFormat;
 
         private ToolChoice toolChoice;
 
@@ -170,6 +246,11 @@ public final class LlmRequest {
             return this;
         }
 
+        public Builder topK(Integer value) {
+            this.topK = value;
+            return this;
+        }
+
         public Builder maxTokens(Integer value) {
             this.maxTokens = value;
             return this;
@@ -177,6 +258,36 @@ public final class LlmRequest {
 
         public Builder seed(Integer value) {
             this.seed = value;
+            return this;
+        }
+
+        public Builder frequencyPenalty(Double value) {
+            this.frequencyPenalty = value;
+            return this;
+        }
+
+        public Builder presencePenalty(Double value) {
+            this.presencePenalty = value;
+            return this;
+        }
+
+        public Builder stopSequences(List<String> value) {
+            this.stopSequences.clear();
+            if (value != null) {
+                this.stopSequences.addAll(value);
+            }
+            return this;
+        }
+
+        public Builder addStopSequence(String value) {
+            if (value != null) {
+                this.stopSequences.add(value);
+            }
+            return this;
+        }
+
+        public Builder responseFormat(Map<String, Object> value) {
+            this.responseFormat = value == null ? null : new LinkedHashMap<String, Object>(value);
             return this;
         }
 

@@ -7,7 +7,9 @@ import com.xiongx9527.fw.plus.ai.base.tool.ToolExecutionRequest;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 一条对话消息：角色 + 若干内容片段（多模态）。
@@ -19,6 +21,10 @@ import java.util.List;
  * <p>工具调用相关：助手消息可携带 {@link #getToolCalls() 工具调用列表}，
  * 工具结果消息用 {@link #tool(String, String, String)} 构造，通过
  * {@link #getToolCallId()} 与调用配对。</p>
+ *
+ * <p>{@link #getAttributes()} 是<strong>不发给模型</strong>的附加属性（如 trace id、租户、
+ * 业务标签），只随记忆 / 编排链路传递，与 LangChain4j 1.x 的
+ * {@code UserMessage.attributes()} / {@code AiMessage.attributes()} 对齐。</p>
  */
 public final class ChatMessage {
 
@@ -32,28 +38,32 @@ public final class ChatMessage {
 
     private final String name;
 
+    private final Map<String, Object> attributes;
+
     private ChatMessage(ChatRole role, List<ContentPart> parts, List<ToolExecutionRequest> toolCalls,
-                        String toolCallId, String name) {
+                         String toolCallId, String name, Map<String, Object> attributes) {
         this.role = role;
         this.parts = Collections.unmodifiableList(new ArrayList<ContentPart>(parts));
         this.toolCalls = Collections.unmodifiableList(new ArrayList<ToolExecutionRequest>(toolCalls));
         this.toolCallId = toolCallId;
         this.name = name;
+        this.attributes = attributes == null ? Collections.<String, Object>emptyMap()
+                : Collections.unmodifiableMap(new LinkedHashMap<String, Object>(attributes));
     }
 
     public static ChatMessage of(ChatRole role, String text) {
         return new ChatMessage(role, Collections.<ContentPart>singletonList(TextContent.of(text)),
-                new ArrayList<ToolExecutionRequest>(), null, null);
+                new ArrayList<ToolExecutionRequest>(), null, null, null);
     }
 
     public static ChatMessage of(ChatRole role, List<ContentPart> parts) {
         return new ChatMessage(role, parts == null ? new ArrayList<ContentPart>() : parts,
-                new ArrayList<ToolExecutionRequest>(), null, null);
+                new ArrayList<ToolExecutionRequest>(), null, null, null);
     }
 
     public static ChatMessage of(ChatRole role, ContentPart... parts) {
         return new ChatMessage(role, parts == null ? new ArrayList<ContentPart>() : Arrays.asList(parts),
-                new ArrayList<ToolExecutionRequest>(), null, null);
+                new ArrayList<ToolExecutionRequest>(), null, null, null);
     }
 
     public static ChatMessage system(String text) {
@@ -84,7 +94,7 @@ public final class ChatMessage {
                 ? new ArrayList<ContentPart>()
                 : Collections.<ContentPart>singletonList(TextContent.of(content));
         return new ChatMessage(ChatRole.ASSISTANT, parts,
-                calls == null ? new ArrayList<ToolExecutionRequest>() : calls, null, null);
+                calls == null ? new ArrayList<ToolExecutionRequest>() : calls, null, null, null);
     }
 
     /**
@@ -96,7 +106,12 @@ public final class ChatMessage {
      */
     public static ChatMessage tool(String toolCallId, String name, String content) {
         return new ChatMessage(ChatRole.TOOL, Collections.<ContentPart>singletonList(TextContent.of(content)),
-                new ArrayList<ToolExecutionRequest>(), toolCallId, name);
+                new ArrayList<ToolExecutionRequest>(), toolCallId, name, null);
+    }
+
+    /** 返回带附加属性的副本（本实例不变）；属性不发给模型。 */
+    public ChatMessage withAttributes(Map<String, Object> value) {
+        return new ChatMessage(role, parts, toolCalls, toolCallId, name, value);
     }
 
     public ChatRole getRole() {
@@ -146,6 +161,11 @@ public final class ChatMessage {
     /** 工具名；仅工具消息有值。 */
     public String getName() {
         return name;
+    }
+
+    /** 不发给模型的附加属性；永不为 {@code null}，且不可修改。 */
+    public Map<String, Object> getAttributes() {
+        return attributes;
     }
 
     @Override
