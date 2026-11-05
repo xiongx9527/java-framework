@@ -1,11 +1,14 @@
 package com.xiongx9527.fw.plus.common.i18n;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.PropertyResourceBundle;
@@ -26,7 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 final class BundleLoader {
 
-    private static final Map<String, ResourceBundle> CACHE = new ConcurrentHashMap<>();
+    private static final Map<String, List<ResourceBundle>> CACHE = new ConcurrentHashMap<>();
 
     private BundleLoader() {
     }
@@ -46,28 +49,31 @@ final class BundleLoader {
         }
         Locale target = locale == null ? I18nMessageResolver.DEFAULT_LOCALE : locale;
         String cacheKey = basename + ':' + target;
-        ResourceBundle bundle = CACHE.computeIfAbsent(cacheKey, k -> load(basename, target));
-        if (bundle == null || !bundle.containsKey(key)) {
-            return null;
+        List<ResourceBundle> bundles = CACHE.computeIfAbsent(cacheKey, k -> loadAll(basename, target));
+        for (ResourceBundle bundle : bundles) {
+            if (bundle == null || !bundle.containsKey(key)) {
+                continue;
+            }
+            String pattern;
+            try {
+                pattern = bundle.getString(key);
+            } catch (Exception e) {
+                continue;
+            }
+            if (pattern == null) {
+                continue;
+            }
+            if (args == null || args.length == 0) {
+                return pattern;
+            }
+            try {
+                return MessageFormat.format(pattern, args);
+            } catch (IllegalArgumentException e) {
+                // 占位符与参数不匹配时原样返回，避免因文案问题掩盖真实错误
+                return pattern;
+            }
         }
-        String pattern;
-        try {
-            pattern = bundle.getString(key);
-        } catch (Exception e) {
-            return null;
-        }
-        if (pattern == null) {
-            return null;
-        }
-        if (args == null || args.length == 0) {
-            return pattern;
-        }
-        try {
-            return MessageFormat.format(pattern, args);
-        } catch (IllegalArgumentException e) {
-            // 占位符与参数不匹配时原样返回，避免因文案问题掩盖真实错误
-            return pattern;
-        }
+        return null;
     }
 
     /**
@@ -78,44 +84,43 @@ final class BundleLoader {
     }
 
     /**
-     * 按「精确语言 → 根资源」顺序加载，全部以 UTF-8 解码。
+     * 按「精确语言 → 仅语言 → 根资源」顺序收集 classpath 上所有匹配的
+     * {@code i18n/messages*.properties}，聚合为 bundle 列表。这样跨模块同一基名的资源
+     * （如 core / engine / 业务模块各自一份）在脱离 Spring 的静态解析下也能相互补全，
+     * 行为对齐 {@code MessageSource} 的聚合语义，避免单一 bundle 遮蔽其它模块的资源 key。
      */
-    private static ResourceBundle load(String basename, Locale locale) {
+    private static List<ResourceBundle> loadAll(String basename, Locale locale) {
+        List<ResourceBundle> result = new ArrayList<>();
         String path = basename.replace('.', '/');
-        // 1) 精确语言：messages_zh_CN.properties / messages_en.properties
-        ResourceBundle bundle = loadSingle(path, localeSuffix(locale));
-        if (bundle != null) {
-            return bundle;
-        }
-        // 2) 仅语言：messages_zh.properties
+        collect(result, path, localeSuffix(locale));
         if (locale.getCountry() != null && !locale.getCountry().isEmpty()) {
-            bundle = loadSingle(path, locale.getLanguage());
-            if (bundle != null) {
-                return bundle;
-            }
+            collect(result, path, locale.getLanguage());
         }
-        // 3) 根资源：messages.properties（中文默认）
-        return loadSingle(path, null);
+        collect(result, path, null);
+        return result;
     }
 
     /**
-     * 读取单个 properties 文件（UTF-8）；不存在时返回 null。
+     * 读取 classpath 上所有匹配的 properties 文件（UTF-8），逐个加入结果列表；不存在时跳过。
      */
-    private static ResourceBundle loadSingle(String path, String suffix) {
+    private static void collect(List<ResourceBundle> out, String path, String suffix) {
         String resource = suffix == null || suffix.isEmpty() ? path + ".properties" : path + "_" + suffix + ".properties";
         ClassLoader loader = Thread.currentThread().getContextClassLoader();
         if (loader == null) {
             loader = BundleLoader.class.getClassLoader();
         }
-        try (InputStream in = loader.getResourceAsStream(resource)) {
-            if (in == null) {
-                return null;
+        try {
+            Enumeration<URL> urls = loader.getResources(resource);
+            while (urls.hasMoreElements()) {
+                URL url = urls.nextElement();
+                try (Reader reader = new InputStreamReader(url.openStream(), StandardCharsets.UTF_8)) {
+                    out.add(new PropertyResourceBundle(reader));
+                } catch (IOException ignored) {
+                    // 单个资源读取失败不影响其它资源
+                }
             }
-            try (Reader reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
-                return new PropertyResourceBundle(reader);
-            }
-        } catch (IOException e) {
-            return null;
+        } catch (IOException ignored) {
+            // 无匹配资源
         }
     }
 

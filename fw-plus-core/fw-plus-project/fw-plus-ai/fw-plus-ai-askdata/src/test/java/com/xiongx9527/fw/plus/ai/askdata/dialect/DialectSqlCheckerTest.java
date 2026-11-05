@@ -1,4 +1,6 @@
 package com.xiongx9527.fw.plus.ai.askdata.dialect;
+import com.xiongx9527.fw.plus.jdbc.dialect.DialectSqlChecker;
+import com.xiongx9527.fw.plus.jdbc.dialect.SqlDialect;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
