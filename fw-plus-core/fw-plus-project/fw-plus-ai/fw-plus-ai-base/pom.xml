@@ -14,6 +14,11 @@
         <main.basedir>${basedir}/../../..</main.basedir>
     </properties>
     <dependencies>
+        <!-- 7 个异常类继承 BizException，显式声明以免只靠 fw-plus-ai 聚合 pom 传递 -->
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-common</artifactId>
+        </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>

@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 /**
  * 真实原子能力：Qdrant 向量存储后端（REST API）。实现 base 的 VectorStorePort。
  * 覆盖 ensureCollection / upsert / search / delete / dropCollection / health；
- * 元数据过滤与候选 id 收敛在客户端完成（base 的 {@link Filter} 不暴露内部结构，无法翻译为 Qdrant 过滤表达式）。
+ * 元数据过滤与候选 id 收敛在客户端完成；base 的 {@link Filter} 已提供只读条件结构，可按需下推为 Qdrant 过滤表达式。
  * apiKey 非空时通过 api-key 头下发，用于本地/云端开启了鉴权的实例。
  */
 public class QdrantVectorStore implements VectorStorePort {

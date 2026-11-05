@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
  * 自动 load 并开启动态字段。base 的 id 是字符串，而简化形态主键 id 为 Int64，因此写入时把
  * 字符串 id 映射为稳定的 64 位代理键，并把原始 id 放进动态字段 pk，检索时据此还原。</p>
  *
- * <p>元数据过滤与候选 id 收敛在客户端完成（base 的 {@link Filter} 不暴露内部结构，无法翻译为 Milvus expr）。</p>
+ * <p>元数据过滤与候选 id 收敛在客户端完成；base 的 {@link Filter} 已提供只读条件结构，可按需下推为 Milvus expr。</p>
  */
 public class MilvusVectorStore implements VectorStorePort {
     private static final Logger log = LoggerFactory.getLogger(MilvusVectorStore.class);

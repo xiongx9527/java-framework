@@ -84,6 +84,21 @@ public final class AiServiceContext {
     /** 动态自定义变量：每次调用实时计算后并入模板（不依赖固定值）。 */
     private final Map<String, java.util.function.Supplier<Object>> customVariables;
 
+    /** 默认模型 id；为 {@code null} 时由 {@code LlmPort} 的默认模型决定。 */
+    private final String model;
+
+    /** 默认采样温度。 */
+    private final Double temperature;
+
+    /** 默认 topP。 */
+    private final Double topP;
+
+    /** 默认最大输出 token 数。 */
+    private final Integer maxTokens;
+
+    /** 默认随机种子。 */
+    private final Integer seed;
+
     AiServiceContext(Class<?> serviceType, LlmPort llm,
                      List<IntentScoped<ChatMemoryProvider>> memoryScopes,
                      List<IntentScoped<IntentPort>> intentScopes,
@@ -100,7 +115,8 @@ public final class AiServiceContext {
                      String memoryIdVarKey,
                      Map<String, Integer> varOverrides,
                      Map<String, java.util.function.Supplier<Object>> customVariables,
-                     StoreRegistry storeRegistry) {
+                     StoreRegistry storeRegistry,
+                     String model, Double temperature, Double topP, Integer maxTokens, Integer seed) {
         this.serviceType = serviceType;
         this.llm = llm;
         this.memoryScopes = memoryScopes == null ? Collections.<IntentScoped<ChatMemoryProvider>>emptyList()
@@ -135,6 +151,11 @@ public final class AiServiceContext {
         this.customVariables = customVariables == null ? Collections.<String, java.util.function.Supplier<Object>>emptyMap()
                 : Collections.unmodifiableMap(new LinkedHashMap<String, java.util.function.Supplier<Object>>(customVariables));
         this.storeRegistry = storeRegistry == null ? new StoreRegistry() : storeRegistry;
+        this.model = model;
+        this.temperature = temperature;
+        this.topP = topP;
+        this.maxTokens = maxTokens;
+        this.seed = seed;
     }
 
     public Class<?> getServiceType() {
@@ -247,5 +268,30 @@ public final class AiServiceContext {
     /** 动态自定义变量的供应器集合，渲染模板时实时计算并入。 */
     public Map<String, java.util.function.Supplier<Object>> getCustomVariables() {
         return customVariables;
+    }
+
+    /** 默认模型 id；为 {@code null} 时由 {@code LlmPort} 决定。 */
+    public String getModel() {
+        return model;
+    }
+
+    /** 默认采样温度；为 {@code null} 时由后端决定。 */
+    public Double getTemperature() {
+        return temperature;
+    }
+
+    /** 默认 topP；为 {@code null} 时由后端决定。 */
+    public Double getTopP() {
+        return topP;
+    }
+
+    /** 默认最大输出 token 数；为 {@code null} 时由后端决定。 */
+    public Integer getMaxTokens() {
+        return maxTokens;
+    }
+
+    /** 默认随机种子；为 {@code null} 时由后端决定。 */
+    public Integer getSeed() {
+        return seed;
     }
 }

@@ -123,6 +123,11 @@ public final class AiServices {
         private final Map<String, java.util.function.Supplier<Object>> customVariables = new LinkedHashMap<String, java.util.function.Supplier<Object>>();
         private boolean jsonResult = false;
         private Class<?> chatReturnType = String.class;
+        private String model;
+        private Double temperature;
+        private Double topP;
+        private Integer maxTokens;
+        private Integer seed;
 
         /** 无类调用（{@link #fluent()}）下是否走稳定 JSON 输出端口；等价于接口方法上的 {@code @JsonResult}。 */
         public Builder<T> jsonResult(boolean value) {
@@ -133,6 +138,36 @@ public final class AiServices {
         /** 无类调用（{@link #fluent()}）的返回类型：{@code String}（默认）或 {@code LlmResponse}。 */
         public Builder<T> returnType(Class<?> value) {
             this.chatReturnType = value == null ? String.class : value;
+            return this;
+        }
+
+        /** 默认模型 id；为 {@code null} 时由 {@code LlmPort} 的默认模型决定。 */
+        public Builder<T> model(String value) {
+            this.model = value;
+            return this;
+        }
+
+        /** 默认采样温度；为 {@code null} 时由后端决定。 */
+        public Builder<T> temperature(Double value) {
+            this.temperature = value;
+            return this;
+        }
+
+        /** 默认 topP；为 {@code null} 时由后端决定。 */
+        public Builder<T> topP(Double value) {
+            this.topP = value;
+            return this;
+        }
+
+        /** 默认最大输出 token 数；为 {@code null} 时由后端决定。 */
+        public Builder<T> maxTokens(Integer value) {
+            this.maxTokens = value;
+            return this;
+        }
+
+        /** 默认随机种子；为 {@code null} 时由后端决定。 */
+        public Builder<T> seed(Integer value) {
+            this.seed = value;
             return this;
         }
 
@@ -440,14 +475,16 @@ public final class AiServices {
             }
             return serviceType.cast(Proxy.newProxyInstance(
                     serviceType.getClassLoader(), new Class<?>[]{serviceType},
-                    new AiServiceInvocationHandler(                            new AiServiceContext(
+                    new AiServiceInvocationHandler(
+                            new AiServiceContext(
                             serviceType, llm, memoryScopes, intentScopes,
                             toolProviderScopes, retrievalScopes, skillScopes, listeners,
                             emitLifecycleEvents, skipToolsWhenRetrievalHit,
                             moderationModel, moderationListeners, jsonOutput, jsonBindings, observationListeners, trace,
                             systemTextOverride, userTemplateOverride, memoryIdOverride, memoryIdParamIndex,
                             memoryIdVarKey,
-                            varOverrides, customVariables, storeRegistry))));
+                            varOverrides, customVariables, storeRegistry,
+                            model, temperature, topP, maxTokens, seed))));
         }
 
         /** 构建无类调用器：复用同一套上下文与执行管线，仅入口从接口代理换成动态入参。 */
@@ -462,7 +499,8 @@ public final class AiServices {
                     moderationModel, moderationListeners, jsonOutput, jsonBindings, observationListeners, trace,
                     systemTextOverride, userTemplateOverride, memoryIdOverride, memoryIdParamIndex,
                     memoryIdVarKey,
-                    varOverrides, customVariables, storeRegistry);
+                    varOverrides, customVariables, storeRegistry,
+                    model, temperature, topP, maxTokens, seed);
             return new ChatCall(ctx, jsonResult, chatReturnType);
         }
     }
@@ -617,6 +655,11 @@ public final class AiServices {
 
                 LlmRequest request = LlmRequest.builder()
                         .messages(messages)
+                        .model(context.getModel())
+                        .temperature(context.getTemperature())
+                        .topP(context.getTopP())
+                        .maxTokens(context.getMaxTokens())
+                        .seed(context.getSeed())
                         .tools(tools == null ? null : tools.specifications())
                         .listeners(context.getListeners())
                         .build();

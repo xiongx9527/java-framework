@@ -2,14 +2,22 @@
  * 后端无关的 AI 基础能力契约。
  *
  * <p>本包只定义端口与数据模型，不绑定任何具体 LLM 框架（native / langchain4j / spring-ai /
- * agentscope 均由各自 adapter 落地），也不包含编排与横切逻辑（那部分在
- * {@code fw-plus-ai-support}）。</p>
+ * agentscope 均由各自 adapter 落地）。编排与横切组合主要放在 {@code fw-plus-ai-support}，
+ * 但 base 内也保留了少量可直接运行的默认实现与装饰器，便于零依赖使用。</p>
  *
  * <ul>
- *   <li>{@code model} —— 模型端口：大语言、向量、重排</li>
- *   <li>{@code store} —— 向量存储与检索：向量检索、全文检索</li>
+ *   <li>{@code model} —— 模型端口：大语言、向量、重排、内容审核、token 估算</li>
+ *   <li>{@code store} —— 存储契约：{@code Store} / {@code RecordStore} 及向量、图存储端口</li>
+ *   <li>{@code retrieval} —— 检索契约、单路实现与默认重排器</li>
+ *   <li>{@code tool} —— 工具规格、执行器与调用环</li>
+ *   <li>{@code service} —— 声明式 {@code AiServices}（注解接口 → 模型调用）</li>
+ *   <li>{@code memory} / {@code template} / {@code output} —— 对话记忆、提示词模板、JSON 输出</li>
+ *   <li>{@code event} / {@code trace} / {@code cost} / {@code cache} / {@code idempotency} /
+ *       {@code guard} / {@code resilience} —— 监听、追踪与横切能力端口</li>
+ *   <li>{@code intent} / {@code skill} / {@code io} / {@code mcp} —— 意图、技能、边界 IO、MCP 契约</li>
+ *   <li>{@code context} —— 一次调用在整条链路里携带的身份与追踪信息</li>
  * </ul>
  *
- * <p>约束：本模块禁止 import langchain4j / spring-ai / agentscope 的具体类。</p>
+ * <p>约束：本模块禁止 import langchain4j / spring-ai / agentscope 的具体类；目标 JDK 1.8。</p>
  */
 package com.xiongx9527.fw.plus.ai.base;

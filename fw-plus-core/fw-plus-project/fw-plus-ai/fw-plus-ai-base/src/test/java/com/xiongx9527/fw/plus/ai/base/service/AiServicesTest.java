@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.base.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.xiongx9527.fw.plus.ai.base.memory.ChatMemoryProvider;
@@ -105,5 +106,42 @@ class AiServicesTest {
 
         assertEquals(true, requested.get());
         assertEquals(java.util.Arrays.asList("answer", "reasoning", "complete"), events);
+    }
+
+    @Test
+    void builderModelOptionsArePassedToLlmRequest() {
+        RecordingLlm llm = new RecordingLlm();
+        Assistant assistant = AiServices.builder(Assistant.class)
+                .llm(llm)
+                .model("gpt-4o-mini")
+                .temperature(0.3)
+                .topP(0.9)
+                .maxTokens(512)
+                .seed(42)
+                .build();
+
+        assistant.translate("hello", "zh");
+
+        LlmRequest request = llm.requests.get(0);
+        assertEquals("gpt-4o-mini", request.getModel());
+        assertEquals(Double.valueOf(0.3), request.getTemperature());
+        assertEquals(Double.valueOf(0.9), request.getTopP());
+        assertEquals(Integer.valueOf(512), request.getMaxTokens());
+        assertEquals(Integer.valueOf(42), request.getSeed());
+    }
+
+    @Test
+    void unsetModelOptionsRemainNull() {
+        RecordingLlm llm = new RecordingLlm();
+        Assistant assistant = AiServices.builder(Assistant.class).llm(llm).build();
+
+        assistant.translate("hello", "zh");
+
+        LlmRequest request = llm.requests.get(0);
+        assertNull(request.getModel());
+        assertNull(request.getTemperature());
+        assertNull(request.getTopP());
+        assertNull(request.getMaxTokens());
+        assertNull(request.getSeed());
     }
 }
