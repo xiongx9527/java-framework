@@ -54,6 +54,8 @@ public class Saml2SocialLoginProvider extends AbstractSocialLoginProvider {
             throw new IllegalStateException("saml response missing");
         }
         String xml = decode(samlResponse);
+        // 先验签再解析：未配置证书/未签名/签名不符/过期/audience 不符一律拒绝
+        SamlSignatureVerifier.verify(xml, config.extra("saml-cert"), config.extra("saml-audience"));
         Document doc = XmlClaimExtractor.parse(xml);
         String nameId = XmlClaimExtractor.textByLocalName(doc, "NameID");
         Map<String, String> attrs = XmlClaimExtractor.namedAttributes(doc);

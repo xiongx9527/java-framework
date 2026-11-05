@@ -75,6 +75,28 @@ public final class XmlClaimExtractor {
                 }
             }
         }
+        // 兼容任意带 name/Name 属性的元素（如 CAS 的 <cas:attribute name='email'>v</cas:attribute>）
+        NodeList anyNamed = doc.getElementsByTagNameNS("*", "*");
+        for (int i = 0; i < anyNamed.getLength(); i++) {
+            if (!(anyNamed.item(i) instanceof Element)) {
+                continue;
+            }
+            Element el = (Element) anyNamed.item(i);
+            String name = el.getAttribute("name");
+            if (name == null || name.isEmpty()) {
+                name = el.getAttribute("Name");
+            }
+            if (name == null || name.isEmpty()) {
+                continue;
+            }
+            if (attrs.containsKey(name)) {
+                continue;
+            }
+            String val = text(el);
+            if (val != null) {
+                attrs.put(name, val);
+            }
+        }
         return attrs;
     }
 

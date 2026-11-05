@@ -4,9 +4,6 @@ import com.xiongx9527.fw.plus.auth.social.*;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import cn.hutool.jwt.JWT;
-import cn.hutool.jwt.JWTUtil;
-
 /**
  * OIDC（GENERAL）授权码流程：授权码换 token → 解析 id_token 声明 → 缺失资料时用 access_token 补 userinfo。
  *
@@ -56,12 +53,8 @@ public class OidcSocialLoginProvider extends AbstractSocialLoginProvider {
 
         Map<String, Object> claims = new LinkedHashMap<String, Object>();
         if (idToken != null && !idToken.isEmpty()) {
-            try {
-                JWT jwt = JWTUtil.parseToken(idToken);
-                claims.putAll(jwt.getPayloads());
-            } catch (Exception e) {
-                throw new IllegalStateException("oidc id_token parse failed: " + e.getMessage(), e);
-            }
+            // 严格 RS256 + JWKS/证书 验签（iss/aud/exp/nonce），拒绝伪造 token
+            claims = JwtRsaVerifier.verify(idToken, config, callback.getState());
         }
 
         String sub = str(claims, "sub");
