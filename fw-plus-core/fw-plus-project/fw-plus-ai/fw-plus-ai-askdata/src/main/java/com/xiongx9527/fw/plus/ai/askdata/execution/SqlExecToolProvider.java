@@ -1,4 +1,8 @@
 package com.xiongx9527.fw.plus.ai.askdata.execution;
+import com.xiongx9527.fw.plus.jdbc.execution.QueryResult;
+import com.xiongx9527.fw.plus.jdbc.execution.SqlExecInput;
+import com.xiongx9527.fw.plus.jdbc.execution.SqlExecutionCapability;
+import com.xiongx9527.fw.plus.jdbc.execution.ColumnMeta;
 
 import com.xiongx9527.fw.plus.ai.base.tool.ToolArgumentCodec;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolExecutionRequest;

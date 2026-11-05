@@ -1,8 +1,8 @@
 package com.xiongx9527.fw.plus.ai.askdata.prompt;
 
 import com.xiongx9527.fw.plus.ai.askdata.capability.SqlGenInput;
-import com.xiongx9527.fw.plus.ai.askdata.dialect.DialectHelper;
-import com.xiongx9527.fw.plus.ai.askdata.dialect.SqlDialect;
+import com.xiongx9527.fw.plus.jdbc.dialect.DialectHelper;
+import com.xiongx9527.fw.plus.jdbc.dialect.SqlDialect;
 import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 
 /**

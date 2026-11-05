@@ -1,6 +1,6 @@
 package com.xiongx9527.fw.plus.ai.askdata;
 
-import com.xiongx9527.fw.plus.ai.askdata.execution.QueryResult;
+import com.xiongx9527.fw.plus.jdbc.execution.QueryResult;
 import java.util.Collections;
 import java.util.List;
 import lombok.Builder;

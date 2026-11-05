@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.askdata.execution;
+package com.xiongx9527.fw.plus.jdbc.execution;
 
 /**
  * SQL 执行端口（§6.38 后端无关）。由产品侧用真实数据源（如 JDBC DataSource）实现，

@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.askdata.dialect;
+package com.xiongx9527.fw.plus.jdbc.dialect;
 
 import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 

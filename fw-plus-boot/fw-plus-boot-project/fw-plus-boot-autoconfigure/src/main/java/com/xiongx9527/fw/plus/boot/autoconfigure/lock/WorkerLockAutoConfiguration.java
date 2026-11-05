@@ -1,6 +1,8 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.lock;
 
 import com.xiongx9527.fw.plus.lock.DbWorkerLock;
+import com.xiongx9527.fw.plus.lock.JvmWorkerLock;
+import com.xiongx9527.fw.plus.lock.LockTemplate;
 import com.xiongx9527.fw.plus.lock.RedisWorkerLock;
 import com.xiongx9527.fw.plus.lock.SingleWorkerGuard;
 import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
@@ -63,6 +65,25 @@ public class WorkerLockAutoConfiguration {
         log.info("装配单 worker 守卫锁后端：redis");
         return new RedisWorkerLock(redisTemplate, properties.getPrefix(),
                 properties.getTtl(), properties.getDebounce());
+    }
+
+    /** JVM（进程内）版锁：单实例部署、无共享 DB / Redis 时使用。 */
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnProperty(prefix = "fw.plus.lock", name = "type", havingValue = "jvm")
+    public WorkerLock jvmWorkerLock() {
+        log.info("装配单 worker 守卫锁后端：jvm");
+        return new JvmWorkerLock();
+    }
+
+    /**
+     * 统一加锁门面：包裹选中的 {@link WorkerLock} 后端，提供带等待的通用加锁能力，
+     * 供业务代码、Magic {@code lock} 模块、接口防抖等场景复用同一套后端。
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public LockTemplate lockTemplate(WorkerLock workerLock) {
+        return new LockTemplate(workerLock);
     }
 
     /** 单 worker 启动守卫（包裹锁后端，可被业务整体替换）。 */

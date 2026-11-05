@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.askdata.dialect;
+package com.xiongx9527.fw.plus.jdbc.dialect;
 
 import java.util.Locale;
 

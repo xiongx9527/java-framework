@@ -12,7 +12,7 @@ import java.time.Duration;
 @ConfigurationProperties(prefix = "fw.plus.lock")
 public class WorkerLockProperties {
 
-    /** 锁后端：db（缺省）/ redis。 */
+    /** 锁后端：jvm（进程内）/ db（缺省，元数据库行锁）/ redis（Redis SET NX PX）。 */
     private String type = "db";
 
     /** Redis 锁键前缀；缺省 {@code fw:plus:lock:}。 */

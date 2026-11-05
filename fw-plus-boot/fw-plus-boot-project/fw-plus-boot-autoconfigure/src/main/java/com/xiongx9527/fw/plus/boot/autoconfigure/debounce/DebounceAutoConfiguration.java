@@ -35,7 +35,7 @@ import org.springframework.context.annotation.Import;
         "com.fasterxml.jackson.databind.ObjectMapper"
 })
 @ConditionalOnProperty(prefix = DebounceProperties.PREFIX, name = "enabled", havingValue = "true")
-@Import(RedisDebounceConfiguration.class)
+@Import({RedisDebounceConfiguration.class, DebounceLockBackendConfiguration.class})
 public class DebounceAutoConfiguration {
 
     @Bean

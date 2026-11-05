@@ -1,7 +1,7 @@
 package com.xiongx9527.fw.plus.ai.askdata.chart.data;
 
-import com.xiongx9527.fw.plus.ai.askdata.execution.ColumnMeta;
-import com.xiongx9527.fw.plus.ai.askdata.execution.QueryResult;
+import com.xiongx9527.fw.plus.jdbc.execution.ColumnMeta;
+import com.xiongx9527.fw.plus.jdbc.execution.QueryResult;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;

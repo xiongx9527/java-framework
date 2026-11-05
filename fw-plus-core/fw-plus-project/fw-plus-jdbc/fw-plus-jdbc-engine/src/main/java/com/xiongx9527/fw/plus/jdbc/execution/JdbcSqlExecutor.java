@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.askdata.execution;
+package com.xiongx9527.fw.plus.jdbc.execution;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

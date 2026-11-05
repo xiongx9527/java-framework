@@ -156,6 +156,15 @@
             <optional>true</optional>
         </dependency>
 
+        <!--单 worker 守卫锁（DB 行锁 / Redis SET NX PX），按 classpath 条件装配-->
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-lock</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>druid</artifactId>

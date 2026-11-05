@@ -18,6 +18,7 @@
         <module>fw-plus-easytrans</module>
         <module>fw-plus-poi</module>
         <module>fw-plus-jdbc</module>
+        <module>fw-plus-lock</module>
         <module>fw-plus-nosql</module>
         <module>fw-plus-auth</module>
         <module>fw-plus-template</module>

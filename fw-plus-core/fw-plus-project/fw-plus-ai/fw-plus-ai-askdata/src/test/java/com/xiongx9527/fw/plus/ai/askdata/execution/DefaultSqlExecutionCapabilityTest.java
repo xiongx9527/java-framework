@@ -1,4 +1,10 @@
 package com.xiongx9527.fw.plus.ai.askdata.execution;
+import com.xiongx9527.fw.plus.jdbc.execution.SqlExecutionCapability;
+import com.xiongx9527.fw.plus.jdbc.execution.SqlExecutionException;
+import com.xiongx9527.fw.plus.jdbc.execution.SqlExecutorPort;
+import com.xiongx9527.fw.plus.jdbc.execution.QueryResult;
+import com.xiongx9527.fw.plus.jdbc.execution.SqlExecInput;
+import com.xiongx9527.fw.plus.jdbc.execution.ColumnMeta;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

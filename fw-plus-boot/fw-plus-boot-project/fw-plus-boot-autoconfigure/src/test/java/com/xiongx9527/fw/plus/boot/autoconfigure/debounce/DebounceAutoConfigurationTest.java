@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xiongx9527.fw.plus.common.debounce.DebounceProperties;
 import com.xiongx9527.fw.plus.common.debounce.DebounceSlot;
 import org.junit.jupiter.api.DisplayName;
+import com.xiongx9527.fw.plus.common.debounce.DebounceBackendResolver;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -32,6 +33,26 @@ class DebounceAutoConfigurationTest {
             assertThat(context).doesNotHaveBean(RequestDebouncer.class);
             assertThat(context).doesNotHaveBean(DebounceSlot.class);
         });
+    }
+
+    @Test
+    @DisplayName("fw.plus.lock.type=jvm：防抖后端解析为进程内 Cache（useRedis=false）")
+    void lockTypeJvmSelectsCacheBackend() {
+        runner.withPropertyValues("fw.plus.debounce.enabled=true", "fw.plus.lock.type=jvm")
+                .run(context -> {
+                    assertThat(context).hasSingleBean(DebounceBackendResolver.class);
+                    assertThat(context.getBean(DebounceBackendResolver.class).useRedis()).isFalse();
+                });
+    }
+
+    @Test
+    @DisplayName("fw.plus.lock.type=redis：防抖后端解析为 Redis 原子占位（useRedis=true）")
+    void lockTypeRedisSelectsRedisBackend() {
+        runner.withPropertyValues("fw.plus.debounce.enabled=true", "fw.plus.lock.type=redis")
+                .run(context -> {
+                    assertThat(context).hasSingleBean(DebounceBackendResolver.class);
+                    assertThat(context.getBean(DebounceBackendResolver.class).useRedis()).isTrue();
+                });
     }
 
     @Test

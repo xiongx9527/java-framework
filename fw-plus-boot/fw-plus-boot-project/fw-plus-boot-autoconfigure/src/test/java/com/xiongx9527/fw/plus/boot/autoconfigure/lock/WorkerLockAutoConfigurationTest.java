@@ -1,6 +1,8 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.lock;
 
 import com.xiongx9527.fw.plus.lock.DbWorkerLock;
+import com.xiongx9527.fw.plus.lock.JvmWorkerLock;
+import com.xiongx9527.fw.plus.lock.LockTemplate;
 import com.xiongx9527.fw.plus.lock.RedisWorkerLock;
 import com.xiongx9527.fw.plus.lock.SingleWorkerGuard;
 import com.xiongx9527.fw.plus.lock.WorkerLock;
@@ -41,7 +43,32 @@ class WorkerLockAutoConfigurationTest {
                 .run(ctx -> {
                     assertThat(ctx).hasSingleBean(WorkerLock.class);
                     assertThat(ctx.getBean(WorkerLock.class)).isInstanceOf(RedisWorkerLock.class);
+                    assertThat(ctx).hasSingleBean(SingleWorkerGuard.class);
+                    assertThat(ctx).hasSingleBean(LockTemplate.class);
                 });
+    }
+
+    @Test
+    void jvmBackendCreatedWhenTypeIsJvm() {
+        runner.withPropertyValues("fw.plus.lock.type=jvm")
+                .run(ctx -> {
+                    assertThat(ctx).hasSingleBean(WorkerLock.class);
+                    assertThat(ctx.getBean(WorkerLock.class)).isInstanceOf(JvmWorkerLock.class);
+                    assertThat(ctx).hasSingleBean(SingleWorkerGuard.class);
+                    assertThat(ctx).hasSingleBean(LockTemplate.class);
+                });
+    }
+
+    @Test
+    void lockTemplateAlwaysAssembledRegardlessBackend() {
+        runner.withUserConfiguration(JdbcConfig.class).run(ctx -> {
+            LockTemplate template = ctx.getBean(LockTemplate.class);
+            assertThat(template.backend()).isEqualTo("db");
+        });
+        runner.withPropertyValues("fw.plus.lock.type=jvm").run(ctx -> {
+            LockTemplate template = ctx.getBean(LockTemplate.class);
+            assertThat(template.backend()).isEqualTo("jvm");
+        });
     }
 
     @Test

@@ -1,7 +1,7 @@
 package com.xiongx9527.fw.plus.ai.askdata.capability;
 
-import com.xiongx9527.fw.plus.ai.askdata.dialect.DialectSqlChecker;
-import com.xiongx9527.fw.plus.ai.askdata.dialect.SqlDialect;
+import com.xiongx9527.fw.plus.jdbc.dialect.DialectSqlChecker;
+import com.xiongx9527.fw.plus.jdbc.dialect.SqlDialect;
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.SqlValidator;
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.ValidationResult;
 import java.util.ArrayList;

@@ -1,4 +1,6 @@
 package com.xiongx9527.fw.plus.ai.askdata.execution;
+import com.xiongx9527.fw.plus.jdbc.execution.SqlExecutionCapability;
+import com.xiongx9527.fw.plus.jdbc.execution.SqlExecutorPort;
 
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.SqlValidator;
 import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;

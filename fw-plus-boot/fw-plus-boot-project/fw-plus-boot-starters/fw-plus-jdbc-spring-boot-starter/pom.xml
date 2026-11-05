@@ -19,6 +19,11 @@
             <groupId>com.xiongx9527.fw.plus.boot</groupId>
             <artifactId>fw-plus-boot-starter</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-jdbc-engine</artifactId>
+            <version>${revision}</version>
+        </dependency>
 
         <dependency>
             <groupId>com.baomidou</groupId>

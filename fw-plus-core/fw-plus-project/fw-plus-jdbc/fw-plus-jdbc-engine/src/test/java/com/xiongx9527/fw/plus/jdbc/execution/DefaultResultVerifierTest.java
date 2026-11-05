@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.askdata.execution;
+package com.xiongx9527.fw.plus.jdbc.execution;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
