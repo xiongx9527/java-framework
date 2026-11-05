@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.xiongx9527.fw.plus</groupId>
+        <artifactId>fw-plus-parent</artifactId>
+        <version>${revision}</version>
+        <relativePath>../fw-plus-parent</relativePath>
+    </parent>
+    <artifactId>fw-plus-lock</artifactId>
+    <name>Fw-Plus Lock</name>
+    <properties>
+        <main.basedir>${basedir}/../..</main.basedir>
+    </properties>
+    <description>
+        fw-plus 分布式锁与单 worker 守卫（DB 行锁 / Redis SET NX PX）.
+    </description>
+    <dependencies>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <!-- spring-boot：@ConfigurationProperties 绑定（仅自动配置场景需要，按需传递） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+        <!-- spring-jdbc：DbWorkerLock 依赖 JdbcTemplate / DataSource -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-jdbc</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+        <!-- spring-data-redis：RedisWorkerLock 依赖 StringRedisTemplate -->
+        <dependency>
+            <groupId>org.springframework.data</groupId>
+            <artifactId>spring-data-redis</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-to-slf4j</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>
