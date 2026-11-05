@@ -65,6 +65,13 @@ public final class TracingLlmListener implements LlmListener {
     }
 
     @Override
+    public void onFinish(String finishReason) {
+        if (span != null && finishReason != null) {
+            span.attribute("finish_reason", finishReason);
+        }
+    }
+
+    @Override
     public void onError(String message) {
         close(message);
     }

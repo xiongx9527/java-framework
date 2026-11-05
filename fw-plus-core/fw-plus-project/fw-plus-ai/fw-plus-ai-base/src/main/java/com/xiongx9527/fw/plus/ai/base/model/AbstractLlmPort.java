@@ -114,6 +114,26 @@ public abstract class AbstractLlmPort implements LlmPort {
         }
     }
 
+    private static void notifyFinish(LlmRequest request, String finishReason) {
+        for (LlmListener listener : request.getListeners()) {
+            try {
+                listener.onFinish(finishReason);
+            } catch (RuntimeException ignored) {
+                // 监听器异常不得影响主链路
+            }
+        }
+    }
+
+    private static void notifyRawEvent(LlmRequest request, Object rawEvent) {
+        for (LlmListener listener : request.getListeners()) {
+            try {
+                listener.onUnmappedRawEvent(rawEvent);
+            } catch (RuntimeException ignored) {
+                // 监听器异常不得影响主链路
+            }
+        }
+    }
+
     private static void notifyError(LlmRequest request, String message) {
         for (LlmListener listener : request.getListeners()) {
             try {
@@ -181,6 +201,7 @@ public abstract class AbstractLlmPort implements LlmPort {
 
         @Override
         public void onUnmappedRawEvent(Object rawEvent) {
+            notifyRawEvent(request, rawEvent);
             delegate.onUnmappedRawEvent(rawEvent);
         }
 
@@ -238,6 +259,7 @@ public abstract class AbstractLlmPort implements LlmPort {
 
         @Override
         public void onFinish(String finishReason) {
+            notifyFinish(request, finishReason);
             delegate.onFinish(finishReason);
         }
     }

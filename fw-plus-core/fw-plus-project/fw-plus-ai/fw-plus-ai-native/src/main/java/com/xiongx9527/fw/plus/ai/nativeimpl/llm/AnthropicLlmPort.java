@@ -80,11 +80,13 @@ public class AnthropicLlmPort extends AbstractLlmPort {
             rb.addHeader("anthropic-version", anthropicVersion);
             final CountDownLatch done = new CountDownLatch(1);
             final String[] errorBox = new String[1];
+            final String[] finishBox = new String[1];
             Map<Integer, ToolAcc> acc = new LinkedHashMap<Integer, ToolAcc>();
             EventSourceListener listener = new EventSourceListener() {
                 @Override public void onEvent(EventSource es, String id, String type, String data) {
                     if (data == null || data.isEmpty()) return;
-                    try { dispatch(data, handler, acc); } catch (IOException ex) { log.warn("anthropic sse parse skipped: {}", ex.getMessage()); }
+                    handler.onUnmappedRawEvent(data);
+                    try { dispatch(data, handler, acc, finishBox); } catch (IOException ex) { log.warn("anthropic sse parse skipped: {}", ex.getMessage()); }
                 }
                 @Override public void onFailure(EventSource es, Throwable t, Response r) {
                     errorBox[0] = t != null ? t.getMessage() : "anthropic stream failed";
@@ -98,7 +100,12 @@ public class AnthropicLlmPort extends AbstractLlmPort {
             try { done.await(); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); handler.onError("llm interrupted"); }
             es.cancel();
             if (errorBox[0] == null) {
-                for (ToolAcc a : acc.values()) handler.onToolCall(new ToolExecutionRequest(a.id, a.name, a.args.toString()));
+                for (ToolAcc a : acc.values()) {
+                    ToolExecutionRequest call = new ToolExecutionRequest(a.id, a.name, a.args.toString());
+                    handler.onCompleteToolCall(call);
+                    handler.onToolCall(call);
+                }
+                if (finishBox[0] != null) handler.onFinish(finishBox[0]);
                 handler.onComplete();
             }
         } catch (IOException ex) {
@@ -155,6 +162,11 @@ public class AnthropicLlmPort extends AbstractLlmPort {
         Map<String, Object> payload = new LinkedHashMap<String, Object>();
         payload.put("model", request.getModel() != null ? request.getModel() : defaultModel);
         payload.put("max_tokens", request.getMaxTokens() != null ? request.getMaxTokens() : 4096);
+        if (request.getTemperature() != null) payload.put("temperature", request.getTemperature());
+        if (request.getTopP() != null) payload.put("top_p", request.getTopP());
+        if (request.getTopK() != null) payload.put("top_k", request.getTopK());
+        if (!request.getStopSequences().isEmpty()) payload.put("stop_sequences", request.getStopSequences());
+        if (request.getResponseFormat() != null) payload.put("response_format", request.getResponseFormat());
         StringBuilder sys = new StringBuilder();
         List<Object> msgs = new ArrayList<Object>();
         for (ChatMessage m : request.getMessages()) {
@@ -226,7 +238,7 @@ public class AnthropicLlmPort extends AbstractLlmPort {
         am.put("content", blocks);
         return am;
     }
-    private void dispatch(String json, LlmStreamHandler handler, Map<Integer, ToolAcc> acc) throws IOException {
+    private void dispatch(String json, LlmStreamHandler handler, Map<Integer, ToolAcc> acc, String[] finishBox) throws IOException {
         JsonNode root = mapper.readTree(json);
         String type = root.has("type") ? root.get("type").asText() : "";
         if ("message_start".equals(type)) {
@@ -240,6 +252,7 @@ public class AnthropicLlmPort extends AbstractLlmPort {
                 a.name = cb.has("name") ? cb.get("name").asText() : "";
                 a.index = cb.has("index") ? cb.get("index").asInt() : acc.size();
                 acc.put(a.index, a);
+                handler.onPartialToolCall(a.id, a.name, "");
             }
         } else if ("content_block_delta".equals(type)) {
             JsonNode delta = root.get("delta");
@@ -249,12 +262,16 @@ public class AnthropicLlmPort extends AbstractLlmPort {
                 else if ("input_json_delta".equals(dt) && delta.has("partial_json")) {
                     int idx = root.has("index") ? root.get("index").asInt() : 0;
                     ToolAcc a = acc.get(idx); if (a == null) { a = new ToolAcc(); a.index = idx; acc.put(idx, a); }
-                    a.args.append(delta.get("partial_json").asText());
+                    String partial = delta.get("partial_json").asText();
+                    a.args.append(partial);
+                    handler.onPartialToolCall(a.id, a.name, partial);
                 }
             }
         } else if ("message_delta".equals(type)) {
             JsonNode u = root.path("usage");
             if (u.has("output_tokens")) handler.onUsageDetail(0, u.get("output_tokens").asLong(), u.get("output_tokens").asLong());
+            JsonNode stop = root.path("delta").path("stop_reason");
+            if (!stop.isMissingNode() && stop.isTextual() && !stop.asText().isEmpty()) finishBox[0] = stop.asText();
         } else if ("error".equals(type)) {
             handler.onError(root.path("error").path("message").asText("anthropic error"));
         }

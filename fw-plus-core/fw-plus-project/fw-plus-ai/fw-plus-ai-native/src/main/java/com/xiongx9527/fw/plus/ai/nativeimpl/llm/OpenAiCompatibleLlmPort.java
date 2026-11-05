@@ -76,12 +76,16 @@ public class OpenAiCompatibleLlmPort extends AbstractLlmPort {
             addAuthentication(rb);
             final CountDownLatch done = new CountDownLatch(1);
             final String[] errorBox = new String[1];
+            final String[] finishBox = new String[1];
             Map<Integer, ToolAcc> acc = new LinkedHashMap<Integer, ToolAcc>();
             EventSourceListener listener = new EventSourceListener() {
                 @Override public void onEvent(EventSource es, String id, String type, String data) {
                     if (data == null || data.isEmpty()) return;
                     if ("[DONE]".equals(data.trim())) return;
-                    try { dispatch(data, handler, acc); } catch (IOException ex) { log.warn("llm sse parse skipped: {}", ex.getMessage()); }
+                    // 原文透传给 onUnmappedRawEvent（对齐 LangChain4j 1.x raw event passthrough；
+                    // 装饰器可据此落盘 / 透传私有帧）。未被结构化事件消费的帧同样走此通道。
+                    handler.onUnmappedRawEvent(data);
+                    try { dispatch(data, handler, acc, finishBox); } catch (IOException ex) { log.warn("llm sse parse skipped: {}", ex.getMessage()); }
                 }
                 @Override public void onFailure(EventSource es, Throwable t, Response r) {
                     errorBox[0] = t != null ? t.getMessage() : "llm stream failed";
@@ -95,7 +99,12 @@ public class OpenAiCompatibleLlmPort extends AbstractLlmPort {
             try { done.await(); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); handler.onError("llm interrupted"); }
             es.cancel();
             if (errorBox[0] == null) {
-                for (ToolAcc a : acc.values()) handler.onToolCall(new ToolExecutionRequest(a.id, a.name, a.args.toString()));
+                for (ToolAcc a : acc.values()) {
+                    ToolExecutionRequest call = new ToolExecutionRequest(a.id, a.name, a.args.toString());
+                    handler.onCompleteToolCall(call);
+                    handler.onToolCall(call);
+                }
+                if (finishBox[0] != null) handler.onFinish(finishBox[0]);
                 handler.onComplete();
             }
         } catch (IOException ex) {
@@ -164,6 +173,11 @@ public class OpenAiCompatibleLlmPort extends AbstractLlmPort {
         if (request.getTopP() != null) payload.put("top_p", request.getTopP());
         if (request.getMaxTokens() != null) payload.put("max_tokens", request.getMaxTokens());
         if (request.getSeed() != null) payload.put("seed", request.getSeed());
+        if (request.getTopK() != null) payload.put("top_k", request.getTopK());
+        if (request.getFrequencyPenalty() != null) payload.put("frequency_penalty", request.getFrequencyPenalty());
+        if (request.getPresencePenalty() != null) payload.put("presence_penalty", request.getPresencePenalty());
+        if (!request.getStopSequences().isEmpty()) payload.put("stop", request.getStopSequences());
+        if (request.getResponseFormat() != null) payload.put("response_format", request.getResponseFormat());
         if (!request.getTools().isEmpty()) {
             List<Object> tools = new ArrayList<Object>();
             for (ToolSpecification t : request.getTools()) {
@@ -219,7 +233,7 @@ public class OpenAiCompatibleLlmPort extends AbstractLlmPort {
             default: return "auto";
         }
     }
-    private void dispatch(String json, LlmStreamHandler handler, Map<Integer, ToolAcc> acc) throws IOException {
+    private void dispatch(String json, LlmStreamHandler handler, Map<Integer, ToolAcc> acc, String[] finishBox) throws IOException {
         JsonNode root = mapper.readTree(json);
         if (root.has("choices")) {
             JsonNode usage = root.get("usage");
@@ -231,7 +245,12 @@ public class OpenAiCompatibleLlmPort extends AbstractLlmPort {
             }
             JsonNode choices = root.get("choices");
             if (choices.isArray() && choices.size() > 0) {
-                JsonNode delta = choices.get(0).get("delta");
+                JsonNode choice = choices.get(0);
+                JsonNode finishReason = choice.get("finish_reason");
+                if (finishReason != null && !finishReason.isNull() && !finishReason.asText().isEmpty()) {
+                    finishBox[0] = finishReason.asText();
+                }
+                JsonNode delta = choice.get("delta");
                 if (delta != null) {
                     if (delta.has("content")) { JsonNode c = delta.get("content"); if (!c.isNull()) handler.onToken(c.asText(), null); }
                     if (delta.has("reasoning_content")) { JsonNode r = delta.get("reasoning_content"); if (!r.isNull()) handler.onToken(null, r.asText()); }
@@ -241,12 +260,17 @@ public class OpenAiCompatibleLlmPort extends AbstractLlmPort {
                         for (JsonNode call : calls) {
                             int idx = call.has("index") ? call.get("index").asInt() : 0;
                             ToolAcc a = acc.get(idx); if (a == null) { a = new ToolAcc(); acc.put(idx, a); }
+                            String argDelta = null;
                             if (call.has("id") && !call.get("id").isNull()) a.id = call.get("id").asText();
                             JsonNode fn = call.get("function");
                             if (fn != null) {
                                 if (fn.has("name") && !fn.get("name").isNull()) a.name = fn.get("name").asText();
-                                if (fn.has("arguments") && !fn.get("arguments").isNull()) a.args.append(fn.get("arguments").asText());
+                                if (fn.has("arguments") && !fn.get("arguments").isNull()) {
+                                    argDelta = fn.get("arguments").asText();
+                                    a.args.append(argDelta);
+                                }
                             }
+                            handler.onPartialToolCall(a.id, a.name, argDelta == null ? "" : argDelta);
                         }
                     }
                 }

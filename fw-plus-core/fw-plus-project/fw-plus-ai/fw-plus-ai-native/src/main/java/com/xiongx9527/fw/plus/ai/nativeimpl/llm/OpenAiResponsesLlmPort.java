@@ -74,6 +74,7 @@ public class OpenAiResponsesLlmPort extends AbstractLlmPort {
             EventSourceListener listener = new EventSourceListener() {
                 @Override public void onEvent(EventSource source, String id, String type, String data) {
                     if (data == null || data.trim().isEmpty() || "[DONE]".equals(data.trim())) return;
+                    handler.onUnmappedRawEvent(data);
                     try { dispatch(type, data, handler, tools); } catch (IOException e) { handler.onError(e.getMessage()); }
                 }
                 @Override public void onFailure(EventSource source, Throwable t, Response response) {
@@ -84,8 +85,11 @@ public class OpenAiResponsesLlmPort extends AbstractLlmPort {
             EventSources.createFactory(client).newEventSource(rb.build(), listener);
             done.await(600, TimeUnit.SECONDS);
             for (ToolAcc acc : tools.values()) {
-                handler.onToolCall(new ToolExecutionRequest(acc.callId, acc.name, acc.args.toString()));
+                ToolExecutionRequest call = new ToolExecutionRequest(acc.callId, acc.name, acc.args.toString());
+                handler.onCompleteToolCall(call);
+                handler.onToolCall(call);
             }
+            handler.onFinish("STOP");
             handler.onComplete();
         } catch (Exception e) {
             handler.onError(e.getMessage() == null ? "OpenAI Responses request failed" : e.getMessage());
@@ -128,6 +132,12 @@ public class OpenAiResponsesLlmPort extends AbstractLlmPort {
         if (request.getTemperature() != null) body.put("temperature", request.getTemperature());
         if (request.getTopP() != null) body.put("top_p", request.getTopP());
         if (request.getMaxTokens() != null) body.put("max_output_tokens", request.getMaxTokens());
+        if (!request.getStopSequences().isEmpty()) body.put("stop", request.getStopSequences());
+        if (request.getResponseFormat() != null) {
+            Map<String, Object> text = new LinkedHashMap<String, Object>();
+            text.put("format", request.getResponseFormat());
+            body.put("text", text);
+        }
         if (!request.getTools().isEmpty()) {
             List<Object> tools = new ArrayList<Object>();
             for (ToolSpecification spec : request.getTools()) {
@@ -166,16 +176,19 @@ public class OpenAiResponsesLlmPort extends AbstractLlmPort {
             handler.onToken(root.path("delta").asText(), null);
         } else if ("response.reasoning_summary_text.delta".equals(type) || "response.reasoning_text.delta".equals(type)) {
             handler.onToken(null, root.path("delta").asText());
-        } else if ("response.output_item.added".equals(type)) {
+        } else         if ("response.output_item.added".equals(type)) {
             JsonNode item = root.path("item");
             if ("function_call".equals(item.path("type").asText())) {
                 ToolAcc acc = new ToolAcc(); acc.callId = item.path("call_id").asText(item.path("id").asText());
                 acc.name = item.path("name").asText(); tools.put(item.path("id").asText(acc.callId), acc);
+                handler.onPartialToolCall(acc.callId, acc.name, "");
             }
         } else if ("response.function_call_arguments.delta".equals(type)) {
             String id = root.path("item_id").asText(); ToolAcc acc = tools.get(id);
             if (acc == null) { acc = new ToolAcc(); tools.put(id, acc); }
-            acc.args.append(root.path("delta").asText());
+            String delta = root.path("delta").asText();
+            acc.args.append(delta);
+            handler.onPartialToolCall(acc.callId, acc.name, delta);
         } else if ("response.completed".equals(type)) {
             JsonNode usage = root.path("response").path("usage");
             if (!usage.isMissingNode()) handler.onUsageDetail(usage.path("input_tokens").asLong(),

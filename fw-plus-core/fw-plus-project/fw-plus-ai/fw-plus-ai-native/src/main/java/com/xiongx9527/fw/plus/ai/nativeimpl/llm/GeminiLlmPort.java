@@ -78,10 +78,12 @@ public class GeminiLlmPort extends AbstractLlmPort {
             Request.Builder rb = new Request.Builder().url(url).post(RequestBody.create(JSON, mapper.writeValueAsString(buildBody(request))));
             if (apiKey != null && !apiKey.isEmpty()) rb.header("x-goog-api-key", apiKey);
             final CountDownLatch done = new CountDownLatch(1);
+            final String[] finishBox = new String[1];
             EventSourceListener listener = new EventSourceListener() {
                 @Override public void onEvent(EventSource source, String id, String type, String data) {
                     if (data == null || data.trim().isEmpty() || "[DONE]".equals(data.trim())) return;
-                    try { dispatch(data, handler); } catch (IOException e) { handler.onError(e.getMessage()); }
+                    handler.onUnmappedRawEvent(data);
+                    try { dispatch(data, handler, finishBox); } catch (IOException e) { handler.onError(e.getMessage()); }
                 }
                 @Override public void onFailure(EventSource source, Throwable t, Response response) {
                     handler.onError(t == null ? "Gemini stream failed" : t.getMessage()); done.countDown();
@@ -90,6 +92,7 @@ public class GeminiLlmPort extends AbstractLlmPort {
             };
             EventSources.createFactory(client).newEventSource(rb.build(), listener);
             done.await(600, TimeUnit.SECONDS);
+            if (finishBox[0] != null) handler.onFinish(finishBox[0]);
             handler.onComplete();
         } catch (Exception e) { handler.onError(e.getMessage() == null ? "Gemini request failed" : e.getMessage()); }
     }
@@ -122,8 +125,21 @@ public class GeminiLlmPort extends AbstractLlmPort {
         Map<String, Object> generation = new LinkedHashMap<String, Object>();
         if (request.getTemperature() != null) generation.put("temperature", request.getTemperature());
         if (request.getTopP() != null) generation.put("topP", request.getTopP());
+        if (request.getTopK() != null) generation.put("topK", request.getTopK());
         if (request.getMaxTokens() != null) generation.put("maxOutputTokens", request.getMaxTokens());
         if (request.getSeed() != null) generation.put("seed", request.getSeed());
+        if (request.getFrequencyPenalty() != null) generation.put("frequencyPenalty", request.getFrequencyPenalty());
+        if (request.getPresencePenalty() != null) generation.put("presencePenalty", request.getPresencePenalty());
+        if (!request.getStopSequences().isEmpty()) generation.put("stopSequences", request.getStopSequences());
+        if (request.getResponseFormat() != null) {
+            Map<String, Object> rf = request.getResponseFormat();
+            generation.put("responseMimeType", "application/json");
+            Object type = rf.get("type");
+            if ("json_schema".equals(type) && rf.get("json_schema") instanceof Map) {
+                Map<String, Object> js = (Map<String, Object>) rf.get("json_schema");
+                if (js.get("schema") instanceof Map) generation.put("responseSchema", js.get("schema"));
+            }
+        }
         if (!generation.isEmpty()) body.put("generationConfig", generation);
         if (!request.getTools().isEmpty()) {
             List<Object> declarations = new ArrayList<Object>();
@@ -157,15 +173,24 @@ public class GeminiLlmPort extends AbstractLlmPort {
         }
     }
 
-    private void dispatch(String json, LlmStreamHandler handler) throws IOException {
+    private void dispatch(String json, LlmStreamHandler handler, String[] finishBox) throws IOException {
         JsonNode root = mapper.readTree(json);
         JsonNode candidates = root.path("candidates");
         if (candidates.isArray() && candidates.size() > 0) {
+            JsonNode finishReason = candidates.get(0).path("finishReason");
+            if (!finishReason.isMissingNode() && finishReason.isTextual() && !finishReason.asText().isEmpty()) {
+                finishBox[0] = finishReason.asText();
+            }
             for (JsonNode part : candidates.get(0).path("content").path("parts")) {
                 if (part.has("text")) handler.onToken(part.path("text").asText(), null);
                 if (part.has("functionCall")) {
                     JsonNode call = part.path("functionCall");
-                    handler.onToolCall(ToolExecutionRequest.of(call.path("name").asText(), mapper.writeValueAsString(call.path("args"))));
+                    String name = call.path("name").asText();
+                    String argsJson = mapper.writeValueAsString(call.path("args"));
+                    ToolExecutionRequest req = ToolExecutionRequest.of(name, argsJson);
+                    handler.onPartialToolCall(req.getId(), name, argsJson);
+                    handler.onCompleteToolCall(req);
+                    handler.onToolCall(req);
                 }
             }
         }

@@ -42,6 +42,22 @@ public interface LlmListener extends AiListener {
     default void onComplete() {
     }
 
+    /**
+     * 流结束原因（STOP / LENGTH / TOOL_EXECUTION / CONTENT_FILTER / OTHER）；
+     * 对齐 {@link LlmStreamHandler#onFinish(String)} 的监听器侧镜像。
+     * 上游不支持时不上报，{@code null}。默认忽略。
+     */
+    default void onFinish(String finishReason) {
+    }
+
+    /**
+     * 模型下发的、未映射到结构化事件的原始事件；
+     * 对齐 {@link LlmStreamHandler#onUnmappedRawEvent(Object)} 的监听器侧镜像。
+     * 默认忽略（落盘 / 透传的监听器按需重写）。
+     */
+    default void onUnmappedRawEvent(Object rawEvent) {
+    }
+
     /** 带上下文的请求事件；默认转发到 {@link #onRequest(LlmRequest)}。 */
     default void onRequest(LlmRequestContext context) {
         onRequest(context == null ? null : context.request());

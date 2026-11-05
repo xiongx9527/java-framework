@@ -20,6 +20,12 @@ public class ModerationException extends BizException {
         this.result = result;
     }
 
+    /** 仅带原因文本（如由护栏框架转发而来，无原始 {@link ModerationResult} 时）。 */
+    public ModerationException(String message) {
+        super(CODE, message == null ? "content rejected by moderation" : message);
+        this.result = null;
+    }
+
     public ModerationResult getResult() {
         return result;
     }
