@@ -18,7 +18,9 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,6 +44,8 @@ public class WeaviateVectorStore implements VectorStorePort {
     private final String defaultCollection;
     private final int connectTimeoutMillis;
     private final int readTimeoutMillis;
+    /** 已确保存在过的 class#property，避免每次 upsert 都打 schema 接口。 */
+    private final Set<String> knownProps = ConcurrentHashMap.newKeySet();
 
     public WeaviateVectorStore(String baseUrl) {
         this(baseUrl, null, null, null, "default", 5000, 10000);
@@ -139,6 +143,20 @@ public class WeaviateVectorStore implements VectorStorePort {
         props.put("content", content == null ? "" : String.valueOf(content));
         props.put("metadata", writeJson(metadata));
         props.put("pk", id);
+        // 改造存储：把标量 metadata 逐键注册为 class 属性并以原生类型存储，
+        // 使检索时的 Filter 能下推到 Weaviate 的 where 在库内执行（不再只能客户端后过滤）
+        String cls = className(collection);
+        if (metadata != null) {
+            for (Map.Entry<String, Object> e : metadata.entrySet()) {
+                String key = e.getKey();
+                Object value = e.getValue();
+                if (value == null || "content".equals(key) || "pk".equals(key)) {
+                    continue;
+                }
+                ensureProperty(cls, key, weaviateType(value));
+                props.put(key, value);
+            }
+        }
         Map<String, Object> body = new LinkedHashMap<String, Object>();
         body.put("class", className(collection));
         body.put("id", uuidOf(id));
@@ -185,6 +203,25 @@ public class WeaviateVectorStore implements VectorStorePort {
     }
 
     @Override
+    public void deleteByMetadata(String collection, String key, Object value) {
+        Map<String, Object> where = FilterExpressions.toWeaviate(
+                Filter.builder().eq(key, value).build());
+        if (where == null) {
+            throw new UnsupportedOperationException(
+                    "deleteByMetadata is not supported for this filter on weaviate");
+        }
+        String cls = className(collection);
+        String gql = "{ Delete { " + cls + "(where:" + graphqlWhere(where) + ") } }";
+        Map<String, Object> body = new LinkedHashMap<String, Object>();
+        body.put("query", gql);
+        try {
+            call("POST", baseUrl + "/v1/graphql", body, true);
+        } catch (IOException ex) {
+            log.warn("weaviate deleteByMetadata failed: {}", ex.getMessage());
+        }
+    }
+
+    @Override
     public VectorSearchResult search(VectorSearchRequest request) {
         if (request == null || request.getVector() == null) {
             return VectorSearchResult.empty();
@@ -194,9 +231,23 @@ public class WeaviateVectorStore implements VectorStorePort {
                 && (request.getCandidateIds() == null || request.getCandidateIds().isEmpty()))
                 ? topK : Math.max(topK * 10, 200);
         String cls = className(request.getCollection());
+        // 过滤下推：Filter 翻译成 Weaviate where；候选 id 收敛下推到 pk 的 ContainsAny
+        Map<String, Object> where = FilterExpressions.toWeaviate(request.getFilter());
+        Collection<String> candidates = request.getCandidateIds();
+        if (candidates != null && !candidates.isEmpty()) {
+            Map<String, Object> cw = new LinkedHashMap<String, Object>();
+            cw.put("path", Collections.singletonList("pk"));
+            cw.put("operator", "ContainsAny");
+            cw.put("valueText", new ArrayList<String>(candidates));
+            where = where == null ? cw : andWhere(where, cw);
+        }
         StringBuilder q = new StringBuilder();
         q.append("{ Get { ").append(cls).append("(nearVector:{vector:[")
-                .append(joinVector(request.getVector())).append("]}, limit:").append(fetch)
+                .append(joinVector(request.getVector())).append("]}");
+        if (where != null) {
+            q.append(", where:").append(graphqlWhere(where));
+        }
+        q.append(", limit:").append(fetch)
                 .append(") { content metadata pk _additional { id certainty } } } }");
         Map<String, Object> body = new LinkedHashMap<String, Object>();
         body.put("query", q.toString());
@@ -271,6 +322,98 @@ public class WeaviateVectorStore implements VectorStorePort {
             // metadata 非合法 JSON 时退化为空，不阻断检索
         }
         return meta;
+    }
+
+    private void ensureProperty(String cls, String key, String dataType) {
+        String sig = cls + "#" + key;
+        if (knownProps.contains(sig)) {
+            return;
+        }
+        Map<String, Object> p = new LinkedHashMap<String, Object>();
+        p.put("name", key);
+        p.put("dataType", Collections.singletonList(dataType));
+        try {
+            call("POST", baseUrl + "/v1/schema/" + cls + "/properties", p, false);
+        } catch (IOException ignored) {
+            // 已存在或网络异常：标记已处理，避免反复打 schema 接口
+        }
+        knownProps.add(sig);
+    }
+
+    private static String weaviateType(Object value) {
+        if (value instanceof Boolean) {
+            return "boolean";
+        }
+        if (value instanceof Number) {
+            return "number";
+        }
+        return "text";
+    }
+
+    private static Map<String, Object> andWhere(Map<String, Object> a, Map<String, Object> b) {
+        Map<String, Object> node = new LinkedHashMap<String, Object>();
+        node.put("operator", "And");
+        List<Map<String, Object>> ops = new ArrayList<Map<String, Object>>();
+        ops.add(a);
+        ops.add(b);
+        node.put("operands", ops);
+        return node;
+    }
+
+    private static String graphqlWhere(Map<String, Object> where) {
+        StringBuilder sb = new StringBuilder("{");
+        sb.append("operator:").append(where.get("operator"));
+        Object operands = where.get("operands");
+        if (operands instanceof List) {
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> ops = (List<Map<String, Object>>) operands;
+            sb.append(", operands:[");
+            for (int i = 0; i < ops.size(); i++) {
+                if (i > 0) {
+                    sb.append(",");
+                }
+                sb.append(graphqlWhere(ops.get(i)));
+            }
+            sb.append("]");
+        } else {
+            @SuppressWarnings("unchecked")
+            List<String> path = (List<String>) where.get("path");
+            sb.append(", path:[");
+            for (int i = 0; i < path.size(); i++) {
+                if (i > 0) {
+                    sb.append(",");
+                }
+                sb.append(path.get(i));
+            }
+            sb.append("]");
+            if (where.containsKey("valueString")) {
+                sb.append(", valueString:\"").append(escapeGql(String.valueOf(where.get("valueString"))))
+                        .append("\"");
+            }
+            if (where.containsKey("valueNumber")) {
+                sb.append(", valueNumber:").append(where.get("valueNumber"));
+            }
+            if (where.containsKey("valueBoolean")) {
+                sb.append(", valueBoolean:").append(where.get("valueBoolean"));
+            }
+            if (where.containsKey("valueText")) {
+                @SuppressWarnings("unchecked")
+                List<String> vals = (List<String>) where.get("valueText");
+                sb.append(", valueText:[");
+                for (int i = 0; i < vals.size(); i++) {
+                    if (i > 0) {
+                        sb.append(",");
+                    }
+                    sb.append("\"").append(escapeGql(vals.get(i))).append("\"");
+                }
+                sb.append("]");
+            }
+        }
+        return sb.append("}").toString();
+    }
+
+    private static String escapeGql(String value) {
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     private static Map<String, Object> textProperty(String name) {

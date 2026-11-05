@@ -191,6 +191,23 @@ public class QdrantVectorStore implements VectorStorePort {
     }
 
     @Override
+    public void deleteByMetadata(String collection, String key, Object value) {
+        Map<String, Object> qdrantFilter = FilterExpressions.toQdrant(
+                Filter.builder().eq(key, value).build());
+        if (qdrantFilter == null) {
+            throw new UnsupportedOperationException(
+                    "deleteByMetadata is not supported for this filter on qdrant");
+        }
+        Map<String, Object> body = new LinkedHashMap<String, Object>();
+        body.put("filter", qdrantFilter);
+        try {
+            call("POST", baseUrl + "/collections/" + collection + "/points/delete", body, true);
+        } catch (IOException ex) {
+            log.warn("qdrant deleteByMetadata failed: {}", ex.getMessage());
+        }
+    }
+
+    @Override
     public void dropCollection(String collection) {
         try {
             call("DELETE", baseUrl + "/collections/" + collection, null, true);
@@ -205,13 +222,25 @@ public class QdrantVectorStore implements VectorStorePort {
             return VectorSearchResult.empty();
         }
         int topK = request.getTopK() > 0 ? request.getTopK() : 10;
-        int fetch = (request.getFilter() == Filter.NO_OP
-                && (request.getCandidateIds() == null || request.getCandidateIds().isEmpty()))
-                ? topK : Math.max(topK * 10, 200);
+        Filter filter = request.getFilter();
+        Collection<String> candidates = request.getCandidateIds();
+        boolean candidatesEmpty = candidates == null || candidates.isEmpty();
+        Map<String, Object> qdrantFilter = FilterExpressions.toQdrant(filter);
+        int fetch;
+        if (qdrantFilter != null && candidatesEmpty) {
+            fetch = topK;
+        } else if (filter == Filter.NO_OP && candidatesEmpty) {
+            fetch = topK;
+        } else {
+            fetch = Math.max(topK * 10, 200);
+        }
         Map<String, Object> body = new LinkedHashMap<String, Object>();
         body.put("vector", request.getVector());
         body.put("limit", fetch);
         body.put("with_payload", true);
+        if (qdrantFilter != null) {
+            body.put("filter", qdrantFilter);
+        }
         try {
             JdkHttp.Response r = call("POST",
                     baseUrl + "/collections/" + request.getCollection() + "/points/search", body, true);

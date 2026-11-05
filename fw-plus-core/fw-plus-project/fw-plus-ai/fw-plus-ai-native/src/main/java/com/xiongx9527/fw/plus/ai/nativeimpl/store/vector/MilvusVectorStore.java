@@ -229,6 +229,23 @@ public class MilvusVectorStore implements VectorStorePort {
     }
 
     @Override
+    public void deleteByMetadata(String collection, String key, Object value) {
+        String expr = FilterExpressions.toMilvus(Filter.builder().eq(key, value).build());
+        if (expr == null) {
+            throw new UnsupportedOperationException(
+                    "deleteByMetadata is not supported for this filter on milvus");
+        }
+        Map<String, Object> body = new LinkedHashMap<String, Object>();
+        body.put("collectionName", collection);
+        body.put("filter", expr);
+        try {
+            dataOf(call("POST", baseUrl + API + "/entities/delete", body, true));
+        } catch (IOException ex) {
+            log.warn("milvus deleteByMetadata failed: {}", ex.getMessage());
+        }
+    }
+
+    @Override
     public void dropCollection(String collection) {
         Map<String, Object> body = new LinkedHashMap<String, Object>();
         body.put("collectionName", collection);
@@ -245,14 +262,27 @@ public class MilvusVectorStore implements VectorStorePort {
             return VectorSearchResult.empty();
         }
         int topK = request.getTopK() > 0 ? request.getTopK() : 10;
-        int fetch = (request.getFilter() == Filter.NO_OP
-                && (request.getCandidateIds() == null || request.getCandidateIds().isEmpty()))
-                ? topK : Math.max(topK * 10, 200);
+        Filter filter = request.getFilter();
+        Collection<String> candidates = request.getCandidateIds();
+        boolean candidatesEmpty = candidates == null || candidates.isEmpty();
+        // 元数据过滤优先下推到 Milvus expr；下推成功且无需客户端候选收敛时，窗口只需 topK
+        String pushed = FilterExpressions.toMilvus(filter);
+        int fetch;
+        if (pushed != null && candidatesEmpty) {
+            fetch = topK;
+        } else if (filter == Filter.NO_OP && candidatesEmpty) {
+            fetch = topK;
+        } else {
+            fetch = Math.max(topK * 10, 200);
+        }
         Map<String, Object> body = new LinkedHashMap<String, Object>();
         body.put("collectionName", request.getCollection());
         body.put("data", Collections.singletonList(request.getVector()));
         body.put("limit", fetch);
         body.put("outputFields", Collections.singletonList("*"));
+        if (pushed != null) {
+            body.put("filter", pushed);
+        }
         try {
             JsonNode arr = dataOf(call("POST", baseUrl + API + "/entities/search", body, true));
             if (arr == null || !arr.isArray()) {

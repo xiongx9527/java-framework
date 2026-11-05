@@ -214,17 +214,43 @@ public class PgVectorStore implements VectorStorePort {
     }
 
     @Override
+    public void deleteByMetadata(String collection, String key, Object value) {
+        String where = FilterExpressions.toPgVector(Filter.builder().eq(key, value).build());
+        if (where == null) {
+            throw new UnsupportedOperationException(
+                    "deleteByMetadata is not supported for this filter on pgvector");
+        }
+        String sql = "DELETE FROM " + table(collection) + " WHERE " + where;
+        try (Connection c = open(); PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.executeUpdate();
+        } catch (SQLException ex) {
+            log.warn("pgvector deleteByMetadata failed: {}", ex.getMessage());
+        }
+    }
+
+    @Override
     public VectorSearchResult search(VectorSearchRequest request) {
         if (request == null || request.getVector() == null) {
             return VectorSearchResult.empty();
         }
         int topK = request.getTopK() > 0 ? request.getTopK() : 10;
-        int fetch = (request.getFilter() == Filter.NO_OP
-                && (request.getCandidateIds() == null || request.getCandidateIds().isEmpty()))
-                ? topK : Math.max(topK * 10, 200);
+        Filter filter = request.getFilter();
+        Collection<String> candidates = request.getCandidateIds();
+        boolean candidatesEmpty = candidates == null || candidates.isEmpty();
+        String pgWhere = FilterExpressions.toPgVector(filter);
+        int fetch;
+        if (pgWhere != null && candidatesEmpty) {
+            fetch = topK;
+        } else if (filter == Filter.NO_OP && candidatesEmpty) {
+            fetch = topK;
+        } else {
+            fetch = Math.max(topK * 10, 200);
+        }
         String literal = vectorLiteral(request.getVector());
         String sql = "SELECT id, content, metadata, 1 - (embedding <=> ?::vector) AS score FROM "
-                + table(request.getCollection()) + " ORDER BY embedding <=> ?::vector LIMIT ?";
+                + table(request.getCollection())
+                + (pgWhere != null ? " WHERE " + pgWhere : "")
+                + " ORDER BY embedding <=> ?::vector LIMIT ?";
         try (Connection c = open(); PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setString(1, literal);
             ps.setString(2, literal);

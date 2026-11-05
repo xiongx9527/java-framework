@@ -191,6 +191,23 @@ public class ElasticsearchVectorStore implements VectorStorePort {
     }
 
     @Override
+    public void deleteByMetadata(String collection, String key, Object value) {
+        Map<String, Object> esFilter = FilterExpressions.toElasticsearch(
+                Filter.builder().eq(key, value).build());
+        if (esFilter == null) {
+            throw new UnsupportedOperationException(
+                    "deleteByMetadata is not supported for this filter on elasticsearch");
+        }
+        Map<String, Object> body = new LinkedHashMap<String, Object>();
+        body.put("query", esFilter);
+        try {
+            call("POST", baseUrl + "/" + collection + "/_delete_by_query", body, true);
+        } catch (IOException ex) {
+            log.warn("elasticsearch deleteByMetadata failed: {}", ex.getMessage());
+        }
+    }
+
+    @Override
     public void dropCollection(String collection) {
         try {
             call("DELETE", baseUrl + "/" + collection, null, true);
@@ -205,14 +222,26 @@ public class ElasticsearchVectorStore implements VectorStorePort {
             return VectorSearchResult.empty();
         }
         int topK = request.getTopK() > 0 ? request.getTopK() : 10;
-        int fetch = (request.getFilter() == Filter.NO_OP
-                && (request.getCandidateIds() == null || request.getCandidateIds().isEmpty()))
-                ? topK : Math.max(topK * 10, 200);
+        Filter filter = request.getFilter();
+        Collection<String> candidates = request.getCandidateIds();
+        boolean candidatesEmpty = candidates == null || candidates.isEmpty();
+        Map<String, Object> esFilter = FilterExpressions.toElasticsearch(filter);
+        int fetch;
+        if (esFilter != null && candidatesEmpty) {
+            fetch = topK;
+        } else if (filter == Filter.NO_OP && candidatesEmpty) {
+            fetch = topK;
+        } else {
+            fetch = Math.max(topK * 10, 200);
+        }
         Map<String, Object> knn = new LinkedHashMap<String, Object>();
         knn.put("field", "vector");
         knn.put("query_vector", request.getVector());
         knn.put("k", fetch);
         knn.put("num_candidates", Math.max(fetch * 10, 200));
+        if (esFilter != null) {
+            knn.put("filter", Collections.singletonList(esFilter));
+        }
         Map<String, Object> body = new LinkedHashMap<String, Object>();
         body.put("size", fetch);
         body.put("knn", knn);

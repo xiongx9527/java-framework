@@ -18,6 +18,8 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.DefaultJedisClientConfig;
@@ -44,6 +46,8 @@ public class RedisVectorStore implements VectorStorePort {
     private final ObjectMapper mapper = new ObjectMapper();
     private final String defaultCollection;
     private final UnifiedJedis jedis;
+    /** 已尝试注册进 RediSearch 索引的元数据字段（m_<key>），避免重复 FT.ALTER。 */
+    private final Set<String> knownFields = ConcurrentHashMap.newKeySet();
 
     public RedisVectorStore(String baseUrl, String password, String defaultCollection) {
         this(baseUrl, null, password, defaultCollection, 0, 5000, 10000);
@@ -148,6 +152,22 @@ public class RedisVectorStore implements VectorStorePort {
         fields.put(bytes("content"), bytes(content == null ? "" : String.valueOf(content)));
         fields.put(bytes("metadata"), bytes(writeJson(metadata)));
         fields.put(bytes("pk"), bytes(id));
+        // 改造存储：把标量 metadata 逐键存为独立 HASH 字段 m_<key>，并注册进 RediSearch 索引，
+        // 使检索时的 Filter 能下推到 RediSearch 在库内执行
+        if (metadata != null) {
+            for (Map.Entry<String, Object> e : metadata.entrySet()) {
+                Object value = e.getValue();
+                if (value == null
+                        || !(value instanceof String)
+                        && !(value instanceof Number)
+                        && !(value instanceof Boolean)) {
+                    continue;
+                }
+                String fieldName = "m_" + e.getKey();
+                ftAlterAdd(collection, fieldName);
+                fields.put(bytes(fieldName), bytes(String.valueOf(value)));
+            }
+        }
         fields.put(bytes("vector"), toBlob(vector));
         try {
             jedis.hset(bytes(prefix(collection) + id), fields);
@@ -190,40 +210,120 @@ public class RedisVectorStore implements VectorStorePort {
     }
 
     @Override
+    public void deleteByMetadata(String collection, String key, Object value) {
+        String term = (value instanceof Number || value instanceof Boolean)
+                ? String.valueOf(value)
+                : "\"" + String.valueOf(value).replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+        String expr = "@m_" + key + ":(" + term + ")";
+        Query query = new Query(expr).returnFields("pk").limit(0, 10000).dialect(2);
+        try {
+            SearchResult sr = jedis.ftSearch(indexName(collection), query);
+            for (redis.clients.jedis.search.Document d : sr.getDocuments()) {
+                String pk = str(d.get("pk"));
+                if (pk != null) {
+                    jedis.del(prefix(collection) + pk);
+                }
+            }
+        } catch (RuntimeException ex) {
+            log.warn("redis deleteByMetadata failed: {}", ex.getMessage());
+        }
+    }
+
+    @Override
     public VectorSearchResult search(VectorSearchRequest request) {
         if (request == null || request.getVector() == null) {
             return VectorSearchResult.empty();
         }
         int topK = request.getTopK() > 0 ? request.getTopK() : 10;
-        int fetch = (request.getFilter() == Filter.NO_OP
-                && (request.getCandidateIds() == null || request.getCandidateIds().isEmpty()))
+        Filter filter = request.getFilter();
+        Collection<String> candidates = request.getCandidateIds();
+        boolean candidatesEmpty = candidates == null || candidates.isEmpty();
+        int fetch = (filter == Filter.NO_OP && candidatesEmpty)
                 ? topK : Math.max(topK * 10, 200);
-        Query query = new Query("*=>[KNN $K @vector $BLOB AS vector_score]")
+        // 过滤下推：Filter 翻译为 RediSearch 表达式；候选 id 收敛下推到 @pk
+        StringBuilder prefix = new StringBuilder();
+        if (candidates != null) {
+            for (String cid : candidates) {
+                if (cid == null) {
+                    continue;
+                }
+                if (prefix.length() == 0) {
+                    prefix.append("@pk:(");
+                } else {
+                    prefix.append("|");
+                }
+                prefix.append(redisEscape(cid));
+            }
+            if (prefix.length() > 0) {
+                prefix.append(")");
+            }
+        }
+        String redisFilter = FilterExpressions.toRedis(filter);
+        if (redisFilter != null) {
+            if (prefix.length() > 0) {
+                prefix.append(" ");
+            }
+            prefix.append(redisFilter);
+        }
+        String base = prefix.length() > 0 ? prefix.toString() : "*";
+        String queryStr = base + "=>[KNN $K @vector $BLOB AS vector_score]";
+        Query query = new Query(queryStr)
                 .addParam("K", fetch)
                 .addParam("BLOB", toBlob(request.getVector()))
                 .returnFields("content", "metadata", "pk", "vector_score")
                 .limit(0, fetch)
                 .dialect(2);
+        String index = indexName(request.getCollection());
         try {
-            SearchResult sr = jedis.ftSearch(indexName(request.getCollection()), query);
-            List<ScoredDocument> hits = new ArrayList<ScoredDocument>();
-            for (redis.clients.jedis.search.Document d : sr.getDocuments()) {
-                double distance = toDouble(d.get("vector_score"), 1.0);
-                double score = Math.max(0.0, Math.min(1.0, 1.0 - distance));
-                String pk = str(d.get("pk"));
-                Map<String, Object> meta = parseMetadata(str(d.get("metadata")));
-                Document doc = Document.builder().id(pk).content(metaText(meta)).metadata(meta).build();
-                hits.add(new ScoredDocument(doc, score));
-            }
-            List<ScoredDocument> filtered = applyFilter(hits, request);
-            if (filtered.size() > topK) {
-                filtered = filtered.subList(0, topK);
-            }
-            return VectorSearchResult.of(filtered);
+            return collect(jedis.ftSearch(index, query), request, topK);
         } catch (RuntimeException ex) {
+            // 后端不支持该过滤（字段未索引等）：退回无过滤查询，交给客户端 matches() 后过滤
+            if (prefix.length() > 0) {
+                Query fallback = new Query("*=>[KNN $K @vector $BLOB AS vector_score]")
+                        .addParam("K", fetch)
+                        .addParam("BLOB", toBlob(request.getVector()))
+                        .returnFields("content", "metadata", "pk", "vector_score")
+                        .limit(0, fetch)
+                        .dialect(2);
+                try {
+                    return collect(jedis.ftSearch(index, fallback), request, topK);
+                } catch (RuntimeException ex2) {
+                    log.warn("redis search failed: {}", ex2.getMessage());
+                    return VectorSearchResult.empty();
+                }
+            }
             log.warn("redis search failed: {}", ex.getMessage());
             return VectorSearchResult.empty();
         }
+    }
+
+    private VectorSearchResult collect(SearchResult sr, VectorSearchRequest request, int topK) {
+        List<ScoredDocument> hits = new ArrayList<ScoredDocument>();
+        for (redis.clients.jedis.search.Document d : sr.getDocuments()) {
+            double distance = toDouble(d.get("vector_score"), 1.0);
+            double score = Math.max(0.0, Math.min(1.0, 1.0 - distance));
+            String pk = str(d.get("pk"));
+            Map<String, Object> meta = parseMetadata(str(d.get("metadata")));
+            Document doc = Document.builder().id(pk).content(metaText(meta)).metadata(meta).build();
+            hits.add(new ScoredDocument(doc, score));
+        }
+        List<ScoredDocument> filtered = applyFilter(hits, request);
+        if (filtered.size() > topK) {
+            filtered = filtered.subList(0, topK);
+        }
+        return VectorSearchResult.of(filtered);
+    }
+
+    private void ftAlterAdd(String collection, String fieldName) {
+        if (knownFields.contains(fieldName)) {
+            return;
+        }
+        try {
+            jedis.ftAlter(indexName(collection), new Schema().addTextField(fieldName, 1.0));
+        } catch (RuntimeException ignored) {
+            // 索引暂不支持 FT.ALTER 或字段已存在：忽略，检索时退回客户端后过滤
+        }
+        knownFields.add(fieldName);
     }
 
     private List<ScoredDocument> applyFilter(List<ScoredDocument> hits, VectorSearchRequest request) {
@@ -308,6 +408,10 @@ public class RedisVectorStore implements VectorStorePort {
             return new String((byte[]) value, StandardCharsets.UTF_8);
         }
         return String.valueOf(value);
+    }
+
+    private static String redisEscape(String value) {
+        return value.replace("\\", "\\\\").replace("\"", "\\\"").replace(" ", "\\ ");
     }
 
     private static double toDouble(Object value, double fallback) {
