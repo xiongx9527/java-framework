@@ -1,8 +1,10 @@
 package com.xiongx9527.fw.plus.auth.social.enterprise;
 import com.xiongx9527.fw.plus.auth.social.*;
 
+import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.naming.Context;
@@ -33,7 +35,7 @@ import cn.hutool.json.JSONUtil;
  *   <li>{@code mapping}：JSON，{@code account/name/email} 各自对应的属性名</li>
  * </ul>
  */
-public class LdapSocialLoginProvider extends AbstractSocialLoginProvider {
+public class LdapSocialLoginProvider extends AbstractSocialLoginProvider implements SocialOrgTreeProvider {
 
     @Override
     public IdpType type() {
@@ -197,9 +199,95 @@ public class LdapSocialLoginProvider extends AbstractSocialLoginProvider {
         }
     }
 
+    @Override
+    public SocialOrgNode getNode(IdpConfig config, String nodeId) {
+        String urls = config.extra("ldap_urls");
+        String bindDn = config.extra("bind_dn");
+        String bindPassword = config.extra("bind_password");
+        DirContext ctx = null;
+        try {
+            ctx = new InitialDirContext(buildEnv(urls, bindDn, bindPassword));
+            return buildLdapNode(ctx, nodeId, config, false);
+        } catch (NamingException e) {
+            throw new IllegalStateException("LDAP getNode failed: " + e.getMessage(), e);
+        } finally {
+            closeQuietly(ctx);
+        }
+    }
+
     private static class Mapping {
         String account;
         String name;
         String email;
+    }
+
+    @Override
+    public boolean supports(IdpType type) {
+        return type == IdpType.LDAP;
+    }
+
+    @Override
+    public List<SocialOrgNode> getUserTree(IdpConfig config) {
+        String urls = config.extra("ldap_urls");
+        String baseDn = config.extra("base_dn");
+        String bindDn = config.extra("bind_dn");
+        String bindPassword = config.extra("bind_password");
+        DirContext ctx = null;
+        try {
+            ctx = new InitialDirContext(buildEnv(urls, bindDn, bindPassword));
+            SocialOrgNode root = buildLdapNode(ctx, baseDn, config, true);
+            List<SocialOrgNode> roots = new ArrayList<SocialOrgNode>();
+            roots.add(root);
+            return roots;
+        } catch (NamingException e) {
+            throw new IllegalStateException("LDAP getUserTree failed: " + e.getMessage(), e);
+        } finally {
+            closeQuietly(ctx);
+        }
+    }
+
+    private SocialOrgNode buildLdapNode(DirContext ctx, String dn, IdpConfig config, boolean recursive) throws NamingException {
+        Mapping mapping = parseMapping(config.extra("mapping"));
+        Attributes attrs = ctx.getAttributes(dn);
+        SocialOrgNode node = new SocialOrgNode(dn, readAttr(attrs, mapping.name, "ou", "cn", "o", "dc"), null);
+
+        SearchControls controls = new SearchControls();
+        controls.setSearchScope(SearchControls.ONELEVEL_SCOPE);
+        controls.setReturningAttributes(new String[]{"ou", "cn", "uid", "displayName", "name",
+                "mail", "email", "sAMAccountName", "userPrincipalName"});
+
+        NamingEnumeration<SearchResult> subs = ctx.search(dn,
+                "(|(objectClass=organizationalUnit)(objectClass=container))", controls);
+        try {
+            while (subs.hasMore()) {
+                SearchResult sr = subs.next();
+                String childDn = sr.getNameInNamespace();
+                if (recursive) {
+                    node.addChild(buildLdapNode(ctx, childDn, config, true));
+                } else {
+                    Attributes ca = ctx.getAttributes(childDn);
+                    node.addChild(new SocialOrgNode(childDn, readAttr(ca, mapping.name, "ou", "cn", "o", "dc"), node.getId()));
+                }
+            }
+        } finally {
+            subs.close();
+        }
+
+        NamingEnumeration<SearchResult> users = ctx.search(dn,
+                "(|(objectClass=inetOrgPerson)(objectClass=user))", controls);
+        try {
+            while (users.hasMore()) {
+                SearchResult sr = users.next();
+                String userDn = sr.getNameInNamespace();
+                Attributes ua = ctx.getAttributes(userDn);
+                String account = readAttr(ua, mapping.account, "uid", "cn", "sAMAccountName", "userPrincipalName");
+                String name = readAttr(ua, mapping.name, "cn", "displayName", "name");
+                String email = readAttr(ua, mapping.email, "mail", "email");
+                node.addUser(new SocialOrgUser(first(account, name), first(name, account), email));
+            }
+        } finally {
+            users.close();
+        }
+        return node;
     }
 }

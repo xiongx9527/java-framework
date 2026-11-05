@@ -74,8 +74,6 @@ fw-plus/                      # 根目录（聚合项目，根 pom.xml 聚合下
 │   │   └── fw-plus-boot-starters/     # 各种 Spring Boot Starter（15 个）
 │   │       ├── fw-plus-admin-server-spring-boot-starter/  # Spring Boot Admin 监控
 │   │       ├── fw-plus-boot-starter/                      # 通用 Boot Starter（aggregator）
-│   │       ├── fw-plus-file-storage-spring-boot-starter/  # 文件存储（Minio/S3）
-│   │       ├── fw-plus-influxdb-spring-boot-starter/      # InfluxDB 时序数据库
 │   │       ├── fw-plus-jdbc-spring-boot-starter/          # JDBC 数据库
 │   │       ├── fw-plus-jimu-spring-boot-starter/          # JimuReport 积木报表
 │   │       ├── fw-plus-magicapi-spring-boot-starter/      # Magic-API 主引擎

@@ -38,7 +38,29 @@ public class WechatScanSocialLoginProvider extends AbstractSocialLoginProvider {
 
     @Override
     public ExternalIdentity resolveIdentity(IdpConfig config, IdpCallback callback) {
-        String code = callback.getCode();
+        String userKey = "wechat-scan:user:" + config.getId();
+        String accessToken;
+        String openid;
+        String unionid;
+        CachedUserToken cached = tokenStore().getUserToken(userKey);
+        if (cached != null && !cached.isExpired(60000L)) {
+            accessToken = cached.getAccessToken();
+            openid = cached.getOpenid();
+            unionid = cached.getUnionid();
+        } else {
+            JSONObject token = exchangeToken(config, callback.getCode());
+            accessToken = token.getStr("access_token");
+            openid = token.getStr("openid");
+            unionid = token.getStr("unionid");
+            cacheUserToken(userKey, token);
+        }
+        JSONObject info = fetchUserInfo(config, userKey, accessToken, openid, unionid);
+        String nickname = info.getStr("nickname");
+        String account = first(unionid, openid);
+        return new ExternalIdentity(account, nickname, null, first(unionid, openid), null);
+    }
+
+    private JSONObject exchangeToken(IdpConfig config, String code) {
         JSONObject token = JSONUtil.parseObj(SocialHttpUtils.get(
                 TOKEN_URL + "?appid=" + urlEncode(config.getClientId())
                         + "&secret=" + urlEncode(config.getClientSecret())
@@ -47,14 +69,59 @@ public class WechatScanSocialLoginProvider extends AbstractSocialLoginProvider {
         if (token.getStr("access_token") == null) {
             throw new IllegalStateException("wechat scan login failed: " + token);
         }
-        String accessToken = token.getStr("access_token");
-        String openid = token.getStr("openid");
-        String unionid = token.getStr("unionid");
+        return token;
+    }
+
+    private void cacheUserToken(String userKey, JSONObject token) {
+        Long expiresIn = token.getLong("expires_in");
+        long expireAt = System.currentTimeMillis() + (expiresIn != null ? expiresIn : 7200L) * 1000L;
+        tokenStore().putUserToken(userKey, new CachedUserToken(
+                token.getStr("access_token"),
+                token.getStr("refresh_token"),
+                token.getStr("openid"),
+                token.getStr("unionid"),
+                expireAt));
+    }
+
+    private JSONObject fetchUserInfo(IdpConfig config, String userKey, String accessToken, String openid, String unionid) {
         JSONObject info = JSONUtil.parseObj(SocialHttpUtils.get(
                 USERINFO_URL + "?access_token=" + urlEncode(accessToken)
                         + "&openid=" + urlEncode(openid), null));
-        String nickname = info.getStr("nickname");
-        String account = first(unionid, openid);
-        return new ExternalIdentity(account, nickname, null, first(unionid, openid), null);
+        // access_token 失效（errcode 42001/40014/41001/42002/40001 等）：用 refresh_token 续期后重试一次
+        if (isTokenExpired(info)) {
+            CachedUserToken cached = tokenStore().getUserToken(userKey);
+            if (cached != null && cached.getRefreshToken() != null) {
+                JSONObject refreshed = refreshToken(config, cached.getRefreshToken());
+                String newToken = refreshed.getStr("access_token");
+                String newRefresh = refreshed.getStr("refresh_token");
+                Long expiresIn = refreshed.getLong("expires_in");
+                long expireAt = System.currentTimeMillis() + (expiresIn != null ? expiresIn : 7200L) * 1000L;
+                tokenStore().putUserToken(userKey, new CachedUserToken(newToken, newRefresh, openid, unionid, expireAt));
+                info = JSONUtil.parseObj(SocialHttpUtils.get(
+                        USERINFO_URL + "?access_token=" + urlEncode(newToken)
+                                + "&openid=" + urlEncode(openid), null));
+            }
+        }
+        return info;
+    }
+
+    private boolean isTokenExpired(JSONObject info) {
+        Object errcode = info.getByPath("errcode");
+        if (errcode instanceof Number) {
+            int code = ((Number) errcode).intValue();
+            return code == 42001 || code == 40014 || code == 41001 || code == 42002 || code == 40001;
+        }
+        return false;
+    }
+
+    private JSONObject refreshToken(IdpConfig config, String refreshToken) {
+        JSONObject res = JSONUtil.parseObj(SocialHttpUtils.get(
+                TOKEN_URL + "?appid=" + urlEncode(config.getClientId())
+                        + "&grant_type=refresh_token"
+                        + "&refresh_token=" + urlEncode(refreshToken), null));
+        if (res.getStr("access_token") == null) {
+            throw new IllegalStateException("wechat scan refresh token failed: " + res);
+        }
+        return res;
     }
 }

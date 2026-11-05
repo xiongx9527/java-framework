@@ -137,9 +137,9 @@ AI 层将模型、向量存储与具体框架实现解耦。应用可先依赖�
 | 分类 | Starter |
 | --- | --- |
 | 聚合 | `fw-plus-boot-starter` |
-| 数据访问 | `fw-plus-mate-spring-boot-starter`、`fw-plus-mp-spring-boot-starter`、`fw-plus-jdbc-spring-boot-starter`、`fw-plus-redis-spring-boot-starter`、`fw-plus-influxdb-spring-boot-starter` |
+| 数据访问 | `fw-plus-mate-spring-boot-starter`、`fw-plus-mp-spring-boot-starter`、`fw-plus-jdbc-spring-boot-starter`、`fw-plus-redis-spring-boot-starter` |
 | 平台 | `fw-plus-magicapi-spring-boot-starter` |
-| 基础设施 | `fw-plus-file-storage-spring-boot-starter`、`fw-plus-mqtt-server-spring-boot-starter`、`fw-plus-mqtt-client-spring-boot-starter`、`fw-plus-admin-server-spring-boot-starter` |
+| 基础设施 | `fw-plus-mqtt-server-spring-boot-starter`、`fw-plus-mqtt-client-spring-boot-starter`、`fw-plus-admin-server-spring-boot-starter` |
 | 文档与模板 | `fw-plus-jimu-spring-boot-starter`、`fw-plus-template-spring-boot-starter` |
 | 标识 | `fw-plus-uid-spring-boot-starter` |
 
