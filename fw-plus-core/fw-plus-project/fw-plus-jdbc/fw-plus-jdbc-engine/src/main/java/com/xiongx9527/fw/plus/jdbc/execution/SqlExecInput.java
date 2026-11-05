@@ -1,7 +1,6 @@
 package com.xiongx9527.fw.plus.jdbc.execution;
 
 import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
-import lombok.Builder;
 import lombok.Getter;
 
 /**

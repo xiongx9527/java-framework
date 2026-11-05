@@ -100,13 +100,12 @@ public class DefaultAskDataCapability implements AskDataCapability {
                     .executed(false)
                     .build();
         }
-        SqlExecInput.Builder eb = SqlExecInput.builder()
+        QueryResult qr = execution.execute(SqlExecInput.builder()
                 .sql(gen.getSql())
                 .dialectHint(input.getDialectHint())
                 .maxRows(input.getMaxRows())
                 .queryTimeoutSeconds(input.getQueryTimeoutSeconds())
-                .readOnly(input.isReadOnly());
-        QueryResult qr = execution.execute(eb.build());
+                .readOnly(input.isReadOnly()).build());
         return AskDataResult.builder()
                 .sql(gen.getSql())
                 .explanation(gen.getExplanation())
