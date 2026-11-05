@@ -153,8 +153,9 @@ public class WeaviateVectorStore implements VectorStorePort {
                 if (value == null || "content".equals(key) || "pk".equals(key)) {
                     continue;
                 }
-                ensureProperty(cls, key, weaviateType(value));
-                props.put(key, value);
+                if (ensureProperty(cls, key, weaviateType(value))) {
+                    props.put(key, value);
+                }
             }
         }
         Map<String, Object> body = new LinkedHashMap<String, Object>();
@@ -254,30 +255,50 @@ public class WeaviateVectorStore implements VectorStorePort {
         try {
             JdkHttp.Response r = call("POST", baseUrl + "/v1/graphql", body, true);
             JsonNode arr = mapper.readTree(r.getBody()).path("data").path("Get").path(cls);
-            if (!arr.isArray()) {
-                return VectorSearchResult.empty();
-            }
-            List<ScoredDocument> hits = new ArrayList<ScoredDocument>();
-            for (JsonNode n : arr) {
-                JsonNode add = n.path("_additional");
-                double score = add.has("certainty") ? add.get("certainty").asDouble() : 0.0;
-                String id = n.has("pk") ? n.get("pk").asText() : add.path("id").asText(null);
-                Map<String, Object> meta = parseMetadata(n.path("metadata").asText(null));
-                if (!meta.containsKey("content") && n.has("content")) {
-                    meta.put("content", n.get("content").asText());
-                }
-                Document doc = Document.builder().id(id).content(metaText(meta)).metadata(meta).build();
-                hits.add(new ScoredDocument(doc, score));
-            }
-            List<ScoredDocument> filtered = applyFilter(hits, request);
-            if (filtered.size() > topK) {
-                filtered = filtered.subList(0, topK);
-            }
-            return VectorSearchResult.of(filtered);
+            return collectHits(arr, cls, request, topK);
         } catch (IOException ex) {
+            // 后端不支持该 where（如属性类型不匹配）：去掉过滤重试，交给客户端 matches() 后过滤
+            if (where != null) {
+                String noWhere = "{ Get { " + cls + "(nearVector:{vector:["
+                        + joinVector(request.getVector()) + "]}, limit:" + fetch
+                        + ") { content metadata pk _additional { id certainty } } } }";
+                Map<String, Object> fallback = new LinkedHashMap<String, Object>();
+                fallback.put("query", noWhere);
+                try {
+                    JdkHttp.Response r2 = call("POST", baseUrl + "/v1/graphql", fallback, true);
+                    JsonNode arr2 = mapper.readTree(r2.getBody()).path("data").path("Get").path(cls);
+                    return collectHits(arr2, cls, request, topK);
+                } catch (IOException ex2) {
+                    log.warn("weaviate search failed: {}", ex2.getMessage());
+                    return VectorSearchResult.empty();
+                }
+            }
             log.warn("weaviate search failed: {}", ex.getMessage());
             return VectorSearchResult.empty();
         }
+    }
+
+    private VectorSearchResult collectHits(JsonNode arr, String cls, VectorSearchRequest request, int topK) {
+        if (!arr.isArray()) {
+            return VectorSearchResult.empty();
+        }
+        List<ScoredDocument> hits = new ArrayList<ScoredDocument>();
+        for (JsonNode n : arr) {
+            JsonNode add = n.path("_additional");
+            double score = add.has("certainty") ? add.get("certainty").asDouble() : 0.0;
+            String id = n.has("pk") ? n.get("pk").asText() : add.path("id").asText(null);
+            Map<String, Object> meta = parseMetadata(n.path("metadata").asText(null));
+            if (!meta.containsKey("content") && n.has("content")) {
+                meta.put("content", n.get("content").asText());
+            }
+            Document doc = Document.builder().id(id).content(metaText(meta)).metadata(meta).build();
+            hits.add(new ScoredDocument(doc, score));
+        }
+        List<ScoredDocument> filtered = applyFilter(hits, request);
+        if (filtered.size() > topK) {
+            filtered = filtered.subList(0, topK);
+        }
+        return VectorSearchResult.of(filtered);
     }
 
     private boolean classExists(String collection) {
@@ -324,20 +345,23 @@ public class WeaviateVectorStore implements VectorStorePort {
         return meta;
     }
 
-    private void ensureProperty(String cls, String key, String dataType) {
+    private boolean ensureProperty(String cls, String key, String dataType) {
         String sig = cls + "#" + key;
         if (knownProps.contains(sig)) {
-            return;
+            return false;
         }
         Map<String, Object> p = new LinkedHashMap<String, Object>();
         p.put("name", key);
         p.put("dataType", Collections.singletonList(dataType));
         try {
             call("POST", baseUrl + "/v1/schema/" + cls + "/properties", p, false);
+            knownProps.add(sig);
+            return true;
         } catch (IOException ignored) {
-            // 已存在或网络异常：标记已处理，避免反复打 schema 接口
+            // 已存在（422）或网络异常：标记已处理避免反复打接口，且本次不写入该属性
+            knownProps.add(sig);
+            return false;
         }
-        knownProps.add(sig);
     }
 
     private static String weaviateType(Object value) {
