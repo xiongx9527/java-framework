@@ -164,7 +164,8 @@ public class OpenAiCompatibleLlmPort extends AbstractLlmPort {
         }
     }
     private Map<String, Object> buildBody(LlmRequest request) throws IOException {
-        Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        // extraParams 承载厂商私有推理参数（如 enable_thinking），原样并入请求体，与 Gemini/Responses 端口一致
+        Map<String, Object> payload = new LinkedHashMap<String, Object>(request.getExtraParams());
         payload.put("model", request.getModel() != null ? request.getModel() : defaultModel);
         List<Object> msgs = new ArrayList<Object>();
         for (ChatMessage m : request.getMessages()) msgs.add(toWire(m));

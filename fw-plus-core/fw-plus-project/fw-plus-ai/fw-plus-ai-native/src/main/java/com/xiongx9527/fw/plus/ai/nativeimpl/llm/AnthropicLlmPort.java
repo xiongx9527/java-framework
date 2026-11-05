@@ -159,7 +159,8 @@ public class AnthropicLlmPort extends AbstractLlmPort {
     }
 
     private Map<String, Object> buildBody(LlmRequest request) throws IOException {
-        Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        // extraParams 承载厂商私有推理参数（如 enable_thinking），原样并入请求体
+        Map<String, Object> payload = new LinkedHashMap<String, Object>(request.getExtraParams());
         payload.put("model", request.getModel() != null ? request.getModel() : defaultModel);
         payload.put("max_tokens", request.getMaxTokens() != null ? request.getMaxTokens() : 4096);
         if (request.getTemperature() != null) payload.put("temperature", request.getTemperature());
