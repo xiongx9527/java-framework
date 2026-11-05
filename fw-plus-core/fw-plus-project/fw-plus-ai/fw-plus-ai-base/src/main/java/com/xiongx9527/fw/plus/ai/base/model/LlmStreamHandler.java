@@ -26,6 +26,10 @@ import com.xiongx9527.fw.plus.ai.base.tool.ToolExecutionResult;
  * <p>除 {@link #onToken}、{@link #onComplete}、{@link #onError} 外，其余均为 {@code default} 空实现，
  * 调用方按需重写；一次调用必然以 {@code onComplete()} 或 {@code onError(String)} 之一收尾，
  * 实现方不得两者都回调。token 类回调可能任意线程触发，实现方自行保证线程安全。</p>
+ *
+ * <p>每个事件除基础签名外，另提供「带 {@link StreamEventContext} 上下文」的重载（对应 LangChain4j 1.x
+ * 各 {@code *Context} 重载），默认委托回基础签名；需要回调内取消流或跨事件传递状态时重写。
+ * 模型下发的、未映射到结构化事件的原始帧走 {@link #onUnmappedRawEvent(Object)}。</p>
  */
 public interface LlmStreamHandler {
 
@@ -111,5 +115,52 @@ public interface LlmStreamHandler {
     /** 流末上报 token 明细；上游未上报分项时传 {@code 0}。默认忽略。 */
     default void onUsageDetail(long inputTokens, long outputTokens, long totalTokens) {
         // 只关心文本流的调用方无需实现
+    }
+
+    /**
+     * 收到模型下发的、未映射到上述结构化事件的原始事件。
+     *
+     * <p>对齐 LangChain4j 1.x {@code StreamingChatResponseHandler.onUnmappedRawEvent(Object)}；
+     * 例如供应商私有的增量状态、心跳或调试帧。默认忽略；需要落盘或透传的监听器重写本方法。
+     * {@code rawEvent} 的具体类型由 adapter 决定，调用方不应假设其结构。</p>
+     */
+    default void onUnmappedRawEvent(Object rawEvent) {
+    }
+
+    /**
+     * {@link #onToken} 的带上下文重载；默认委托回 {@link #onToken}。
+     *
+     * @see StreamEventContext
+     */
+    default void onToken(String content, String reasoningContent, StreamEventContext context) {
+        onToken(content, reasoningContent);
+    }
+
+    /**
+     * {@link #onPartialToolCall} 的带上下文重载；默认委托回 {@link #onPartialToolCall}。
+     */
+    default void onPartialToolCall(String id, String name, String argumentsDelta, StreamEventContext context) {
+        onPartialToolCall(id, name, argumentsDelta);
+    }
+
+    /**
+     * {@link #onCompleteToolCall} 的带上下文重载；默认委托回 {@link #onCompleteToolCall}。
+     */
+    default void onCompleteToolCall(ToolExecutionRequest call, StreamEventContext context) {
+        onCompleteToolCall(call);
+    }
+
+    /**
+     * {@link #onToolCall} 的带上下文重载；默认委托回 {@link #onToolCall}。
+     */
+    default void onToolCall(ToolExecutionRequest call, StreamEventContext context) {
+        onToolCall(call);
+    }
+
+    /**
+     * {@link #onToolResponse} 的带上下文重载；默认委托回 {@link #onToolResponse}。
+     */
+    default void onToolResponse(ToolExecutionResult result, StreamEventContext context) {
+        onToolResponse(result);
     }
 }

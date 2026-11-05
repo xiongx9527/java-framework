@@ -280,6 +280,48 @@ public final class LlmTokenStream {
                 delegate.onUsageDetail(inputTokens, outputTokens, totalTokens);
             }
         }
+
+        @Override
+        public void onUnmappedRawEvent(Object rawEvent) {
+            if (!cancelled.get()) {
+                delegate.onUnmappedRawEvent(rawEvent);
+            }
+        }
+
+        @Override
+        public void onToken(String content, String reasoningContent, StreamEventContext context) {
+            if (!cancelled.get()) {
+                delegate.onToken(content, reasoningContent, context);
+            }
+        }
+
+        @Override
+        public void onPartialToolCall(String id, String name, String argumentsDelta, StreamEventContext context) {
+            if (!cancelled.get()) {
+                delegate.onPartialToolCall(id, name, argumentsDelta, context);
+            }
+        }
+
+        @Override
+        public void onCompleteToolCall(ToolExecutionRequest call, StreamEventContext context) {
+            if (!cancelled.get()) {
+                delegate.onCompleteToolCall(call, context);
+            }
+        }
+
+        @Override
+        public void onToolCall(ToolExecutionRequest call, StreamEventContext context) {
+            if (!cancelled.get()) {
+                delegate.onToolCall(call, context);
+            }
+        }
+
+        @Override
+        public void onToolResponse(ToolExecutionResult result, StreamEventContext context) {
+            if (!cancelled.get()) {
+                delegate.onToolResponse(result, context);
+            }
+        }
     }
 
     private abstract static class HandlerAdapter implements LlmStreamHandler {
@@ -366,6 +408,24 @@ public final class LlmTokenStream {
             for (LlmStreamHandler delegate : delegates) {
                 delegate.onUsageDetail(inputTokens, outputTokens, totalTokens);
             }
+        }
+        @Override public void onUnmappedRawEvent(Object rawEvent) {
+            for (LlmStreamHandler delegate : delegates) delegate.onUnmappedRawEvent(rawEvent);
+        }
+        @Override public void onToken(String content, String reasoningContent, StreamEventContext context) {
+            for (LlmStreamHandler delegate : delegates) delegate.onToken(content, reasoningContent, context);
+        }
+        @Override public void onPartialToolCall(String id, String name, String argumentsDelta, StreamEventContext context) {
+            for (LlmStreamHandler delegate : delegates) delegate.onPartialToolCall(id, name, argumentsDelta, context);
+        }
+        @Override public void onCompleteToolCall(ToolExecutionRequest call, StreamEventContext context) {
+            for (LlmStreamHandler delegate : delegates) delegate.onCompleteToolCall(call, context);
+        }
+        @Override public void onToolCall(ToolExecutionRequest call, StreamEventContext context) {
+            for (LlmStreamHandler delegate : delegates) delegate.onToolCall(call, context);
+        }
+        @Override public void onToolResponse(ToolExecutionResult result, StreamEventContext context) {
+            for (LlmStreamHandler delegate : delegates) delegate.onToolResponse(result, context);
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.base.model;
 
 import com.xiongx9527.fw.plus.ai.base.tool.ToolExecutionRequest;
+import com.xiongx9527.fw.plus.ai.base.tool.ToolExecutionResult;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -26,10 +27,12 @@ public abstract class AbstractLlmPort implements LlmPort {
         if (request == null) {
             throw new LlmException("llm request is required");
         }
-        return LlmTokenStream.create(handler -> {
+        final LlmTokenStream[] holder = new LlmTokenStream[1];
+        holder[0] = LlmTokenStream.create(handler -> {
             notifyRequest(request);
-            doStream(request, new EventingStreamHandler(request, handler));
+            doStream(request, new EventingStreamHandler(request, handler, holder[0]));
         });
+        return holder[0];
     }
 
     @Override
@@ -141,17 +144,26 @@ public abstract class AbstractLlmPort implements LlmPort {
 
         private final LlmStreamHandler delegate;
 
+        private final StreamEventContext context;
+
         private LlmUsage usage = LlmUsage.ZERO;
 
-        private EventingStreamHandler(LlmRequest request, LlmStreamHandler delegate) {
+        private EventingStreamHandler(LlmRequest request, LlmStreamHandler delegate, LlmTokenStream stream) {
             this.request = request;
             this.delegate = delegate;
+            this.context = new StreamEventContext(stream, request);
         }
 
         @Override
         public void onToken(String content, String reasoningContent) {
             notifyToken(request, content, reasoningContent);
-            delegate.onToken(content, reasoningContent);
+            delegate.onToken(content, reasoningContent, context);
+        }
+
+        @Override
+        public void onToken(String content, String reasoningContent, StreamEventContext ctx) {
+            notifyToken(request, content, reasoningContent);
+            delegate.onToken(content, reasoningContent, ctx);
         }
 
         @Override
@@ -168,18 +180,48 @@ public abstract class AbstractLlmPort implements LlmPort {
         }
 
         @Override
+        public void onUnmappedRawEvent(Object rawEvent) {
+            delegate.onUnmappedRawEvent(rawEvent);
+        }
+
+        @Override
         public void onToolCall(ToolExecutionRequest call) {
-            delegate.onToolCall(call);
+            delegate.onToolCall(call, context);
+        }
+
+        @Override
+        public void onToolCall(ToolExecutionRequest call, StreamEventContext ctx) {
+            delegate.onToolCall(call, ctx);
         }
 
         @Override
         public void onPartialToolCall(String id, String name, String argumentsDelta) {
-            delegate.onPartialToolCall(id, name, argumentsDelta);
+            delegate.onPartialToolCall(id, name, argumentsDelta, context);
+        }
+
+        @Override
+        public void onPartialToolCall(String id, String name, String argumentsDelta, StreamEventContext ctx) {
+            delegate.onPartialToolCall(id, name, argumentsDelta, ctx);
         }
 
         @Override
         public void onCompleteToolCall(ToolExecutionRequest call) {
-            delegate.onCompleteToolCall(call);
+            delegate.onCompleteToolCall(call, context);
+        }
+
+        @Override
+        public void onCompleteToolCall(ToolExecutionRequest call, StreamEventContext ctx) {
+            delegate.onCompleteToolCall(call, ctx);
+        }
+
+        @Override
+        public void onToolResponse(ToolExecutionResult result) {
+            delegate.onToolResponse(result, context);
+        }
+
+        @Override
+        public void onToolResponse(ToolExecutionResult result, StreamEventContext ctx) {
+            delegate.onToolResponse(result, ctx);
         }
 
         @Override
