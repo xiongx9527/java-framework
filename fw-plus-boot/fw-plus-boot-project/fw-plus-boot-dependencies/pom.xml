@@ -562,17 +562,6 @@
                 <artifactId>fw-plus-redis-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus.boot</groupId>
-                <artifactId>fw-plus-jimu-spring-boot-starter</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus.boot</groupId>
-                <artifactId>fw-plus-file-storage-spring-boot-starter</artifactId>
-                <version>${project.version}</version>
-            </dependency>
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.boot</groupId>
@@ -589,12 +578,6 @@
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-template-spring-boot-starter</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus.boot</groupId>
-                <artifactId>fw-plus-influxdb-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
