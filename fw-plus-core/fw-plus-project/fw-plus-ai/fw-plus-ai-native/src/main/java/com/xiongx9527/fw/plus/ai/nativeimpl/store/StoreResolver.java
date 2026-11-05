@@ -42,12 +42,7 @@ public final class StoreResolver {
         return VectorStoreConfig.builder()
                 .vendor(parse(VectorStoreVendor.class, config.getVendor()))
                 .protocol(parse(VectorStoreProtocol.class, config.getProtocol()))
-                .baseUrl(config.getBaseUrl())
-                .apiKey(config.getApiKey())
-                .defaultCollection(config.getDefaultCollection())
-                .connectTimeoutMillis(config.getConnectTimeoutMillis())
-                .readTimeoutMillis(config.getReadTimeoutMillis())
-                .properties(config.getProperties())
+                .common(config)
                 .build();
     }
 
@@ -55,13 +50,7 @@ public final class StoreResolver {
         return GraphStoreConfig.builder()
                 .vendor(parse(GraphStoreVendor.class, config.getVendor()))
                 .protocol(parse(GraphStoreProtocol.class, config.getProtocol()))
-                .baseUrl(config.getBaseUrl())
-                .username(config.getUsername())
-                .password(config.getPassword())
-                .database(config.getDatabase())
-                .connectTimeoutMillis(config.getConnectTimeoutMillis())
-                .readTimeoutMillis(config.getReadTimeoutMillis())
-                .properties(config.getProperties())
+                .common(config)
                 .build();
     }
 

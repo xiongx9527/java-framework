@@ -8,6 +8,26 @@ import org.junit.jupiter.api.Test;
 class VectorStoreResolverTest {
 
     @Test
+    void resolvesVendorOnlyStoresWithoutProtocol() {
+        assertTrue(VectorStoreResolver.create(VectorStoreConfig.builder()
+                .vendor(VectorStoreVendor.REDIS)
+                .baseUrl("redis://localhost:6380")
+                .build()) instanceof RedisVectorStore);
+        assertTrue(VectorStoreResolver.create(VectorStoreConfig.builder()
+                .vendor(VectorStoreVendor.PGVECTOR)
+                .baseUrl("jdbc:postgresql://localhost:5432/ai")
+                .build()) instanceof PgVectorStore);
+        assertTrue(VectorStoreResolver.create(VectorStoreConfig.builder()
+                .vendor(VectorStoreVendor.ELASTICSEARCH)
+                .baseUrl("http://localhost:9200")
+                .build()) instanceof ElasticsearchVectorStore);
+        assertTrue(VectorStoreResolver.create(VectorStoreConfig.builder()
+                .vendor(VectorStoreVendor.WEAVIATE)
+                .baseUrl("http://localhost:18088")
+                .build()) instanceof WeaviateVectorStore);
+    }
+
+    @Test
     void resolvesProtocolToDedicatedStore() {
         assertTrue(VectorStoreResolver.create(VectorStoreConfig.builder()
                 .protocol(VectorStoreProtocol.QDRANT)

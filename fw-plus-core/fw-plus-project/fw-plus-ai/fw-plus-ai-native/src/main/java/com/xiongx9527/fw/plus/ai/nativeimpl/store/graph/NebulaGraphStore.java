@@ -55,6 +55,8 @@ public class NebulaGraphStore implements GraphStorePort {
     private final int connectTimeoutMillis;
     private final int readTimeoutMillis;
     private String nsid;
+    /** space/tag/edge 已确认可用（Nebula 的 schema 异步生效，确认后缓存避免每次 execute 重复等待）。 */
+    private volatile boolean schemaReady;
 
     public NebulaGraphStore(String baseUrl) {
         this(baseUrl, null, null, "ai_graph", "graphd", 9669, 5000, 10000);
@@ -297,17 +299,17 @@ public class NebulaGraphStore implements GraphStorePort {
         if (ids == null || ids.isEmpty()) {
             return 0L;
         }
-        StringBuilder inClause = new StringBuilder("[");
+        // Nebula 的 DELETE VERTEX 只接受逗号分隔的 id（不接受 ["a","b"] 列表字面量）
+        StringBuilder idList = new StringBuilder();
         boolean first = true;
         for (String id : ids) {
             if (!first) {
-                inClause.append(", ");
+                idList.append(", ");
             }
-            inClause.append(q(id));
+            idList.append(q(id));
             first = false;
         }
-        inClause.append("]");
-        String gql = "USE " + space + "; DELETE VERTEX " + inClause + " WITH EDGE;";
+        String gql = "USE " + space + "; DELETE VERTEX " + idList + " WITH EDGE;";
         try {
             execute(gql);
             return ids.size();
@@ -344,7 +346,17 @@ public class NebulaGraphStore implements GraphStorePort {
     @Override
     public void clear() {
         try {
-            execute("USE " + space + "; DELETE VERTEX (MATCH (n:" + TAG + ") RETURN id(n) AS id) WITH EDGE;");
+            // DELETE VERTEX 不支持子查询/列表字面量，先取出 id 再按逗号分隔删除
+            List<String> ids = new ArrayList<String>();
+            for (Map<String, JsonNode> row : execute("USE " + space + "; MATCH (n:" + TAG + ") RETURN id(n) AS id;")) {
+                String id = text(row.get("id"));
+                if (id != null) {
+                    ids.add(id);
+                }
+            }
+            if (!ids.isEmpty()) {
+                deleteAll(ids);
+            }
         } catch (IOException ex) {
             throw new IllegalStateException("nebula clear failed: " + ex.getMessage(), ex);
         }
@@ -360,8 +372,17 @@ public class NebulaGraphStore implements GraphStorePort {
         }
     }
 
-    /** 先建 space（含 vid_type），再建 tag/edge；CREATE SPACE 异步生效，故 tag/edge 建表带重试。 */
+    /**
+     * 先建 space（含 vid_type），再建 tag/edge，并等待 schema 真正可用。
+     *
+     * <p>Nebula 的 space / tag / edge 都是异步生效：DDL 返回成功不代表已可写入，紧随的 UPSERT 可能报
+     * {@code No schema found}。因此这里在 DDL 后额外 {@code DESCRIBE TAG} 轮询确认，成功后置
+     * {@link #schemaReady} 缓存，避免每次 execute 重复等待。</p>
+     */
     private void ensureSchema() throws IOException {
+        if (schemaReady) {
+            return;
+        }
         try {
             execRaw("CREATE SPACE IF NOT EXISTS " + space + " (vid_type=FIXED_STRING(256));");
         } catch (IOException ignored) {
@@ -372,9 +393,12 @@ public class NebulaGraphStore implements GraphStorePort {
                 + "(id string, label string, content string, meta string, vector string); "
                 + "CREATE EDGE IF NOT EXISTS " + EDGE + "(type string, weight double);";
         IOException last = null;
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 60; i++) {
             try {
                 execRaw(ddl);
+                // schema 异步生效，确认 tag 可查后再返回
+                execRaw("USE " + space + "; DESCRIBE TAG " + TAG + ";");
+                schemaReady = true;
                 return;
             } catch (IOException ex) {
                 last = ex;
@@ -425,14 +449,17 @@ public class NebulaGraphStore implements GraphStorePort {
         JdkHttp.Response response = JdkHttp.send("POST", baseUrl + "/api/db/connect",
                 mapper.writeValueAsString(body).getBytes(StandardCharsets.UTF_8), null,
                 connectTimeoutMillis, readTimeoutMillis);
-        String cookie = response.getHeader("Set-Cookie");
-        if (cookie != null) {
+        // gateway 会返回多个 Set-Cookie 头（common-nsid / Path / SameSite / Secure），必须逐条扫描
+        for (String cookie : response.getHeaders("Set-Cookie")) {
             for (String part : cookie.split(";")) {
                 String p = part.trim();
                 if (p.startsWith("common-nsid=")) {
                     nsid = p.substring("common-nsid=".length());
                     break;
                 }
+            }
+            if (nsid != null) {
+                break;
             }
         }
         if (nsid == null) {

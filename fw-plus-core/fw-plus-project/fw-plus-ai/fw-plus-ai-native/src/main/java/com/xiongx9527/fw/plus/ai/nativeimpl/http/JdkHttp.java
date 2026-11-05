@@ -22,12 +22,13 @@ public final class JdkHttp {
     public static final class Response {
         private final int code;
         private final String body;
-        private final Map<String, String> headers;
+        private final Map<String, java.util.List<String>> headers;
 
-        public Response(int code, String body, Map<String, String> headers) {
+        public Response(int code, String body, Map<String, java.util.List<String>> headers) {
             this.code = code;
             this.body = body;
-            this.headers = headers == null ? java.util.Collections.<String, String>emptyMap() : headers;
+            this.headers = headers == null
+                    ? java.util.Collections.<String, java.util.List<String>>emptyMap() : headers;
         }
 
         public int getCode() {
@@ -38,18 +39,27 @@ public final class JdkHttp {
             return body;
         }
 
-        /** 取响应头（键名不区分大小写）；不存在时返回 null。 */
+        /** 取响应头的首个值（键名不区分大小写）；不存在时返回 null。 */
         public String getHeader(String name) {
+            java.util.List<String> values = getHeaders(name);
+            return values.isEmpty() ? null : values.get(0);
+        }
+
+        /**
+         * 取响应头的全部值（键名不区分大小写）。
+         * 一个响应可能出现多个同名头，典型如多次 Set-Cookie；调用方需要逐条解析时使用本方法。
+         */
+        public java.util.List<String> getHeaders(String name) {
             if (name == null) {
-                return null;
+                return java.util.Collections.emptyList();
             }
             String key = name.toLowerCase(java.util.Locale.ROOT);
-            for (Map.Entry<String, String> entry : headers.entrySet()) {
+            for (Map.Entry<String, java.util.List<String>> entry : headers.entrySet()) {
                 if (entry.getKey().toLowerCase(java.util.Locale.ROOT).equals(key)) {
                     return entry.getValue();
                 }
             }
-            return null;
+            return java.util.Collections.emptyList();
         }
     }
 
@@ -75,12 +85,14 @@ public final class JdkHttp {
         }
         int code = conn.getResponseCode();
         String resp = readAll(code >= 400 ? conn.getErrorStream() : conn.getInputStream());
-        Map<String, String> headerMap = new java.util.LinkedHashMap<String, String>();
+        Map<String, java.util.List<String>> headerMap =
+                new java.util.LinkedHashMap<String, java.util.List<String>>();
         for (Map.Entry<String, java.util.List<String>> entry : conn.getHeaderFields().entrySet()) {
             if (entry.getKey() == null || entry.getValue() == null || entry.getValue().isEmpty()) {
                 continue;
             }
-            headerMap.put(entry.getKey(), entry.getValue().get(0));
+            headerMap.put(entry.getKey(),
+                    java.util.Collections.unmodifiableList(new java.util.ArrayList<String>(entry.getValue())));
         }
         return new Response(code, resp, headerMap);
     }
