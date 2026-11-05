@@ -10,8 +10,13 @@ import java.util.Map;
 /**
  * 元数据过滤 DSL：向量检索时按文档属性收敛候选集（与按主键收敛的 {@code candidateIds} 互补）。
  *
- * <p>中性结构：base 给出条件组合与求值器 {@link #matches(Map)}，adapter 只需在检索前对候选文档
- * 调一次 {@code request.getFilter().matches(metadata)}，不必懂各向量库自己的 filter 语法。</p>
+ * <p>两种消费方式，adapter 按后端能力选择：</p>
+ * <ul>
+ *   <li><b>下推</b>（推荐）：通过 {@link #op()} / {@link #key()} / {@link #value()} /
+ *       {@link #children()} 递归读取条件树，翻译成后端原生 filter 语法，让过滤在库内完成；</li>
+ *   <li><b>后过滤</b>：召回候选后对每条调 {@link #matches(Map)}。实现简单，但会放大召回量、
+ *       且过滤后可能不足 topK，仅用于不支持原生过滤的后端。</li>
+ * </ul>
  *
  * <p>示例：{@code Filter.builder().eq("dsId", 7).gt("score", 0.5).build()}
  * 表示 {@code dsId == 7 AND score > 0.5}。</p>
@@ -21,7 +26,8 @@ public final class Filter {
     /** 永真的空过滤（不过滤）。 */
     public static final Filter NO_OP = new Filter(Op.AND, null, null, Collections.<Filter>emptyList());
 
-    private enum Op {
+    /** 条件操作符；adapter 据此把条件树翻译成后端原生 filter 语法。 */
+    public enum Op {
         EQ, NE, IN, GT, GTE, LT, LTE, CONTAINS, AND, OR
     }
 
@@ -39,6 +45,31 @@ public final class Filter {
         this.value = value;
         this.children = children == null ? Collections.<Filter>emptyList()
                 : Collections.unmodifiableList(new ArrayList<Filter>(children));
+    }
+
+    /** 条件操作符；AND / OR 表示组合节点，其余为叶子条件。 */
+    public Op op() {
+        return op;
+    }
+
+    /** 元数据键；AND / OR 组合节点为 {@code null}。 */
+    public String key() {
+        return key;
+    }
+
+    /** 期望值；AND / OR 组合节点为 {@code null}，IN 条件为 {@code Collection}。 */
+    public Object value() {
+        return value;
+    }
+
+    /** 子条件；叶子条件为空列表，返回的列表不可修改。 */
+    public List<Filter> children() {
+        return children;
+    }
+
+    /** 是否为永真的空过滤（无任何条件）；adapter 可据此跳过 filter 下推。 */
+    public boolean isNoOp() {
+        return op == Op.AND && children.isEmpty();
     }
 
     /** 判断给定元数据是否满足本过滤条件。 */

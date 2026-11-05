@@ -1,6 +1,6 @@
 package com.xiongx9527.fw.plus.ai.base.store.graph;
 
-import com.xiongx9527.fw.plus.ai.base.store.Store;
+import com.xiongx9527.fw.plus.ai.base.store.RecordStore;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -11,10 +11,11 @@ import java.util.Set;
  * <p>由 adapter 用 Neo4j / Postgres / 内存等实现；多跳扩展、PageRank、实体链接等策略留待真正实现时再定。
  * 放在 base 而不是 support：它是检索的基础契约，任何后端都可以实现，不依赖增强层。</p>
  *
- * <p>实现 {@link Store} 公共生命周期门面，从而与向量库等一起登记到
- * {@link com.xiongx9527.fw.plus.ai.base.store.StoreRegistry} 统一取用。</p>
+ * <p>图库支持按 id 随机读，因此继承 {@link RecordStore}，从而与向量库等一起登记到
+ * {@link com.xiongx9527.fw.plus.ai.base.store.StoreRegistry} 统一取用；
+ * 需要 CRUD 时按 {@code RecordStore} 类型取用即可。</p>
  */
-public interface GraphStorePort extends Store {
+public interface GraphStorePort extends RecordStore {
 
     /** 连通性探测；不可用时返回 {@code false}。 */
     @Override

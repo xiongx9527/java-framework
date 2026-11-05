@@ -1,15 +1,19 @@
 package com.xiongx9527.fw.plus.ai.base.store;
 
-import java.util.Collection;
-import java.util.List;
-
 /**
- * 存储后端的公共契约：向量库 / 图库 / 任何检索后端共享的身份、生命周期与基础 CRUD。
+ * 存储后端的公共身份与生命周期契约。
  *
- * <p>具体的读写 / 检索语义由各子包特化（{@code vector} 的
- * {@link com.xiongx9527.fw.plus.ai.base.store.vector.VectorStorePort}、
- * {@code graph} 的 {@link com.xiongx9527.fw.plus.ai.base.store.graph.GraphStorePort}）；本接口只声明两者都该有的
- * 通用能力，从而能统一登记到 {@link StoreRegistry} 按名 / 按类型取用。</p>
+ * <p>所有检索后端（向量库 / 图库 / 自定义）都能诚实实现这里的全部方法：身份
+ * （{@link #name()}、{@link #type()}）、可用性（{@link #configured()}、{@link #health()}）
+ * 与生命周期（{@link #clear()}、{@link #count()}）。由此可统一登记到
+ * {@link StoreRegistry} 按名 / 按类型取用。</p>
+ *
+ * <p><b>读写语义不在这里声明</b>：按 id 的 CRUD 与文本召回由 {@link RecordStore} 承接
+ * （图库等支持随机读的后端实现），向量库的最近邻检索由
+ * {@link com.xiongx9527.fw.plus.ai.base.store.vector.VectorStorePort} 自行定义。
+ * 这样按 {@code Store} 多态取用时不会遇到「不支持随机读」「恒返回删除成功」这类
+ * 与声明不符的行为；需要读写能力时按 {@link RecordStore} 或 {@code VectorStorePort}
+ * 的具体类型取用。</p>
  */
 public interface Store {
 
@@ -24,30 +28,6 @@ public interface Store {
 
     /** 连通性探测；不可用时返回 {@code false}。 */
     boolean health();
-
-    /** 新增 / 更新：按 id 幂等写入（向量库写向量 + 元数据；图库写节点）。 */
-    void save(StoreRecord record);
-
-    /** 按 id 取单条；不存在返回 {@code null}。 */
-    StoreRecord get(String id);
-
-    /** 批量按 id 取多条；缺失的 id 不出现在结果中。 */
-    List<StoreRecord> getAll(Collection<String> ids);
-
-    /** 删除单条；不存在视为成功，返回是否实际删除。 */
-    boolean delete(String id);
-
-    /** 召回：图库按文本召回；向量库按向量召回，最多 topK 条。 */
-    List<StoreRecord> search(StoreQuery query);
-
-    /** 批量新增 / 更新（按 id 幂等写入）。 */
-    void saveAll(Collection<StoreRecord> records);
-
-    /** 更新单条：要求该 id 已存在；不存在抛 {@link IllegalStateException}。 */
-    void update(StoreRecord record);
-
-    /** 批量删除：不存在视为成功，返回实际删除条数。 */
-    long deleteAll(Collection<String> ids);
 
     /** 清空全部数据（仅显式重建链路调用，绝不静默触发）。 */
     void clear();

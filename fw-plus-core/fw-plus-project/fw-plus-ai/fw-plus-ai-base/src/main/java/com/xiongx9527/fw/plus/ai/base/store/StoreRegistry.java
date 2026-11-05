@@ -6,8 +6,9 @@ import java.util.Map;
 /**
  * 命名存储注册器：把多类后端（向量 / 图 / 自定义）按名登记，上层按名或按类型取用。
  *
- * <p>与具体存储语义解耦——registry 只持有 {@link Store} 公共生命周期门面，
- * 真正的读写 / 检索仍走各自的 {@code VectorStorePort} / {@code GraphStorePort}。</p>
+ * <p>与具体存储语义解耦——registry 只持有 {@link Store} 的身份 / 可用性 / 生命周期门面；
+ * 按 id 的 CRUD 走 {@link RecordStore}，向量检索走 {@code VectorStorePort}，
+ * 图遍历走 {@code GraphStorePort}，按具体类型取用即可。</p>
  */
 public final class StoreRegistry {
 

@@ -86,6 +86,54 @@ fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是�
 独立的 `AudioModel`、`VideoModel` 或 `PdfModel` 统一接口，默认自动配置不会
 为这三类创建内置 provider。需要使用时在业务层自行封装厂商 SDK。
 
+## 适配模块（非兼容覆盖模块）
+
+除上述 `0.35` Java 8 兼容覆盖模块外，本目录还有一类**适配模块**：
+
+| 本地模块 | 性质 | 依赖 | 产出包 |
+| --- | --- | --- | --- |
+| `fw-plus-ai-langchain4j-adapter` | 把 LangChain4j 的模型 / 向量存储 / RAG 对象适配成 `fw-plus-ai-base` 的端口契约 | `fw-plus-ai-base` + `langchain4j` + `langchain4j-core` | `com.xiongx9527.fw.plus.ai.langchain4j.adapter.*` |
+
+适配模块与覆盖模块的区别：
+
+- 覆盖模块沿用上游 `dev.langchain4j.*` 包名与类名，重写不兼容 Java 8 的实现；
+- 适配模块是 fw-plus 自己的代码，只调用 0.35 的核心接口，实现 `fw-plus-ai-base` 的
+  `LlmPort` / `EmbeddingPort` / `RerankPort` / `Store` / `Retriever` / `ToolProvider` 等端口，
+  与 `fw-plus-ai-native` 平级、可替换，不绑定具体 provider；
+- 适配模块同样必须保持 Java 8 兼容，且不得引入 Spring 自动配置。
+
+适配入口是 `LangChain4jAdapters`，主要映射：
+
+| LangChain4j 0.35 | base 端口 |
+| --- | --- |
+| `ChatLanguageModel` / `StreamingChatLanguageModel` | `LlmPort` |
+| `EmbeddingModel` | `EmbeddingPort` |
+| `ScoringModel` | `RerankPort`（`Reranker` 由 support 的 `ModelReranker` 组合） |
+| `dev.langchain4j.model.moderation.ModerationModel` | `ModerationModel` |
+| `Tokenizer` | `TokenCountEstimator` |
+| `EmbeddingStore<TextSegment>` | `Store` / `VectorStorePort`（`LangChain4jStorePort`） |
+| `ContentRetriever` | `Retriever<Document>` |
+| `dev.langchain4j.service.tool.ToolProvider` | `ToolProvider`（双向） |
+
+### 存储适配的能力边界
+
+LangChain4j 0.35 只有 `EmbeddingStore` 一种存储抽象，不区分向量库 / 图库，因此适配模块
+**只提供 `LangChain4jStorePort` 一个存储适配器**；base 的 `GraphStorePort` 由
+`fw-plus-ai-native` 实现，模块内不做图存储适配。
+
+`EmbeddingStore` 的 `search(EmbeddingSearchRequest)` 默认实现会忽略 `filter`，
+`remove*` 默认实现抛 `UnsupportedOperationException`；`Neo4jEmbeddingStore` 便没有覆写它们。
+因此 `LangChain4jStorePort`：
+
+- 默认一律客户端过滤（集合 + `Filter` + `candidateIds`），放大召回量后截断 topK；
+  只有确认后端支持 filter 时才用 `pushdownFilters=true` 开启下推；
+- 删除失败显式抛异常，不静默吞掉；可注入 `EmbeddingRemover` 由业务侧补齐删除能力；
+- 把业务 id / collection 写进 `TextSegment.metadata`（`__fw_id` / `__fw_collection`）。
+
+已知限制：0.35 没有「指定 id + 携带载荷」的 add，重复 upsert 同一业务 id 会生成新记录；
+`Neo4jEmbeddingStore` 把 metadata 值统一转成 String，数值类型的过滤与读取会退化。
+需要幂等写入或保留数值类型时，由业务侧包装 `EmbeddingStore` 提供。
+
 ## 验证建议
 
 修改本目录的兼容覆盖类后，至少验证：

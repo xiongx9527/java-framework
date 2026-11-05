@@ -46,6 +46,14 @@ public class StoreRegistryTest {
     }
 
     @Test
+    public void getByRecordStoreType() {
+        StoreRegistry registry = new StoreRegistry();
+        InMemoryGraphStore store = new InMemoryGraphStore("g");
+        registry.register("g", store);
+        assertSame(store, registry.get("g", RecordStore.class));
+    }
+
+    @Test
     public void missingNameThrows() {
         StoreRegistry registry = new StoreRegistry();
         IllegalStateException ex = assertThrows(IllegalStateException.class, () -> registry.get("nope"));

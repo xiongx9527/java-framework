@@ -33,6 +33,7 @@
         <module>fw-plus-ai-langchain4j-nebula</module>
         <module>fw-plus-ai-langchain4j-reactor</module>
         <module>fw-plus-ai-langchain4j-core</module>
+        <module>fw-plus-ai-langchain4j-adapter</module>
     </modules>
     <properties>
         <main.basedir>${basedir}/../../..</main.basedir>

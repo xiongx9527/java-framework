@@ -4,7 +4,6 @@ import com.xiongx9527.fw.plus.ai.base.intent.IntentEvent;
 import com.xiongx9527.fw.plus.ai.base.retrieval.RetrievalEvent;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolExecutionRequest;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolExecutionResult;
-import com.xiongx9527.fw.plus.ai.base.retrieval.RetrievalEvent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;

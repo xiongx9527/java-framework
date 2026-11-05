@@ -23,8 +23,10 @@ import java.util.Map;
  * 一次维度误配不应该变成无人值守的数据清空，重建必须走显式的
  * {@link #dropCollection(String)} + 回填。</p>
  *
- * <p>实现 {@link Store} 公共契约：{@link #defaultCollection()} 给出通用 CRUD 依托的默认集合，
- * 从而 {@code save / delete / clear / count / search / get} 有可复用的默认实现（向量库按该集合定位）。</p>
+ * <p>只实现 {@link Store} 的最小身份 / 生命周期契约。向量库不具备按 id 随机读与
+ * 「是否存在」语义，因此不实现 {@link com.xiongx9527.fw.plus.ai.base.store.RecordStore}；
+ * 下面的 {@code save / delete / search / get} 等是 {@code VectorStorePort} 自己提供的
+ * 便利方法，语义由本接口声明，不存在对父接口契约的降级覆写。</p>
  */
 public interface VectorStorePort extends Store {
 
@@ -32,7 +34,6 @@ public interface VectorStorePort extends Store {
     String defaultCollection();
 
     /** 新增 / 更新（按默认集合幂等写入）。 */
-    @Override
     default void save(StoreRecord record) {
         if (record == null || record.getId() == null) {
             return;
@@ -41,7 +42,6 @@ public interface VectorStorePort extends Store {
     }
 
     /** 删除单条（按默认集合）；向量库无「是否实际存在」语义，恒返回 true。 */
-    @Override
     default boolean delete(String id) {
         if (id == null) {
             return false;
@@ -51,7 +51,6 @@ public interface VectorStorePort extends Store {
     }
 
     /** 批量新增 / 更新（逐条 save）。 */
-    @Override
     default void saveAll(Collection<StoreRecord> records) {
         if (records != null) {
             for (StoreRecord r : records) {
@@ -61,13 +60,11 @@ public interface VectorStorePort extends Store {
     }
 
     /** 更新单条：向量库无「是否存在」语义，等同 save（按 id 幂等覆盖）。 */
-    @Override
     default void update(StoreRecord record) {
         save(record);
     }
 
     /** 批量删除：逐条 delete，返回实际删除条数。 */
-    @Override
     default long deleteAll(Collection<String> ids) {
         long removed = 0L;
         if (ids != null) {
@@ -93,7 +90,6 @@ public interface VectorStorePort extends Store {
     }
 
     /** 按向量召回（默认集合）。文本查询不被向量库支持，抛 {@link UnsupportedOperationException}。 */
-    @Override
     default List<StoreRecord> search(StoreQuery query) {
         if (query == null || query.getVector() == null) {
             throw new UnsupportedOperationException(
@@ -118,13 +114,11 @@ public interface VectorStorePort extends Store {
     }
 
     /** 向量库默认不支持按 id 随机取单条（需先召回再取），抛 {@link UnsupportedOperationException}。 */
-    @Override
     default StoreRecord get(String id) {
         throw new UnsupportedOperationException(
                 "random get-by-id is not supported by vector stores; use search(VectorSearchRequest)");
     }
 
-    @Override
     default List<StoreRecord> getAll(Collection<String> ids) {
         List<StoreRecord> out = new ArrayList<StoreRecord>();
         if (ids != null) {

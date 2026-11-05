@@ -76,6 +76,16 @@ public final class CostAccountingLlmPort implements LlmPort {
         }
 
         @Override
+        public void onToken(String content, String reasoningContent) {
+            // 成本核算只关心用量，忽略正文增量
+        }
+
+        @Override
+        public void onError(String message) {
+            // 失败调用不计成本
+        }
+
+        @Override
         public void onComplete() {
             port.record(modelId, usage);
         }
