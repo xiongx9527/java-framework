@@ -1,42 +1,17 @@
 package com.xiongx9527.fw.plus.ai.support.retrieval;
 
-import com.xiongx9527.fw.plus.ai.base.retrieval.Retrieved;
-import com.xiongx9527.fw.plus.ai.base.retrieval.Reranker;
 import com.xiongx9527.fw.plus.ai.base.model.RerankPort;
-import com.xiongx9527.fw.plus.ai.base.store.vector.Document;
-import java.util.ArrayList;
-import java.util.List;
+import com.xiongx9527.fw.plus.ai.base.retrieval.DefaultReranker;
 
-/** 基于 RerankPort 的重排器（product 注入重排模型）。 */
-public class ModelReranker implements Reranker<Document> {
-
-    private final RerankPort port;
+/**
+ * 基于 RerankPort 的重排器（保留 support 侧既有入口）。
+ *
+ * <p>实现已下沉到 base 的 {@link DefaultReranker}，这里只保留类名与构造，
+ * 避免两处重复维护同一套打分回填逻辑。</p>
+ */
+public class ModelReranker extends DefaultReranker {
 
     public ModelReranker(RerankPort port) {
-        if (port == null) {
-            throw new IllegalArgumentException("rerank port is required");
-        }
-        this.port = port;
-    }
-
-    @Override
-    public List<Retrieved<Document>> rerank(String query, List<Retrieved<Document>> candidates) {
-        List<Retrieved<Document>> out = new ArrayList<Retrieved<Document>>();
-        if (candidates == null || candidates.isEmpty()) {
-            return out;
-        }
-        List<String> docs = new ArrayList<String>();
-        for (Retrieved<Document> hit : candidates) {
-            Document doc = hit.getItem();
-            docs.add(doc == null || doc.getContent() == null ? "" : doc.getContent());
-        }
-        List<Double> scores = port.score(query, docs);
-        for (int i = 0; i < candidates.size(); i++) {
-            double s = scores != null && i < scores.size() && scores.get(i) != null
-                    ? scores.get(i) : candidates.get(i).getScore();
-            out.add(candidates.get(i).withScore(s));
-        }
-        out.sort((a, b) -> Double.compare(b.getScore(), a.getScore()));
-        return out;
+        super(port);
     }
 }
