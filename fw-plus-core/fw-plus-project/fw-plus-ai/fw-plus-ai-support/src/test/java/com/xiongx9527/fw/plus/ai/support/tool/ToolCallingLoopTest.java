@@ -7,6 +7,7 @@ import com.xiongx9527.fw.plus.ai.base.model.ModelValidation;
 import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmResponse;
 import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
+import com.xiongx9527.fw.plus.ai.base.model.LlmTokenStream;
 import com.xiongx9527.fw.plus.ai.base.model.LlmUsage;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolExecutionRequest;
 import com.xiongx9527.fw.plus.ai.base.tool.ToolProvider;
@@ -39,16 +40,18 @@ public class ToolCallingLoopTest {
         }
 
         @Override
-        public void stream(LlmRequest request, LlmStreamHandler handler) {
-            LlmResponse r = next().build();
-            if (r.getContent() != null) {
-                handler.onToken(r.getContent(), null);
-            }
-            for (ToolExecutionRequest call : r.getToolCalls()) {
-                handler.onToolCall(call);
-            }
-            handler.onUsageDetail(1, 1, 2);
-            handler.onComplete();
+        public LlmTokenStream stream(LlmRequest request) {
+            return LlmTokenStream.create(handler -> {
+                LlmResponse r = next().build();
+                if (r.getContent() != null) {
+                    handler.onToken(r.getContent(), null);
+                }
+                for (ToolExecutionRequest call : r.getToolCalls()) {
+                    handler.onToolCall(call);
+                }
+                handler.onUsageDetail(1, 1, 2);
+                handler.onComplete();
+            });
         }
 
         private LlmResponse.Builder next() {

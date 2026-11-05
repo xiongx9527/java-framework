@@ -8,7 +8,7 @@ import java.util.concurrent.CountDownLatch;
  *
  * <p><b>流式与非流式是同一端口的两条通道</b>：</p>
  * <ul>
- *   <li>{@link #stream(LlmRequest, LlmStreamHandler)} —— 增量回调，唯一的抽象方法</li>
+ *   <li>{@link #stream(LlmRequest)} —— 返回 {@link LlmTokenStream}，由调用方注册回调并 {@code start()}</li>
  *   <li>{@link #complete(LlmRequest)} —— 一次性返回，默认由流式通道聚合而来</li>
  * </ul>
  *
@@ -28,9 +28,10 @@ public interface LlmPort {
     }
 
     /**
-     * 流式补全：按增量回调 {@code handler}，必然以 {@code onComplete} 或 {@code onError} 收尾。
+     * 流式补全：返回 {@link LlmTokenStream}，调用方注册回调后调用 {@code start()} 启动；
+     * 事件以 {@code onComplete} 或 {@code onError} 收尾。
      */
-    void stream(LlmRequest request, LlmStreamHandler handler);
+    LlmTokenStream stream(LlmRequest request);
 
     /**
      * 非流式补全：聚合流式通道的正文、思考过程与用量，一次性返回。
@@ -46,7 +47,7 @@ public interface LlmPort {
         final LlmUsage[] usage = {LlmUsage.ZERO};
         final String[] error = {null};
         final CountDownLatch completed = new CountDownLatch(1);
-        stream(request, new LlmStreamHandler() {
+        stream(request).handler(new LlmStreamHandler() {
             @Override
             public void onToken(String delta, String reasoningDelta) {
                 if (delta != null) {
@@ -72,7 +73,7 @@ public interface LlmPort {
             public void onUsageDetail(long inputTokens, long outputTokens, long totalTokens) {
                 usage[0] = new LlmUsage(inputTokens, outputTokens, totalTokens);
             }
-        });
+        }).start();
         awaitCompletion(completed);
         if (error[0] != null) {
             throw new LlmException(error[0]);

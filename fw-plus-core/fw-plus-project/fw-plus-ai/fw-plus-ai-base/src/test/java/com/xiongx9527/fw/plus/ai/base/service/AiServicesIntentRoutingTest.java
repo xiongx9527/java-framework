@@ -11,6 +11,7 @@ import com.xiongx9527.fw.plus.ai.base.model.ModelValidation;
 import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmResponse;
 import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
+import com.xiongx9527.fw.plus.ai.base.model.LlmTokenStream;
 import com.xiongx9527.fw.plus.ai.base.model.LlmUsage;
 import com.xiongx9527.fw.plus.ai.base.memory.ChatMemory;
 import com.xiongx9527.fw.plus.ai.base.memory.ChatMemoryProvider;
@@ -36,8 +37,9 @@ public class AiServicesIntentRoutingTest {
         @Override public LlmResponse complete(LlmRequest request) {
             this.last = request; return LlmResponse.builder().content("ok").usage(LlmUsage.ZERO).build();
         }
-        @Override public void stream(LlmRequest request, LlmStreamHandler h) {
-            this.last = request; h.onToken("ok", null); h.onComplete();
+        @Override public LlmTokenStream stream(LlmRequest request) {
+            this.last = request;
+            return LlmTokenStream.create(h -> { h.onToken("ok", null); h.onComplete(); });
         }
     }
 

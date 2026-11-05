@@ -7,6 +7,7 @@ import com.xiongx9527.fw.plus.ai.base.model.ModelValidation;
 import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmResponse;
 import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
+import com.xiongx9527.fw.plus.ai.base.model.LlmTokenStream;
 import com.xiongx9527.fw.plus.ai.base.model.LlmUsage;
 import com.xiongx9527.fw.plus.ai.base.retrieval.DefaultRetrievalAugmentor;
 import com.xiongx9527.fw.plus.ai.base.retrieval.Retrieved;
@@ -34,8 +35,9 @@ public class AiServicesRetrievalTest {
             this.last = request;
             return LlmResponse.builder().content("answer").usage(LlmUsage.ZERO).build();
         }
-        @Override public void stream(LlmRequest request, LlmStreamHandler handler) {
-            this.last = request; handler.onToken("answer", null); handler.onComplete();
+        @Override public LlmTokenStream stream(LlmRequest request) {
+            this.last = request;
+            return LlmTokenStream.create(handler -> { handler.onToken("answer", null); handler.onComplete(); });
         }
     }
 

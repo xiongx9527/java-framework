@@ -7,6 +7,7 @@ import com.xiongx9527.fw.plus.ai.base.model.ModelValidation;
 import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmResponse;
 import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
+import com.xiongx9527.fw.plus.ai.base.model.LlmTokenStream;
 import com.xiongx9527.fw.plus.ai.base.model.LlmUsage;
 import com.xiongx9527.fw.plus.ai.base.model.moderation.ModerationModel;
 import com.xiongx9527.fw.plus.ai.base.model.moderation.ModerationResult;
@@ -31,8 +32,10 @@ public class ModeratedLlmPortTest {
         @Override public LlmResponse complete(LlmRequest request) {
             return LlmResponse.builder().content("ok").usage(LlmUsage.ZERO).build();
         }
-        @Override public void stream(LlmRequest request, LlmStreamHandler handler) {
-            handler.onToken("ok", null); handler.onComplete();
+        @Override public LlmTokenStream stream(LlmRequest request) {
+            return LlmTokenStream.create(handler -> {
+                handler.onToken("ok", null); handler.onComplete();
+            });
         }
     }
 

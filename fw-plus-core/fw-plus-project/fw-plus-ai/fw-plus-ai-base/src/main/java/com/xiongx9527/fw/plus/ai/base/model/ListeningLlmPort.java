@@ -39,8 +39,13 @@ public final class ListeningLlmPort implements LlmPort {
     }
 
     @Override
-    public void stream(LlmRequest request, LlmStreamHandler handler) {
-        delegate.stream(request, handler);
+    public LlmTokenStream stream(LlmRequest request) {
+        String modelId = request.getModel();
+        long start = System.currentTimeMillis();
+        notifyRequest(modelId);
+        return delegate.stream(request)
+                .onComplete(() -> notifyResponse(modelId, System.currentTimeMillis() - start))
+                .onError(t -> notifyError(modelId, t == null ? null : t.getMessage()));
     }
 
     @Override

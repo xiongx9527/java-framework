@@ -22,13 +22,14 @@ import java.util.concurrent.CountDownLatch;
 public abstract class AbstractLlmPort implements LlmPort {
 
     @Override
-    public final void stream(LlmRequest request, LlmStreamHandler handler) {
+    public final LlmTokenStream stream(LlmRequest request) {
         if (request == null) {
             throw new LlmException("llm request is required");
         }
-        LlmStreamHandler target = handler == null ? NullStreamHandler.INSTANCE : handler;
-        notifyRequest(request);
-        doStream(request, new EventingStreamHandler(request, target));
+        return LlmTokenStream.create(handler -> {
+            notifyRequest(request);
+            doStream(request, new EventingStreamHandler(request, handler));
+        });
     }
 
     @Override

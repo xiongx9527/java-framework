@@ -7,6 +7,7 @@ public enum LlmVendor {
     ANTHROPIC,
     GEMINI,
     DASHSCOPE,
+    QWEN,
     GITHUB_MODELS,
     OLLAMA,
     QIANFAN,

@@ -6,6 +6,7 @@ import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
 import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmResponse;
 import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
+import com.xiongx9527.fw.plus.ai.base.model.LlmTokenStream;
 import com.xiongx9527.fw.plus.ai.base.model.LlmUsage;
 import java.util.List;
 import com.xiongx9527.fw.plus.ai.base.model.ModelInfo;
@@ -35,8 +36,8 @@ public final class CostAccountingLlmPort implements LlmPort {
     }
 
     @Override
-    public void stream(LlmRequest request, LlmStreamHandler handler) {
-        delegate.stream(request, new CostStreamHandler(handler, this, request.getModel()));
+    public LlmTokenStream stream(LlmRequest request) {
+        return delegate.stream(request).handler(new CostStreamHandler(this, request.getModel()));
     }
 
     @Override
@@ -58,43 +59,25 @@ public final class CostAccountingLlmPort implements LlmPort {
 
     private static final class CostStreamHandler implements LlmStreamHandler {
 
-        private final LlmStreamHandler delegate;
-
         private final CostAccountingLlmPort port;
 
         private final String modelId;
 
         private LlmUsage usage = LlmUsage.ZERO;
 
-        private boolean errored;
-
-        private CostStreamHandler(LlmStreamHandler delegate, CostAccountingLlmPort port, String modelId) {
-            this.delegate = delegate;
+        private CostStreamHandler(CostAccountingLlmPort port, String modelId) {
             this.port = port;
             this.modelId = modelId;
         }
 
         @Override
-        public void onToken(String content, String reasoningContent) {
-            delegate.onToken(content, reasoningContent);
+        public void onUsageDetail(long inputTokens, long outputTokens, long totalTokens) {
+            this.usage = new LlmUsage(inputTokens, outputTokens, totalTokens);
         }
 
         @Override
         public void onComplete() {
             port.record(modelId, usage);
-            delegate.onComplete();
-        }
-
-        @Override
-        public void onError(String message) {
-            errored = true;
-            delegate.onError(message);
-        }
-
-        @Override
-        public void onUsageDetail(long inputTokens, long outputTokens, long totalTokens) {
-            this.usage = new LlmUsage(inputTokens, outputTokens, totalTokens);
-            delegate.onUsageDetail(inputTokens, outputTokens, totalTokens);
         }
     }
 }

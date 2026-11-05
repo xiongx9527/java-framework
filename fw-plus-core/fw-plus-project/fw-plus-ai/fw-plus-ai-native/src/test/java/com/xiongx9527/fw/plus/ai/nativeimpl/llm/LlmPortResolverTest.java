@@ -85,6 +85,8 @@ class LlmPortResolverTest {
     void routesLangChain4jProvidersWithoutExplicitProtocol() {
         assertTrue(LlmPortResolver.create(LlmVendor.DASHSCOPE, configWithoutProtocol())
                 instanceof OpenAiChatCompletionsLlmPort);
+        assertTrue(LlmPortResolver.create(LlmVendor.QWEN, configWithoutProtocol())
+                instanceof OpenAiChatCompletionsLlmPort);
         assertTrue(LlmPortResolver.create(LlmVendor.GITHUB_MODELS, configWithoutProtocol())
                 instanceof OpenAiChatCompletionsLlmPort);
         assertTrue(LlmPortResolver.create(LlmVendor.OLLAMA, configWithoutProtocol())
@@ -106,6 +108,22 @@ class LlmPortResolverTest {
     }
 
     @Test
+    void vendorFromConfigResolvesPortWhenProtocolMissing() {
+        assertTrue(LlmPortResolver.create(configWithoutProtocol(LlmVendor.ANTHROPIC))
+                instanceof AnthropicLlmPort);
+        assertTrue(LlmPortResolver.create(configWithoutProtocol(LlmVendor.OPENAI))
+                instanceof OpenAiChatCompletionsLlmPort);
+        assertTrue(LlmPortResolver.create(configWithoutProtocol(LlmVendor.GOOGLE_AI_GEMINI))
+                instanceof GeminiLlmPort);
+    }
+
+    @Test
+    void rejectsWhenNeitherProtocolNorVendorProvided() {
+        assertThrows(IllegalArgumentException.class,
+                () -> LlmPortResolver.create(configWithoutProtocol(null)));
+    }
+
+    @Test
     void rejectsProtocolThatDoesNotBelongToVendorFactory() {
         assertThrows(IllegalArgumentException.class,
                 () -> LlmPortResolver.createAnthropic(config(LlmProtocol.GEMINI)));
@@ -122,6 +140,15 @@ class LlmPortResolverTest {
 
     private LlmModelConfig configWithoutProtocol() {
         return LlmModelConfig.builder()
+                .baseUrl("http://localhost:8080/v1")
+                .defaultModel("model")
+                .apiVersion("2025-01-01")
+                .build();
+    }
+
+    private LlmModelConfig configWithoutProtocol(LlmVendor vendor) {
+        return LlmModelConfig.builder()
+                .vendor(vendor)
                 .baseUrl("http://localhost:8080/v1")
                 .defaultModel("model")
                 .apiVersion("2025-01-01")

@@ -6,6 +6,7 @@ import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
 import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmResponse;
 import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
+import com.xiongx9527.fw.plus.ai.base.model.LlmTokenStream;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -73,7 +74,7 @@ public class DefaultJsonOutputPort implements JsonOutputPort {
     public void streamJson(LlmRequest request, LlmStreamHandler handler) {
         LlmRequest enforced = enforce(request);
         LlmStreamHandler wrapped = handler == null ? null : new StreamingJsonHandler(handler);
-        llmPort.stream(enforced, wrapped);
+        llmPort.stream(enforced).handler(wrapped).start();
     }
 
     @Override

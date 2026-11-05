@@ -6,24 +6,28 @@ import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
 public final class LlmPortResolver {
     private LlmPortResolver() { }
 
+    /**
+     * 创建端口。厂商与协议至少配置其一；二者皆有时以协议为准，协议缺失时回退到厂商路由。
+     */
     public static LlmPort create(LlmModelConfig config) {
-        requireConfig(config);
-        if (config.getProtocol() == null) {
-            throw new IllegalArgumentException("llm protocol is required when vendor is not provided");
-        }
-        return createByProtocol(config);
+        return resolve(config, null);
     }
 
     /**
-     * 创建端口。协议存在时忽略厂商；只有协议未配置时，才使用厂商作为默认路由。
+     * 创建端口。显式传入厂商（仅当配置内未携带厂商时生效）；协议存在时忽略厂商。
      */
     public static LlmPort create(LlmVendor vendor, LlmModelConfig config) {
+        return resolve(config, vendor);
+    }
+
+    private static LlmPort resolve(LlmModelConfig config, LlmVendor explicitVendor) {
         requireConfig(config);
         if (config.getProtocol() != null) {
             return createByProtocol(config);
         }
+        LlmVendor vendor = explicitVendor != null ? explicitVendor : config.getVendor();
         if (vendor == null) {
-            throw new IllegalArgumentException("llm vendor is required");
+            throw new IllegalArgumentException("llm protocol or vendor is required");
         }
         return createByVendor(vendor, config);
     }
@@ -48,6 +52,7 @@ public final class LlmPortResolver {
         switch (vendor) {
             case OPENAI:
             case DASHSCOPE:
+            case QWEN:
             case GITHUB_MODELS:
             case OLLAMA:
             case QIANFAN:

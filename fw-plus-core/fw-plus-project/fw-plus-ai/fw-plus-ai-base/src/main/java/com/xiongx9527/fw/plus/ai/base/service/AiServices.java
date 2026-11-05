@@ -764,7 +764,7 @@ public final class AiServices {
                 return bindings.bind(answer, genericReturnType != null ? genericReturnType : returnType);
             }
             if (streamHandler != null) {
-                llm.stream(request, streamHandler);
+                llm.stream(request).handler(streamHandler).start();
                 return null;
             }
             LlmResponse response = llm.complete(request);

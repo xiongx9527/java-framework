@@ -10,6 +10,7 @@ import com.xiongx9527.fw.plus.ai.base.model.ModelValidation;
 import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmResponse;
 import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
+import com.xiongx9527.fw.plus.ai.base.model.LlmTokenStream;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
@@ -34,9 +35,11 @@ public class ResilientLlmPortTest {
         }
 
         @Override
-        public void stream(LlmRequest request, LlmStreamHandler handler) {
-            handler.onToken(complete(request).getContent(), null);
-            handler.onComplete();
+        public LlmTokenStream stream(LlmRequest request) {
+            return LlmTokenStream.create(handler -> {
+                handler.onToken(complete(request).getContent(), null);
+                handler.onComplete();
+            });
         }
 
         @Override
@@ -62,8 +65,8 @@ public class ResilientLlmPortTest {
         }
 
         @Override
-        public void stream(LlmRequest request, LlmStreamHandler handler) {
-            complete(request);
+        public LlmTokenStream stream(LlmRequest request) {
+            return LlmTokenStream.create(handler -> complete(request));
         }
 
         @Override
@@ -155,8 +158,8 @@ public class ResilientLlmPortTest {
         LlmPort delegate = new LlmPort() {
 
             @Override
-            public void stream(LlmRequest request, LlmStreamHandler handler) {
-                complete(request);
+            public LlmTokenStream stream(LlmRequest request) {
+                return LlmTokenStream.create(handler -> complete(request));
             }
 
             @Override

@@ -106,7 +106,7 @@ public final class ToolCallingLoop {
                     .build();
             SinkStreamHandler handler = new SinkStreamHandler(sink);
             notifyStepStart();
-            llm.stream(llmRequest, handler);
+            llm.stream(llmRequest).handler(handler).start();
             total = sum(total, handler.usage);
 
             if (handler.errored) {

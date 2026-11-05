@@ -15,6 +15,8 @@
         <main.basedir>${basedir}/../..</main.basedir>
         <!--spring boot版本号-->
         <spring-boot-dependencies.version>2.7.18</spring-boot-dependencies.version>
+        <!--lombok版本号；Spring Boot 2.7 默认的 1.18.30 在 JDK 22+ 上注解处理器初始化失败（ExceptionInInitializerError），统一升级-->
+        <lombok.version>1.18.42</lombok.version>
         <!--spring cloud版本号-->
         <spring-cloud-dependencies.version>2021.0.9</spring-cloud-dependencies.version>
         <!--alibaba cloud版本号-->
@@ -217,6 +219,12 @@
     </build>
     <dependencyManagement>
         <dependencies>
+            <!-- 覆盖 spring-boot-dependencies 中管理的 lombok 版本（import 进来的 BOM 属性无法被本 POM 覆盖，必须显式声明） -->
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+            </dependency>
             <!--springboot 版本统一管理-->
             <dependency>
                 <groupId>org.springframework.boot</groupId>

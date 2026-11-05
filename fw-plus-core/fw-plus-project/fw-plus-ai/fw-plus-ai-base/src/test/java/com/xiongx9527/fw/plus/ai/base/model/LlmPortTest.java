@@ -49,7 +49,8 @@ class LlmPortTest {
         final List<String> tokens = new ArrayList<String>();
         final boolean[] completed = {false};
 
-        new FakePort(false).stream(LlmRequest.systemUser("s", "u"), new LlmStreamHandler() {
+        new FakePort(false).stream(LlmRequest.systemUser("s", "u"))
+                .handler(new LlmStreamHandler() {
             @Override
             public void onToken(String content, String reasoningContent) {
                 tokens.add(content);
@@ -63,7 +64,7 @@ class LlmPortTest {
             @Override
             public void onError(String message) {
             }
-        });
+        }).start();
 
         assertEquals(Arrays.asList("hello", " world"), tokens);
         assertEquals(true, completed[0]);
@@ -100,7 +101,7 @@ class LlmPortTest {
         };
 
         new FakePort(false).complete(LlmRequest.builder().addMessage(ChatMessage.user("u")).listener(listener).build());
-        new FakePort(false).stream(LlmRequest.builder().addMessage(ChatMessage.user("u")).listener(listener).build(), null);
+        new FakePort(false).stream(LlmRequest.builder().addMessage(ChatMessage.user("u")).listener(listener).build()).start();
 
         List<String> expected = Arrays.asList(
                 "request", "token:hello", "token: world", "usage:7", "complete",

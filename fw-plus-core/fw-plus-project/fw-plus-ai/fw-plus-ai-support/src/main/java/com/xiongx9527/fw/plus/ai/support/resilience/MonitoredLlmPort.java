@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
 import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmResponse;
 import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
+import com.xiongx9527.fw.plus.ai.base.model.LlmTokenStream;
 import com.xiongx9527.fw.plus.ai.base.model.ModelInfo;
 import com.xiongx9527.fw.plus.ai.base.model.ModelValidation;
 import com.xiongx9527.fw.plus.ai.base.resilience.ModelHealthPort;
@@ -67,7 +68,28 @@ public final class MonitoredLlmPort implements LlmPort {
     }
 
     @Override
-    public void stream(LlmRequest request, LlmStreamHandler handler) {
-        delegate.stream(request, handler);
+    public LlmTokenStream stream(LlmRequest request) {
+        String modelId = request.getModel();
+        long start = System.currentTimeMillis();
+        if (listener != null) {
+            listener.onRequest(modelId);
+        }
+        return delegate.stream(request)
+                .onComplete(() -> {
+                    if (health != null) {
+                        health.record(modelId, ModelHealthPort.Outcome.SUCCESS);
+                    }
+                    if (listener != null) {
+                        listener.onResponse(modelId, System.currentTimeMillis() - start);
+                    }
+                })
+                .onError(t -> {
+                    if (health != null) {
+                        health.record(modelId, ModelHealthPort.Outcome.FAILURE);
+                    }
+                    if (listener != null) {
+                        listener.onFailure(modelId, t == null ? null : t.getMessage());
+                    }
+                });
     }
 }

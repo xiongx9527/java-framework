@@ -11,6 +11,7 @@ import com.xiongx9527.fw.plus.ai.base.model.ModelInfo;
 import com.xiongx9527.fw.plus.ai.base.model.ModelValidation;
 import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmStreamHandler;
+import com.xiongx9527.fw.plus.ai.base.model.LlmTokenStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,13 +35,15 @@ class DefaultJsonOutputPortTest {
         }
 
         @Override
-        public void stream(LlmRequest request, LlmStreamHandler handler) {
+        public LlmTokenStream stream(LlmRequest request) {
             calls.add(request);
-            String c = contents.poll();
-            if (c != null) {
-                handler.onToken(c, null);
-            }
-            handler.onComplete();
+            return LlmTokenStream.create(handler -> {
+                String c = contents.poll();
+                if (c != null) {
+                    handler.onToken(c, null);
+                }
+                handler.onComplete();
+            });
         }
     }
 
