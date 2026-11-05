@@ -1,7 +1,9 @@
 package com.xiongx9527.fw.plus.jdbc.execution;
 
 import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
+import lombok.Data;
 import lombok.Getter;
+import lombok.Setter;
 
 /**
  * SQL 执行的显式入参（6.38.2 执行节点）。

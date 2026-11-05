@@ -68,7 +68,7 @@ public class SqlExecToolProvider implements ToolProvider {
         if (args == null) {
             args = Collections.emptyMap();
         }
-        SqlExecInput.Builder b = SqlExecInput.builder().sql(str(args.get("sql")));
+        SqlExecInput.SqlExecInputBuilder b = SqlExecInput.builder().sql(str(args.get("sql")));
         b.dialectHint(str(args.get("dialectHint")));
         Integer mr = intOrNull(args.get("maxRows"));
         if (mr != null) {
