@@ -41,6 +41,8 @@ public class NebulaGraphStore implements GraphStorePort {
     private static final String EDGE = "Rel";
     private static final String NEBULA_USER = "root";
     private static final String NEBULA_PWD = "nebula";
+    /** schema 异步生效的重试次数（每次间隔 1s）。 */
+    private static final int SCHEMA_RETRY_TIMES = 60;
 
     private static final TypeReference<LinkedHashMap<String, Object>> MAP_TYPE =
             new TypeReference<LinkedHashMap<String, Object>>() {
@@ -197,7 +199,7 @@ public class NebulaGraphStore implements GraphStorePort {
         inClause.append("]");
         String gql = "USE " + space + "; "
                 + "MATCH (n:" + TAG + ") WHERE id(n) IN " + inClause + " "
-                + "RETURN id(n) AS id, n.label AS label, n.content AS content, n.meta AS meta, n.vector AS vector;";
+                + "RETURN id(n) AS id, " + props() + ";";
         try {
             for (Map<String, JsonNode> row : execute(gql)) {
                 out.add(toNode(row));
@@ -214,8 +216,9 @@ public class NebulaGraphStore implements GraphStorePort {
         String needle = text == null ? "" : text;
         String gql = "USE " + space + "; "
                 + "MATCH (n:" + TAG + ") "
-                + "WHERE n.label CONTAINS " + q(needle) + " OR n.content CONTAINS " + q(needle) + " "
-                + "RETURN id(n) AS id, n.label AS label, n.content AS content, n.meta AS meta, n.vector AS vector "
+                + "WHERE " + prop("label") + " CONTAINS " + q(needle)
+                + " OR " + prop("content") + " CONTAINS " + q(needle) + " "
+                + "RETURN id(n) AS id, " + props() + " "
                 + "LIMIT " + (topK > 0 ? topK : 100) + ";";
         try {
             for (Map<String, JsonNode> row : execute(gql)) {
@@ -326,8 +329,9 @@ public class NebulaGraphStore implements GraphStorePort {
         String needle = query.getText() == null ? "" : query.getText();
         String gql = "USE " + space + "; "
                 + "MATCH (n:" + TAG + ") "
-                + "WHERE n.label CONTAINS " + q(needle) + " OR n.content CONTAINS " + q(needle) + " "
-                + "RETURN id(n) AS id, n.label AS label, n.content AS content, n.meta AS meta, n.vector AS vector "
+                + "WHERE " + prop("label") + " CONTAINS " + q(needle)
+                + " OR " + prop("content") + " CONTAINS " + q(needle) + " "
+                + "RETURN id(n) AS id, " + props() + " "
                 + "LIMIT " + (query.getTopK() > 0 ? query.getTopK() : 10) + ";";
         List<StoreRecord> out = new ArrayList<StoreRecord>();
         try {
@@ -415,9 +419,41 @@ public class NebulaGraphStore implements GraphStorePort {
         }
     }
 
+    /**
+     * 执行 nGQL，并对「schema 尚未在 graphd 侧生效」做重试。
+     *
+     * <p>Nebula 的 schema 是异步广播的：{@code DESCRIBE TAG} 已能查到 tag，紧随的 MATCH 仍可能报
+     * {@code Unknown tag}。这里捕获这类错误，重建 schema 并重试，避免调用方在刚建库时偶发失败。</p>
+     */
     private List<Map<String, JsonNode>> execute(String gql) throws IOException {
-        ensureSchema();
-        return toRows(execRaw(gql));
+        IOException last = null;
+        for (int i = 0; i < SCHEMA_RETRY_TIMES; i++) {
+            ensureSchema();
+            try {
+                return toRows(execRaw(gql));
+            } catch (IOException ex) {
+                if (!schemaNotReady(ex)) {
+                    throw ex;
+                }
+                schemaReady = false;
+                last = ex;
+                try {
+                    Thread.sleep(1000L);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+        throw last == null ? new IOException("nebula schema not ready: " + gql) : last;
+    }
+
+    private static boolean schemaNotReady(IOException ex) {
+        String message = ex.getMessage();
+        if (message == null) {
+            return false;
+        }
+        return message.contains("Unknown tag") || message.contains("No schema found");
     }
 
     private JsonNode execRaw(String gql) throws IOException {
@@ -591,6 +627,20 @@ public class NebulaGraphStore implements GraphStorePort {
         }
         sb.append(DQ);
         return sb.toString();
+    }
+
+    /**
+     * MATCH 里访问 tag 属性必须写成 {@code n.<tag>.<prop>}：Nebula 3.x 对未限定的 {@code n.prop}
+     * 不报错而是返回 NULL，容易让检索静默失效。
+     */
+    private static String prop(String name) {
+        return "n." + TAG + "." + name;
+    }
+
+    /** RETURN 子句里的全部节点属性（同样需要 tag 限定）。 */
+    private static String props() {
+        return prop("label") + " AS label, " + prop("content") + " AS content, "
+                + prop("meta") + " AS meta, " + prop("vector") + " AS vector";
     }
 
     private static String text(JsonNode node) {

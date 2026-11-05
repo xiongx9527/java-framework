@@ -77,7 +77,8 @@ class NebulaGraphStoreTest {
                     return FakeHttpServer.json(200, ngql(cols("e"),
                             Collections.singletonList(row("rel"))));
                 }
-                if (b.contains("RETURN id(n) AS id, n.label AS label")) {
+                // MATCH 中顶点属性必须带 tag 限定（n.Entity.prop），否则 Nebula 会返回 NULL
+                if (b.contains("RETURN id(n) AS id, n.Entity.label AS label")) {
                     return FakeHttpServer.json(200, ngql(
                             cols("id", "label", "content", "meta", "vector"),
                             Collections.singletonList(row("a", "Person", "hello",
