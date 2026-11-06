@@ -25,7 +25,10 @@ public class VectorStoreProperties {
     /** 总开关；缺省 {@code true}。 */
     private boolean enabled = true;
 
-    /** 默认实例。 */
+    /**
+     * 默认实例。通过 JavaBean 属性名 {@code default} 暴露（Java 关键字无法作字段名），
+     * 因此配置键为 {@code fw-plus.ai.vector-store.default.*}。
+     */
     private VectorStoreInstance defaultInstance = new VectorStoreInstance();
 
     /** 命名实例集合；key 为实例名。 */
@@ -39,11 +42,12 @@ public class VectorStoreProperties {
         this.enabled = enabled;
     }
 
-    public VectorStoreInstance getDefaultInstance() {
+    /** 默认实例的 JavaBean 属性访问器（绑定键 {@code default}）。 */
+    public VectorStoreInstance getDefault() {
         return defaultInstance;
     }
 
-    public void setDefaultInstance(VectorStoreInstance defaultInstance) {
+    public void setDefault(VectorStoreInstance defaultInstance) {
         this.defaultInstance = defaultInstance;
     }
 

@@ -84,10 +84,7 @@ public class InMemoryConversationMemoryPort extends AbstractConversationMemoryPo
         int topK = request.getTopK() != null ? request.getTopK() : scored.size();
         List<MemoryRecord> records = new ArrayList<MemoryRecord>();
         for (int i = 0; i < Math.min(topK, scored.size()); i++) {
-            records.add(toRecord(scored.get(i).sm, "NONE"));
-            records.get(records.size() - 1).hashCode(); // no-op to keep style; score preset below
-            // 覆盖分数
-            records.set(records.size() - 1, withScore(toRecord(scored.get(i).sm, "NONE"), scored.get(i).score));
+            records.add(withScore(toRecord(scored.get(i).sm, "NONE"), scored.get(i).score));
         }
         notifySearch(scopeOf(request.getUserId(), request.getAgentId(), request.getRunId()), records);
         return records;
@@ -213,12 +210,39 @@ public class InMemoryConversationMemoryPort extends AbstractConversationMemoryPo
 
     private static java.util.Set<String> tokenize(String text) {
         java.util.Set<String> set = new java.util.HashSet<String>();
-        for (String t : text.toLowerCase().split("\\W+")) {
-            if (t.length() > 1) {
-                set.add(t);
+        if (text == null) {
+            return set;
+        }
+        String lower = text.toLowerCase();
+        StringBuilder latin = new StringBuilder();
+        for (int i = 0; i < lower.length(); i++) {
+            char c = lower.charAt(i);
+            if (isCjk(c)) {
+                // CJK 单字即可作为 token（朴素重叠场景下足以支撑中文检索命中）
+                if (latin.length() > 0) {
+                    set.add(latin.toString());
+                    latin.setLength(0);
+                }
+                set.add(String.valueOf(c));
+            } else if (Character.isLetterOrDigit(c)) {
+                latin.append(c);
+            } else {
+                if (latin.length() > 0) {
+                    set.add(latin.toString());
+                    latin.setLength(0);
+                }
             }
         }
+        if (latin.length() > 0) {
+            set.add(latin.toString());
+        }
         return set;
+    }
+
+    private static boolean isCjk(char c) {
+        return (c >= 0x3400 && c <= 0x4DBF)   // CJK 扩展 A
+                || (c >= 0x4E00 && c <= 0x9FFF)   // CJK 统一表意文字
+                || (c >= 0xF900 && c <= 0xFAFF);  // CJK 兼容表意文字
     }
 
     private static final class StoredMemory {

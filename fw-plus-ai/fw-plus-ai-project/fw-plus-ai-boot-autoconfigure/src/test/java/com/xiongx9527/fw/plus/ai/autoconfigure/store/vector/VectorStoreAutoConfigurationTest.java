@@ -58,7 +58,7 @@ class VectorStoreAutoConfigurationTest {
                         "fw-plus.ai.vector-store.default.point-id-strategy=RAW")
                 .run(context -> {
                     assertThat(context).hasSingleBean(VectorStorePort.class);
-                    assertThat(context.getBean(VectorStoreProperties.class).getDefaultInstance().getPointIdStrategy())
+                    assertThat(context.getBean(VectorStoreProperties.class).getDefault().getPointIdStrategy())
                             .isEqualTo("RAW");
                 });
     }

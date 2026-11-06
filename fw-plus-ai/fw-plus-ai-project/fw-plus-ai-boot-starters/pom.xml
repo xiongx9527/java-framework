@@ -15,6 +15,10 @@
         <module>fw-plus-ai-magicapi-plugin</module>
         <module>fw-plus-ai-mcp-server-spring-boot-starter</module>
         <module>fw-plus-ai-vector-store-spring-boot-starter</module>
+        <module>fw-plus-ai-conversation-memory-spring-boot-starter</module>
+        <module>fw-plus-ai-llm-spring-boot-starter</module>
+        <module>fw-plus-ai-embedding-spring-boot-starter</module>
+        <module>fw-plus-ai-rerank-spring-boot-starter</module>
     </modules>
     <artifactId>fw-plus-ai-boot-starters</artifactId>
 

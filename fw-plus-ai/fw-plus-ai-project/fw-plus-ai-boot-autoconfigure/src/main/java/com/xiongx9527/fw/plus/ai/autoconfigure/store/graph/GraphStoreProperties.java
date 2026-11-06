@@ -23,7 +23,10 @@ public class GraphStoreProperties {
     /** 总开关；缺省 {@code true}。 */
     private boolean enabled = true;
 
-    /** 默认实例。 */
+    /**
+     * 默认实例。通过 JavaBean 属性名 {@code default} 暴露（Java 关键字无法作字段名），
+     * 因此配置键为 {@code fw-plus.ai.graph-store.default.*}。
+     */
     private GraphStoreInstance defaultInstance = new GraphStoreInstance();
 
     /** 命名实例集合；key 为实例名。 */
@@ -37,11 +40,12 @@ public class GraphStoreProperties {
         this.enabled = enabled;
     }
 
-    public GraphStoreInstance getDefaultInstance() {
+    /** 默认实例的 JavaBean 属性访问器（绑定键 {@code default}）。 */
+    public GraphStoreInstance getDefault() {
         return defaultInstance;
     }
 
-    public void setDefaultInstance(GraphStoreInstance defaultInstance) {
+    public void setDefault(GraphStoreInstance defaultInstance) {
         this.defaultInstance = defaultInstance;
     }
 

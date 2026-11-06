@@ -21,7 +21,7 @@ org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
   com.xiongx9527.fw.plus.boot.autoconfigure.debounce.DebounceAutoConfiguration,\
   com.xiongx9527.fw.plus.boot.autoconfigure.web.response.ResponseAutoConfiguration,\
   com.xiongx9527.fw.plus.boot.autoconfigure.web.response.ServletResponseAutoConfiguration,\
-  com.xiongx9527.fw.plus.boot.autoconfigure.web.response.ReactiveResponseAutoConfiguration\
+  com.xiongx9527.fw.plus.boot.autoconfigure.web.response.ReactiveResponseAutoConfiguration,\
   com.xiongx9527.fw.plus.boot.autoconfigure.lock.WorkerLockAutoConfiguration
 
 org.springframework.boot.autoconfigure.AutoConfigurationImportFilter=\

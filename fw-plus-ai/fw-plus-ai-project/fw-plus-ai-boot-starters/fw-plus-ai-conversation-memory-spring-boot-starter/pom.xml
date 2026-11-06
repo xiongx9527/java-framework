@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.xiongx9527.fw.plus.ai</groupId>
+        <artifactId>fw-plus-ai-boot-starters</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>fw-plus-ai-conversation-memory-spring-boot-starter</artifactId>
+    <name>fw-plus-ai-conversation-memory-spring-boot-starter</name>
+    <description>
+        对话记忆（mem0 风格语义记忆）Spring Boot Starter：自动装配框架自研的 ConversationMemoryPort
+        （mem0 自托管服务 / 向量库语义记忆 / 进程内存兜底），未配置时暴露占位端口，保证应用缺省可启动。
+    </description>
+
+    <properties>
+        <main.basedir>${basedir}/../../..</main.basedir>
+    </properties>
+
+    <dependencies>
+        <!-- 基础 Spring Boot Starter -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- 自动配置类（携带 ConversationMemoryAutoConfiguration 与 SPI 注册） -->
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-boot-autoconfigure</artifactId>
+        </dependency>
+
+        <!-- 记忆原子实现：在 autoconfigure 中是 optional 不传递，starter 必须显式携带 -->
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-native</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Actuator（健康检查可选，按 classpath 条件装配） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Configuration Processor (for IDE auto-completion) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+</project>

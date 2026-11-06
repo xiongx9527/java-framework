@@ -5,3 +5,7 @@ com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.support.LangChain4jSupportAu
 com.xiongx9527.fw.plus.ai.autoconfigure.store.vector.VectorStoreAutoConfiguration
 com.xiongx9527.fw.plus.ai.autoconfigure.store.graph.GraphStoreAutoConfiguration
 com.xiongx9527.fw.plus.ai.autoconfigure.store.StoreHealthConfiguration
+com.xiongx9527.fw.plus.ai.autoconfigure.memory.ConversationMemoryAutoConfiguration
+com.xiongx9527.fw.plus.ai.autoconfigure.model.LlmModelAutoConfiguration
+com.xiongx9527.fw.plus.ai.autoconfigure.model.EmbeddingModelAutoConfiguration
+com.xiongx9527.fw.plus.ai.autoconfigure.model.RerankModelAutoConfiguration

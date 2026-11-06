@@ -1,6 +1,8 @@
 package com.xiongx9527.fw.plus.ai.support.retrieval;
 
+import com.xiongx9527.fw.plus.ai.base.retrieval.DefaultRetrievalCapability;
 import com.xiongx9527.fw.plus.ai.base.retrieval.Reranker;
+import com.xiongx9527.fw.plus.ai.base.retrieval.RetrievalCapability;
 import com.xiongx9527.fw.plus.ai.base.retrieval.Retriever;
 import com.xiongx9527.fw.plus.ai.base.retrieval.VectorRetriever;
 import com.xiongx9527.fw.plus.ai.base.store.vector.Document;
@@ -18,6 +20,10 @@ import java.util.List;
  *   <li>高质量 + 全文：词法召回（全文检索或关键字检索均可），可接重排；</li>
  *   <li>高质量 + 混合：向量与词法各召回 topK 后按权重融合，可接重排。</li>
  * </ul>
+ *
+ * <p>web / 搜索引擎检索是「额外的独立一路」：传入后，它与上面按索引模式装配出来的基础链再做一次
+ * 加权融合，成为最终的检索来源组合。web 路由不参与重排器（重排只作用于基础链内部），
+ * 最终仍然由 {@link RetrievalPipeline} 统一做阈值过滤与 topN 截断。</p>
  *
  * <p>返回的检索链已包含阈值过滤与 topN 截断（{@link RetrievalPipeline}）。</p>
  */
@@ -74,5 +80,57 @@ public final class RetrievalStrategies {
         }
         Reranker<Document> effectiveReranker = index.supportsRerank() ? reranker : null;
         return RetrievalPipeline.of(base, effectiveReranker);
+    }
+
+    /** web 路由默认权重：基础链 0.7 / web 0.3。 */
+    public static final double DEFAULT_WEB_WEIGHT = 0.3;
+
+    /**
+     * 组装检索链，并把 web / 搜索引擎检索作为额外一路与基础链融合。
+     *
+     * <p>{@code web} 为 {@code null} 时等价于 {@link #build(IndexMode, RetrievalMode, Retriever, Retriever, Reranker, List)}
+     * （即没有 web 路）。否则先按索引模式 / 检索方式装配出基础链（含重排 / 阈值 / topN），
+     * 再与 web 检索器按 {@link #DEFAULT_WEB_WEIGHT} 做加权融合，最后由外层统一做阈值过滤与 topN 截断。</p>
+     *
+     * @param web web / 搜索引擎检索器，可 {@code null}
+     */
+    public static Retriever<Document> build(IndexMode indexMode, RetrievalMode retrievalMode,
+                                            Retriever<Document> vector, Retriever<Document> lexical,
+                                            Retriever<Document> web, Reranker<Document> reranker,
+                                            List<Double> weights) {
+        return build(indexMode, retrievalMode, vector, lexical, web, reranker, weights, DEFAULT_WEB_WEIGHT);
+    }
+
+    /**
+     * 组装检索链并指定 web 路由权重。
+     *
+     * @param web       web / 搜索引擎检索器，可 {@code null}
+     * @param webWeight web 路由权重，范围 [0, 1]，基础链权重为 {@code 1 - webWeight}
+     */
+    public static Retriever<Document> build(IndexMode indexMode, RetrievalMode retrievalMode,
+                                            Retriever<Document> vector, Retriever<Document> lexical,
+                                            Retriever<Document> web, Reranker<Document> reranker,
+                                            List<Double> weights, double webWeight) {
+        Retriever<Document> base = build(indexMode, retrievalMode, vector, lexical, reranker, weights);
+        if (web == null) {
+            return base;
+        }
+        if (webWeight < 0 || webWeight > 1) {
+            throw new IllegalArgumentException("webWeight must be in [0, 1]");
+        }
+        double baseWeight = 1.0 - webWeight;
+        return new HybridRetriever(Arrays.asList(base, web),
+                Arrays.asList(baseWeight, webWeight), FusionMode.WEIGHTED);
+    }
+
+    /**
+     * 组装检索链并包装为 {@link RetrievalCapability}（与 {@link #build} 同义，但返回能力接口而非底层契约）。
+     */
+    public static RetrievalCapability<Document> capability(IndexMode indexMode, RetrievalMode retrievalMode,
+                                                          Retriever<Document> vector, Retriever<Document> lexical,
+                                                          Retriever<Document> web, Reranker<Document> reranker,
+                                                          List<Double> weights, double webWeight) {
+        return new DefaultRetrievalCapability<Document>(
+                build(indexMode, retrievalMode, vector, lexical, web, reranker, weights, webWeight));
     }
 }

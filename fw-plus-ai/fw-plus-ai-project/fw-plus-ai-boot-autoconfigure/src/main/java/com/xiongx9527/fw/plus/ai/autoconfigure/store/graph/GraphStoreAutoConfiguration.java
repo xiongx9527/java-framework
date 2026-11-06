@@ -46,14 +46,14 @@ public class GraphStoreAutoConfiguration extends AbstractStoreAutoConfiguration<
     @Primary
     @ConditionalOnMissingBean(GraphStorePort.class)
     public GraphStorePort graphStorePort() {
-        return resolve(properties.getDefaultInstance());
+        return resolve(properties.getDefault());
     }
 
     @Bean
     @ConditionalOnMissingBean(name = "graphStorePorts")
     public Map<String, GraphStorePort> graphStorePorts() {
         Map<String, GraphStorePort> map = new LinkedHashMap<String, GraphStorePort>();
-        map.put("default", resolve(properties.getDefaultInstance()));
+        map.put("default", resolve(properties.getDefault()));
         for (Map.Entry<String, GraphStoreInstance> e : properties.getInstances().entrySet()) {
             map.put(e.getKey(), resolve(e.getValue()));
         }

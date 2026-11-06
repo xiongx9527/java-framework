@@ -48,14 +48,14 @@ public class VectorStoreAutoConfiguration extends AbstractStoreAutoConfiguration
     @Primary
     @ConditionalOnMissingBean(VectorStorePort.class)
     public VectorStorePort vectorStorePort() {
-        return resolve(properties.getDefaultInstance());
+        return resolve(properties.getDefault());
     }
 
     @Bean
     @ConditionalOnMissingBean(name = "vectorStorePorts")
     public Map<String, VectorStorePort> vectorStorePorts() {
         Map<String, VectorStorePort> map = new LinkedHashMap<String, VectorStorePort>();
-        map.put("default", resolve(properties.getDefaultInstance()));
+        map.put("default", resolve(properties.getDefault()));
         for (Map.Entry<String, VectorStoreInstance> e : properties.getInstances().entrySet()) {
             map.put(e.getKey(), resolve(e.getValue()));
         }

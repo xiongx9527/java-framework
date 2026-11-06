@@ -85,7 +85,7 @@ public class OpenAiCompatibleLlmPort extends AbstractLlmPort {
                     // 原文透传给 onUnmappedRawEvent（对齐 LangChain4j 1.x raw event passthrough；
                     // 装饰器可据此落盘 / 透传私有帧）。未被结构化事件消费的帧同样走此通道。
                     handler.onUnmappedRawEvent(data);
-                    try { dispatch(data, handler, acc, finishBox); } catch (IOException ex) { log.warn("llm sse parse skipped: {}", ex.getMessage()); }
+                    try { dispatch(data, handler, acc, finishBox, errorBox); } catch (IOException ex) { log.warn("llm sse parse skipped: {}", ex.getMessage()); }
                 }
                 @Override public void onFailure(EventSource es, Throwable t, Response r) {
                     errorBox[0] = t != null ? t.getMessage() : "llm stream failed";
@@ -234,8 +234,27 @@ public class OpenAiCompatibleLlmPort extends AbstractLlmPort {
             default: return "auto";
         }
     }
-    private void dispatch(String json, LlmStreamHandler handler, Map<Integer, ToolAcc> acc, String[] finishBox) throws IOException {
+    private void dispatch(String json, LlmStreamHandler handler, Map<Integer, ToolAcc> acc, String[] finishBox,
+            String[] errorBox) throws IOException {
         JsonNode root = mapper.readTree(json);
+        // 上游以 200 + error 帧返回错误（限流 429 / 余额不足 / 鉴权失败等常见如此），必须当作失败
+        // 上抛，否则会被当成「成功空响应」，跨端点故障转移无从触发。
+        if (root.has("error")) {
+            JsonNode err = root.get("error");
+            String msg = err.isTextual() ? err.asText() : err.path("message").asText(null);
+            if (msg == null || msg.isEmpty()) {
+                msg = err.path("code").asText(null);
+            }
+            if (msg == null || msg.isEmpty()) {
+                msg = err.path("type").asText(null);
+            }
+            if (msg == null || msg.isEmpty()) {
+                msg = "upstream llm error";
+            }
+            errorBox[0] = msg;
+            handler.onError(msg);
+            return;
+        }
         if (root.has("choices")) {
             JsonNode usage = root.get("usage");
             if (usage != null) {
