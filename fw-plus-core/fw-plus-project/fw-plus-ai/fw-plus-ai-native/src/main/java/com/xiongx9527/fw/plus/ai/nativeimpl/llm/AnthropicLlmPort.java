@@ -51,7 +51,7 @@ public class AnthropicLlmPort extends AbstractLlmPort {
     public AnthropicLlmPort(String baseUrl, String apiKey, String defaultModel, String anthropicVersion,
             Integer connectTimeoutMillis, Integer readTimeoutMillis) {
         if (baseUrl == null || baseUrl.trim().isEmpty()) throw new IllegalArgumentException("llm baseUrl is required");
-        this.baseUrl = baseUrl.replaceAll("/+$", "");
+        this.baseUrl = LlmUrlUtil.normalizeBaseUrl(baseUrl);
         this.apiKey = apiKey;
         this.defaultModel = defaultModel;
         this.anthropicVersion = anthropicVersion == null ? "2023-06-01" : anthropicVersion;

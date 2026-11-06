@@ -13,7 +13,10 @@
     <description>
         SQL 生成领域封装（DomainPack）。以 docs/ai-layer §6.38 为契约：定义后端无关的 NL2SQL
         能力 SqlGenerationCapability（纯函数 + 显式输入），消责方言提示、可见 schema 与约束，
-        产出可执行 SQL 及置信度；只依赖 fw-plus-ai-base 端口，由 fw-plus-ai-* 的 adapter 落地。
+        产出可执行 SQL 及置信度。依赖 fw-plus-ai-base 的端口与默认实现、fw-plus-ai-support 的
+        检索原语（RetrievalStrategies/RetrievalMode/IndexMode），以及 fw-plus-jdbc-engine 的
+        执行与方言契约；LlmPort、SchemaCandidateProvider、SqlExecutorPort 等具体后端由业务侧
+        或 fw-plus-ai-* 的 adapter 注入落地。
     </description>
     <properties>
         <main.basedir>${basedir}/../..</main.basedir>

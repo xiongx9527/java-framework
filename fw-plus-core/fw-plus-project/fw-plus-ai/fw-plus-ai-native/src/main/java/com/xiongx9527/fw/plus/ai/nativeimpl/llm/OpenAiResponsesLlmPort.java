@@ -66,7 +66,7 @@ public class OpenAiResponsesLlmPort extends AbstractLlmPort {
     @Override protected void doStream(final LlmRequest request, final LlmStreamHandler handler) {
         try {
             String json = mapper.writeValueAsString(buildBody(request));
-            Request.Builder rb = new Request.Builder().url(baseUrl + "/responses")
+            Request.Builder rb = new Request.Builder().url(LlmUrlUtil.normalizeBaseUrl(baseUrl) + "/v1/responses")
                     .post(RequestBody.create(JSON, json));
             if (apiKey != null && !apiKey.isEmpty()) rb.header("Authorization", "Bearer " + apiKey);
             final CountDownLatch done = new CountDownLatch(1);
@@ -199,7 +199,7 @@ public class OpenAiResponsesLlmPort extends AbstractLlmPort {
     }
 
     @Override public List<ModelInfo> listModels() {
-        Request.Builder rb = new Request.Builder().url(baseUrl + "/models").get();
+        Request.Builder rb = new Request.Builder().url(LlmUrlUtil.normalizeBaseUrl(baseUrl) + "/v1/models").get();
         if (apiKey != null && !apiKey.isEmpty()) rb.header("Authorization", "Bearer " + apiKey);
         List<ModelInfo> models = new ArrayList<ModelInfo>();
         try (Response response = client.newCall(rb.build()).execute()) {

@@ -151,11 +151,11 @@ public class OpenAiCompatibleLlmPort extends AbstractLlmPort {
     }
 
     protected String resolveUrl(LlmRequest request) {
-        return baseUrl + "/chat/completions";
+        return LlmUrlUtil.normalizeBaseUrl(baseUrl) + "/v1/chat/completions";
     }
 
     protected String modelsUrl() {
-        return baseUrl + "/models";
+        return LlmUrlUtil.normalizeBaseUrl(baseUrl) + "/v1/models";
     }
 
     protected void addAuthentication(Request.Builder request) {

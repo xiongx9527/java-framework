@@ -182,7 +182,17 @@ public class GeminiLlmPort extends AbstractLlmPort {
                 finishBox[0] = finishReason.asText();
             }
             for (JsonNode part : candidates.get(0).path("content").path("parts")) {
-                if (part.has("text")) handler.onToken(part.path("text").asText(), null);
+                boolean thought = part.path("thought").asBoolean(false);
+                if (part.has("text")) {
+                    String text = part.path("text").asText();
+                    if (thought) {
+                        // Gemini 思考流：thought 部分携带推理过程，作为 reasoningContent 透传；
+                        // 其 thoughtSignature 字段（如有）已在 onUnmappedRawEvent 原始帧中保留，供后续回传。
+                        handler.onToken(null, text);
+                    } else {
+                        handler.onToken(text, null);
+                    }
+                }
                 if (part.has("functionCall")) {
                     JsonNode call = part.path("functionCall");
                     String name = call.path("name").asText();

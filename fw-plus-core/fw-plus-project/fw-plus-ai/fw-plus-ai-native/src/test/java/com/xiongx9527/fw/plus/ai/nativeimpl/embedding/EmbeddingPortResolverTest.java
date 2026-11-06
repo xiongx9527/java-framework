@@ -1,9 +1,14 @@
 package com.xiongx9527.fw.plus.ai.nativeimpl.embedding;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
+
+import com.xiongx9527.fw.plus.ai.nativeimpl.embedding.AzureOpenAiEmbeddingPort;
+import com.xiongx9527.fw.plus.ai.nativeimpl.embedding.CohereEmbeddingPort;
+import com.xiongx9527.fw.plus.ai.nativeimpl.embedding.OpenAiCompatibleEmbeddingPort;
+import com.xiongx9527.fw.plus.ai.nativeimpl.embedding.TeiEmbeddingPort;
 
 class EmbeddingPortResolverTest {
 
@@ -56,17 +61,38 @@ class EmbeddingPortResolverTest {
     }
 
     @Test
-    void rejectsVendorRequiringExplicitProtocol() {
-        assertThrows(IllegalArgumentException.class,
-                () -> EmbeddingPortResolver.create(configWithoutProtocol(EmbeddingVendor.AZURE_OPENAI)));
-        assertThrows(IllegalArgumentException.class,
-                () -> EmbeddingPortResolver.create(configWithoutProtocol(EmbeddingVendor.HUGGING_FACE)));
-        assertThrows(IllegalArgumentException.class,
-                () -> EmbeddingPortResolver.create(configWithoutProtocol(EmbeddingVendor.COHERE)));
-        assertThrows(IllegalArgumentException.class,
-                () -> EmbeddingPortResolver.create(configWithoutProtocol(EmbeddingVendor.VOYAGE)));
-        assertThrows(IllegalArgumentException.class,
-                () -> EmbeddingPortResolver.create(configWithoutProtocol(EmbeddingVendor.ZHIPU_AI)));
+    void resolvesVendorToNativeOrCompatiblePort() {
+        // 这些厂商不再需要显式协议：各自落到原生端口或 OpenAI 兼容端口
+        assertTrue(EmbeddingPortResolver.create(configWithoutProtocol(EmbeddingVendor.AZURE_OPENAI))
+                instanceof AzureOpenAiEmbeddingPort);
+        assertTrue(EmbeddingPortResolver.create(configWithoutProtocol(EmbeddingVendor.HUGGING_FACE))
+                instanceof TeiEmbeddingPort);
+        assertTrue(EmbeddingPortResolver.create(configWithoutProtocol(EmbeddingVendor.COHERE))
+                instanceof CohereEmbeddingPort);
+        assertTrue(EmbeddingPortResolver.create(configWithoutProtocol(EmbeddingVendor.VOYAGE))
+                instanceof OpenAiCompatibleEmbeddingPort);
+        assertTrue(EmbeddingPortResolver.create(configWithoutProtocol(EmbeddingVendor.ZHIPU_AI))
+                instanceof OpenAiCompatibleEmbeddingPort);
+    }
+
+    @Test
+    void resolvesProtocolToNativePort() {
+        assertTrue(EmbeddingPortResolver.create(
+                config(EmbeddingProtocol.COHERE)) instanceof CohereEmbeddingPort);
+        assertTrue(EmbeddingPortResolver.create(
+                config(EmbeddingProtocol.AZURE_OPENAI)) instanceof AzureOpenAiEmbeddingPort);
+        assertTrue(EmbeddingPortResolver.create(
+                config(EmbeddingProtocol.TEI)) instanceof TeiEmbeddingPort);
+    }
+
+    @Test
+    void createsNativePortsThroughFactory() {
+        assertTrue(EmbeddingPortResolver.createCohere(config(EmbeddingProtocol.COHERE))
+                instanceof CohereEmbeddingPort);
+        assertTrue(EmbeddingPortResolver.createAzureOpenAi(config(EmbeddingProtocol.AZURE_OPENAI))
+                instanceof AzureOpenAiEmbeddingPort);
+        assertTrue(EmbeddingPortResolver.createTei(config(EmbeddingProtocol.TEI))
+                instanceof TeiEmbeddingPort);
     }
 
     @Test

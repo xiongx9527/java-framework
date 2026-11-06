@@ -24,6 +24,12 @@ public final class EmbeddingPortResolver {
         switch (config.getProtocol()) {
             case OPENAI_COMPATIBLE:
                 return createOpenAiCompatible(config);
+            case COHERE:
+                return createCohere(config);
+            case AZURE_OPENAI:
+                return createAzureOpenAi(config);
+            case TEI:
+                return createTei(config);
             default:
                 throw new IllegalArgumentException("unsupported embedding protocol: " + config.getProtocol());
         }
@@ -39,14 +45,15 @@ public final class EmbeddingPortResolver {
             case LOCAL_AI:
                 return newOpenAiCompatible(config);
             case AZURE_OPENAI:
-                throw new IllegalArgumentException("embedding vendor " + vendor
-                        + " requires an explicit protocol; no native Azure embedding port is available");
-            case HUGGING_FACE:
+                return newAzureOpenAi(config);
             case COHERE:
+                return newCohere(config);
+            case HUGGING_FACE:
+                return newTei(config);
             case VOYAGE:
             case ZHIPU_AI:
-                throw new IllegalArgumentException("embedding vendor " + vendor
-                        + " requires an explicit protocol; no native vendor-specific port is available");
+                // Voyage / 智谱 向量接口与 OpenAI 兼容（/v1/embeddings + Bearer 鉴权）
+                return newOpenAiCompatible(config);
             default:
                 throw new IllegalArgumentException("unsupported embedding vendor: " + vendor);
         }
@@ -57,8 +64,38 @@ public final class EmbeddingPortResolver {
         return newOpenAiCompatible(config);
     }
 
+    public static EmbeddingPort createCohere(EmbeddingModelConfig config) {
+        requireProtocol(config, EmbeddingProtocol.COHERE);
+        return newCohere(config);
+    }
+
+    public static EmbeddingPort createAzureOpenAi(EmbeddingModelConfig config) {
+        requireProtocol(config, EmbeddingProtocol.AZURE_OPENAI);
+        return newAzureOpenAi(config);
+    }
+
+    public static EmbeddingPort createTei(EmbeddingModelConfig config) {
+        requireProtocol(config, EmbeddingProtocol.TEI);
+        return newTei(config);
+    }
+
     private static EmbeddingPort newOpenAiCompatible(EmbeddingModelConfig config) {
         return new OpenAiCompatibleEmbeddingPort(config.getBaseUrl(), config.getApiKey(),
+                config.getDefaultModel(), config.getConnectTimeoutMillis(), config.getReadTimeoutMillis());
+    }
+
+    private static EmbeddingPort newCohere(EmbeddingModelConfig config) {
+        return new CohereEmbeddingPort(config.getBaseUrl(), config.getApiKey(),
+                config.getDefaultModel(), config.getConnectTimeoutMillis(), config.getReadTimeoutMillis(), config.getProperties());
+    }
+
+    private static EmbeddingPort newAzureOpenAi(EmbeddingModelConfig config) {
+        return new AzureOpenAiEmbeddingPort(config.getBaseUrl(), config.getApiKey(),
+                config.getDefaultModel(), config.getConnectTimeoutMillis(), config.getReadTimeoutMillis(), config.getProperties());
+    }
+
+    private static EmbeddingPort newTei(EmbeddingModelConfig config) {
+        return new TeiEmbeddingPort(config.getBaseUrl(), config.getApiKey(),
                 config.getDefaultModel(), config.getConnectTimeoutMillis(), config.getReadTimeoutMillis());
     }
 
