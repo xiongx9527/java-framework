@@ -1,8 +1,8 @@
 package com.xiongx9527.fw.plus.ai.nativeimpl.embedding;
 
-import com.xiongx9527.fw.plus.ai.nativeimpl.http.FakeHttpServer;
-import com.xiongx9527.fw.plus.ai.nativeimpl.http.FakeHttpServer.Request;
-import com.xiongx9527.fw.plus.ai.nativeimpl.http.FakeHttpServer.Response;
+import com.xiongx9527.fw.plus.ai.nativeimpl.support.FakeHttpServer;
+import com.xiongx9527.fw.plus.ai.nativeimpl.support.FakeHttpServer.Request;
+import com.xiongx9527.fw.plus.ai.nativeimpl.support.FakeHttpServer.Response;
 import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;

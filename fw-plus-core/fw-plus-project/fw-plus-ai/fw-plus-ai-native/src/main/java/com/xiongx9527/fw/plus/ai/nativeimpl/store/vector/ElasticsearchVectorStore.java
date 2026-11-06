@@ -9,7 +9,7 @@ import com.xiongx9527.fw.plus.ai.base.store.vector.ScoredDocument;
 import com.xiongx9527.fw.plus.ai.base.store.vector.VectorSearchRequest;
 import com.xiongx9527.fw.plus.ai.base.store.vector.VectorSearchResult;
 import com.xiongx9527.fw.plus.ai.base.store.vector.VectorStorePort;
-import com.xiongx9527.fw.plus.ai.nativeimpl.http.JdkHttp;
+import com.xiongx9527.fw.plus.ai.nativeimpl.http.OkHttp;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -132,7 +132,7 @@ public class ElasticsearchVectorStore implements VectorStorePort {
     @Override
     public Integer collectionDimension(String collection) {
         try {
-            JdkHttp.Response r = call("GET", baseUrl + "/" + collection, null, false);
+            OkHttp.Response r = call("GET", baseUrl + "/" + collection, null, false);
             if (r.getCode() != 200) {
                 return null;
             }
@@ -246,7 +246,7 @@ public class ElasticsearchVectorStore implements VectorStorePort {
         body.put("size", fetch);
         body.put("knn", knn);
         try {
-            JdkHttp.Response r = call("POST", baseUrl + "/" + request.getCollection() + "/_search", body, true);
+            OkHttp.Response r = call("POST", baseUrl + "/" + request.getCollection() + "/_search", body, true);
             JsonNode hitsNode = mapper.readTree(r.getBody()).path("hits").path("hits");
             if (!hitsNode.isArray()) {
                 return VectorSearchResult.empty();
@@ -321,16 +321,16 @@ public class ElasticsearchVectorStore implements VectorStorePort {
         return n.asText();
     }
 
-    private JdkHttp.Response call(String method, String url, Object body, boolean requireOk) throws IOException {
+    private OkHttp.Response call(String method, String url, Object body, boolean requireOk) throws IOException {
         Map<String, String> headers = new LinkedHashMap<String, String>();
         if (username != null && !username.isEmpty()) {
-            headers.put("Authorization", JdkHttp.basicAuth(username, password));
+            headers.put("Authorization", OkHttp.basicAuth(username, password));
         } else if (apiKey != null && !apiKey.isEmpty()) {
             headers.put("Authorization", apiKey.indexOf(' ') > 0 ? apiKey : "Bearer " + apiKey);
         }
         byte[] data = body == null ? null : mapper.writeValueAsBytes(body);
-        JdkHttp.Response response = JdkHttp.send(method, url, data, headers,
+        OkHttp.Response response = OkHttp.send(method, url, data, headers,
                 connectTimeoutMillis, readTimeoutMillis);
-        return requireOk ? JdkHttp.requireOk(response) : response;
+        return requireOk ? OkHttp.requireOk(response) : response;
     }
 }

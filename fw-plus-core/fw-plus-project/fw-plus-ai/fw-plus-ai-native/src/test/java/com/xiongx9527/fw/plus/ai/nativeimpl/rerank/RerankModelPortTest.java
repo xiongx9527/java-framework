@@ -1,6 +1,6 @@
 package com.xiongx9527.fw.plus.ai.nativeimpl.rerank;
 
-import com.xiongx9527.fw.plus.ai.nativeimpl.http.FakeHttpServer;
+import com.xiongx9527.fw.plus.ai.nativeimpl.support.FakeHttpServer;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;

@@ -10,7 +10,7 @@ import com.xiongx9527.fw.plus.ai.base.store.StoreType;
 import com.xiongx9527.fw.plus.ai.base.store.graph.GraphEdge;
 import com.xiongx9527.fw.plus.ai.base.store.graph.GraphNode;
 import com.xiongx9527.fw.plus.ai.base.store.graph.GraphStorePort;
-import com.xiongx9527.fw.plus.ai.nativeimpl.http.JdkHttp;
+import com.xiongx9527.fw.plus.ai.nativeimpl.http.OkHttp;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -345,7 +345,7 @@ public class Neo4jGraphStore implements GraphStorePort {
         statement.put("resultDataContents", Collections.singletonList("row"));
         Map<String, Object> body = new LinkedHashMap<String, Object>();
         body.put("statements", Collections.singletonList(statement));
-        JdkHttp.Response response = JdkHttp.requireOk(call("POST", txUrl(), body));
+        OkHttp.Response response = OkHttp.requireOk(call("POST", txUrl(), body));
         JsonNode root = mapper.readTree(response.getBody());
         JsonNode errors = root.path("errors");
         if (errors.isArray() && errors.size() > 0) {
@@ -365,13 +365,13 @@ public class Neo4jGraphStore implements GraphStorePort {
         return rows;
     }
 
-    private JdkHttp.Response call(String method, String url, Object body) throws IOException {
+    private OkHttp.Response call(String method, String url, Object body) throws IOException {
         Map<String, String> headers = new LinkedHashMap<String, String>();
         if (username != null && !username.isEmpty()) {
-            headers.put("Authorization", JdkHttp.basicAuth(username, password));
+            headers.put("Authorization", OkHttp.basicAuth(username, password));
         }
         byte[] data = body == null ? null : mapper.writeValueAsBytes(body);
-        return JdkHttp.send(method, url, data, headers, connectTimeoutMillis, readTimeoutMillis);
+        return OkHttp.send(method, url, data, headers, connectTimeoutMillis, readTimeoutMillis);
     }
 
     private String txUrl() {

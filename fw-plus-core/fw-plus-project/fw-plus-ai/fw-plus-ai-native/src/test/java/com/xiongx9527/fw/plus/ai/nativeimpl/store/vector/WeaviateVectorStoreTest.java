@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xiongx9527.fw.plus.ai.base.store.vector.VectorSearchRequest;
 import com.xiongx9527.fw.plus.ai.base.store.vector.VectorSearchResult;
-import com.xiongx9527.fw.plus.ai.nativeimpl.http.FakeHttpServer;
+import com.xiongx9527.fw.plus.ai.nativeimpl.support.FakeHttpServer;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;

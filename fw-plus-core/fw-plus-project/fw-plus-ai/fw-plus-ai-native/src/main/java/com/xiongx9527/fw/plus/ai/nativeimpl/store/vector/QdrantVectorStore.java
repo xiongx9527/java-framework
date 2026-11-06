@@ -9,7 +9,7 @@ import com.xiongx9527.fw.plus.ai.base.store.vector.ScoredDocument;
 import com.xiongx9527.fw.plus.ai.base.store.vector.VectorSearchRequest;
 import com.xiongx9527.fw.plus.ai.base.store.vector.VectorSearchResult;
 import com.xiongx9527.fw.plus.ai.base.store.vector.VectorStorePort;
-import com.xiongx9527.fw.plus.ai.nativeimpl.http.JdkHttp;
+import com.xiongx9527.fw.plus.ai.nativeimpl.http.OkHttp;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -115,7 +115,7 @@ public class QdrantVectorStore implements VectorStorePort {
     @Override
     public Integer collectionDimension(String collection) {
         try {
-            JdkHttp.Response r = call("GET", baseUrl + "/collections/" + collection, null, false);
+            OkHttp.Response r = call("GET", baseUrl + "/collections/" + collection, null, false);
             if (r.getCode() != 200) {
                 return null;
             }
@@ -242,7 +242,7 @@ public class QdrantVectorStore implements VectorStorePort {
             body.put("filter", qdrantFilter);
         }
         try {
-            JdkHttp.Response r = call("POST",
+            OkHttp.Response r = call("POST",
                     baseUrl + "/collections/" + request.getCollection() + "/points/search", body, true);
             JsonNode arr = mapper.readTree(r.getBody()).get("result");
             if (arr == null || !arr.isArray()) {
@@ -342,14 +342,14 @@ public class QdrantVectorStore implements VectorStorePort {
         }
     }
 
-    private JdkHttp.Response call(String method, String url, Object body, boolean requireOk) throws IOException {
+    private OkHttp.Response call(String method, String url, Object body, boolean requireOk) throws IOException {
         Map<String, String> headers = new LinkedHashMap<String, String>();
         if (apiKey != null && !apiKey.isEmpty()) {
             headers.put("api-key", apiKey);
         }
         byte[] data = body == null ? null : mapper.writeValueAsBytes(body);
-        JdkHttp.Response response = JdkHttp.send(method, url, data, headers,
+        OkHttp.Response response = OkHttp.send(method, url, data, headers,
                 connectTimeoutMillis, readTimeoutMillis);
-        return requireOk ? JdkHttp.requireOk(response) : response;
+        return requireOk ? OkHttp.requireOk(response) : response;
     }
 }

@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.xiongx9527.fw.plus.ai.base.store.vector.VectorSearchRequest;
 import com.xiongx9527.fw.plus.ai.base.store.vector.VectorSearchResult;
 import com.xiongx9527.fw.plus.ai.base.store.vector.VectorStorePort;
-import com.xiongx9527.fw.plus.ai.nativeimpl.http.FakeHttpServer;
+import com.xiongx9527.fw.plus.ai.nativeimpl.support.FakeHttpServer;
 import java.util.Arrays;
 import java.util.Collections;
 import org.junit.jupiter.api.Test;

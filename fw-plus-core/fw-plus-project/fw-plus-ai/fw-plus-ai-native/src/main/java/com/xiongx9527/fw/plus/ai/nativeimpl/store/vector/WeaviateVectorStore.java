@@ -9,7 +9,7 @@ import com.xiongx9527.fw.plus.ai.base.store.vector.ScoredDocument;
 import com.xiongx9527.fw.plus.ai.base.store.vector.VectorSearchRequest;
 import com.xiongx9527.fw.plus.ai.base.store.vector.VectorSearchResult;
 import com.xiongx9527.fw.plus.ai.base.store.vector.VectorStorePort;
-import com.xiongx9527.fw.plus.ai.nativeimpl.http.JdkHttp;
+import com.xiongx9527.fw.plus.ai.nativeimpl.http.OkHttp;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -253,7 +253,7 @@ public class WeaviateVectorStore implements VectorStorePort {
         Map<String, Object> body = new LinkedHashMap<String, Object>();
         body.put("query", q.toString());
         try {
-            JdkHttp.Response r = call("POST", baseUrl + "/v1/graphql", body, true);
+            OkHttp.Response r = call("POST", baseUrl + "/v1/graphql", body, true);
             JsonNode arr = mapper.readTree(r.getBody()).path("data").path("Get").path(cls);
             return collectHits(arr, cls, request, topK);
         } catch (IOException ex) {
@@ -265,7 +265,7 @@ public class WeaviateVectorStore implements VectorStorePort {
                 Map<String, Object> fallback = new LinkedHashMap<String, Object>();
                 fallback.put("query", noWhere);
                 try {
-                    JdkHttp.Response r2 = call("POST", baseUrl + "/v1/graphql", fallback, true);
+                    OkHttp.Response r2 = call("POST", baseUrl + "/v1/graphql", fallback, true);
                     JsonNode arr2 = mapper.readTree(r2.getBody()).path("data").path("Get").path(cls);
                     return collectHits(arr2, cls, request, topK);
                 } catch (IOException ex2) {
@@ -499,16 +499,16 @@ public class WeaviateVectorStore implements VectorStorePort {
         return n.asText();
     }
 
-    private JdkHttp.Response call(String method, String url, Object body, boolean requireOk) throws IOException {
+    private OkHttp.Response call(String method, String url, Object body, boolean requireOk) throws IOException {
         Map<String, String> headers = new LinkedHashMap<String, String>();
         if (username != null && !username.isEmpty()) {
-            headers.put("Authorization", JdkHttp.basicAuth(username, password));
+            headers.put("Authorization", OkHttp.basicAuth(username, password));
         } else if (apiKey != null && !apiKey.isEmpty()) {
             headers.put("Authorization", "Bearer " + apiKey);
         }
         byte[] data = body == null ? null : mapper.writeValueAsBytes(body);
-        JdkHttp.Response response = JdkHttp.send(method, url, data, headers,
+        OkHttp.Response response = OkHttp.send(method, url, data, headers,
                 connectTimeoutMillis, readTimeoutMillis);
-        return requireOk ? JdkHttp.requireOk(response) : response;
+        return requireOk ? OkHttp.requireOk(response) : response;
     }
 }

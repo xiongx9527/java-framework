@@ -4,7 +4,7 @@ import com.xiongx9527.fw.plus.ai.base.model.ModelInfo;
 import com.xiongx9527.fw.plus.ai.base.model.ModelType;
 import com.xiongx9527.fw.plus.ai.base.model.ModelValidation;
 import com.xiongx9527.fw.plus.ai.nativeimpl.embedding.OpenAiCompatibleEmbeddingPort;
-import com.xiongx9527.fw.plus.ai.nativeimpl.http.FakeHttpServer;
+import com.xiongx9527.fw.plus.ai.nativeimpl.support.FakeHttpServer;
 import com.xiongx9527.fw.plus.ai.nativeimpl.llm.AnthropicLlmPort;
 import com.xiongx9527.fw.plus.ai.nativeimpl.llm.OpenAiCompatibleLlmPort;
 import com.xiongx9527.fw.plus.ai.nativeimpl.rerank.RerankModelPort;

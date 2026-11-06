@@ -5,7 +5,7 @@ import com.xiongx9527.fw.plus.ai.base.store.StoreQuery;
 import com.xiongx9527.fw.plus.ai.base.store.StoreRecord;
 import com.xiongx9527.fw.plus.ai.base.store.graph.GraphEdge;
 import com.xiongx9527.fw.plus.ai.base.store.graph.GraphNode;
-import com.xiongx9527.fw.plus.ai.nativeimpl.http.FakeHttpServer;
+import com.xiongx9527.fw.plus.ai.nativeimpl.support.FakeHttpServer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;

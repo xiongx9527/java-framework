@@ -9,7 +9,7 @@ import com.xiongx9527.fw.plus.ai.base.store.vector.ScoredDocument;
 import com.xiongx9527.fw.plus.ai.base.store.vector.VectorSearchRequest;
 import com.xiongx9527.fw.plus.ai.base.store.vector.VectorSearchResult;
 import com.xiongx9527.fw.plus.ai.base.store.vector.VectorStorePort;
-import com.xiongx9527.fw.plus.ai.nativeimpl.http.JdkHttp;
+import com.xiongx9527.fw.plus.ai.nativeimpl.http.OkHttp;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -124,7 +124,7 @@ public class MilvusVectorStore implements VectorStorePort {
         Map<String, Object> body = new LinkedHashMap<String, Object>();
         body.put("collectionName", collection);
         try {
-            JdkHttp.Response r = call("POST", baseUrl + API + "/collections/describe", body, false);
+            OkHttp.Response r = call("POST", baseUrl + API + "/collections/describe", body, false);
             if (r.getCode() != 200) {
                 return null;
             }
@@ -341,7 +341,7 @@ public class MilvusVectorStore implements VectorStorePort {
     }
 
     /** 解析 v2 响应：非 0 code 视为失败，成功时返回 data 节点（无 data 时返回根节点）。 */
-    private JsonNode dataOf(JdkHttp.Response response) throws IOException {
+    private JsonNode dataOf(OkHttp.Response response) throws IOException {
         JsonNode root = mapper.readTree(response.getBody());
         if (root.has("code") && root.get("code").asInt() != 0) {
             throw new IOException("milvus code " + root.get("code").asInt()
@@ -376,15 +376,15 @@ public class MilvusVectorStore implements VectorStorePort {
         return n.asText();
     }
 
-    private JdkHttp.Response call(String method, String url, Object body, boolean requireOk) throws IOException {
+    private OkHttp.Response call(String method, String url, Object body, boolean requireOk) throws IOException {
         Map<String, String> headers = new LinkedHashMap<String, String>();
         headers.put("Request-Timeout", "10");
         if (token != null && !token.isEmpty()) {
             headers.put("Authorization", "Bearer " + token);
         }
         byte[] data = body == null ? null : mapper.writeValueAsBytes(body);
-        JdkHttp.Response response = JdkHttp.send(method, url, data, headers,
+        OkHttp.Response response = OkHttp.send(method, url, data, headers,
                 connectTimeoutMillis, readTimeoutMillis);
-        return requireOk ? JdkHttp.requireOk(response) : response;
+        return requireOk ? OkHttp.requireOk(response) : response;
     }
 }

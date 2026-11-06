@@ -1,13 +1,11 @@
 package com.xiongx9527.fw.plus.ai.nativeimpl.embedding;
 
-import com.sun.net.httpserver.HttpServer;
 import com.xiongx9527.fw.plus.ai.base.model.ModelInfo;
 import com.xiongx9527.fw.plus.ai.base.model.ModelType;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.InetSocketAddress;
-import java.nio.charset.StandardCharsets;
+import com.xiongx9527.fw.plus.ai.nativeimpl.support.FakeHttpServer;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,29 +14,39 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * 用进程内 HTTP 桩（okhttp3 MockWebServer 实现）验证 OpenAiCompatibleEmbeddingPort 的模型枚举：
+ * 优先 /models，404 时回退 /info。
+ */
 class OpenAiCompatibleEmbeddingPortCatalogTest {
 
-    private HttpServer server;
+    private FakeHttpServer server;
     private String baseUrl;
     private final AtomicInteger infoRequests = new AtomicInteger();
+    private final Map<String, FakeHttpServer.Response> responses = new LinkedHashMap<String, FakeHttpServer.Response>();
 
     @BeforeEach
-    void startServer() throws IOException {
-        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-        server.start();
-        baseUrl = "http://127.0.0.1:" + server.getAddress().getPort();
+    void startServer() throws Exception {
+        server = new FakeHttpServer(request -> {
+            if ("/info".equals(request.path)) {
+                infoRequests.incrementAndGet();
+            }
+            FakeHttpServer.Response r = responses.get(request.path);
+            return r != null ? r : FakeHttpServer.json(404, "{}");
+        });
+        baseUrl = server.url();
     }
 
     @AfterEach
-    void stopServer() {
-        server.stop(0);
+    void stopServer() throws Exception {
+        server.close();
     }
 
     @Test
     void usesModelsBeforeInfo() {
-        respond("/models", 200,
-                "{\"data\":[{\"id\":\"bge-m3\",\"owned_by\":\"local\"}]}");
-        respond("/info", 200, infoResponse());
+        responses.put("/models", FakeHttpServer.json(200, FakeHttpServer.body(
+                "{'data':[{'id':'bge-m3','owned_by':'local'}]}")));
+        responses.put("/info", FakeHttpServer.json(200, infoResponse()));
 
         List<ModelInfo> models = port(baseUrl).listModels();
 
@@ -50,8 +58,8 @@ class OpenAiCompatibleEmbeddingPortCatalogTest {
 
     @Test
     void fallsBackToRootInfoWhenModelsReturnsNotFound() {
-        respond("/v1/models", 404, "not found");
-        respond("/info", 200, infoResponse());
+        responses.put("/v1/models", FakeHttpServer.json(404, "not found"));
+        responses.put("/info", FakeHttpServer.json(200, infoResponse()));
 
         List<ModelInfo> models = port(baseUrl + "/v1").listModels();
 
@@ -63,8 +71,8 @@ class OpenAiCompatibleEmbeddingPortCatalogTest {
 
     @Test
     void doesNotFallBackToInfoForNonNotFoundErrors() {
-        respond("/models", 500, "server error");
-        respond("/info", 200, infoResponse());
+        responses.put("/models", FakeHttpServer.json(500, "server error"));
+        responses.put("/info", FakeHttpServer.json(200, infoResponse()));
 
         List<ModelInfo> models = port(baseUrl).listModels();
 
@@ -74,19 +82,6 @@ class OpenAiCompatibleEmbeddingPortCatalogTest {
 
     private OpenAiCompatibleEmbeddingPort port(String url) {
         return new OpenAiCompatibleEmbeddingPort(url, null, "/models/bge-m3");
-    }
-
-    private void respond(String path, final int status, final String body) {
-        server.createContext(path, exchange -> {
-            if ("/info".equals(path)) {
-                infoRequests.incrementAndGet();
-            }
-            byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
-            exchange.sendResponseHeaders(status, bytes.length);
-            try (OutputStream output = exchange.getResponseBody()) {
-                output.write(bytes);
-            }
-        });
     }
 
     private String infoResponse() {

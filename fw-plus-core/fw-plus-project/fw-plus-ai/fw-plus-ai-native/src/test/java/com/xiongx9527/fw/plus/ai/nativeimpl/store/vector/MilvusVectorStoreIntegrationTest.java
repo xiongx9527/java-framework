@@ -2,7 +2,7 @@ package com.xiongx9527.fw.plus.ai.nativeimpl.store.vector;
 
 import com.xiongx9527.fw.plus.ai.base.store.vector.VectorSearchRequest;
 import com.xiongx9527.fw.plus.ai.base.store.vector.VectorSearchResult;
-import com.xiongx9527.fw.plus.ai.nativeimpl.http.JdkHttp;
+import com.xiongx9527.fw.plus.ai.nativeimpl.http.OkHttp;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -30,7 +30,7 @@ class MilvusVectorStoreIntegrationTest {
                 headers.put("Authorization", "Bearer " + token);
             }
             byte[] data = "{}".getBytes("UTF-8");
-            JdkHttp.Response response = JdkHttp.send("POST",
+            OkHttp.Response response = OkHttp.send("POST",
                     url + "/v2/vectordb/collections/list", data, headers, 3000, 3000);
             return response.getCode() == 200;
         } catch (Exception ex) {

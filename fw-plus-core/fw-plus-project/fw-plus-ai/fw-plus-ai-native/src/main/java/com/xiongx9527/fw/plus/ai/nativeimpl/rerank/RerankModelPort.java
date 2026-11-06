@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xiongx9527.fw.plus.ai.base.model.ModelInfo;
 import com.xiongx9527.fw.plus.ai.base.model.ModelValidation;
 import com.xiongx9527.fw.plus.ai.base.model.RerankPort;
-import com.xiongx9527.fw.plus.ai.nativeimpl.http.JdkHttp;
+import com.xiongx9527.fw.plus.ai.nativeimpl.http.OkHttp;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -147,8 +147,8 @@ public class RerankModelPort implements RerankPort {
             if (apiKey != null && !apiKey.isEmpty()) {
                 headers.put("Authorization", "Bearer " + apiKey);
             }
-            JdkHttp.Response response = JdkHttp.requireOk(
-                    JdkHttp.send("POST", endpoint, data, headers, connectTimeoutMillis, readTimeoutMillis));
+            OkHttp.Response response = OkHttp.requireOk(
+                    OkHttp.send("POST", endpoint, data, headers, connectTimeoutMillis, readTimeoutMillis));
             JsonNode root = mapper.readTree(response.getBody());
             JsonNode results = style == Style.TEI ? root : root.path("results");
             return results != null && results.isArray() ? results : null;

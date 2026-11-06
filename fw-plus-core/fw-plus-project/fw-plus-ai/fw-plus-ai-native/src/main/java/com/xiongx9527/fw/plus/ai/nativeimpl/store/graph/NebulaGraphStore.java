@@ -10,7 +10,7 @@ import com.xiongx9527.fw.plus.ai.base.store.StoreType;
 import com.xiongx9527.fw.plus.ai.base.store.graph.GraphEdge;
 import com.xiongx9527.fw.plus.ai.base.store.graph.GraphNode;
 import com.xiongx9527.fw.plus.ai.base.store.graph.GraphStorePort;
-import com.xiongx9527.fw.plus.ai.nativeimpl.http.JdkHttp;
+import com.xiongx9527.fw.plus.ai.nativeimpl.http.OkHttp;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -462,7 +462,7 @@ public class NebulaGraphStore implements GraphStorePort {
         body.put("gql", gql);
         Map<String, String> headers = new LinkedHashMap<String, String>();
         headers.put("Cookie", "common-nsid=" + nsid);
-        JdkHttp.Response response = JdkHttp.send("POST", baseUrl + "/api/db/exec",
+        OkHttp.Response response = OkHttp.send("POST", baseUrl + "/api/db/exec",
                 mapper.writeValueAsString(body).getBytes(StandardCharsets.UTF_8), headers,
                 connectTimeoutMillis, readTimeoutMillis);
         JsonNode root = mapper.readTree(response.getBody());
@@ -482,7 +482,7 @@ public class NebulaGraphStore implements GraphStorePort {
         body.put("password", password == null ? NEBULA_PWD : password);
         body.put("address", graphdAddress);
         body.put("port", graphdPort);
-        JdkHttp.Response response = JdkHttp.send("POST", baseUrl + "/api/db/connect",
+        OkHttp.Response response = OkHttp.send("POST", baseUrl + "/api/db/connect",
                 mapper.writeValueAsString(body).getBytes(StandardCharsets.UTF_8), null,
                 connectTimeoutMillis, readTimeoutMillis);
         // gateway 会返回多个 Set-Cookie 头（common-nsid / Path / SameSite / Secure），必须逐条扫描
