@@ -16,7 +16,7 @@ public class ExecutionSettings {
     @Builder.Default
     private final int queryTimeoutSeconds = 30;
 
-    /** 是否只读执行；为 true 时执行器应拒绝写入型语句（见 DefaultSqlExecutionCapability）。 */
+    /** 是否只读执行；为 true 时执行器应拒绝写入型语句（见 DefaultSqlExecutionCapability / JdbcSqlExecutor）。 */
     @Builder.Default
     private final boolean readOnly = true;
 
@@ -32,5 +32,12 @@ public class ExecutionSettings {
      * 通常由调用方从 {@code SchemaContext.primaryKeyColumn(table)} 注入（见 §6.38.2）。 */
     @Builder.Default
     private final String primaryKeyColumn = null;
+
+    /** 方言提示（如 mysql / postgres），驱动方言感知能力（分页重写、引号）。为 null 时按 UNKNOWN。 */
+    private final String dialectHint;
+
+    /** 是否启用方言分页重写（{@link PaginationRewriter}）。默认关闭，避免对原生 LIMIT 方言产生影响。 */
+    @Builder.Default
+    private final boolean rewritePagination = false;
 }
 

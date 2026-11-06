@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.askdata.capability;
 
 import com.xiongx9527.fw.plus.ai.askdata.schema.SchemaContext;
+import com.xiongx9527.fw.plus.ai.base.model.ChatMessage;
 import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import java.util.Collections;
 import java.util.List;
@@ -49,6 +50,10 @@ public class SqlGenInput {
     /** 透传额外参数。 */
     @lombok.Builder.Default
     private final Map<String, Object> extraParams = Collections.emptyMap();
+
+    /** 多轮对话历史（可选），由 ChatMemory 或调用方注入，用于保持上下文（§6.38 多轮记忆）。 */
+    @lombok.Builder.Default
+    private final List<ChatMessage> history = Collections.emptyList();
 
     /** 生成前校验：问题与 schema 均不可为空。 */
     public void validate() {

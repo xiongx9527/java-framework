@@ -46,6 +46,10 @@ public class SqlExecInput {
     @lombok.Builder.Default
     private final String primaryKeyColumn = null;
 
+    /** 是否启用方言分页重写；默认关闭。 */
+    @lombok.Builder.Default
+    private final boolean rewritePagination = false;
+
     /** 执行前校验：SQL 不可为空。 */
     public void validate() {
         if (sql == null || sql.trim().isEmpty()) {
@@ -62,6 +66,8 @@ public class SqlExecInput {
                 .selfCheck(selfCheck)
                 .duplicateKeyColumn(duplicateKeyColumn)
                 .primaryKeyColumn(primaryKeyColumn)
+                .dialectHint(dialectHint)
+                .rewritePagination(rewritePagination)
                 .build();
     }
 }

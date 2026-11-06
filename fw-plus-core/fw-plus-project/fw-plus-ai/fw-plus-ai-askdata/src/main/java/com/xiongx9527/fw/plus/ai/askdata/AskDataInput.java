@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.askdata;
 
+import com.xiongx9527.fw.plus.ai.base.model.ChatMessage;
 import com.xiongx9527.fw.plus.ai.support.retrieval.IndexMode;
 import java.util.Collections;
 import java.util.List;
@@ -61,4 +62,8 @@ public class AskDataInput {
     /** 召回索引策略：质量型（HIGH_QUALITY）或经济型（ECONOMICAL），默认质量型。 */
     @lombok.Builder.Default
     private final IndexMode recallIndexMode = IndexMode.HIGH_QUALITY;
+
+    /** 多轮对话历史（可选），由 ChatMemory 或调用方传入，用于保持上下文（§6.38 多轮记忆）。 */
+    @lombok.Builder.Default
+    private final List<ChatMessage> history = Collections.emptyList();
 }

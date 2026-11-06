@@ -4,6 +4,7 @@ import com.xiongx9527.fw.plus.ai.base.model.ChatMessage;
 import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
 import com.xiongx9527.fw.plus.ai.base.model.LlmRequest;
 import com.xiongx9527.fw.plus.ai.base.model.LlmResponse;
+import com.xiongx9527.fw.plus.ai.base.model.LlmTokenStream;
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.ConfidenceEstimator;
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.SqlExtractor;
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.SqlRepairPolicy;
@@ -141,6 +142,39 @@ public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
         } catch (Exception e) {
             throw new SqlGenerationException(50005801, I18nMessageResolver.resolveKey("askdata.gen.llm_failed"), e);
         }
+    }
+
+    /**
+     * 流式生成（§6.38 流式输出）：直接返回底层 {@link LlmTokenStream}，调用方逐 token 消费。
+     * 与 {@link #generate(SqlGenInput)} 共用同一套提示词构造，但不做抽取 / 校验 / 修复，仅透传原始流。
+     *
+     * <p>注意：此为 {@link DefaultSqlGenerationCapability} 的具体扩展方法，未纳入
+     * {@link SqlGenerationCapability} 接口（避免破坏既有实现），需要流式时直接使用本实现类。</p>
+     */
+    public LlmTokenStream generateStream(SqlGenInput input) {
+        if (input == null) {
+            throw new IllegalArgumentException(I18nMessageResolver.resolveKey("askdata.contract.input_null"));
+        }
+        if (normalizeInput) {
+            input = SqlGenInputNormalizer.normalize(input);
+        }
+        SqlPrompt prompt = promptBuilder.build(input);
+        LlmRequest.Builder rb = LlmRequest.builder()
+                .addMessage(ChatMessage.system(prompt.getSystemPrompt()))
+                .addMessage(ChatMessage.user(prompt.getUserPrompt()));
+        if (input.getSeed() != null) {
+            rb.seed(input.getSeed());
+        }
+        if (input.getTemperature() != null) {
+            rb.temperature(input.getTemperature());
+        }
+        if (input.getTopP() != null) {
+            rb.topP(input.getTopP());
+        }
+        if (input.getExtraParams() != null && !input.getExtraParams().isEmpty()) {
+            rb.extraParams(input.getExtraParams());
+        }
+        return llm.stream(rb.build());
     }
 
     private static String joinIssues(ValidationResult vr) {
