@@ -55,6 +55,25 @@ public class SqlGenInput {
     @lombok.Builder.Default
     private final List<ChatMessage> history = Collections.emptyList();
 
+    /**
+     * RAG 业务术语（可选），由调用方召回后扁平化传入。对齐产品知识增强的【业务术语】段落，
+     * 帮助模型理解同义词 / 专有名词，框架只消费字符串、不耦合产品召回源。
+     */
+    @lombok.Builder.Default
+    private final List<String> terms = Collections.emptyList();
+
+    /**
+     * RAG 可参考的 SQL 样例（可选），由调用方从样例库召回后传入。对齐产品【可参考的 SQL 样例】段落。
+     */
+    @lombok.Builder.Default
+    private final List<String> sqlExamples = Collections.emptyList();
+
+    /**
+     * RAG 自定义提示词（可选），由调用方按场景注入（如 GENERATE_SQL 类型提示词）。
+     * 对齐产品【自定义提示词】段落，优先级通常高于通用约束。
+     */
+    private final String customPrompt;
+
     /** 生成前校验：问题与 schema 均不可为空。 */
     public void validate() {
         if (question == null || question.trim().isEmpty()) {

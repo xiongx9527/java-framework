@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.askdata.capability;
 
+import com.xiongx9527.fw.plus.ai.askdata.chart.ChartType;
 import java.util.Collections;
 import java.util.List;
 import lombok.Builder;
@@ -32,5 +33,17 @@ public class SqlGenResult {
     /** 最终校验是否通过；false 表示 SQL 未通过本地 / LLM 校验，调用方不应直接执行。 */
     @lombok.Builder.Default
     private final boolean valid = false;
+
+    /**
+     * 建议图表类型（产品 SQL JSON 协议中的 chart-type）。由模型在结构化输出中附带，
+     * 框架透明抽取；模型未返回时为 null，调用方可改由图表能力独立决策。
+     */
+    private final ChartType chartType;
+
+    /**
+     * 会话摘要（产品 SQL JSON 协议中的 brief），用于重命名会话 / 概览。
+     * 模型未返回时为 null，调用方回退到完整问题。
+     */
+    private final String brief;
 }
 

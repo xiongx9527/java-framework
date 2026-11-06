@@ -48,6 +48,14 @@ public class SqlPromptBuilder {
             }
         }
 
+        StringBuilder termsBlock = ragBlock("askdata.prompt.sql.terms_header", input.getTerms());
+        StringBuilder sqlExamplesBlock = ragBlock("askdata.prompt.sql.examples_header", input.getSqlExamples());
+        StringBuilder customPromptBlock = new StringBuilder();
+        if (input.getCustomPrompt() != null && !input.getCustomPrompt().trim().isEmpty()) {
+            customPromptBlock.append(I18nMessageResolver.resolveKey("askdata.prompt.sql.custom_prompt_header"))
+                    .append(input.getCustomPrompt()).append("\n");
+        }
+
         String dialectText = input.getDialectHint() == null || input.getDialectHint().trim().isEmpty()
                 ? I18nMessageResolver.resolveKey("askdata.prompt.sql.dialect_unknown")
                 : input.getDialectHint() + " " + DialectHelper.paginationHint(dialect);
@@ -59,8 +67,25 @@ public class SqlPromptBuilder {
                 .replace("{priorBlock}", priorBlock.toString())
                 .replace("{refBlock}", refBlock.toString())
                 .replace("{historyBlock}", historyBlock.toString())
+                .replace("{termsBlock}", termsBlock.toString())
+                .replace("{sqlExamplesBlock}", sqlExamplesBlock.toString())
+                .replace("{customPromptBlock}", customPromptBlock.toString())
                 .replace("{question}", input.getQuestion());
 
         return new SqlPrompt(SqlPromptTemplates.SYSTEM, user);
+    }
+
+    /** 将召回的 RAG 列表渲染成「{header}条目1\n条目2\n」段落；列表为空时返回空串。 */
+    private static StringBuilder ragBlock(String headerKey, List<String> items) {
+        StringBuilder sb = new StringBuilder();
+        if (items != null && !items.isEmpty()) {
+            sb.append(I18nMessageResolver.resolveKey(headerKey)).append("\n");
+            for (String item : items) {
+                if (item != null && !item.trim().isEmpty()) {
+                    sb.append("- ").append(item.trim()).append("\n");
+                }
+            }
+        }
+        return sb;
     }
 }

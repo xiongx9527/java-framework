@@ -102,6 +102,8 @@ public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
                 .confidence(confidence)
                 .alternatives(alternatives)
                 .valid(vr.isOk())
+                .brief(SqlExtractor.extractBrief(raw))
+                .chartType(SqlExtractor.extractChartType(raw))
                 .build();
     }
 

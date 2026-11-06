@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.askdata.postprocess;
 
 import com.xiongx9527.fw.plus.ai.askdata.capability.SqlGenerationException;
+import com.xiongx9527.fw.plus.ai.askdata.chart.ChartType;
 import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import java.util.regex.Pattern;
 
@@ -72,6 +73,54 @@ public final class SqlExtractor {
         }
         String before = modelOutput.substring(0, idx).trim();
         return before.isEmpty() ? null : before;
+    }
+
+    /**
+     * 从模型输出抽取「会话摘要」（产品 SQL JSON 协议中的 brief）。模型未按 JSON 返回该字段时返回 null，
+     * 不影响主链路 SQL 抽取。仅做轻量 JSON 字符串字段解析，不做完整 JSON 反序列化。
+     */
+    public static String extractBrief(String modelOutput) {
+        if (modelOutput == null) {
+            return null;
+        }
+        return jsonStringField(modelOutput, "brief");
+    }
+
+    /**
+     * 从模型输出抽取「建议图表类型」（产品 SQL JSON 协议中的 chart-type / chartType）。
+     * 命中时映射为 {@link ChartType} 枚举，未返回或无法识别时返回 null。
+     */
+    public static ChartType extractChartType(String modelOutput) {
+        if (modelOutput == null) {
+            return null;
+        }
+        String raw = jsonStringField(modelOutput, "chart-type");
+        if (raw == null) {
+            raw = jsonStringField(modelOutput, "chartType");
+        }
+        return raw == null ? null : ChartType.fromHint(raw);
+    }
+
+    /** 轻量抽取 JSON 字符串字段 {@code "key":"value"} 中的 value（不限空白）。 */
+    private static String jsonStringField(String out, String key) {
+        String qKey = "\"" + key + "\"";
+        int keyIdx = out.indexOf(qKey);
+        if (keyIdx < 0) {
+            return null;
+        }
+        int colon = out.indexOf(':', keyIdx + qKey.length());
+        if (colon < 0) {
+            return null;
+        }
+        int q1 = out.indexOf('"', colon + 1);
+        if (q1 < 0) {
+            return null;
+        }
+        int q2 = out.indexOf('"', q1 + 1);
+        if (q2 < q1) {
+            return null;
+        }
+        return out.substring(q1 + 1, q2);
     }
 
     private static String stripLanguageTag(String s) {
