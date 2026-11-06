@@ -14,6 +14,7 @@
         <module>fw-plus-ai-boot-starter</module>
         <module>fw-plus-ai-magicapi-plugin</module>
         <module>fw-plus-ai-mcp-server-spring-boot-starter</module>
+        <module>fw-plus-ai-vector-store-spring-boot-starter</module>
     </modules>
     <artifactId>fw-plus-ai-boot-starters</artifactId>
 

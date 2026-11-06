@@ -34,3 +34,4 @@ build/
 .vscode/
 
 
+/fw-plus-cloud-samples/.flattened-pom.xml

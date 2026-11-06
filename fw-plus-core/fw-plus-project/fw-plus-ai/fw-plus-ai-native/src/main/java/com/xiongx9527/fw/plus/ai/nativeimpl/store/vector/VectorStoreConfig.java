@@ -14,11 +14,13 @@ public final class VectorStoreConfig {
     private final VectorStoreVendor vendor;
     private final VectorStoreProtocol protocol;
     private final StoreConfig common;
+    private final PointIdStrategy pointIdStrategy;
 
     private VectorStoreConfig(Builder b) {
         this.vendor = b.vendor;
         this.protocol = b.protocol;
         this.common = b.common != null ? b.common : buildCommon(b);
+        this.pointIdStrategy = b.pointIdStrategy != null ? b.pointIdStrategy : PointIdStrategy.UUID;
     }
 
     private static StoreConfig buildCommon(Builder b) {
@@ -42,11 +44,14 @@ public final class VectorStoreConfig {
     public Integer getConnectTimeoutMillis() { return common.getConnectTimeoutMillis(); }
     public Integer getReadTimeoutMillis() { return common.getReadTimeoutMillis(); }
     public Map<String, Object> getProperties() { return common.getProperties(); }
+    /** Qdrant point id 生成策略；默认 {@link PointIdStrategy#UUID}。 */
+    public PointIdStrategy getPointIdStrategy() { return pointIdStrategy; }
 
     public static final class Builder {
         private VectorStoreVendor vendor;
         private VectorStoreProtocol protocol;
         private StoreConfig common;
+        private PointIdStrategy pointIdStrategy;
         private String baseUrl;
         private String apiKey;
         private String defaultCollection;
@@ -57,6 +62,8 @@ public final class VectorStoreConfig {
         public Builder protocol(VectorStoreProtocol value) { this.protocol = value; return this; }
         /** 直接复用一份已构建的公共配置（由 {@link StoreConfig} 提供），避免逐字段拷贝。 */
         public Builder common(StoreConfig value) { this.common = value; return this; }
+        /** Qdrant point id 策略；{@code RAW} 直接以字符串 id 作 point id，{@code UUID}（默认）哈希生成。 */
+        public Builder pointIdStrategy(PointIdStrategy value) { this.pointIdStrategy = value; return this; }
         public Builder baseUrl(String value) { this.baseUrl = value; return this; }
         public Builder apiKey(String value) { this.apiKey = value; return this; }
         public Builder defaultCollection(String value) { this.defaultCollection = value; return this; }

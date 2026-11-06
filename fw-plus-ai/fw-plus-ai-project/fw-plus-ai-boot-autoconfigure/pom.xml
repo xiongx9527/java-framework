@@ -161,6 +161,23 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- 框架自研向量库原子实现（Qdrant / Milvus / Weaviate / Redis / PgVector / Elasticsearch 端口与 resolver） -->
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-native</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Actuator（健康检查可选；classpath 缺省时不装配 VectorStoreHealthIndicator） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-actuator</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webflux</artifactId>

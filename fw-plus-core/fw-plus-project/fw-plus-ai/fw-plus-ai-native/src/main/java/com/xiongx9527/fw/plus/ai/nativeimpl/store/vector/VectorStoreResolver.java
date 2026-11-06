@@ -89,7 +89,8 @@ public final class VectorStoreResolver {
         int connect = config.getConnectTimeoutMillis() != null ? config.getConnectTimeoutMillis() : 5000;
         int read = config.getReadTimeoutMillis() != null ? config.getReadTimeoutMillis() : 10000;
         String collection = config.getDefaultCollection() != null ? config.getDefaultCollection() : "default";
-        return new QdrantVectorStore(config.getBaseUrl(), config.getApiKey(), collection, connect, read);
+        return new QdrantVectorStore(config.getBaseUrl(), config.getApiKey(), collection, connect, read,
+                config.getPointIdStrategy());
     }
 
     private static VectorStorePort newMilvus(VectorStoreConfig config) {
@@ -97,7 +98,8 @@ public final class VectorStoreResolver {
         int read = config.getReadTimeoutMillis() != null ? config.getReadTimeoutMillis() : 10000;
         String collection = config.getDefaultCollection() != null ? config.getDefaultCollection() : "default";
         // Milvus 用 Bearer token 鉴权，配置里的 apiKey 直接作为 token 传入
-        return new MilvusVectorStore(config.getBaseUrl(), config.getApiKey(), collection, connect, read);
+        return new MilvusVectorStore(config.getBaseUrl(), config.getApiKey(), collection, connect, read,
+                config.getPointIdStrategy());
     }
 
     private static VectorStorePort newRedis(VectorStoreConfig config) {
@@ -133,7 +135,7 @@ public final class VectorStoreResolver {
         String collection = config.getDefaultCollection() != null ? config.getDefaultCollection() : "default";
         return new WeaviateVectorStore(config.getBaseUrl(), config.getApiKey(),
                 config.getCommon().getUsername(), config.getCommon().getPassword(),
-                collection, connect, read);
+                collection, connect, read, config.getPointIdStrategy());
     }
 
     private static void requireProtocol(VectorStoreConfig config, VectorStoreProtocol... supported) {

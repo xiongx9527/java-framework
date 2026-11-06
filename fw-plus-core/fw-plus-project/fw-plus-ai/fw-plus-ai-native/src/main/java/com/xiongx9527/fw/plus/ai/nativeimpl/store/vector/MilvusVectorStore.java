@@ -44,17 +44,23 @@ public class MilvusVectorStore implements VectorStorePort {
     private final String defaultCollection;
     private final int connectTimeoutMillis;
     private final int readTimeoutMillis;
+    private final PointIdStrategy pointIdStrategy;
 
     public MilvusVectorStore(String baseUrl) {
-        this(baseUrl, null, "default", 5000, 10000);
+        this(baseUrl, null, "default", 5000, 10000, PointIdStrategy.UUID);
     }
 
     public MilvusVectorStore(String baseUrl, String token, String defaultCollection) {
-        this(baseUrl, token, defaultCollection, 5000, 10000);
+        this(baseUrl, token, defaultCollection, 5000, 10000, PointIdStrategy.UUID);
     }
 
     public MilvusVectorStore(String baseUrl, String token, String defaultCollection,
                              int connectTimeoutMillis, int readTimeoutMillis) {
+        this(baseUrl, token, defaultCollection, connectTimeoutMillis, readTimeoutMillis, PointIdStrategy.UUID);
+    }
+
+    public MilvusVectorStore(String baseUrl, String token, String defaultCollection,
+                             int connectTimeoutMillis, int readTimeoutMillis, PointIdStrategy pointIdStrategy) {
         if (baseUrl == null || baseUrl.trim().isEmpty()) {
             throw new IllegalArgumentException("milvus baseUrl is required");
         }
@@ -63,6 +69,7 @@ public class MilvusVectorStore implements VectorStorePort {
         this.defaultCollection = defaultCollection;
         this.connectTimeoutMillis = connectTimeoutMillis;
         this.readTimeoutMillis = readTimeoutMillis;
+        this.pointIdStrategy = pointIdStrategy != null ? pointIdStrategy : PointIdStrategy.UUID;
     }
 
     @Override
@@ -163,7 +170,7 @@ public class MilvusVectorStore implements VectorStorePort {
             return;
         }
         Map<String, Object> item = new LinkedHashMap<String, Object>();
-        item.put("id", surrogate(id));
+        item.put("id", toSurrogateId(id));
         item.put("vector", vector);
         item.put("pk", id);
         if (metadata != null) {
@@ -215,7 +222,7 @@ public class MilvusVectorStore implements VectorStorePort {
             if (i > 0) {
                 expr.append(",");
             }
-            expr.append(surrogate(ids.get(i)));
+            expr.append(toSurrogateId(ids.get(i)));
         }
         expr.append("]");
         Map<String, Object> body = new LinkedHashMap<String, Object>();
@@ -354,7 +361,26 @@ public class MilvusVectorStore implements VectorStorePort {
         return id == null ? null : id.asText();
     }
 
-    private static long surrogate(String id) {
+    /**
+     * 把字符串 id 映射为 Milvus Int64 主键的代理值。
+     *
+     * <p>{@code UUID}（默认）：用 {@code nameUUIDFromBytes} 生成稳定的 64 位代理键，与旧行为一致，
+     * 保证任意字符串 id 都能落到合法 Int64 主键；{@code RAW}：id 本身就是数字主键时
+     * 直接以其数值作主键（产品用 {@code String.valueOf(rowId)} 场景无需重建集合即可按 id 操作），
+     * 非数字 RAW id 无法作 Int64 主键，回退到 UUID 哈希（原始字符串仍保存在 {@code pk} 动态字段）。</p>
+     */
+    private long toSurrogateId(String id) {
+        if (pointIdStrategy == PointIdStrategy.RAW) {
+            try {
+                return Long.parseLong(id.trim());
+            } catch (NumberFormatException ignored) {
+                return nameUuidMostBits(id);
+            }
+        }
+        return nameUuidMostBits(id);
+    }
+
+    private static long nameUuidMostBits(String id) {
         return UUID.nameUUIDFromBytes(id.getBytes(StandardCharsets.UTF_8)).getMostSignificantBits();
     }
 

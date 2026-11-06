@@ -44,24 +44,33 @@ public class WeaviateVectorStore implements VectorStorePort {
     private final String defaultCollection;
     private final int connectTimeoutMillis;
     private final int readTimeoutMillis;
+    private final PointIdStrategy pointIdStrategy;
     /** 已确保存在过的 class#property，避免每次 upsert 都打 schema 接口。 */
     private final Set<String> knownProps = ConcurrentHashMap.newKeySet();
 
     public WeaviateVectorStore(String baseUrl) {
-        this(baseUrl, null, null, null, "default", 5000, 10000);
+        this(baseUrl, null, null, null, "default", 5000, 10000, PointIdStrategy.UUID);
     }
 
     public WeaviateVectorStore(String baseUrl, String apiKey, String defaultCollection) {
-        this(baseUrl, apiKey, null, null, defaultCollection, 5000, 10000);
+        this(baseUrl, apiKey, null, null, defaultCollection, 5000, 10000, PointIdStrategy.UUID);
     }
 
     public WeaviateVectorStore(String baseUrl, String apiKey, String defaultCollection,
                                int connectTimeoutMillis, int readTimeoutMillis) {
-        this(baseUrl, apiKey, null, null, defaultCollection, connectTimeoutMillis, readTimeoutMillis);
+        this(baseUrl, apiKey, null, null, defaultCollection, connectTimeoutMillis, readTimeoutMillis,
+                PointIdStrategy.UUID);
     }
 
     public WeaviateVectorStore(String baseUrl, String apiKey, String username, String password,
                                String defaultCollection, int connectTimeoutMillis, int readTimeoutMillis) {
+        this(baseUrl, apiKey, username, password, defaultCollection, connectTimeoutMillis, readTimeoutMillis,
+                PointIdStrategy.UUID);
+    }
+
+    public WeaviateVectorStore(String baseUrl, String apiKey, String username, String password,
+                               String defaultCollection, int connectTimeoutMillis, int readTimeoutMillis,
+                               PointIdStrategy pointIdStrategy) {
         if (baseUrl == null || baseUrl.trim().isEmpty()) {
             throw new IllegalArgumentException("weaviate baseUrl is required");
         }
@@ -72,6 +81,7 @@ public class WeaviateVectorStore implements VectorStorePort {
         this.defaultCollection = defaultCollection == null ? "default" : defaultCollection;
         this.connectTimeoutMillis = connectTimeoutMillis;
         this.readTimeoutMillis = readTimeoutMillis;
+        this.pointIdStrategy = pointIdStrategy != null ? pointIdStrategy : PointIdStrategy.UUID;
     }
 
     @Override
@@ -473,7 +483,11 @@ public class WeaviateVectorStore implements VectorStorePort {
         return Character.toUpperCase(collection.charAt(0)) + collection.substring(1);
     }
 
-    private static String uuidOf(String id) {
+    private String uuidOf(String id) {
+        if (pointIdStrategy == PointIdStrategy.RAW) {
+            // Weaviate object id 必须是 UUID；RAW 用于产品已生成 UUID 的场景，直接透传避免重复哈希
+            return id;
+        }
         try {
             return UUID.fromString(id).toString();
         } catch (IllegalArgumentException ignored) {

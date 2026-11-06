@@ -36,17 +36,23 @@ public class QdrantVectorStore implements VectorStorePort {
     private final String defaultCollection;
     private final int connectTimeoutMillis;
     private final int readTimeoutMillis;
+    private final PointIdStrategy pointIdStrategy;
 
     public QdrantVectorStore(String baseUrl) {
-        this(baseUrl, null, "default", 5000, 10000);
+        this(baseUrl, null, "default", 5000, 10000, PointIdStrategy.UUID);
     }
 
     public QdrantVectorStore(String baseUrl, String apiKey, String defaultCollection) {
-        this(baseUrl, apiKey, defaultCollection, 5000, 10000);
+        this(baseUrl, apiKey, defaultCollection, 5000, 10000, PointIdStrategy.UUID);
     }
 
     public QdrantVectorStore(String baseUrl, String apiKey, String defaultCollection,
                              int connectTimeoutMillis, int readTimeoutMillis) {
+        this(baseUrl, apiKey, defaultCollection, connectTimeoutMillis, readTimeoutMillis, PointIdStrategy.UUID);
+    }
+
+    public QdrantVectorStore(String baseUrl, String apiKey, String defaultCollection,
+                             int connectTimeoutMillis, int readTimeoutMillis, PointIdStrategy pointIdStrategy) {
         if (baseUrl == null || baseUrl.trim().isEmpty()) {
             throw new IllegalArgumentException("qdrant baseUrl is required");
         }
@@ -55,6 +61,7 @@ public class QdrantVectorStore implements VectorStorePort {
         this.defaultCollection = defaultCollection;
         this.connectTimeoutMillis = connectTimeoutMillis;
         this.readTimeoutMillis = readTimeoutMillis;
+        this.pointIdStrategy = pointIdStrategy != null ? pointIdStrategy : PointIdStrategy.UUID;
     }
 
     @Override
@@ -333,7 +340,10 @@ public class QdrantVectorStore implements VectorStorePort {
         return id.asText();
     }
 
-    private static Object toPointId(String id) {
+    private Object toPointId(String id) {
+        if (pointIdStrategy == PointIdStrategy.RAW) {
+            return id;
+        }
         try {
             UUID.fromString(id);
             return id;
