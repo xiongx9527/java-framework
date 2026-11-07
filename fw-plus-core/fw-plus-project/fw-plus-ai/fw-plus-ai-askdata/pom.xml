@@ -41,6 +41,11 @@
             <artifactId>fw-plus-jdbc-engine</artifactId>
             <version>${revision}</version>
         </dependency>
+        <!-- G2 模式需直接解析模型产出的图表配置 JSON；fw-plus-common 中 jackson-databind 为 optional，此处显式声明以保证编译期与运行期可见 -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
         <!-- i18n 解析依赖 Spring 的 LocaleContextHolder，与 fw-plus-common 保持一致标记为 optional，不强制下游引入 -->
         <dependency>
             <groupId>org.springframework</groupId>

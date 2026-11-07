@@ -66,6 +66,20 @@ public class SqlExtractorTest {
     }
 
     @Test
+    void extractsSqlFromFencedJson() {
+        String out = "```json\n{\"sql\":\"SELECT 1\",\"brief\":\"x\",\"chart-type\":\"bar\"}\n```";
+        assertEquals("SELECT 1", SqlExtractor.extract(out));
+    }
+
+    @Test
+    void extractsSqlAndMetadataFromJsonObject() {
+        String out = "{\"sql\":\"SELECT name FROM users\",\"brief\":\"用户列表\",\"chart-type\":\"pie\"}";
+        assertEquals("SELECT name FROM users", SqlExtractor.extract(out));
+        assertEquals("用户列表", SqlExtractor.extractBrief(out));
+        assertEquals(ChartType.PIE, SqlExtractor.extractChartType(out));
+    }
+
+    @Test
     void extractsBriefAndChartTypeReturnNullWhenAbsent() {
         String out = "SELECT name FROM users";
         assertNull(SqlExtractor.extractBrief(out));

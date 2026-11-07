@@ -11,6 +11,7 @@ import com.xiongx9527.fw.plus.lock.WorkerLockProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -40,7 +41,7 @@ public class WorkerLockAutoConfiguration {
 
     /** DB 版锁（缺省）。 */
     @Bean
-    @ConditionalOnMissingBean
+    @ConditionalOnMissingBean(name = "dbWorkerLock")
     @ConditionalOnProperty(prefix = "fw.plus.lock", name = "type", havingValue = "db", matchIfMissing = true)
     public WorkerLock dbWorkerLock(WorkerLockProperties properties,
                                    ObjectProvider<JdbcTemplate> jdbcTemplateProvider) {
@@ -54,7 +55,7 @@ public class WorkerLockAutoConfiguration {
 
     /** Redis 版锁。 */
     @Bean
-    @ConditionalOnMissingBean
+    @ConditionalOnMissingBean(name = "redisWorkerLock")
     @ConditionalOnProperty(prefix = "fw.plus.lock", name = "type", havingValue = "redis")
     public WorkerLock redisWorkerLock(WorkerLockProperties properties,
                                       ObjectProvider<StringRedisTemplate> redisTemplateProvider) {
@@ -69,7 +70,7 @@ public class WorkerLockAutoConfiguration {
 
     /** JVM（进程内）版锁：单实例部署、无共享 DB / Redis 时使用。 */
     @Bean
-    @ConditionalOnMissingBean
+    @ConditionalOnMissingBean(name = "jvmWorkerLock")
     @ConditionalOnProperty(prefix = "fw.plus.lock", name = "type", havingValue = "jvm")
     public WorkerLock jvmWorkerLock() {
         log.info("装配单 worker 守卫锁后端：jvm");
@@ -81,14 +82,14 @@ public class WorkerLockAutoConfiguration {
      * 供业务代码、Magic {@code lock} 模块、接口防抖等场景复用同一套后端。
      */
     @Bean
-    @ConditionalOnMissingBean
+    @ConditionalOnBean(WorkerLock.class)
     public LockTemplate lockTemplate(WorkerLock workerLock) {
         return new LockTemplate(workerLock);
     }
 
     /** 单 worker 启动守卫（包裹锁后端，可被业务整体替换）。 */
     @Bean
-    @ConditionalOnMissingBean
+    @ConditionalOnBean(WorkerLock.class)
     public SingleWorkerGuard singleWorkerGuard(WorkerLock workerLock) {
         return new SingleWorkerGuard(workerLock);
     }

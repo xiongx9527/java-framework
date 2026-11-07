@@ -7,7 +7,20 @@ import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 /** 根据 {@link ChartGenInput} 构造图表决策提示词。 */
 public class ChartPromptBuilder {
 
+    /** 输出格式（默认 ECHARTS）；G2 模式要求模型直接产出 G2 风格配置。 */
+    private ChartFormat chartFormat = ChartFormat.ECHARTS;
+
+    public ChartPromptBuilder chartFormat(ChartFormat chartFormat) {
+        if (chartFormat != null) {
+            this.chartFormat = chartFormat;
+        }
+        return this;
+    }
+
     public String buildSystem() {
+        if (chartFormat == ChartFormat.G2) {
+            return I18nMessageResolver.resolveKey("askdata.prompt.chart.system.g2");
+        }
         return ChartPromptTemplates.SYSTEM;
     }
 
@@ -17,7 +30,10 @@ public class ChartPromptBuilder {
         String sample = summarizeSample(ds, 5);
         String sqlBlock = contextBlock("askdata.prompt.chart.sql_context", input.getSql());
         String mSchemaBlock = contextBlock("askdata.prompt.chart.mschema_context", input.getMSchema());
-        return ChartPromptTemplates.USER_TEMPLATE
+        String template = chartFormat == ChartFormat.G2
+                ? ChartPromptTemplates.USER_G2_TEMPLATE
+                : ChartPromptTemplates.USER_TEMPLATE;
+        return template
                 .replace("{question}", nullToEmpty(input.getQuestion()))
                 .replace("{schema}", schema)
                 .replace("{sampleLimit}", "5")

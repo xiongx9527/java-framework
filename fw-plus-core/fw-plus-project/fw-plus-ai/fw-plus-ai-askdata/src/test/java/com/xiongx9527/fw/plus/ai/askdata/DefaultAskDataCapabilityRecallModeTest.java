@@ -5,11 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import com.xiongx9527.fw.plus.ai.askdata.capability.SqlGenInput;
 import com.xiongx9527.fw.plus.ai.askdata.capability.SqlGenResult;
 import com.xiongx9527.fw.plus.ai.askdata.capability.SqlGenerationCapability;
+import com.xiongx9527.fw.plus.ai.base.model.LlmTokenStream;
 import com.xiongx9527.fw.plus.jdbc.execution.QueryResult;
 import com.xiongx9527.fw.plus.jdbc.execution.SqlExecInput;
 import com.xiongx9527.fw.plus.jdbc.execution.SqlExecutionCapability;
 import com.xiongx9527.fw.plus.ai.askdata.recall.SchemaRecallCapability;
 import com.xiongx9527.fw.plus.ai.askdata.recall.SchemaRecallInput;
+import com.xiongx9527.fw.plus.ai.askdata.prompt.SqlPrompt;
 import com.xiongx9527.fw.plus.ai.askdata.recall.SchemaCandidateProvider;
 import com.xiongx9527.fw.plus.ai.askdata.schema.SchemaContext;
 import com.xiongx9527.fw.plus.ai.support.retrieval.IndexMode;
@@ -34,6 +36,16 @@ public class DefaultAskDataCapabilityRecallModeTest {
     static class StubGen implements SqlGenerationCapability {
         @Override
         public SqlGenResult generate(SqlGenInput in) {
+            return SqlGenResult.builder().valid(false).sql("x").build();
+        }
+
+        @Override
+        public LlmTokenStream generateStream(SqlGenInput in) {
+            return null;
+        }
+
+        @Override
+        public SqlGenResult refine(String rawOutput, SqlPrompt prompt, SqlGenInput meta) {
             return SqlGenResult.builder().valid(false).sql("x").build();
         }
     }

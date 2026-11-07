@@ -36,6 +36,10 @@ public class ChartGenInput {
     @lombok.Builder.Default
     private final List<String> constraints = Collections.emptyList();
 
+    /** 输出格式（默认 ECHARTS）；G2 模式要求模型直接产出 G2 风格配置并被能力层透传。 */
+    @lombok.Builder.Default
+    private final ChartFormat chartFormat = ChartFormat.ECHARTS;
+
     public void validate() {
         if (question == null || question.trim().isEmpty()) {
             throw new ChartGenerationException(50005803, I18nMessageResolver.resolveKey("askdata.input.question_required"));

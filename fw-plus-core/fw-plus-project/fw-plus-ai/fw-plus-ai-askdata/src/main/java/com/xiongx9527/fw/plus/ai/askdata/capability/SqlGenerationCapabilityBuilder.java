@@ -23,12 +23,33 @@ public class SqlGenerationCapabilityBuilder {
     private boolean normalizeInput = false;
     private ResilientLlmPort.ResilienceConfig resilienceConfig;
 
+    /** 是否要求模型在结构化输出中附带 brief / chart-type（产品 SQL JSON 协议）。默认关。 */
+    private boolean requestMetadata = false;
+
+    /** 严格 JSON 协议模式：强制模型只返回产品 SQL JSON（success/sql/brief/chart-type/tables）。默认关。 */
+    private boolean jsonProtocol = false;
+
     public static SqlGenerationCapabilityBuilder builder() {
         return new SqlGenerationCapabilityBuilder();
     }
 
     public SqlGenerationCapabilityBuilder llm(LlmPort v) {
         this.llm = v;
+        return this;
+    }
+
+    /** 开启后，SQL 提示词的 system 段会追加「可返回 {sql,brief,chart-type} JSON」指令，
+     * 使 {@link SqlGenResult#getBrief()} / {@link SqlGenResult#getChartType()} 可被模型填出。 */
+    public SqlGenerationCapabilityBuilder requestMetadata(boolean v) {
+        this.requestMetadata = v;
+        return this;
+    }
+
+    /** 开启后，SQL 提示词的 system 段追加「严格返回产品 SQL JSON 协议」指令（success/sql/brief/chart-type/tables），
+     * 模型不得用反引号包裹或附带解释，使 {@link SqlGenResult#isSuccess()} / {@link SqlGenResult#getTables()}
+     * 可被模型可靠填出。与 {@link #requestMetadata} 互斥时以本模式为准（更严格）。 */
+    public SqlGenerationCapabilityBuilder jsonProtocol(boolean v) {
+        this.jsonProtocol = v;
         return this;
     }
 
@@ -82,6 +103,9 @@ public class SqlGenerationCapabilityBuilder {
         if (resilienceConfig != null) {
             effectiveLlm = new ResilientLlmPort(llm, resilienceConfig);
         }
+        SqlPromptBuilder effectivePromptBuilder = promptBuilder == null ? new SqlPromptBuilder() : promptBuilder;
+        effectivePromptBuilder.requestMetadata(requestMetadata);
+        effectivePromptBuilder.jsonProtocol(jsonProtocol);
         SqlValidationStrategy local = localValidation == null ? new LocalSqlValidationStrategy() : localValidation;
         SqlValidationStrategy llmV = llmValidation;
         if (llmV == null) {
@@ -98,7 +122,7 @@ public class SqlGenerationCapabilityBuilder {
                     .failClosed(failClosed)
                     .build();
         }
-        return new DefaultSqlGenerationCapability(effectiveLlm, promptBuilder, local, llmV,
+        return new DefaultSqlGenerationCapability(effectiveLlm, effectivePromptBuilder, local, llmV,
                 confidenceEstimator, rp, normalizeInput);
     }
 }

@@ -13,8 +13,12 @@ public class ChartGenResult {
     /** 最终采用的图表类型（降级后为 TABLE）。 */
     private final ChartType chartType;
 
-    /** 可视化配置（ECharts 风格 option）；含 source 供前端回退表格。 */
+    /** 可视化配置（ECharts 风格 option 或 G2 风格配置）；含 source 供前端回退表格。 */
     private final Map<String, Object> config;
+
+    /** 模型原始输出（G2 模式即原始 G2 JSON，ECharts 模式为模型决策原文）；供调用方记录原始思考（A26）。 */
+    @lombok.Builder.Default
+    private final String rawOutput = "";
 
     /** 说明。 */
     private final String explanation;

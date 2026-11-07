@@ -4,9 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.xiongx9527.fw.plus.ai.askdata.capability.SqlGenResult;
+import com.xiongx9527.fw.plus.ai.askdata.capability.SqlGenerationException;
 import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
 import com.xiongx9527.fw.plus.ai.askdata.llm.StaticLlmPort;
 import com.xiongx9527.fw.plus.ai.askdata.postprocess.SqlRepairPolicy;
+import com.xiongx9527.fw.plus.ai.askdata.prompt.SqlPrompt;
 import com.xiongx9527.fw.plus.ai.askdata.schema.SchemaContext;
 import com.xiongx9527.fw.plus.ai.askdata.schema.TableSchema;
 import java.util.Collections;
@@ -94,6 +97,72 @@ public class DefaultSqlGenerationCapabilityTest {
         cap.generate(input("统计\n  订单   数"));
         assertTrue(captured.get().contains("统计 订单 数"),
                 "prompt should contain folded question: " + captured.get());
+    }
+
+    // ---- refine(String, SqlPrompt, SqlGenInput) ----
+
+    @Test
+    void refineExtractsValidSqlFromRawOutput() {
+        LlmPort port = new StaticLlmPort(F + "sql\nSELECT id FROM t\n" + F);
+        SqlGenerationCapability cap = SqlGenerationCapabilityBuilder.builder()
+                .llm(port)
+                .repairPolicy(SqlRepairPolicy.builder().enabled(false).build())
+                .build();
+        SqlPrompt prompt = new SqlPrompt("system", "user");
+        SqlGenInput meta = SqlGenInput.builder().question("统计").build();
+        SqlGenResult r = cap.refine(F + "sql\nSELECT id FROM t\n" + F, prompt, meta);
+        assertEquals("SELECT id FROM t", r.getSql());
+        assertTrue(r.isValid());
+    }
+
+    @Test
+    void refineExtractsProductJsonProtocol() {
+        // 产品 SQL JSON 协议（success/sql/brief/chart-type/tables）应被框架透明抽取
+        String json = "{\"success\":true,\"sql\":\"SELECT id FROM t\",\"brief\":\"统计订单\","
+                + "\"chart-type\":\"bar\",\"tables\":[\"t\"]}";
+        LlmPort port = new StaticLlmPort(json);
+        SqlGenerationCapability cap = SqlGenerationCapabilityBuilder.builder()
+                .llm(port)
+                .repairPolicy(SqlRepairPolicy.builder().enabled(false).build())
+                .build();
+        SqlPrompt prompt = new SqlPrompt("system", "user");
+        SqlGenInput meta = SqlGenInput.builder().question("统计").build();
+        SqlGenResult r = cap.refine(json, prompt, meta);
+        assertEquals("SELECT id FROM t", r.getSql());
+        assertTrue(r.isValid());
+        assertTrue(r.isSuccess());
+        assertEquals("统计订单", r.getBrief());
+        assertEquals("t", r.getTables().get(0));
+        assertEquals(com.xiongx9527.fw.plus.ai.askdata.chart.ChartType.BAR, r.getChartType());
+    }
+
+    @Test
+    void refineRepairsInvalidSqlViaRepairLoop() {
+        // 初始原始输出是写型 DML（非法，取自入参 rawOutput，不调 LLM）；
+        // 修复轮回喂后 LLM 返回合法 SELECT，修复成功。
+        LlmPort port = new StaticLlmPort(F + "sql\nSELECT id FROM t\n" + F);
+        SqlGenerationCapability cap = SqlGenerationCapabilityBuilder.builder()
+                .llm(port)
+                .repairPolicy(SqlRepairPolicy.builder().enabled(true).maxAttempts(1).build())
+                .build();
+        SqlPrompt prompt = new SqlPrompt("system", "user");
+        SqlGenInput meta = SqlGenInput.builder().question("统计").build();
+        SqlGenResult r = cap.refine(F + "sql\nINSERT INTO t VALUES (1)\n" + F, prompt, meta);
+        assertEquals("SELECT id FROM t", r.getSql());
+        assertTrue(r.isValid());
+    }
+
+    @Test
+    void refineFailClosedThrowsWhenRepairCannotFix() {
+        LlmPort port = new StaticLlmPort(F + "sql\nINSERT INTO t VALUES (1)\n" + F);
+        SqlGenerationCapability cap = SqlGenerationCapabilityBuilder.builder()
+                .llm(port)
+                .repairPolicy(SqlRepairPolicy.builder().failClosed(true).enabled(true).maxAttempts(1).build())
+                .build();
+        SqlPrompt prompt = new SqlPrompt("system", "user");
+        SqlGenInput meta = SqlGenInput.builder().question("统计").build();
+        assertThrows(SqlGenerationException.class,
+                () -> cap.refine(F + "sql\nINSERT INTO t VALUES (1)\n" + F, prompt, meta));
     }
 
     @Test

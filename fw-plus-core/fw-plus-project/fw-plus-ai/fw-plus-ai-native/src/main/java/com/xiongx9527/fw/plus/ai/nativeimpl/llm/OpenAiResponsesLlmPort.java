@@ -71,14 +71,17 @@ public class OpenAiResponsesLlmPort extends AbstractLlmPort {
             if (apiKey != null && !apiKey.isEmpty()) rb.header("Authorization", "Bearer " + apiKey);
             final CountDownLatch done = new CountDownLatch(1);
             final Map<String, ToolAcc> tools = new LinkedHashMap<String, ToolAcc>();
+            final boolean[] errored = {false};
             EventSourceListener listener = new EventSourceListener() {
                 @Override public void onEvent(EventSource source, String id, String type, String data) {
                     if (data == null || data.trim().isEmpty() || "[DONE]".equals(data.trim())) return;
                     handler.onUnmappedRawEvent(data);
-                    try { dispatch(type, data, handler, tools); } catch (IOException e) { handler.onError(e.getMessage()); }
+                    try { dispatch(type, data, handler, tools, errored); } catch (IOException e) { handler.onError(e.getMessage()); errored[0] = true; }
                 }
                 @Override public void onFailure(EventSource source, Throwable t, Response response) {
-                    handler.onError(t == null ? "OpenAI Responses stream failed" : t.getMessage()); done.countDown();
+                    handler.onError(t == null ? "OpenAI Responses stream failed" : t.getMessage());
+                    errored[0] = true;
+                    done.countDown();
                 }
                 @Override public void onClosed(EventSource source) { done.countDown(); }
             };
@@ -89,8 +92,11 @@ public class OpenAiResponsesLlmPort extends AbstractLlmPort {
                 handler.onCompleteToolCall(call);
                 handler.onToolCall(call);
             }
-            handler.onFinish("STOP");
-            handler.onComplete();
+            // 发生错误（含连接失败 / response.failed 事件）时不再派发成功终态，与 AnthropicLlmPort 行为一致
+            if (!errored[0]) {
+                handler.onFinish("STOP");
+                handler.onComplete();
+            }
         } catch (Exception e) {
             handler.onError(e.getMessage() == null ? "OpenAI Responses request failed" : e.getMessage());
         }
@@ -169,7 +175,7 @@ public class OpenAiResponsesLlmPort extends AbstractLlmPort {
         schema.put("properties", Collections.emptyMap()); return schema;
     }
 
-    private void dispatch(String event, String json, LlmStreamHandler handler, Map<String, ToolAcc> tools) throws IOException {
+    private void dispatch(String event, String json, LlmStreamHandler handler, Map<String, ToolAcc> tools, boolean[] errored) throws IOException {
         JsonNode root = mapper.readTree(json);
         String type = root.path("type").asText(event == null ? "" : event);
         if ("response.output_text.delta".equals(type)) {
@@ -194,7 +200,12 @@ public class OpenAiResponsesLlmPort extends AbstractLlmPort {
             if (!usage.isMissingNode()) handler.onUsageDetail(usage.path("input_tokens").asLong(),
                     usage.path("output_tokens").asLong(), usage.path("total_tokens").asLong());
         } else if ("error".equals(type) || "response.failed".equals(type)) {
-            handler.onError(root.path("error").path("message").asText("OpenAI Responses error"));
+            errored[0] = true;
+            String msg = root.path("response").path("error").path("message").asText(null);
+            if (msg == null) {
+                msg = root.path("error").path("message").asText("OpenAI Responses error");
+            }
+            handler.onError(msg);
         }
     }
 

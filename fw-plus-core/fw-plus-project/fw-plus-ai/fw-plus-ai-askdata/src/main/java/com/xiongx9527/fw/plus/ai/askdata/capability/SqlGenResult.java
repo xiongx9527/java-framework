@@ -35,6 +35,20 @@ public class SqlGenResult {
     private final boolean valid = false;
 
     /**
+     * 模型自报的成功标志（产品 SQL JSON 协议中的 success）。由模型在结构化输出中附带，
+     * 框架透明抽取；模型未返回时默认 false，调用方据此判断是否需报错 / 回退。
+     */
+    @lombok.Builder.Default
+    private final boolean success = false;
+
+    /**
+     * 本次查询实际用到的表名数组（产品 SQL JSON 协议中的 tables）。由模型在结构化输出中附带，
+     * 框架透明抽取；调用方可据此做 FROM 表白名单校验（对齐产品 {@code validateTables}）。
+     */
+    @lombok.Builder.Default
+    private final List<String> tables = Collections.emptyList();
+
+    /**
      * 建议图表类型（产品 SQL JSON 协议中的 chart-type）。由模型在结构化输出中附带，
      * 框架透明抽取；模型未返回时为 null，调用方可改由图表能力独立决策。
      */

@@ -104,6 +104,8 @@ public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
                 .valid(vr.isOk())
                 .brief(SqlExtractor.extractBrief(raw))
                 .chartType(SqlExtractor.extractChartType(raw))
+                .success(SqlExtractor.extractSuccess(raw))
+                .tables(SqlExtractor.extractTables(raw))
                 .build();
     }
 
@@ -177,6 +179,66 @@ public class DefaultSqlGenerationCapability implements SqlGenerationCapability {
             rb.extraParams(input.getExtraParams());
         }
         return llm.stream(rb.build());
+    }
+
+    /**
+     * 精炼模型原始输出：抽取 SQL → 本地校验 →（可选，非流式）修复轮 → 返回 {@link SqlGenResult}。
+     * 与 {@link #generate(SqlGenInput)} 共用同一套抽取 / 校验 / 修复机制，但提示词由调用方提供
+     * （{@code prompt}），因此产品侧可保留自有提示词组装与流式输出。{@code meta} 的 schemaContext
+     * 为 null/空时，校验跳过表可见性（交由调用方自有逻辑约束）。
+     *
+     * @throws SqlGenerationException 修复后仍不通过且 fail-closed 时抛出
+     */
+    public SqlGenResult refine(String rawOutput, SqlPrompt prompt, SqlGenInput meta) {
+        if (meta == null) {
+            meta = SqlGenInput.builder().question("").build();
+        }
+        String sql = safeExtract(rawOutput);
+        boolean repaired = false;
+        List<String> alternatives = new ArrayList<String>();
+        ValidationResult vr = validateChain(sql, meta);
+        if (!vr.isOk() && repairPolicy != null && repairPolicy.isEnabled()) {
+            int attempts = Math.max(0, repairPolicy.getMaxAttempts());
+            for (int i = 0; i < attempts && !vr.isOk(); i++) {
+                String repairUser = prompt.getUserPrompt()
+                        + System.lineSeparator() + I18nMessageResolver.resolveKey("askdata.prompt.sql.repair_prefix")
+                        + joinIssues(vr) + I18nMessageResolver.resolveKey("askdata.prompt.sql.repair_suffix");
+                String repairedRaw = safeComplete(new SqlPrompt(prompt.getSystemPrompt(), repairUser), meta);
+                sql = safeExtract(repairedRaw);
+                vr = validateChain(sql, meta);
+                if (vr.isOk()) {
+                    break;
+                }
+                alternatives.add(sql);
+                repaired = true;
+            }
+        }
+        if (!vr.isOk() && failClosed) {
+            throw new SqlGenerationException(50005806, joinIssues(vr));
+        }
+        double confidence = confidenceEstimator.estimate(vr, repaired);
+        String explanation = SqlExtractor.extractExplanation(rawOutput);
+        return SqlGenResult.builder()
+                .sql(sql)
+                .explanation(explanation)
+                .referencedTables(vr.getReferencedTables())
+                .confidence(confidence)
+                .alternatives(alternatives)
+                .valid(vr.isOk())
+                .brief(SqlExtractor.extractBrief(rawOutput))
+                .chartType(SqlExtractor.extractChartType(rawOutput))
+                .success(SqlExtractor.extractSuccess(rawOutput))
+                .tables(SqlExtractor.extractTables(rawOutput))
+                .build();
+    }
+
+    /** 抽取 SQL；模型输出无可用 SQL 时返回 null（交给校验/修复轮处理），不抛异常。 */
+    private static String safeExtract(String raw) {
+        try {
+            return SqlExtractor.extract(raw);
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 
     private static String joinIssues(ValidationResult vr) {

@@ -12,11 +12,11 @@ package com.xiongx9527.fw.plus.ai.nativeimpl.llm;
  * {@code /openai/deployments/...}（无独立 /v1 段，版本由 api-version 查询参数承载），
  * 不使用本规范化，避免改变其既有契约。</p>
  */
-final class LlmUrlUtil {
+public final class LlmUrlUtil {
 
     private LlmUrlUtil() { }
 
-    static String normalizeBaseUrl(String baseUrl) {
+    public static String normalizeBaseUrl(String baseUrl) {
         if (baseUrl == null) return null;
         String u = baseUrl.replaceAll("/+$", "");
         if (u.endsWith("/v1")) {

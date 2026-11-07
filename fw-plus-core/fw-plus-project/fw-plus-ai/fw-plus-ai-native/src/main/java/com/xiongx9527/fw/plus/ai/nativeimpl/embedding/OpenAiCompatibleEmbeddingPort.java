@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xiongx9527.fw.plus.ai.base.model.EmbeddingPort;
 import com.xiongx9527.fw.plus.ai.base.model.ModelInfo;
+import com.xiongx9527.fw.plus.ai.nativeimpl.llm.LlmUrlUtil;
 import com.xiongx9527.fw.plus.ai.base.model.ModelType;
 import com.xiongx9527.fw.plus.ai.base.model.ModelValidation;
 import java.io.IOException;
@@ -70,7 +71,10 @@ public class OpenAiCompatibleEmbeddingPort implements EmbeddingPort {
             Map<String, Object> payload = new LinkedHashMap<String, Object>();
             payload.put("model", model);
             payload.put("input", new ArrayList<String>(texts));
-            Request.Builder rb = new Request.Builder().url(baseUrl + "/embeddings").post(RequestBody.create(JSON, mapper.writeValueAsString(payload)));
+            // 与 LLM 端口一致：baseUrl 可能带或不带 /v1，统一归一化后拼 /v1/embeddings，
+            // 这样无论调用方传入 http://host:port 还是 http://host:port/v1 都能正确命中 OpenAI 兼容端点。
+            String url = LlmUrlUtil.normalizeBaseUrl(baseUrl) + "/v1/embeddings";
+            Request.Builder rb = new Request.Builder().url(url).post(RequestBody.create(JSON, mapper.writeValueAsString(payload)));
             if (apiKey != null && !apiKey.isEmpty()) rb.addHeader("Authorization", "Bearer " + apiKey);
             try (Response r = client.newCall(rb.build()).execute()) {
                 String resp = bodyOf(r);

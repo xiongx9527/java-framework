@@ -164,8 +164,9 @@ public class OpenAiCompatibleLlmPort extends AbstractLlmPort {
         }
     }
     private Map<String, Object> buildBody(LlmRequest request) throws IOException {
-        // extraParams 承载厂商私有推理参数（如 enable_thinking），原样并入请求体，与 Gemini/Responses 端口一致
-        Map<String, Object> payload = new LinkedHashMap<String, Object>(request.getExtraParams());
+        // 标准 OpenAI 字段（model/messages/温度等）置顶；extraParams 中的厂商私有扩展
+        // （如 enable_thinking）按 OpenAI 兼容约定归入 extra_body，不污染顶层命名空间。
+        Map<String, Object> payload = new LinkedHashMap<String, Object>();
         payload.put("model", request.getModel() != null ? request.getModel() : defaultModel);
         List<Object> msgs = new ArrayList<Object>();
         for (ChatMessage m : request.getMessages()) msgs.add(toWire(m));
@@ -195,8 +196,29 @@ public class OpenAiCompatibleLlmPort extends AbstractLlmPort {
             payload.put("tool_choice", toWire(request.getToolChoice()));
         }
         payload.put("stream", true);
+        // 已知 OpenAI 标准字段从 extraParams 提升到顶层（调用方未显式设置类型字段时仍生效）；
+        // 其余厂商私有扩展（如 enable_thinking）归入 extra_body，对齐 OpenAI SDK 行为，不污染顶层命名空间。
+        Map<String, Object> extraBody = new LinkedHashMap<String, Object>();
+        for (java.util.Map.Entry<String, Object> e : request.getExtraParams().entrySet()) {
+            String k = e.getKey();
+            if (TOP_LEVEL_OPENAI_KEYS.contains(k)) {
+                if (!payload.containsKey(k)) {
+                    payload.put(k, e.getValue());
+                }
+            } else {
+                extraBody.put(k, e.getValue());
+            }
+        }
+        if (!extraBody.isEmpty()) {
+            payload.put("extra_body", extraBody);
+        }
         return payload;
     }
+
+    /** 应从 extraParams 提升到请求体顶层的已知 OpenAI 标准字段名。 */
+    private static final java.util.Set<String> TOP_LEVEL_OPENAI_KEYS = new java.util.HashSet<String>(java.util.Arrays.asList(
+            "temperature", "top_p", "max_tokens", "seed", "top_k",
+            "frequency_penalty", "presence_penalty", "stop", "response_format"));
     private Map<String, Object> toWire(ChatMessage m) {
         Map<String, Object> o = new LinkedHashMap<String, Object>();
         o.put("role", m.getRole().wireName());

@@ -11,4 +11,7 @@ public final class ChartPromptTemplates {
     public static final String SYSTEM = I18nMessageResolver.resolveKey("askdata.prompt.chart.system");
 
     public static final String USER_TEMPLATE = I18nMessageResolver.resolveKey("askdata.prompt.chart.user");
+
+    /** G2 模式用户提示词模板（与 {@code askdata.prompt.chart.user.g2} 对应，沿用相同占位符）。 */
+    public static final String USER_G2_TEMPLATE = I18nMessageResolver.resolveKey("askdata.prompt.chart.user.g2");
 }

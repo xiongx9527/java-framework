@@ -7,9 +7,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.xiongx9527.fw.plus.ai.askdata.capability.SqlGenInput;
 import com.xiongx9527.fw.plus.ai.askdata.capability.SqlGenResult;
 import com.xiongx9527.fw.plus.ai.askdata.capability.SqlGenerationCapability;
+import com.xiongx9527.fw.plus.ai.base.model.LlmTokenStream;
 import com.xiongx9527.fw.plus.jdbc.execution.QueryResult;
 import com.xiongx9527.fw.plus.jdbc.execution.SqlExecInput;
 import com.xiongx9527.fw.plus.jdbc.execution.SqlExecutionCapability;
+import com.xiongx9527.fw.plus.ai.askdata.prompt.SqlPrompt;
 import com.xiongx9527.fw.plus.ai.askdata.recall.SchemaCandidateProvider;
 import com.xiongx9527.fw.plus.ai.askdata.recall.SchemaRecallCapability;
 import com.xiongx9527.fw.plus.ai.askdata.recall.SchemaRecallInput;
@@ -38,9 +40,22 @@ class AskDataAuthorizationFlowTest {
             input.getCandidates().add(injected);
             return SchemaContext.builder().tables(input.getCandidates()).build();
         };
-        SqlGenerationCapability generation = input -> {
-            generated[0] = input;
-            return SqlGenResult.builder().valid(false).build();
+        SqlGenerationCapability generation = new SqlGenerationCapability() {
+            @Override
+            public SqlGenResult generate(SqlGenInput input) {
+                generated[0] = input;
+                return SqlGenResult.builder().valid(false).build();
+            }
+
+            @Override
+            public LlmTokenStream generateStream(SqlGenInput input) {
+                return null;
+            }
+
+            @Override
+            public SqlGenResult refine(String rawOutput, SqlPrompt prompt, SqlGenInput meta) {
+                return SqlGenResult.builder().valid(false).build();
+            }
         };
         DefaultAskDataCapability capability = new DefaultAskDataCapability(
                 query -> Collections.singletonList(authorized), maliciousRecall, generation,
@@ -65,7 +80,22 @@ class AskDataAuthorizationFlowTest {
             recalled[0] = input;
             return SchemaContext.builder().tables(input.getCandidates()).build();
         };
-        SqlGenerationCapability generation = input -> SqlGenResult.builder().valid(false).build();
+        SqlGenerationCapability generation = new SqlGenerationCapability() {
+            @Override
+            public SqlGenResult generate(SqlGenInput input) {
+                return SqlGenResult.builder().valid(false).build();
+            }
+
+            @Override
+            public LlmTokenStream generateStream(SqlGenInput input) {
+                return null;
+            }
+
+            @Override
+            public SqlGenResult refine(String rawOutput, SqlPrompt prompt, SqlGenInput meta) {
+                return SqlGenResult.builder().valid(false).build();
+            }
+        };
         SqlExecutionCapability execution = input -> QueryResult.builder().build();
 
         DefaultAskDataCapability capability = new DefaultAskDataCapability(

@@ -12,6 +12,22 @@ import java.util.List;
  */
 public class SqlPromptBuilder {
 
+    /** 是否要求模型在结构化输出中附带 brief / chart-type（产品 SQL JSON 协议）。默认关，向后兼容。 */
+    private boolean requestMetadata = false;
+
+    /** 严格 JSON 协议模式：强制模型只返回产品 SQL JSON（success/sql/brief/chart-type/tables），不做反引号包裹。 */
+    private boolean jsonProtocol = false;
+
+    public SqlPromptBuilder requestMetadata(boolean v) {
+        this.requestMetadata = v;
+        return this;
+    }
+
+    public SqlPromptBuilder jsonProtocol(boolean v) {
+        this.jsonProtocol = v;
+        return this;
+    }
+
     public SqlPrompt build(SqlGenInput input) {
         SqlDialect dialect = SqlDialect.fromHint(input.getDialectHint());
         String schema = input.getSchemaContext() == null ? "(no schema provided)" : input.getSchemaContext().render();
@@ -72,7 +88,14 @@ public class SqlPromptBuilder {
                 .replace("{customPromptBlock}", customPromptBlock.toString())
                 .replace("{question}", input.getQuestion());
 
-        return new SqlPrompt(SqlPromptTemplates.SYSTEM, user);
+        String system = SqlPromptTemplates.SYSTEM;
+        if (requestMetadata) {
+            system = system + "\n" + I18nMessageResolver.resolveKey("askdata.prompt.sql.system.metadata");
+        }
+        if (jsonProtocol) {
+            system = system + "\n" + I18nMessageResolver.resolveKey("askdata.prompt.sql.system.json_protocol");
+        }
+        return new SqlPrompt(system, user);
     }
 
     /** 将召回的 RAG 列表渲染成「{header}条目1\n条目2\n」段落；列表为空时返回空串。 */

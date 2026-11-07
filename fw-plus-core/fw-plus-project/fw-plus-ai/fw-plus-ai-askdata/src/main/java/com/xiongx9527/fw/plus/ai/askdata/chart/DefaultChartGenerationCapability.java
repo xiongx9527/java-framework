@@ -1,10 +1,14 @@
 package com.xiongx9527.fw.plus.ai.askdata.chart;
 
+import com.xiongx9527.fw.plus.ai.askdata.chart.data.ChartColumn;
 import com.xiongx9527.fw.plus.ai.askdata.chart.data.ChartDataset;
 import com.xiongx9527.fw.plus.ai.base.model.LlmPort;
 import com.xiongx9527.fw.plus.ai.base.model.LlmResponse;
 import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -18,6 +22,9 @@ import org.slf4j.LoggerFactory;
 public class DefaultChartGenerationCapability implements ChartGenerationCapability {
 
     private static final Logger log = LoggerFactory.getLogger(DefaultChartGenerationCapability.class);
+
+    /** G2 模式解析模型输出用（仅解析，不依赖 Spring 容器）。 */
+    private static final ObjectMapper G2_MAPPER = new ObjectMapper();
 
     private final LlmPort llm;
     private final ChartConfigBuilder builder;
@@ -57,9 +64,15 @@ public class DefaultChartGenerationCapability implements ChartGenerationCapabili
             log.debug("chart-generate rows truncated to {}", ChartDataset.MAX_CHART_ROWS);
         }
 
+        // G2 模式：要求模型直接产出 G2 风格配置，能力层跳过 ECharts 构造 / 校验，原样透传该 Map。
+        if (input.getChartFormat() == ChartFormat.G2) {
+            return generateG2(input, ds);
+        }
+
         ChartSuggestion suggestion;
         boolean usedLlm = false;
         String source;
+        String rawOutput = "";
         if (input.getPreferredType() != null) {
             suggestion = withAxesForType(input.getPreferredType(), ds);
             source = "preferred";
@@ -67,6 +80,7 @@ public class DefaultChartGenerationCapability implements ChartGenerationCapabili
             try {
                 LlmResponse response = llm.complete(promptBuilder.buildSystem(), promptBuilder.buildUser(input));
                 String raw = response == null ? null : response.getContent();
+                rawOutput = raw == null ? "" : raw;
                 ChartSuggestion parsed = parser.parse(raw);
                 if (parsed != null && parsed.getType() != ChartType.UNKNOWN) {
                     suggestion = parsed;
@@ -107,9 +121,116 @@ public class DefaultChartGenerationCapability implements ChartGenerationCapabili
         return ChartGenResult.builder()
                 .chartType(suggestion.getType())
                 .config(config)
+                .rawOutput(rawOutput)
                 .confidence(confidence)
                 .degraded(degraded)
                 .build();
+    }
+
+    /**
+     * G2 模式生成：让模型直接产出 G2 配置 JSON（{@code type/title/columns/axis}），能力层仅做解析与最小兜底，
+     * 不构造 ECharts 配置、不跑 ECharts 校验。模型不可用 / 产出非法 JSON 时退化为确定性 G2 表格配置。
+     */
+    private ChartGenResult generateG2(ChartGenInput input, ChartDataset ds) {
+        Map<String, Object> config;
+        ChartType type;
+        boolean degraded;
+        double confidence;
+        String rawOutput = "";
+        if (llm != null) {
+            try {
+                LlmResponse response = llm.complete(promptBuilder.buildSystem(), promptBuilder.buildUser(input));
+                String raw = response == null ? null : response.getContent();
+                rawOutput = raw == null ? "" : raw;
+                Map<String, Object> parsed = parseG2(raw);
+                if (parsed != null && parsed.get("type") != null) {
+                    config = parsed;
+                    type = ChartType.fromHint(String.valueOf(parsed.get("type")));
+                    degraded = false;
+                    confidence = 0.85d;
+                } else {
+                    config = fallbackG2(ds);
+                    type = ChartType.TABLE;
+                    degraded = true;
+                    confidence = 0.4d;
+                }
+            } catch (RuntimeException e) {
+                config = fallbackG2(ds);
+                type = ChartType.TABLE;
+                degraded = true;
+                confidence = 0.4d;
+            }
+        } else {
+            // G2 模式依赖模型产出；无模型时退化为确定性 G2 表格配置，保证仍有可渲染结果。
+            config = fallbackG2(ds);
+            type = ChartType.TABLE;
+            degraded = true;
+            confidence = 0.4d;
+        }
+        // §6.37 全链路日志：只记元数据，不记行数据 / 模型原文。
+        log.info("chart-generate[g2] type={} degraded={} rows={}", type, degraded, ds.rowCount());
+        return ChartGenResult.builder()
+                .chartType(type)
+                .config(config)
+                .rawOutput(rawOutput)
+                .confidence(confidence)
+                .degraded(degraded)
+                .build();
+    }
+
+    /** 解析模型输出的 G2 配置 JSON（容忍 ```json 围栏），并剔除内联 data（数据由前端另行下发）。 */
+    private static Map<String, Object> parseG2(String raw) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return null;
+        }
+        String json = stripFences(raw);
+        if (json.isEmpty()) {
+            return null;
+        }
+        try {
+            Map<String, Object> map = G2_MAPPER.readValue(json, new TypeReference<Map<String, Object>>() {
+            });
+            map.remove("data");
+            return map;
+        } catch (Exception e) {
+            log.info("chart-generate[g2] parse failed: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /** 去掉模型输出可能携带的 ```json ... ``` 围栏。 */
+    private static String stripFences(String raw) {
+        String s = raw.trim();
+        if (s.startsWith("```")) {
+            int nl = s.indexOf('\n');
+            if (nl >= 0) {
+                s = s.substring(nl + 1);
+            }
+            int last = s.lastIndexOf("```");
+            if (last >= 0) {
+                s = s.substring(0, last);
+            }
+        }
+        return s.trim();
+    }
+
+    /** 确定性兜底：依据数据集列构造最小 G2 表格配置（columns + 空 axis）。 */
+    private static Map<String, Object> fallbackG2(ChartDataset ds) {
+        Map<String, Object> chart = new LinkedHashMap<>();
+        chart.put("type", "table");
+        chart.put("title", "");
+        List<Map<String, Object>> columns = new ArrayList<>();
+        if (ds.getColumns() != null) {
+            for (ChartColumn c : ds.getColumns()) {
+                Map<String, Object> col = new LinkedHashMap<>();
+                col.put("name", c.getName());
+                col.put("value", c.getName());
+                columns.add(col);
+            }
+        }
+        chart.put("columns", columns);
+        chart.put("axis", new LinkedHashMap<String, Object>());
+        return chart;
     }
 
     private ChartSuggestion withAxesForType(ChartType type, ChartDataset ds) {

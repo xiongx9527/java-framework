@@ -104,4 +104,54 @@ public class DefaultChartGenerationCapabilityTest {
         assertThrows(ChartGenerationException.class,
                 () -> cap.generate(ChartGenInput.builder().question("q").build()));
     }
+
+    @Test
+    void g2ModeUsesLlmConfigDirectly() {
+        String g2 = "{\"type\":\"column\",\"title\":\"各区域金额\",\"columns\":[{\"name\":\"region\",\"value\":\"region\"}],"
+                + "\"axis\":{\"x\":{\"name\":\"region\",\"value\":\"region\"},\"y\":{\"name\":\"amount\",\"value\":\"amount\"}}}";
+        LlmPort port = new StaticLlmPort(g2);
+        ChartGenerationCapability cap = ChartGenerationCapabilityBuilder.builder()
+                .llm(port).chartFormat(ChartFormat.G2).build();
+        ChartGenResult r = cap.generate(ChartGenInput.builder().question("各区域金额").data(ds())
+                .chartFormat(ChartFormat.G2).build());
+        assertEquals(ChartType.BAR, r.getChartType());
+        assertFalse(r.isDegraded());
+        assertEquals("column", r.getConfig().get("type"));
+        assertEquals(g2, r.getRawOutput());
+    }
+
+    @Test
+    void g2ModeStripsCodeFence() {
+        String g2 = "```json\n{\"type\":\"pie\",\"title\":\"t\",\"columns\":[],\"axis\":{}}\n```";
+        LlmPort port = new StaticLlmPort(g2);
+        ChartGenerationCapability cap = ChartGenerationCapabilityBuilder.builder()
+                .llm(port).chartFormat(ChartFormat.G2).build();
+        ChartGenResult r = cap.generate(ChartGenInput.builder().question("q").data(ds())
+                .chartFormat(ChartFormat.G2).build());
+        assertEquals(ChartType.PIE, r.getChartType());
+        assertEquals("pie", r.getConfig().get("type"));
+    }
+
+    @Test
+    void g2ModeFallsBackOnInvalidJson() {
+        LlmPort port = new StaticLlmPort("完全不是 JSON 的废话");
+        ChartGenerationCapability cap = ChartGenerationCapabilityBuilder.builder()
+                .llm(port).chartFormat(ChartFormat.G2).build();
+        ChartGenResult r = cap.generate(ChartGenInput.builder().question("q").data(ds())
+                .chartFormat(ChartFormat.G2).build());
+        assertEquals(ChartType.TABLE, r.getChartType());
+        assertTrue(r.isDegraded());
+        assertEquals("table", r.getConfig().get("type"));
+    }
+
+    @Test
+    void g2ModeFallsBackWhenNoLlm() {
+        ChartGenerationCapability cap = ChartGenerationCapabilityBuilder.builder()
+                .chartFormat(ChartFormat.G2).build();
+        ChartGenResult r = cap.generate(ChartGenInput.builder().question("q").data(ds())
+                .chartFormat(ChartFormat.G2).build());
+        assertEquals(ChartType.TABLE, r.getChartType());
+        assertTrue(r.isDegraded());
+        assertEquals("table", r.getConfig().get("type"));
+    }
 }
