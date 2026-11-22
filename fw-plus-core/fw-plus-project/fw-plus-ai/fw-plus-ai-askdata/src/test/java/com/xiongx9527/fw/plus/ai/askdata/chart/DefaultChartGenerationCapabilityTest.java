@@ -121,6 +121,29 @@ public class DefaultChartGenerationCapabilityTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void g2ModeAlignsSwappedNameValueAgainstRealColumns() {
+        // 模型把 name/value 写反：name=英文别名(真实列名)，value=中文显示名(非真实列名)
+        String g2 = "{\"type\":\"column\",\"title\":\"t\",\"columns\":[{\"name\":\"region\",\"value\":\"区域\"}],"
+                + "\"axis\":{\"x\":{\"name\":\"region\",\"value\":\"区域\"},\"y\":{\"name\":\"amount\",\"value\":\"金额\"}}}";
+        LlmPort port = new StaticLlmPort(g2);
+        ChartGenerationCapability cap = ChartGenerationCapabilityBuilder.builder()
+                .llm(port).chartFormat(ChartFormat.G2).build();
+        ChartGenResult r = cap.generate(ChartGenInput.builder().question("q").data(ds())
+                .chartFormat(ChartFormat.G2).build());
+        Map<String, Object> axis = (Map<String, Object>) r.getConfig().get("axis");
+        Map<String, Object> x = (Map<String, Object>) axis.get("x");
+        Map<String, Object> y = (Map<String, Object>) axis.get("y");
+        // 校正后 value 必须是数据行真实键，name 是显示名
+        assertEquals("region", x.get("value"));
+        assertEquals("区域", x.get("name"));
+        assertEquals("amount", y.get("value"));
+        assertEquals("金额", y.get("name"));
+        Map<String, Object> col = ((List<Map<String, Object>>) r.getConfig().get("columns")).get(0);
+        assertEquals("region", col.get("value"));
+    }
+
+    @Test
     void g2ModeStripsCodeFence() {
         String g2 = "```json\n{\"type\":\"pie\",\"title\":\"t\",\"columns\":[],\"axis\":{}}\n```";
         LlmPort port = new StaticLlmPort(g2);

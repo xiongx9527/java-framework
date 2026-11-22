@@ -8,9 +8,11 @@ import com.xiongx9527.fw.plus.common.i18n.I18nMessageResolver;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -144,6 +146,9 @@ public class DefaultChartGenerationCapability implements ChartGenerationCapabili
                 rawOutput = raw == null ? "" : raw;
                 Map<String, Object> parsed = parseG2(raw);
                 if (parsed != null && parsed.get("type") != null) {
+                    // A：模型常把 name/value 写反（name 填英文别名、value 填中文显示名），
+                    // 按数据集真实列名校正，保证 value 始终是数据行的键。
+                    alignG2Fields(parsed, ds);
                     config = parsed;
                     type = ChartType.fromHint(String.valueOf(parsed.get("type")));
                     degraded = false;
@@ -176,6 +181,67 @@ public class DefaultChartGenerationCapability implements ChartGenerationCapabili
                 .confidence(confidence)
                 .degraded(degraded)
                 .build();
+    }
+
+    /**
+     * 校正模型产出的 G2 字段映射：前端用 {@code value} 作为数据行的键，故 value 必须是数据集真实列名。
+     * 模型（尤其小模型/受 SQL 中 AS 中文别名影响）常把 name/value 写反（name=英文别名、value=中文显示名）；
+     * 此处对每个 {name,value} 节点：若 value 不在真实列名而 name 在，则交换二者。
+     * 不修改任何字段都在列名集合内的正确配置，也不猜测两边都不匹配的节点。
+     */
+    @SuppressWarnings("unchecked")
+    private static void alignG2Fields(Map<String, Object> config, ChartDataset ds) {
+        Set<String> actual = new HashSet<String>();
+        if (ds.getColumns() != null) {
+            for (ChartColumn c : ds.getColumns()) {
+                actual.add(c.getName());
+            }
+        }
+        if (actual.isEmpty()) {
+            return;
+        }
+        // columns: [{name,value}]
+        Object columns = config.get("columns");
+        if (columns instanceof List) {
+            for (Object item : (List<Object>) columns) {
+                alignEntry(item, actual);
+            }
+        }
+        // axis: {x:{name,value}, y:{...}|[...], series:{...}, multi-quota:{name,value:[...]}}
+        Object axisObj = config.get("axis");
+        if (axisObj instanceof Map) {
+            Map<String, Object> axis = (Map<String, Object>) axisObj;
+            for (String key : new String[]{"x", "y", "series"}) {
+                Object node = axis.get(key);
+                if (node instanceof List) {
+                    for (Object item : (List<Object>) node) {
+                        alignEntry(item, actual);
+                    }
+                } else {
+                    alignEntry(node, actual);
+                }
+            }
+        }
+    }
+
+    /** 单个 {name,value} 节点：value 非真实列名而 name 是时交换。 */
+    @SuppressWarnings("unchecked")
+    private static void alignEntry(Object node, Set<String> actualColumns) {
+        if (!(node instanceof Map)) {
+            return;
+        }
+        Map<String, Object> entry = (Map<String, Object>) node;
+        Object name = entry.get("name");
+        Object value = entry.get("value");
+        if (name == null || value == null) {
+            return;
+        }
+        String ns = String.valueOf(name);
+        String vs = String.valueOf(value);
+        if (!actualColumns.contains(vs) && actualColumns.contains(ns)) {
+            entry.put("name", value);
+            entry.put("value", name);
+        }
     }
 
     /** 解析模型输出的 G2 配置 JSON（容忍 ```json 围栏），并剔除内联 data（数据由前端另行下发）。 */
