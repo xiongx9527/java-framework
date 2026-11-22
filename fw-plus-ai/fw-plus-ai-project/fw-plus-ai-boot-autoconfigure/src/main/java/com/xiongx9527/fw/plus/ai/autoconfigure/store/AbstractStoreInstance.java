@@ -31,6 +31,9 @@ public abstract class AbstractStoreInstance {
     /** 密码（同上）。 */
     private String password;
 
+    /** API Key（Qdrant / Weaviate / Elasticsearch 等基于 key 鉴权的后端）。 */
+    private String apiKey;
+
     /** 连接超时（毫秒）；null 交由端口使用默认值。 */
     private Integer connectTimeoutMillis;
 
@@ -85,6 +88,14 @@ public abstract class AbstractStoreInstance {
         this.password = password;
     }
 
+    public String getApiKey() {
+        return apiKey;
+    }
+
+    public void setApiKey(String apiKey) {
+        this.apiKey = apiKey;
+    }
+
     public Integer getConnectTimeoutMillis() {
         return connectTimeoutMillis;
     }
@@ -113,6 +124,7 @@ public abstract class AbstractStoreInstance {
     public StoreConfig.Builder commonBuilder() {
         StoreConfig.Builder b = StoreConfig.builder()
                 .baseUrl(baseUrl)
+                .apiKey(apiKey)
                 .username(username)
                 .password(password)
                 .connectTimeoutMillis(connectTimeoutMillis)
