@@ -46,6 +46,11 @@
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
         </dependency>
+        <!-- SQL 确定性护栏：按 AST 精确修复小模型生成的列名/GROUP BY 错误；版本由 fw-plus-dependencies BOM 统一管理（主线 4.6） -->
+        <dependency>
+            <groupId>com.github.jsqlparser</groupId>
+            <artifactId>jsqlparser</artifactId>
+        </dependency>
         <!-- i18n 解析依赖 Spring 的 LocaleContextHolder，与 fw-plus-common 保持一致标记为 optional，不强制下游引入 -->
         <dependency>
             <groupId>org.springframework</groupId>
