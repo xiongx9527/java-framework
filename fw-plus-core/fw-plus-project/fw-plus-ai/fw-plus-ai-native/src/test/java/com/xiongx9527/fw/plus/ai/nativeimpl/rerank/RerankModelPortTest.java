@@ -52,6 +52,33 @@ class RerankModelPortTest {
     }
 
     @Test
+    void cohereStyleAppendsRerankPathWhenEndpointIsBaseOnly() throws Exception {
+        FakeHttpServer server = new FakeHttpServer(request -> FakeHttpServer.json(200, FakeHttpServer.body(
+                "{'results':[{'index':0,'relevance_score':0.5}]}")));
+        try {
+            // endpoint 只给服务根，框架应自动补 /v1/rerank
+            RerankModelPort port = new RerankModelPort(server.url(), "k", "rerank-v3",
+                    RerankModelPort.Style.COHERE);
+            port.score("q", Arrays.asList("a"));
+            FakeHttpServer.Request req1 = server.lastRequest();
+            assertEquals("/v1/rerank", req1.path);
+            // 已带 /v1 时只补 /rerank，避免 /v1/v1/rerank
+            FakeHttpServer server2 = new FakeHttpServer(request -> FakeHttpServer.json(200, FakeHttpServer.body(
+                    "{'results':[{'index':0,'relevance_score':0.5}]}")));
+            try {
+                RerankModelPort port2 = new RerankModelPort(server2.url() + "/v1", "k", "rerank-v3",
+                        RerankModelPort.Style.COHERE);
+                port2.score("q", Arrays.asList("a"));
+                assertEquals("/v1/rerank", server2.lastRequest().path);
+            } finally {
+                server2.close();
+            }
+        } finally {
+            server.close();
+        }
+    }
+
+    @Test
     void emptyDocumentsReturnsEmptyListWithoutCallingServer() throws Exception {
         FakeHttpServer server = new FakeHttpServer(request -> FakeHttpServer.json(200, "[]"));
         try {

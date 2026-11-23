@@ -60,10 +60,25 @@ public class RerankModelPort implements RerankPort {
         if (endpoint == null || endpoint.trim().isEmpty()) {
             throw new IllegalArgumentException("rerank endpoint is required");
         }
-        this.endpoint = endpoint;
+        this.style = style == null ? Style.COHERE : style;
+        // endpoint 自动补 rerank 路径：调用方常只给服务根/LLM base（如 http://host:19529/llm），
+        // 若未以 /rerank 结尾则按 style 补齐，避免请求落到非 rerank 路径。已给全路径则原样保留。
+        String ep = endpoint.trim();
+        while (ep.endsWith("/")) {
+            ep = ep.substring(0, ep.length() - 1);
+        }
+        if (!ep.endsWith("/rerank")) {
+            if (ep.endsWith("/v1")) {
+                ep = ep + "/rerank";
+            } else if (this.style == Style.TEI) {
+                ep = ep + "/rerank";
+            } else {
+                ep = ep + "/v1/rerank";
+            }
+        }
+        this.endpoint = ep;
         this.apiKey = apiKey;
         this.model = model;
-        this.style = style == null ? Style.COHERE : style;
         this.connectTimeoutMillis = connectTimeoutMillis;
         this.readTimeoutMillis = readTimeoutMillis;
     }
