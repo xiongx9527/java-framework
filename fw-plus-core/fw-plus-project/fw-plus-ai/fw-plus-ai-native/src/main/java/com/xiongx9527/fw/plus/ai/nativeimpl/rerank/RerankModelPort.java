@@ -22,8 +22,9 @@ import org.slf4j.LoggerFactory;
  * <ul>
  *   <li>{@link Style#TEI} —— HuggingFace text-embeddings-inference 的 {@code /rerank}：
  *       请求 {@code {query, texts:[...]}}，响应为按分数降序的 {@code [{index, score}]}。</li>
- *   <li>{@link Style#COHERE} —— Cohere / Jina 风格（{@code /v1/rerank}、{@code /v2/rerank}）：
- *       请求 {@code {model, query, documents:[...], top_n}}，响应 {@code {results:[{index, relevance_score}]}}。</li>
+ *   <li>{@link Style#COHERE} —— 遵循本项目对外统一规范（docs/rerank-unify-spec.md §3），兼容 Cohere / Jina：
+ *       请求 {@code {model, query, documents, top_n, return_documents}}，端点 {@code {前缀}/v1/rerank}；
+ *       响应 {@code {results:[{index, relevance_score}]}}，兼容 score/relevance、output.results 变体。</li>
  * </ul>
  *
  * <p>两者都返回「下标对应输入 documents」，实现把降序结果回填成与输入顺序对齐的分数数组；
@@ -36,6 +37,7 @@ public class RerankModelPort implements RerankPort {
 
     public enum Style {
         TEI,
+        /** 本项目对外统一规范（§3）：{model,query,documents,top_n,return_documents} → {results:[{index,relevance_score}]}，端点 {前缀}/v1/rerank。 */
         COHERE
     }
 
@@ -61,19 +63,25 @@ public class RerankModelPort implements RerankPort {
             throw new IllegalArgumentException("rerank endpoint is required");
         }
         this.style = style == null ? Style.COHERE : style;
-        // endpoint 自动补 rerank 路径：调用方常只给服务根/LLM base（如 http://host:19529/llm），
-        // 若未以 /rerank 结尾则按 style 补齐，避免请求落到非 rerank 路径。已给全路径则原样保留。
+        // endpoint 自动补 rerank 路径：调用方常只给服务根（如 http://host:19529），
+        // 若路径里没有 /rerank 段则按 style 补齐（旧约定 COHERE→/v1/rerank、TEI→/rerank）。
+        // 已给全路径（含 /rerank/v1、/rerank/tei、/v1/rerank、/rerank 等）则原样保留。
         String ep = endpoint.trim();
         while (ep.endsWith("/")) {
             ep = ep.substring(0, ep.length() - 1);
         }
-        if (!ep.endsWith("/rerank")) {
-            if (ep.endsWith("/v1")) {
+        java.net.URI uri = java.net.URI.create(ep);
+        String path = uri.getPath() == null ? "" : uri.getPath();
+        if (!path.contains("/rerank")) {
+            if (this.style == Style.TEI) {
+                // TEI 官方规范：固定 /rerank
                 ep = ep + "/rerank";
-            } else if (this.style == Style.TEI) {
+            } else if (ep.endsWith("/v1")) {
+                // base 已带 /v1：补 /rerank 得 /v1/rerank（旧写法，避免 /v1/v1/rerank）
                 ep = ep + "/rerank";
             } else {
-                ep = ep + "/v1/rerank";
+                // COHERE 统一规范端点：缺前缀时补 /rerank/v1/rerank
+                ep = ep + "/rerank/v1/rerank";
             }
         }
         this.endpoint = ep;
@@ -107,8 +115,15 @@ public class RerankModelPort implements RerankPort {
             if (index < 0 || index >= scores.size()) {
                 continue;
             }
-            JsonNode value = style == Style.TEI
-                    ? item.get("score") : item.get("relevance_score");
+            JsonNode value;
+            if (style == Style.TEI) {
+                value = item.get("score");
+            } else {
+                // §3.5 厂商变体：relevance_score 为主，兼容 score / relevance 字段名
+                value = item.get("relevance_score");
+                if (value == null || !value.isNumber()) value = item.get("score");
+                if (value == null || !value.isNumber()) value = item.get("relevance");
+            }
             if (value != null && value.isNumber()) {
                 scores.set(index, value.asDouble());
             }
@@ -155,6 +170,8 @@ public class RerankModelPort implements RerankPort {
             }
             body.put("documents", documents);
             body.put("top_n", documents.size());
+            // §3 规范字段：是否回带原文（框架只要分数，固定 false 省带宽）
+            body.put("return_documents", false);
         }
         try {
             byte[] data = mapper.writeValueAsBytes(body);
@@ -165,7 +182,14 @@ public class RerankModelPort implements RerankPort {
             OkHttp.Response response = OkHttp.requireOk(
                     OkHttp.send("POST", endpoint, data, headers, connectTimeoutMillis, readTimeoutMillis));
             JsonNode root = mapper.readTree(response.getBody());
-            JsonNode results = style == Style.TEI ? root : root.path("results");
+            JsonNode results;
+            if (style == Style.TEI) {
+                results = root;
+            } else {
+                // §3 主形状 results[]；兼容 §3.5 厂商变体 output.results[]
+                results = root.path("results");
+                if (results == null || !results.isArray()) results = root.path("output").path("results");
+            }
             return results != null && results.isArray() ? results : null;
         } catch (IOException ex) {
             log.warn("rerank failed, fallback to zero scores: {}", ex.getMessage());
